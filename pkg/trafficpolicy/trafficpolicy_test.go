@@ -8,7 +8,8 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -71,7 +72,7 @@ func TestAddRoute(t *testing.T) {
 		expectedRoutes        []*RouteWeightedClusters
 		givenRouteMatch       HTTPRouteMatch
 		givenWeightedClusters []service.WeightedCluster
-		givenRetryPolicy      *v1alpha1.RetryPolicySpec
+		givenRetryPolicy      *policyv1alpha1.RetryPolicySpec
 		expectedErr           bool
 	}{
 		{
@@ -79,12 +80,12 @@ func TestAddRoute(t *testing.T) {
 			existingRoutes:        []*RouteWeightedClusters{},
 			givenRouteMatch:       testHTTPRouteMatch,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster},
-			givenRetryPolicy:      &v1alpha1.RetryPolicySpec{},
+			givenRetryPolicy:      &policyv1alpha1.RetryPolicySpec{},
 			expectedRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
 					WeightedClusters: mapset.NewSet(testWeightedCluster),
-					RetryPolicy:      &v1alpha1.RetryPolicySpec{},
+					RetryPolicy:      &policyv1alpha1.RetryPolicySpec{},
 				},
 			},
 			expectedErr: false,
@@ -99,7 +100,7 @@ func TestAddRoute(t *testing.T) {
 			},
 			givenRouteMatch:       testHTTPRouteMatch2,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster2},
-			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
+			givenRetryPolicy: &policyv1alpha1.RetryPolicySpec{
 				RetryOn: "5xx",
 			},
 			expectedRoutes: []*RouteWeightedClusters{
@@ -110,7 +111,7 @@ func TestAddRoute(t *testing.T) {
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch2,
 					WeightedClusters: mapset.NewSet(testWeightedCluster2),
-					RetryPolicy: &v1alpha1.RetryPolicySpec{
+					RetryPolicy: &policyv1alpha1.RetryPolicySpec{
 						RetryOn: "5xx",
 					},
 				},
@@ -127,7 +128,7 @@ func TestAddRoute(t *testing.T) {
 			},
 			givenRouteMatch:       testHTTPRouteMatch2,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster, testWeightedCluster2},
-			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
+			givenRetryPolicy: &policyv1alpha1.RetryPolicySpec{
 				RetryOn:       "5xx",
 				PerTryTimeout: &thresholdTimeoutDuration,
 			},
@@ -139,7 +140,7 @@ func TestAddRoute(t *testing.T) {
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch2,
 					WeightedClusters: mapset.NewSet(testWeightedCluster, testWeightedCluster2),
-					RetryPolicy: &v1alpha1.RetryPolicySpec{
+					RetryPolicy: &policyv1alpha1.RetryPolicySpec{
 						RetryOn:       "5xx",
 						PerTryTimeout: &thresholdTimeoutDuration,
 					},
@@ -157,7 +158,7 @@ func TestAddRoute(t *testing.T) {
 			},
 			givenRouteMatch:       testHTTPRouteMatch,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster},
-			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
+			givenRetryPolicy: &policyv1alpha1.RetryPolicySpec{
 				RetryOn:       "5xx",
 				NumRetries:    &thresholdUintVal,
 				PerTryTimeout: &thresholdTimeoutDuration,
@@ -166,7 +167,7 @@ func TestAddRoute(t *testing.T) {
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
 					WeightedClusters: mapset.NewSet(testWeightedCluster),
-					RetryPolicy: &v1alpha1.RetryPolicySpec{
+					RetryPolicy: &policyv1alpha1.RetryPolicySpec{
 						RetryOn:       "5xx",
 						NumRetries:    &thresholdUintVal,
 						PerTryTimeout: &thresholdTimeoutDuration,
@@ -185,7 +186,7 @@ func TestAddRoute(t *testing.T) {
 			},
 			givenRouteMatch:       testHTTPRouteMatch,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster2},
-			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
+			givenRetryPolicy: &policyv1alpha1.RetryPolicySpec{
 				RetryOn:                  "5xx",
 				RetryBackoffBaseInterval: &thresholdBackoffDuration,
 			},
@@ -422,20 +423,65 @@ func TestMergeRouteWeightedClusters(t *testing.T) {
 func TestNewInboundTrafficPolicy(t *testing.T) {
 	assert := tassert.New(t)
 
-	name := "name"
-	hostnames := []string{"hostname1", "hostname2"}
-	expected := &InboundTrafficPolicy{Name: name, Hostnames: hostnames}
+	rateLimitSpec := &policyv1alpha1.RateLimitSpec{
+		Local: &policyv1alpha1.LocalRateLimitSpec{},
+	}
 
-	actual := NewInboundTrafficPolicy(name, hostnames)
-	assert.Equal(expected, actual)
+	testCases := []struct {
+		name                   string
+		policyName             string
+		hostnames              []string
+		upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
+		expected               *InboundTrafficPolicy
+	}{
+		{
+			name:       "basic inbound policy",
+			policyName: "foo",
+			hostnames:  []string{"foo.com", "bar.com"},
+			expected: &InboundTrafficPolicy{
+				Name:      "foo",
+				Hostnames: []string{"foo.com", "bar.com"},
+			},
+		},
+		{
+			name:       "inbound policy with rate limit configured",
+			policyName: "foo",
+			hostnames:  []string{"foo.com", "bar.com"},
+			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
+				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+					RateLimit: rateLimitSpec,
+				},
+			},
+			expected: &InboundTrafficPolicy{
+				Name:      "foo",
+				Hostnames: []string{"foo.com", "bar.com"},
+				RateLimit: rateLimitSpec,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := NewInboundTrafficPolicy(tc.policyName, tc.hostnames, tc.upstreamTrafficSetting)
+			assert.Equal(tc.expected, actual)
+		})
+	}
 }
 
 func TestNewRouteWeightedCluster(t *testing.T) {
+	perRouteRateLimitConfig := &policyv1alpha1.HTTPPerRouteRateLimitSpec{
+		Local: &policyv1alpha1.HTTPLocalRateLimitSpec{
+			Requests: 10,
+			Unit:     "second",
+		},
+	}
+
 	testCases := []struct {
-		name             string
-		route            HTTPRouteMatch
-		weightedClusters []service.WeightedCluster
-		expected         *RouteWeightedClusters
+		name                   string
+		route                  HTTPRouteMatch
+		weightedClusters       []service.WeightedCluster
+		upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
+		expected               *RouteWeightedClusters
 	}{
 		{
 			name:             "single weighted cluster in set",
@@ -443,13 +489,33 @@ func TestNewRouteWeightedCluster(t *testing.T) {
 			weightedClusters: []service.WeightedCluster{testWeightedCluster},
 			expected:         &RouteWeightedClusters{HTTPRouteMatch: testHTTPRouteMatch, WeightedClusters: mapset.NewSet(testWeightedCluster)},
 		},
+		{
+			name:             "per route rate limiting",
+			route:            testHTTPRouteMatch,
+			weightedClusters: []service.WeightedCluster{testWeightedCluster},
+			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
+				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+					HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
+						{
+							Path:      testHTTPRouteMatch.Path, // matches path on HTTPRouteMatch
+							RateLimit: perRouteRateLimitConfig,
+						},
+					},
+				},
+			},
+			expected: &RouteWeightedClusters{
+				HTTPRouteMatch:   testHTTPRouteMatch,
+				WeightedClusters: mapset.NewSet(testWeightedCluster),
+				RateLimit:        perRouteRateLimitConfig,
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual := NewRouteWeightedCluster(tc.route, tc.weightedClusters)
+			actual := NewRouteWeightedCluster(tc.route, tc.weightedClusters, tc.upstreamTrafficSetting)
 			assert.Equal(tc.expected, actual)
 		})
 	}
