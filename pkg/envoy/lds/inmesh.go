@@ -17,7 +17,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -26,34 +25,42 @@ const (
 	outboundMeshTCPProxyStatPrefix = "outbound-mesh-tcp-proxy"
 )
 
-func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshService) []*xds_listener.FilterChain {
+func (lb *listenerBuilder) getInboundMeshFilterChains(trafficMatches []*trafficpolicy.TrafficMatch) []*xds_listener.FilterChain {
 	var filterChains []*xds_listener.FilterChain
 
-	// Create protocol specific inbound filter chains for MeshService's TargetPort
-	switch strings.ToLower(proxyService.Protocol) {
-	case constants.ProtocolHTTP, constants.ProtocolGRPC:
-		// Filter chain for HTTP port
-		filterChainForPort, err := lb.getInboundMeshHTTPFilterChain(proxyService)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error building inbound HTTP filter chain for proxy:port %s:%d", proxyService, proxyService.TargetPort)
-		}
-		filterChains = append(filterChains, filterChainForPort)
+	for _, match := range trafficMatches {
+		// Create protocol specific inbound filter chains for MeshService's TargetPort
+		switch strings.ToLower(match.DestinationProtocol) {
+		case constants.ProtocolHTTP, constants.ProtocolGRPC:
+			// Filter chain for HTTP port
+			filterChainForPort, err := lb.getInboundMeshHTTPFilterChain(match)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error building inbound HTTP filter chain for traffic match %s", match.Name)
+			} else {
+				filterChains = append(filterChains, filterChainForPort)
+			}
 
-	case constants.ProtocolTCP, constants.ProtocolTCPServerFirst:
-		filterChainForPort, err := lb.getInboundMeshTCPFilterChain(proxyService)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error building inbound TCP filter chain for proxy:port %s:%d", proxyService, proxyService.TargetPort)
-		}
-		filterChains = append(filterChains, filterChainForPort)
+		case constants.ProtocolTCP, constants.ProtocolTCPServerFirst:
+			filterChainForPort, err := lb.getInboundMeshTCPFilterChain(match)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error building inbound TCP filter chain for traffic match %s", match.Name)
+			} else {
+				filterChains = append(filterChains, filterChainForPort)
+			}
 
-	default:
-		log.Error().Msgf("Cannot build inbound filter chain, unsupported protocol %s for proxy-service:port %s:%d", proxyService.Protocol, proxyService, proxyService.TargetPort)
+		default:
+			log.Error().Msgf("Cannot build inbound filter chain, unsupported protocol %s for traffic match %s", match.DestinationProtocol, match.Name)
+		}
 	}
 
 	return filterChains
 }
 
-func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshService) ([]*xds_listener.Filter, error) {
+func (lb *listenerBuilder) getInboundHTTPFilters(trafficMatch *trafficpolicy.TrafficMatch) ([]*xds_listener.Filter, error) {
+	if trafficMatch == nil {
+		return nil, nil
+	}
+
 	var filters []*xds_listener.Filter
 
 	// Apply an RBAC filter when permissive mode is disabled. The RBAC filter must be the first filter in the list of filters.
@@ -61,7 +68,7 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 		// Apply RBAC policies on the inbound filters based on configured policies
 		rbacFilter, err := lb.buildRBACFilter()
 		if err != nil {
-			log.Error().Err(err).Msgf("Error applying RBAC filter for proxy service %s", proxyService)
+			log.Error().Err(err).Msgf("Error applying RBAC filter for traffic match %s", trafficMatch.Name)
 			return nil, err
 		}
 		// RBAC filter should be the very first filter in the filter chain
@@ -71,7 +78,7 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 	// Build the HTTP Connection Manager filter from its options
 	inboundConnManager, err := httpConnManagerOptions{
 		direction:         inbound,
-		rdsRoutConfigName: route.GetInboundMeshRouteConfigNameForPort(int(proxyService.TargetPort)),
+		rdsRoutConfigName: route.GetInboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort),
 
 		// Additional filters
 		wasmStatsHeaders:         lb.getWASMStatsHeaders(),
@@ -83,12 +90,12 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 		tracingAPIEndpoint: lb.cfg.GetTracingEndpoint(),
 	}.build()
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error building inbound HTTP connection manager for proxy with identity %s and service %s", lb.serviceIdentity, proxyService)
+		return nil, errors.Wrapf(err, "Error building inbound HTTP connection manager for proxy with identity %s and traffic match %s", lb.serviceIdentity, trafficMatch.Name)
 	}
 
 	marshalledInboundConnManager, err := anypb.New(inboundConnManager)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error marshalling inbound HTTP connection manager for proxy with identity %s and service %s", lb.serviceIdentity, proxyService)
+		return nil, errors.Wrapf(err, "Error marshalling inbound HTTP connection manager for proxy with identity %s and traffic match %s", lb.serviceIdentity, trafficMatch.Name)
 	}
 	httpConnectionManagerFilter := &xds_listener.Filter{
 		Name: wellknown.HTTPConnectionManager,
@@ -101,11 +108,15 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 	return filters, nil
 }
 
-func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.MeshService) (*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(trafficMatch *trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
+	if trafficMatch == nil {
+		return nil, nil
+	}
+
 	// Construct HTTP filters
-	filters, err := lb.getInboundHTTPFilters(proxyService)
+	filters, err := lb.getInboundHTTPFilters(trafficMatch)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error constructing inbound HTTP filters for proxy service %s", proxyService)
+		log.Error().Err(err).Msgf("Error constructing inbound HTTP filters for traffic match %s", trafficMatch.Name)
 		return nil, err
 	}
 
@@ -113,26 +124,24 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 	marshalledDownstreamTLSContext, err := anypb.New(envoy.GetDownstreamTLSContext(lb.serviceIdentity, true /* mTLS */, lb.cfg.GetMeshConfig().Spec.Sidecar))
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
-			Msgf("Error marshalling DownstreamTLSContext for proxy service %s", proxyService)
+			Msgf("Error marshalling DownstreamTLSContext for traffic match %s", trafficMatch.Name)
 		return nil, err
 	}
 
-	serverNames := []string{proxyService.ServerName()}
-
 	filterChain := &xds_listener.FilterChain{
-		Name:    proxyService.InboundTrafficMatchName(),
+		Name:    trafficMatch.Name,
 		Filters: filters,
 
 		// The 'FilterChainMatch' field defines the criteria for matching traffic against filters in this filter chain
 		FilterChainMatch: &xds_listener.FilterChainMatch{
 			// The DestinationPort is the service port the downstream directs traffic to
 			DestinationPort: &wrapperspb.UInt32Value{
-				Value: uint32(proxyService.TargetPort),
+				Value: uint32(trafficMatch.DestinationPort),
 			},
 
 			// The ServerName is the SNI set by the downstream in the UptreamTlsContext by GetUpstreamTLSContext()
 			// This is not a field obtained from the mTLS Certificate.
-			ServerNames: serverNames,
+			ServerNames: trafficMatch.ServerNames,
 
 			// Only match when transport protocol is TLS
 			TransportProtocol: envoy.TransportProtocolTLS,
@@ -152,11 +161,15 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 	return filterChain, nil
 }
 
-func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.MeshService) (*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) getInboundMeshTCPFilterChain(trafficMatch *trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
+	if trafficMatch == nil {
+		return nil, nil
+	}
+
 	// Construct TCP filters
-	filters, err := lb.getInboundTCPFilters(proxyService)
+	filters, err := lb.getInboundTCPFilters(trafficMatch)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error constructing inbound TCP filters for proxy service %s", proxyService)
+		log.Error().Err(err).Msgf("Error constructing inbound TCP filters for traffic match %s", trafficMatch.Name)
 		return nil, err
 	}
 
@@ -164,23 +177,21 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.Mes
 	marshalledDownstreamTLSContext, err := anypb.New(envoy.GetDownstreamTLSContext(lb.serviceIdentity, true /* mTLS */, lb.cfg.GetMeshConfig().Spec.Sidecar))
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
-			Msgf("Error marshalling DownstreamTLSContext for proxy service %s", proxyService)
+			Msgf("Error marshalling DownstreamTLSContext for traffic match %s", trafficMatch.Name)
 		return nil, err
 	}
 
-	serverNames := []string{proxyService.ServerName()}
-
 	return &xds_listener.FilterChain{
-		Name: proxyService.InboundTrafficMatchName(),
+		Name: trafficMatch.Name,
 		FilterChainMatch: &xds_listener.FilterChainMatch{
 			// The DestinationPort is the service port the downstream directs traffic to
 			DestinationPort: &wrapperspb.UInt32Value{
-				Value: uint32(proxyService.TargetPort),
+				Value: uint32(trafficMatch.DestinationPort),
 			},
 
 			// The ServerName is the SNI set by the downstream in the UptreamTlsContext by GetUpstreamTLSContext()
 			// This is not a field obtained from the mTLS Certificate.
-			ServerNames: serverNames,
+			ServerNames: trafficMatch.ServerNames,
 
 			// Only match when transport protocol is TLS
 			TransportProtocol: envoy.TransportProtocolTLS,
@@ -198,7 +209,11 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.Mes
 	}, nil
 }
 
-func (lb *listenerBuilder) getInboundTCPFilters(proxyService service.MeshService) ([]*xds_listener.Filter, error) {
+func (lb *listenerBuilder) getInboundTCPFilters(trafficMatch *trafficpolicy.TrafficMatch) ([]*xds_listener.Filter, error) {
+	if trafficMatch == nil {
+		return nil, nil
+	}
+
 	var filters []*xds_listener.Filter
 
 	// Apply an RBAC filter when permissive mode is disabled. The RBAC filter must be the first filter in the list of filters.
@@ -206,7 +221,7 @@ func (lb *listenerBuilder) getInboundTCPFilters(proxyService service.MeshService
 		// Apply RBAC policies on the inbound filters based on configured policies
 		rbacFilter, err := lb.buildRBACFilter()
 		if err != nil {
-			log.Error().Err(err).Msgf("Error applying RBAC filter for proxy service %s", proxyService)
+			log.Error().Err(err).Msgf("Error applying RBAC filter for traffic match %s", trafficMatch.Name)
 			return nil, err
 		}
 		// RBAC filter should be the very first filter in the filter chain
@@ -215,8 +230,8 @@ func (lb *listenerBuilder) getInboundTCPFilters(proxyService service.MeshService
 
 	// Apply the TCP Proxy Filter
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
-		StatPrefix:       fmt.Sprintf("%s.%s", inboundMeshTCPProxyStatPrefix, proxyService.EnvoyLocalClusterName()),
-		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: proxyService.EnvoyLocalClusterName()},
+		StatPrefix:       fmt.Sprintf("%s.%s", inboundMeshTCPProxyStatPrefix, trafficMatch.Cluster),
+		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: trafficMatch.Cluster},
 	}
 	marshalledTCPProxy, err := anypb.New(tcpProxy)
 	if err != nil {
