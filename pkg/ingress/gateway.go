@@ -197,7 +197,7 @@ func (c *client) removeGatewayCertAndSecret(storedCertSpec configv1alpha2.Ingres
 		return err
 	}
 
-	c.certProvider.ReleaseCertificate(storedCertSpec.SubjectAltNames[0])
+	c.certProvider.ReleaseCertificate(storedCertSpec.SubjectAltNames[0]) // Only single SAN is supported in certs
 
 	return nil
 }

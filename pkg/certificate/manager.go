@@ -59,9 +59,8 @@ func (m *Manager) Start(checkInterval time.Duration, stop <-chan struct{}) {
 // GetTrustDomain returns the trust domain from the configured signingkey issuer.
 // Note that the CRD uses a default, so this value will always be set.
 func (m *Manager) GetTrustDomain() string {
-	// TODO(4754): implement
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.signingIssuer.TrustDomain
 }
 
@@ -138,10 +137,10 @@ func (m *Manager) IssueCertificate(prefix string, opts ...IssueOption) (*Certifi
 		o(options)
 	}
 
-	m.mu.RLock()
+	m.mu.Lock()
 	validatingIssuer := m.validatingIssuer
 	signingIssuer := m.signingIssuer
-	m.mu.RUnlock()
+	m.mu.Unlock()
 
 	start := time.Now()
 	if cert == nil || cert.signingIssuerID != signingIssuer.ID || cert.validatingIssuerID != validatingIssuer.ID {

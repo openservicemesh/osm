@@ -17,7 +17,7 @@ import (
 )
 
 // NewResponse creates a new Route Discovery Response.
-func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryReq *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, mc *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryReq *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, cm *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
 	proxyServices, err := proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
@@ -27,7 +27,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 
 	var rdsResources []types.Resource
 
-	trustDomain := mc.GetTrustDomain()
+	trustDomain := cm.GetTrustDomain()
 
 	// ---
 	// Build inbound mesh route configurations. These route configurations allow

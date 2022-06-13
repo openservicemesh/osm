@@ -35,7 +35,6 @@ func (si ServiceIdentity) IsWildcard() bool {
 
 // AsPrincipal converts the ServiceIdentity to a Principal with the given trust domain.
 func (si ServiceIdentity) AsPrincipal(trustDomain string) string {
-	// TODO(4754): concatenate the trustdomain when it is removed from the SI.
 	if si.IsWildcard() {
 		return si.String()
 	}

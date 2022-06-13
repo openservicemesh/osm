@@ -87,7 +87,7 @@ type Manager struct {
 	serviceCertValidityDuration time.Duration
 	msgBroker                   *messaging.Broker
 
-	mu            sync.RWMutex // mu syncrhonizes acces to the below resources.
+	mu            sync.Mutex // mu syncrhonizes acces to the below resources.
 	signingIssuer *issuer
 	// equal to signingIssuer if there is no additional public cert issuer.
 	validatingIssuer *issuer

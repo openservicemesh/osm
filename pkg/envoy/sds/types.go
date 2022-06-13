@@ -4,7 +4,6 @@ package sds
 import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -17,7 +16,6 @@ var (
 type sdsImpl struct {
 	serviceIdentity identity.ServiceIdentity
 	meshCatalog     catalog.MeshCataloger
-	cfg             configurator.Configurator
 	certManager     *certificate.Manager
 	TrustDomain     string
 }

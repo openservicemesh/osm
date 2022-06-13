@@ -20,7 +20,6 @@ import (
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -57,15 +56,12 @@ func TestNewResponse(t *testing.T) {
 	podID := uuid.New()
 
 	proxy := envoy.NewProxy(envoy.KindSidecar, podID, proxySvcAccount.ToServiceIdentity(), nil)
-	ic, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(fakeKubeClient), informers.WithConfigClient(fakeConfigClient))
-	assert.Nil(err)
 
-	cfg := configurator.NewConfigurator(ic, "-osm-namespace-", "-the-mesh-config-name-", nil)
 	certManager := tresorFake.NewFake(nil)
 	meshCatalog := catalogFake.NewFakeMeshCatalog(fakeKubeClient, fakeConfigClient)
 
 	// ----- Test with an properly configured proxy
-	resources, err := NewResponse(meshCatalog, proxy, request, cfg, certManager, nil)
+	resources, err := NewResponse(meshCatalog, proxy, request, nil, certManager, nil)
 	assert.Equal(err, nil, fmt.Sprintf("Error evaluating sds.NewResponse(): %s", err))
 	assert.NotNil(resources)
 	assert.Equal(len(resources), 2) // 1. service-cert, 2. root-cert-for-mtls-inbound (refer to the DiscoveryRequest 'request')
@@ -80,8 +76,7 @@ func TestGetRootCert(t *testing.T) {
 
 	// This is used to dynamically set expectations for each test in the list of table driven tests
 	type dynamicMock struct {
-		mockCatalog      *catalog.MockMeshCataloger
-		mockConfigurator *configurator.MockConfigurator
+		mockCatalog *catalog.MockMeshCataloger
 	}
 
 	type testCase struct {
@@ -153,8 +148,7 @@ func TestGetRootCert(t *testing.T) {
 
 			// Initialize the dynamic mocks
 			d := dynamicMock{
-				mockCatalog:      catalog.NewMockMeshCataloger(mockCtrl),
-				mockConfigurator: configurator.NewMockConfigurator(mockCtrl),
+				mockCatalog: catalog.NewMockMeshCataloger(mockCtrl),
 			}
 
 			// Prepare the dynamic mock expectations for each test case
@@ -168,7 +162,6 @@ func TestGetRootCert(t *testing.T) {
 
 				// these points to the dynamic mocks which gets updated for each test
 				meshCatalog: d.mockCatalog,
-				cfg:         d.mockConfigurator,
 			}
 
 			// test the function
@@ -239,8 +232,7 @@ func TestGetSDSSecrets(t *testing.T) {
 
 	// This is used to dynamically set expectations for each test in the list of table driven tests
 	type dynamicMock struct {
-		mockCatalog      *catalog.MockMeshCataloger
-		mockConfigurator *configurator.MockConfigurator
+		mockCatalog *catalog.MockMeshCataloger
 	}
 
 	type testCase struct {
@@ -344,8 +336,7 @@ func TestGetSDSSecrets(t *testing.T) {
 
 			// Initialize the dynamic mocks
 			d := dynamicMock{
-				mockCatalog:      catalog.NewMockMeshCataloger(mockCtrl),
-				mockConfigurator: configurator.NewMockConfigurator(mockCtrl),
+				mockCatalog: catalog.NewMockMeshCataloger(mockCtrl),
 			}
 
 			// Prepare the dynamic mock expectations for each test case
@@ -359,7 +350,6 @@ func TestGetSDSSecrets(t *testing.T) {
 
 				// these points to the dynamic mocks which gets updated for each test
 				meshCatalog: d.mockCatalog,
-				cfg:         d.mockConfigurator,
 				TrustDomain: "cluster.local",
 			}
 
