@@ -113,14 +113,9 @@ type TresorCASpec struct {
 
 // MeshRootCertificateStatus defines the status of the MeshRootCertificate resource
 type MeshRootCertificateStatus struct {
-	// State specifies the state of the root certificate rotation
+	// State specifies the state of the certificate provider
+	// All states are specified in constants.go
 	State string `json:"state"`
-
-	// RotationStage specifies the stage of the rotation indicating how a
-	// root certificate is currently being used within the mesh. The exact
-	// meaning of the RotationStage status is determined by the accompanying
-	// State status
-	RotationStage string `json:"rotationStage"`
 }
 
 // MeshRootCertificateList defines the list of MeshRootCertificate objects
