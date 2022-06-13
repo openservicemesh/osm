@@ -269,76 +269,88 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 
 // meshRootCertificateValidator validates the MeshRootCertificate CRD.
 func meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
-	mcrSetting := &configv1alpha2.MeshRootCertificate{}
+	mrcSetting := &configv1alpha2.MeshRootCertificate{}
 
-	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(mcrSetting); err != nil {
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(mrcSetting); err != nil {
 		return nil, err
 	}
 
-	allMCRs := []configv1alpha2.MeshRootCertificate{}
-	for _, v := range currMCRs{ 
-		if mcrSetting.Name == v.Name {
-			currentMCR := v
-		}
-	}
-
-	numAppliedMCR := len(currMCRs)
+	//todo(schristoff:)fake data for now
+	allMRCs := []configv1alpha2.MeshRootCertificate{}
+	numAppliedMRC := len(allMRCs)
 
 	switch req.Operation {
 	case admissionv1.Delete:
-		if numAppliedMCR == 1 {
-			return nil, errors.Errorf("Must have more than one Mesh Root Certificate to delete")
+		if numAppliedMRC == 1 {
+			return nil, errors.Errorf("must have more than one Mesh Root Certificate to delete")
 		}
-		return validateMCRdelete(currentMCR, mcrSetting)
+
+		for _, v := range allMRCs {
+			if mrcSetting.Name == v.Name {
+				currentMRC := &v
+				return validateMRCdelete(currentMRC, mrcSetting)
+			}
+		}
+		return nil, errors.Errorf("cannot find mesh root certificate with name %v", mrcSetting.Name)
 
 	case admissionv1.Create:
-		if numAppliedMCR == 2 {
-			return nil, errors.Errorf("Cannot create more then two Mesh Root Certificates")
+		if numAppliedMRC == 2 {
+			return nil, errors.Errorf("cannot create more then two Mesh Root Certificates")
 		}
-		// return validateMCRcreate
+
+		return validateMRCcreate(mrcSetting)
+
 	case admissionv1.Update:
-		return validateMCRupdate(currentMCR, *mcrSetting)
+		for _, v := range allMRCs {
+			if mrcSetting.Name == v.Name {
+				currentMRC := &v
+				return validateMRCupdate(currentMRC, mrcSetting)
+			}
+		}
+		return nil, errors.Errorf("cannot find mesh root certificate with name %v", mrcSetting.Name)
 	}
 
 	return nil, nil
 }
 
-func validateMCRdelete(current *configv1alpha2.MeshRootCertificate, 
-	applied *configv1alpha2.MeshRootCertificate) (*admissionv1.AdmissionResponse, error)  {
-	//in what cases should we not delete?
-	return nil, nil
+func validateMRCdelete(current *configv1alpha2.MeshRootCertificate,
+	applied *configv1alpha2.MeshRootCertificate) (*admissionv1.AdmissionResponse, error) {
+	//todo(schristoff): will we ever be stuck in these states? how/where do we get out?
+	// if osm gets stuck, will it touch this and get blocked?
+	switch current.Status.RotationStage {
+	case constants.MRCStageIssuing:
+		return nil, errors.Errorf("cannot delete certificate %v in stage %v", current.Name, current.Status.RotationStage)
+	case constants.MRCStageValidating:
+		return nil, errors.Errorf("cannot delete certificate %v in stage %v", current.Name, current.Status.RotationStage)
+	default:
+		return nil, nil
+	}
 }
 
-
-func validateMCRupdate(current *configv1alpha2.MeshRootCertificate, 
+func validateMRCupdate(current *configv1alpha2.MeshRootCertificate,
 	applied *configv1alpha2.MeshRootCertificate) (*admissionv1.AdmissionResponse, error) {
 	//prevent out of order status changes
 	// we can do:
-	// pending-up -> complete, inactive, error, unknown
-	// pending-down -> inactive, error, unknown
-	// complete -> pending-down
-	switch current.Status.MeshRootState {
-		//where are the const for these? 
-		case "pending-up" {
-			if applied.Status == "pending-down" {
-				return nil, errors.Errorf("Cannot place %v in %v into pending-down", mcrSetting.Name, v.Status.MeshRootState)
-			}
+	// validating -> issuing
+	// issuing -> validating
+	// complete -> none?
+	switch current.Status.RotationStage {
+	//where are the const for these?
+	case constants.MRCStageValidating:
+		if applied.Status.RotationStage == constants.MRCStateComplete {
+			return nil, errors.Errorf("cannot place %v in %v into complete", applied.Name, current.Status)
 		}
-		case "pending-down" {
-			if applied.Status == "complete" || "pending-up" {
-				return nil, errors.Errorf("Cannot place %v in %v into pending-down", mcrSetting.Name, v.Status.MeshRootState)
-			}
+	case constants.MRCStageIssuing:
+		if applied.Status.RotationStage == constants.MRCStageValidating {
+			return nil, errors.Errorf("cannot place %v in %v into validating", applied.Name, current.Status)
 		}
-		case "complete" {
-			//maybe a footgun
-			if applied.Status == "pending-up" || "inactive" || "error" || "unknown" {
-				return nil, errors.Errorf("Cannot place %v in %v into pending-down", mcrSetting.Name, v.Status.MeshRootState)
-			}
-		}
+	case constants.MRCStateComplete:
+		return nil, errors.Errorf("cannot place %v in %v into any other state", applied.Name, current.Status)
 	}
+	return nil, nil
 }
 
-// just in case 
-// func validateMCRcreate( 
-// 	applied *configv1alpha2.MeshRootCertificate) (*admissionv1.AdmissionResponse, error) {}
-
+func validateMRCcreate(
+	applied *configv1alpha2.MeshRootCertificate) (*admissionv1.AdmissionResponse, error) {
+	return nil, nil
+}
