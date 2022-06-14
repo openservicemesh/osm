@@ -63,12 +63,14 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 			Str("proxy", proxy.String()).Msgf("Error looking up MeshServices associated with proxy")
 		return nil, err
 	}
-	// Create inbound filter chains per service behind proxy
-	for _, proxyService := range svcList {
-		// Add in-mesh filter chains
-		inboundSvcFilterChains := lb.getInboundMeshFilterChains(proxyService)
-		inboundListener.FilterChains = append(inboundListener.FilterChains, inboundSvcFilterChains...)
 
+	// Create inbound mesh filter chains based on mesh traffic policies
+	inboundMeshTrafficPolicy := meshCatalog.GetInboundMeshTrafficPolicy(lb.serviceIdentity, svcList)
+	if inboundMeshTrafficPolicy != nil {
+		inboundListener.FilterChains = append(inboundListener.FilterChains, lb.getInboundMeshFilterChains(inboundMeshTrafficPolicy.TrafficMatches)...)
+	}
+	// Create ingress filter chains per service behind proxy
+	for _, proxyService := range svcList {
 		// Add ingress filter chains
 		ingressFilterChains := lb.getIngressFilterChains(proxyService)
 		inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChains...)

@@ -226,12 +226,10 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 		serviceIdentity: tests.BookbuyerServiceIdentity,
 	}
 
-	proxyService := tests.BookbuyerService
-
 	testCases := []struct {
 		name           string
 		permissiveMode bool
-		port           uint16
+		trafficMatch   *trafficpolicy.TrafficMatch
 
 		expectedFilterChainMatch *xds_listener.FilterChainMatch
 		expectedFilterNames      []string
@@ -240,10 +238,15 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 		{
 			name:           "inbound HTTP filter chain with permissive mode disabled",
 			permissiveMode: false,
-			port:           80,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_80_http",
+				DestinationPort:     80,
+				DestinationProtocol: "http",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+			},
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 80},
-				ServerNames:          []string{proxyService.ServerName()},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
@@ -253,10 +256,15 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 		{
 			name:           "inbound HTTP filter chain with permissive mode enabled",
 			permissiveMode: true,
-			port:           90,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "http",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+			},
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
-				ServerNames:          []string{proxyService.ServerName()},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
@@ -287,8 +295,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity).Return(trafficTargets, nil).Times(1)
 			}
 
-			proxyService.TargetPort = tc.port
-			filterChain, err := lb.getInboundMeshHTTPFilterChain(proxyService)
+			filterChain, err := lb.getInboundMeshHTTPFilterChain(tc.trafficMatch)
 
 			assert.Equal(err != nil, tc.expectError)
 			assert.Equal(filterChain.FilterChainMatch, tc.expectedFilterChainMatch)
@@ -324,12 +331,10 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 		serviceIdentity: tests.BookbuyerServiceIdentity,
 	}
 
-	proxyService := tests.BookbuyerService
-
 	testCases := []struct {
 		name           string
 		permissiveMode bool
-		port           uint16
+		trafficMatch   *trafficpolicy.TrafficMatch
 
 		expectedFilterChainMatch *xds_listener.FilterChainMatch
 		expectedFilterNames      []string
@@ -338,10 +343,15 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 		{
 			name:           "inbound TCP filter chain with permissive mode disabled",
 			permissiveMode: false,
-			port:           80,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_80_http",
+				DestinationPort:     80,
+				DestinationProtocol: "tcp",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+			},
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 80},
-				ServerNames:          []string{proxyService.ServerName()},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
@@ -352,10 +362,15 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 		{
 			name:           "inbound TCP filter chain with permissive mode enabled",
 			permissiveMode: true,
-			port:           90,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "tcp",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+			},
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
-				ServerNames:          []string{proxyService.ServerName()},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
@@ -386,8 +401,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity).Return(trafficTargets, nil).Times(1)
 			}
 
-			proxyService.TargetPort = tc.port
-			filterChain, err := lb.getInboundMeshTCPFilterChain(proxyService)
+			filterChain, err := lb.getInboundMeshTCPFilterChain(tc.trafficMatch)
 
 			assert.Equal(err != nil, tc.expectError)
 			assert.Equal(filterChain.FilterChainMatch, tc.expectedFilterChainMatch)

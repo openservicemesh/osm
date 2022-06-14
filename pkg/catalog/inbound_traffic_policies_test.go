@@ -307,11 +307,15 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Name:                "inbound_ns1/mysql-0.mysql_3306_tcp",
 						DestinationPort:     3306,
 						DestinationProtocol: "tcp",
+						ServerNames:         []string{"mysql-0.mysql.ns1.svc.cluster.local"},
+						Cluster:             "ns1/mysql-0.mysql|3306|local",
 					},
 					{
 						Name:                "inbound_ns1/s2_9090_http",
 						DestinationPort:     9090,
 						DestinationProtocol: "http",
+						ServerNames:         []string{"s2.ns1.svc.cluster.local"},
+						Cluster:             "ns1/s2|9090|local",
 					},
 				},
 				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{

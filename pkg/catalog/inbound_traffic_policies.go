@@ -41,6 +41,11 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		trafficTargets = mc.meshSpec.ListTrafficTargets(destinationFilter)
 	}
 
+	upstreamSvcSet := mapset.NewSet()
+	for _, svc := range upstreamServices {
+		upstreamSvcSet.Add(svc)
+	}
+
 	// A policy (traffic match, route, cluster) must be built for each upstream service. This
 	// includes apex/root services associated with the given upstream service.
 	allUpstreamServices := mc.getUpstreamServicesIncludeApex(upstreamServices)
@@ -59,24 +64,35 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfigForSvc)
 
+		upstreamTrafficSetting := mc.policyController.GetUpstreamTrafficSetting(
+			policy.UpstreamTrafficSettingGetOpt{MeshService: &upstreamSvc})
+
 		// ---
 		// Create a TrafficMatch for this upstream servic.
 		// The TrafficMatch will be used by LDS to program a filter chain match
 		// for this upstream service on the upstream server to accept inbound
 		// traffic.
-		trafficMatchForUpstreamSvc := &trafficpolicy.TrafficMatch{
-			Name:                upstreamSvc.InboundTrafficMatchName(),
-			DestinationPort:     int(upstreamSvc.TargetPort),
-			DestinationProtocol: upstreamSvc.Protocol,
+		//
+		// Note: a TrafficMatch must exist only for a service part of the given
+		// 'upstreamServices' list, and not a virtual (apex) service that
+		// may be returned as a part of the 'allUpstreamServices' list.
+		// A virtual (apex) service is required for the purpose of building
+		// HTTP routing rules, but should not result in a TrafficMatch rule
+		// as TrafficMatch rules are meant to map to actual services backed
+		// by a proxy, defined by the 'upstreamServices' list.
+		if upstreamSvcSet.Contains(upstreamSvc) {
+			trafficMatchForUpstreamSvc := &trafficpolicy.TrafficMatch{
+				Name:                upstreamSvc.InboundTrafficMatchName(),
+				DestinationPort:     int(upstreamSvc.TargetPort),
+				DestinationProtocol: upstreamSvc.Protocol,
+				ServerNames:         []string{upstreamSvc.ServerName()},
+				Cluster:             upstreamSvc.EnvoyLocalClusterName(),
+			}
+			if upstreamTrafficSetting != nil {
+				trafficMatchForUpstreamSvc.RateLimit = upstreamTrafficSetting.Spec.RateLimit
+			}
+			trafficMatches = append(trafficMatches, trafficMatchForUpstreamSvc)
 		}
-
-		upstreamTrafficSetting := mc.policyController.GetUpstreamTrafficSetting(
-			policy.UpstreamTrafficSettingGetOpt{MeshService: &upstreamSvc})
-		if upstreamTrafficSetting != nil {
-			trafficMatchForUpstreamSvc.RateLimit = upstreamTrafficSetting.Spec.RateLimit
-		}
-
-		trafficMatches = append(trafficMatches, trafficMatchForUpstreamSvc)
 
 		// Build the HTTP route configs for this service and port combination.
 		// If the port's protocol corresponds to TCP, we can skip this step
