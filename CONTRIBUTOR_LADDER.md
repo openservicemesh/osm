@@ -124,7 +124,7 @@ Contact the Maintainers about changing to Emeritus status or reducing your contr
 
 ## Review Process
 
-- In addition to self nominated and Maintainer proposed nominations, Maintainers will meet quarterly to discuss Role promotions and demotions.
+- In addition to self-nominated and Maintainer proposed nominations, Maintainers will meet quarterly to discuss Role promotions and demotions.
 - Prior to nomination or meeting the requirements of the role, Contributors that express their interest in being a Maintainer can be assigned a Maintainer to help guide them through the requirements.
 
 ## Contact
