@@ -3,15 +3,21 @@ package lds
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	xds_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/local_ratelimit/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
+	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -73,6 +79,15 @@ func (lb *listenerBuilder) getInboundHTTPFilters(trafficMatch *trafficpolicy.Tra
 		}
 		// RBAC filter should be the very first filter in the filter chain
 		filters = append(filters, rbacFilter)
+	}
+
+	// Apply the network level local rate limit filter if configured for the TrafficMatch
+	if trafficMatch.RateLimit != nil && trafficMatch.RateLimit.Local != nil && trafficMatch.RateLimit.Local.TCP != nil {
+		rateLimitFilter, err := buildTCPLocalRateLimitFilter(trafficMatch.RateLimit.Local.TCP, trafficMatch.Name)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, rateLimitFilter)
 	}
 
 	// Build the HTTP Connection Manager filter from its options
@@ -228,6 +243,15 @@ func (lb *listenerBuilder) getInboundTCPFilters(trafficMatch *trafficpolicy.Traf
 		filters = append(filters, rbacFilter)
 	}
 
+	// Apply the network level local rate limit filter if configured for the TrafficMatch
+	if trafficMatch.RateLimit != nil && trafficMatch.RateLimit.Local != nil && trafficMatch.RateLimit.Local.TCP != nil {
+		rateLimitFilter, err := buildTCPLocalRateLimitFilter(trafficMatch.RateLimit.Local.TCP, trafficMatch.Name)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, rateLimitFilter)
+	}
+
 	// Apply the TCP Proxy Filter
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
 		StatPrefix:       fmt.Sprintf("%s.%s", inboundMeshTCPProxyStatPrefix, trafficMatch.Cluster),
@@ -246,6 +270,45 @@ func (lb *listenerBuilder) getInboundTCPFilters(trafficMatch *trafficpolicy.Traf
 	filters = append(filters, tcpProxyFilter)
 
 	return filters, nil
+}
+
+func buildTCPLocalRateLimitFilter(config *policyv1alpha1.TCPLocalRateLimitSpec, statPrefix string) (*xds_listener.Filter, error) {
+	if config == nil {
+		return nil, nil
+	}
+
+	var fillInterval time.Duration
+	switch config.Unit {
+	case "second":
+		fillInterval = time.Second
+	case "minute":
+		fillInterval = time.Minute
+	case "hour":
+		fillInterval = time.Hour
+	default:
+		return nil, errors.Errorf("invalid unit %q for TCP connection rate limiting", config.Unit)
+	}
+
+	rateLimit := &xds_local_ratelimit.LocalRateLimit{
+		StatPrefix: statPrefix,
+		TokenBucket: &xds_type.TokenBucket{
+			MaxTokens:     config.Connections + config.Burst,
+			TokensPerFill: &wrapperspb.UInt32Value{Value: config.Connections},
+			FillInterval:  durationpb.New(fillInterval),
+		},
+	}
+
+	marshalledConfig, err := anypb.New(rateLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	filter := &xds_listener.Filter{
+		Name:       wellknown.RateLimit,
+		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledConfig},
+	}
+
+	return filter, nil
 }
 
 // getOutboundHTTPFilter returns an HTTP connection manager network filter used to filter outbound HTTP traffic for the given route configuration
