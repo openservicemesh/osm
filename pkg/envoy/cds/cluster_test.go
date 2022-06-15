@@ -91,6 +91,16 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Cluster without circuit breaker but with valid UpstreamTrafficSetting should not error/panic",
+			clusterConfig: trafficpolicy.MeshClusterConfig{
+				Name:    "default/bookstore-v1_14001",
+				Service: upstreamSvc,
+				UpstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -106,7 +116,7 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 				assert.Nil(remoteCluster.HealthChecks)
 			}
 
-			if tc.clusterConfig.UpstreamTrafficSetting != nil {
+			if tc.expectedCircuitBreakerThreshold != nil {
 				assert.Equal(tc.expectedCircuitBreakerThreshold, remoteCluster.CircuitBreakers)
 			}
 		})

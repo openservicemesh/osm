@@ -394,7 +394,7 @@ func applyUpstreamTrafficSetting(upstreamTrafficSetting *policyv1alpha1.Upstream
 		Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{threshold},
 	}
 
-	if upstreamTrafficSetting == nil {
+	if upstreamTrafficSetting == nil || upstreamTrafficSetting.Spec.ConnectionSettings == nil {
 		return
 	}
 
