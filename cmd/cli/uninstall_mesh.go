@@ -119,12 +119,9 @@ func (d *uninstallMeshCmd) run() error {
 			return nil
 		}
 		// Searches for the mesh specified by the mesh-name flag if specified
-		specifiedMeshFound := false
-		if d.meshName != "" {
-			specifiedMeshFound = d.findMesh(meshInfoList)
-			if !specifiedMeshFound {
-				return nil
-			}
+		meshFlagSpecified, specifiedMeshFound := d.findFlagSpecifiedMesh(meshInfoList)
+		if meshFlagSpecified && !specifiedMeshFound {
+			return nil
 		}
 
 		// Adds the mesh to be force uninstalled
@@ -143,19 +140,11 @@ func (d *uninstallMeshCmd) run() error {
 				return err
 			}
 			// Prompts user on whether to uninstall each OSM mesh in the cluster
-			for _, mesh := range meshInfoList {
-				// Only prompt for specified mesh if `mesh-name` is specified
-				if specifiedMeshFound && mesh.name != d.meshName {
-					continue
-				}
-				confirm, err := confirm(d.in, d.out, fmt.Sprintf("\nUninstall OSM [mesh name: %s] in namespace [%s] and/or OSM resources?", mesh.name, mesh.namespace), 3)
-				if err != nil {
-					return err
-				}
-				if confirm {
-					meshesToUninstall = append(meshesToUninstall, mesh)
-				}
+			uninstallMeshes, err := d.promptMeshUninstall(meshInfoList, meshesToUninstall, meshFlagSpecified)
+			if err != nil {
+				return err
 			}
+			meshesToUninstall = append(meshesToUninstall, uninstallMeshes...)
 		}
 
 		for _, m := range meshesToUninstall {
@@ -182,15 +171,9 @@ func (d *uninstallMeshCmd) run() error {
 				fmt.Fprintf(d.out, "OSM [mesh name: %s] in namespace [%s] uninstalled\n", m.name, m.namespace)
 			}
 
-			if d.deleteNamespace {
-				if err := d.clientSet.CoreV1().Namespaces().Delete(ctx, m.namespace, v1.DeleteOptions{}); err != nil {
-					if k8sApiErrors.IsNotFound(err) {
-						fmt.Fprintf(d.out, "OSM namespace [%s] not found\n", m.namespace)
-						return nil
-					}
-					return errors.Errorf("Error occurred while deleting OSM namespace [%s] - %v", m.namespace, err)
-				}
-				fmt.Fprintf(d.out, "OSM namespace [%s] deleted successfully\n", m.namespace)
+			err = d.deleteNs(ctx, m.namespace)
+			if err != nil {
+				return err
 			}
 		}
 	} else {
@@ -199,6 +182,64 @@ func (d *uninstallMeshCmd) run() error {
 			fmt.Fprintf(d.out, "OSM namespace CANNOT be deleted in a managed environment\n")
 		}
 	}
+
+	err := d.deleteClusterResources()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *uninstallMeshCmd) findFlagSpecifiedMesh(meshInfoList []meshInfo) (bool, bool) {
+	meshFlagSpecified := d.meshName != ""
+	specifiedMeshFound := false
+	if meshFlagSpecified {
+		specifiedMeshFound = d.findMesh(meshInfoList)
+		if !specifiedMeshFound {
+			fmt.Fprintf(d.out, "Did not find mesh [%s] in namespace [%s]\n", d.meshName, d.meshNamespace)
+			// print a list of meshes within the cluster for a better user experience
+			err := d.printMeshes()
+			if err != nil {
+				fmt.Fprintf(d.out, "Unable to list meshes in the cluster - [%v]", err)
+			}
+		}
+	}
+	return meshFlagSpecified, specifiedMeshFound
+}
+
+func (d *uninstallMeshCmd) promptMeshUninstall(meshInfoList, meshesToUninstall []meshInfo, meshFlagSpecified bool) ([]meshInfo, error) {
+	for _, mesh := range meshInfoList {
+		// Only prompt for specified mesh if `mesh-name` is specified
+		if meshFlagSpecified && mesh.name != d.meshName {
+			continue
+		}
+		confirm, err := confirm(d.in, d.out, fmt.Sprintf("\nUninstall OSM [mesh name: %s] in namespace [%s] and/or OSM resources?", mesh.name, mesh.namespace), 3)
+		if err != nil {
+			return nil, err
+		}
+		if confirm {
+			meshesToUninstall = append(meshesToUninstall, mesh)
+		}
+	}
+	return meshesToUninstall, nil
+}
+
+func (d *uninstallMeshCmd) deleteNs(ctx context.Context, ns string) error {
+	if d.deleteNamespace {
+		if err := d.clientSet.CoreV1().Namespaces().Delete(ctx, ns, v1.DeleteOptions{}); err != nil {
+			if k8sApiErrors.IsNotFound(err) {
+				fmt.Fprintf(d.out, "OSM namespace [%s] not found\n", ns)
+				return nil
+			}
+			return errors.Errorf("Error occurred while deleting OSM namespace [%s] - %v", ns, err)
+		}
+		fmt.Fprintf(d.out, "OSM namespace [%s] deleted successfully\n", ns)
+	}
+	return nil
+}
+
+func (d *uninstallMeshCmd) deleteClusterResources() error {
 	if d.deleteClusterWideResources {
 		meshInfoList, err := getMeshInfoList(d.config, d.clientSet)
 		if err != nil {
@@ -216,7 +257,6 @@ func (d *uninstallMeshCmd) run() error {
 			return errors.Errorf("Failed to completely delete the following OSM resource types: %+v", failedDeletions)
 		}
 	}
-
 	return nil
 }
 
@@ -422,17 +462,7 @@ func (d *uninstallMeshCmd) findMesh(meshInfoList []meshInfo) bool {
 			break
 		}
 	}
-	if found {
-		return true
-	}
-
-	fmt.Fprintf(d.out, "Did not find mesh [%s] in namespace [%s]\n", d.meshName, d.meshNamespace)
-	// print a list of meshes within the cluster for a better user experience
-	err := d.printMeshes()
-	if err != nil {
-		fmt.Fprintf(d.out, "Unable to list meshes in the cluster - [%v]", err)
-	}
-	return false
+	return found
 }
 
 // printMeshes prints list of meshes within the cluster for a better user experience

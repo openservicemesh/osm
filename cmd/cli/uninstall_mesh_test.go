@@ -616,3 +616,228 @@ func TestUninstallClusterWideResources(t *testing.T) {
 		})
 	}
 }
+
+func TestFindFlagSpecifiedMesh(t *testing.T) {
+	tests := []struct {
+		name                  string
+		specifiedMesh         string
+		meshList              []meshInfo
+		expMeshFlagSpecified  bool
+		expSpecifiedMeshFound bool
+	}{
+		{
+			name:          "mesh flag not specified",
+			specifiedMesh: "",
+			meshList: []meshInfo{
+				{
+					name:      testMeshName,
+					namespace: testNamespace,
+				},
+			},
+			expMeshFlagSpecified:  false,
+			expSpecifiedMeshFound: false,
+		},
+		{
+			name:          "mesh flag specified and not in mesh list",
+			specifiedMesh: "notInMesh",
+			meshList: []meshInfo{
+				{
+					name:      testMeshName,
+					namespace: testNamespace,
+				},
+			},
+			expMeshFlagSpecified:  true,
+			expSpecifiedMeshFound: false,
+		},
+		{
+			name:          "mesh flag specified and in mesh list",
+			specifiedMesh: testMeshName,
+			meshList: []meshInfo{
+				{
+					name:      testMeshName,
+					namespace: testNamespace,
+				},
+			},
+			expMeshFlagSpecified:  true,
+			expSpecifiedMeshFound: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			out := new(bytes.Buffer)
+			in := new(bytes.Buffer)
+
+			store := storage.Init(driver.NewMemory())
+			if mem, ok := store.Driver.(*driver.Memory); ok {
+				mem.SetNamespace(testNamespace)
+			}
+
+			rel := release.Mock(&release.MockReleaseOptions{Name: testMeshName})
+			err := store.Create(rel)
+			assert.Nil(err)
+
+			testConfig := &helm.Configuration{
+				Releases: store,
+				KubeClient: &kubefake.PrintingKubeClient{
+					Out: ioutil.Discard},
+				Capabilities: chartutil.DefaultCapabilities,
+				Log:          func(format string, v ...interface{}) {},
+			}
+
+			fakeClientSet := fake.NewSimpleClientset()
+			_, err = addDeployment(fakeClientSet, "osm-controller-1", testMeshName, testNamespace, osmTestVersion, true)
+			assert.Nil(err)
+
+			uninstall := uninstallMeshCmd{
+				in:                         in,
+				out:                        out,
+				force:                      true,
+				client:                     helm.NewUninstall(testConfig),
+				meshName:                   test.specifiedMesh,
+				meshNamespace:              testNamespace,
+				caBundleSecretName:         constants.DefaultCABundleSecretName,
+				clientSet:                  fakeClientSet,
+				extensionsClientset:        extensionsClientSetFake.NewSimpleClientset(),
+				deleteClusterWideResources: true,
+				actionConfig:               new(action.Configuration),
+			}
+			meshFlagSpecified, specifiedMeshFound := uninstall.findFlagSpecifiedMesh(test.meshList)
+			fmt.Println("meshFlagSpecified ", meshFlagSpecified)
+			fmt.Println("specifiedMeshFound ", specifiedMeshFound)
+
+			assert.Equal(meshFlagSpecified, test.expMeshFlagSpecified)
+			assert.Equal(specifiedMeshFound, test.expSpecifiedMeshFound)
+		})
+	}
+}
+
+func TestPromptMeshUninstall(t *testing.T) {
+	tests := []struct {
+		name                 string
+		userPromptsYes       bool
+		meshInfoList         []meshInfo
+		meshFlagSpecified    bool
+		specifiedMeshName    string
+		expMeshesToUninstall []meshInfo
+	}{
+		{
+			name:           "prompt no to uninstall mesh",
+			userPromptsYes: false,
+			meshInfoList: []meshInfo{
+				{
+					name:      testMeshName,
+					namespace: testNamespace,
+				},
+			},
+			meshFlagSpecified:    false,
+			specifiedMeshName:    "",
+			expMeshesToUninstall: []meshInfo{},
+		},
+		{
+			name:           "prompt yes to uninstall mesh",
+			userPromptsYes: true,
+			meshInfoList: []meshInfo{
+				{
+					name:      testMeshName,
+					namespace: testNamespace,
+				},
+			},
+			meshFlagSpecified: false,
+			specifiedMeshName: "",
+			expMeshesToUninstall: []meshInfo{
+				{
+					name:      testMeshName,
+					namespace: testNamespace,
+				},
+			},
+		},
+		{
+			name:           "prompt no to uninstall mesh for specified mesh",
+			userPromptsYes: false,
+			meshInfoList: []meshInfo{
+				{
+					name:      testMeshName,
+					namespace: testNamespace,
+				},
+			},
+			meshFlagSpecified:    true,
+			specifiedMeshName:    testMeshName,
+			expMeshesToUninstall: []meshInfo{},
+		},
+		{
+			name:           "prompt yes to uninstall mesh for specified mesh",
+			userPromptsYes: true,
+			meshInfoList: []meshInfo{
+				{
+					name:      testMeshName,
+					namespace: testNamespace,
+				},
+			},
+			meshFlagSpecified: true,
+			specifiedMeshName: testMeshName,
+			expMeshesToUninstall: []meshInfo{
+				{
+					name:      testMeshName,
+					namespace: testNamespace,
+				},
+			},
+		},
+	}
+
+	meshesToUninstall := []meshInfo{}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			out := new(bytes.Buffer)
+			in := new(bytes.Buffer)
+
+			if test.userPromptsYes {
+				in.Write([]byte("y\n"))
+			} else {
+				in.Write([]byte("n\n"))
+			}
+
+			store := storage.Init(driver.NewMemory())
+			if mem, ok := store.Driver.(*driver.Memory); ok {
+				mem.SetNamespace(testNamespace)
+			}
+
+			rel := release.Mock(&release.MockReleaseOptions{Name: testMeshName})
+			err := store.Create(rel)
+			assert.Nil(err)
+
+			testConfig := &helm.Configuration{
+				Releases: store,
+				KubeClient: &kubefake.PrintingKubeClient{
+					Out: ioutil.Discard},
+				Capabilities: chartutil.DefaultCapabilities,
+				Log:          func(format string, v ...interface{}) {},
+			}
+
+			fakeClientSet := fake.NewSimpleClientset()
+			_, err = addDeployment(fakeClientSet, "osm-controller-1", testMeshName, testNamespace, osmTestVersion, true)
+			assert.Nil(err)
+
+			uninstall := uninstallMeshCmd{
+				in:                         in,
+				out:                        out,
+				force:                      true,
+				client:                     helm.NewUninstall(testConfig),
+				meshName:                   test.specifiedMeshName,
+				meshNamespace:              testNamespace,
+				caBundleSecretName:         constants.DefaultCABundleSecretName,
+				clientSet:                  fakeClientSet,
+				extensionsClientset:        extensionsClientSetFake.NewSimpleClientset(),
+				deleteClusterWideResources: true,
+				actionConfig:               new(action.Configuration),
+			}
+
+			meshList, err := uninstall.promptMeshUninstall(test.meshInfoList, meshesToUninstall, test.meshFlagSpecified)
+			assert.Nil(err)
+			assert.ElementsMatch(test.expMeshesToUninstall, meshList)
+		})
+	}
+}
