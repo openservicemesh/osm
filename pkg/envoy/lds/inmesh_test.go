@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -271,6 +272,32 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 			expectedFilterNames: []string{wellknown.HTTPConnectionManager},
 			expectError:         false,
 		},
+		{
+			name:           "inbound HTTP filter chain with rate limiting enabled",
+			permissiveMode: true,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "http",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+				RateLimit: &policyv1alpha1.RateLimitSpec{
+					Local: &policyv1alpha1.LocalRateLimitSpec{
+						TCP: &policyv1alpha1.TCPLocalRateLimitSpec{
+							Connections: 100,
+							Unit:        "minute",
+						},
+					},
+				},
+			},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
+				TransportProtocol:    "tls",
+				ApplicationProtocols: []string{"osm"},
+			},
+			expectedFilterNames: []string{wellknown.RateLimit, wellknown.HTTPConnectionManager},
+			expectError:         false,
+		},
 	}
 
 	trafficTargets := []trafficpolicy.TrafficTargetWithRoutes{
@@ -358,7 +385,6 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 			expectedFilterNames: []string{wellknown.RoleBasedAccessControl, wellknown.TCPProxy},
 			expectError:         false,
 		},
-
 		{
 			name:           "inbound TCP filter chain with permissive mode enabled",
 			permissiveMode: true,
@@ -375,6 +401,32 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 				ApplicationProtocols: []string{"osm"},
 			},
 			expectedFilterNames: []string{wellknown.TCPProxy},
+			expectError:         false,
+		},
+		{
+			name:           "inbound TCP filter chain with local TCP rate limiting enabled",
+			permissiveMode: true,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "tcp",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+				RateLimit: &policyv1alpha1.RateLimitSpec{
+					Local: &policyv1alpha1.LocalRateLimitSpec{
+						TCP: &policyv1alpha1.TCPLocalRateLimitSpec{
+							Connections: 100,
+							Unit:        "minute",
+						},
+					},
+				},
+			},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
+				TransportProtocol:    "tls",
+				ApplicationProtocols: []string{"osm"},
+			},
+			expectedFilterNames: []string{wellknown.RateLimit, wellknown.TCPProxy},
 			expectError:         false,
 		},
 	}
