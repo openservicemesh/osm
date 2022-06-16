@@ -293,7 +293,7 @@ func buildTCPLocalRateLimitFilter(config *policyv1alpha1.TCPLocalRateLimitSpec, 
 		StatPrefix: statPrefix,
 		TokenBucket: &xds_type.TokenBucket{
 			MaxTokens:     config.Connections + config.Burst,
-			TokensPerFill: &wrapperspb.UInt32Value{Value: config.Connections},
+			TokensPerFill: wrapperspb.UInt32(config.Connections),
 			FillInterval:  durationpb.New(fillInterval),
 		},
 	}
