@@ -124,7 +124,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
 				EnableWASMStats: false,
 			}).AnyTimes()
-			actual := BuildInboundMeshRouteConfiguration(tc.inbound.HTTPRouteConfigsPerPort, nil, mockCfg)
+			actual := BuildInboundMeshRouteConfiguration(tc.inbound.HTTPRouteConfigsPerPort, nil, mockCfg, "cluster.local")
 
 			if tc.expectedRouteConfigFields == nil {
 				assert.Nil(actual)
@@ -198,7 +198,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
 				EnableWASMStats: tc.wasmEnabled,
 			}).Times(1)
-			actual := BuildInboundMeshRouteConfiguration(testInbound.HTTPRouteConfigsPerPort, &envoy.Proxy{}, mockCfg)
+			actual := BuildInboundMeshRouteConfiguration(testInbound.HTTPRouteConfigsPerPort, &envoy.Proxy{}, mockCfg, "cluster.local")
 			for _, routeConfig := range actual {
 				assert.Len(routeConfig.ResponseHeadersToAdd, tc.expectedResponseHeaderLen)
 			}
@@ -284,7 +284,7 @@ func TestBuildIngressRouteConfiguration(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			actual := BuildIngressConfiguration(tc.ingressPolicies)
+			actual := BuildIngressConfiguration(tc.ingressPolicies, "cluster.local")
 
 			if tc.expectedRouteConfigFields == nil {
 				assert.Nil(actual)
@@ -399,7 +399,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			actual := buildInboundRoutes(tc.inputRules)
+			actual := buildInboundRoutes(tc.inputRules, "cluster.local")
 			tc.expectFunc(tassert.New(t), actual)
 		})
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -30,7 +29,7 @@ func TestSetupMutualTLS(t *testing.T) {
 	}
 
 	certManager := tresorFake.NewFake(nil)
-	adsCert, err := certManager.IssueCertificate("fake-ads", time.Hour)
+	adsCert, err := certManager.IssueCertificate("fake-ads")
 
 	assert.NoError(err)
 
@@ -63,28 +62,23 @@ func TestValidateClient(t *testing.T) {
 
 	type validateClientTest struct {
 		ctx           context.Context
-		commonNames   map[string]interface{}
 		expectedError error
 	}
 
 	certManager := tresorFake.NewFake(nil)
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace))
-	certPEM, _ := certManager.IssueCertificate(cn, 1*time.Hour)
+	cnPrefix := fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace)
+	certPEM, _ := certManager.IssueCertificate(cnPrefix)
 	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 
-	goodCommonNameMapping := map[string]interface{}{string(cn): cn}
-	badCommonNameMapping := map[string]interface{}{"apple": "pear"}
-
 	validateClientTests := []validateClientTest{
-		{context.Background(), nil, status.Error(codes.Unauthenticated, "no peer found")},
-		{peer.NewContext(context.TODO(), &peer.Peer{}), nil, status.Error(codes.Unauthenticated, "unexpected peer transport credentials")},
-		{peer.NewContext(context.TODO(), &peer.Peer{AuthInfo: credentials.TLSInfo{}}), nil, status.Error(codes.Unauthenticated, "could not verify peer certificate")},
-		{peer.NewContext(context.TODO(), &peer.Peer{AuthInfo: tests.NewMockAuthInfo(cert)}), badCommonNameMapping, status.Error(codes.Unauthenticated, "disallowed subject common name")},
-		{peer.NewContext(context.TODO(), &peer.Peer{AuthInfo: tests.NewMockAuthInfo(cert)}), goodCommonNameMapping, nil},
+		{context.Background(), status.Error(codes.Unauthenticated, "no peer found")},
+		{peer.NewContext(context.TODO(), &peer.Peer{}), status.Error(codes.Unauthenticated, "unexpected peer transport credentials")},
+		{peer.NewContext(context.TODO(), &peer.Peer{AuthInfo: credentials.TLSInfo{}}), status.Error(codes.Unauthenticated, "could not verify peer certificate")},
+		{peer.NewContext(context.TODO(), &peer.Peer{AuthInfo: tests.NewMockAuthInfo(cert)}), nil},
 	}
 
 	for _, vct := range validateClientTests {
-		certCN, certSerialNumber, err := ValidateClient(vct.ctx, vct.commonNames)
+		certCN, certSerialNumber, err := ValidateClient(vct.ctx)
 		if err != nil {
 			assert.Equal(certCN, certificate.CommonName(""))
 			assert.Equal(certSerialNumber, certificate.SerialNumber(""))

@@ -17,7 +17,7 @@ import (
 )
 
 // NewResponse creates a new Route Discovery Response.
-func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryReq *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryReq *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, cm *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
 	proxyServices, err := proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
@@ -27,13 +27,15 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 
 	var rdsResources []types.Resource
 
+	trustDomain := cm.GetTrustDomain()
+
 	// ---
 	// Build inbound mesh route configurations. These route configurations allow
 	// the services associated with this proxy to accept traffic from downstream
 	// clients on allowed routes.
 	inboundMeshTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(proxy.Identity, proxyServices)
 	if inboundMeshTrafficPolicy != nil {
-		inboundMeshRouteConfig := route.BuildInboundMeshRouteConfiguration(inboundMeshTrafficPolicy.HTTPRouteConfigsPerPort, proxy, cfg)
+		inboundMeshRouteConfig := route.BuildInboundMeshRouteConfiguration(inboundMeshTrafficPolicy.HTTPRouteConfigsPerPort, proxy, cfg, trustDomain)
 		for _, config := range inboundMeshRouteConfig {
 			rdsResources = append(rdsResources, config)
 		}
@@ -70,7 +72,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(ingressTrafficPolicies, ingressPolicy.HTTPRoutePolicies...)
 	}
 	if len(ingressTrafficPolicies) > 0 {
-		ingressRouteConfig := route.BuildIngressConfiguration(ingressTrafficPolicies)
+		ingressRouteConfig := route.BuildIngressConfiguration(ingressTrafficPolicies, trustDomain)
 		rdsResources = append(rdsResources, ingressRouteConfig)
 	}
 

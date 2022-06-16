@@ -76,12 +76,12 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 	}
 
 	svcIdentityToSvcMapping := map[string][]service.MeshService{
-		"sa1.ns1.cluster.local": {meshSvc1P1, meshSvc1P2},
-		"sa2.ns2.cluster.local": {meshSvc2}, // Client `downstreamIdentity` cannot access this upstream
-		"sa3.ns3.cluster.local": {meshSvc3, meshSvc3V1, meshSvc3V2, meshSvc4, meshSvc5},
+		"sa1.ns1": {meshSvc1P1, meshSvc1P2},
+		"sa2.ns2": {meshSvc2}, // Client `downstreamIdentity` cannot access this upstream
+		"sa3.ns3": {meshSvc3, meshSvc3V1, meshSvc3V2, meshSvc4, meshSvc5},
 	}
 
-	downstreamIdentity := identity.ServiceIdentity("sa-x.ns1.cluster.local")
+	downstreamIdentity := identity.ServiceIdentity("sa-x.ns1")
 
 	// TrafficTargets that allow: sa-x.ns1 -> sa1.ns1, sa3.ns3
 	// No TrafficTarget that allows sa-x.ns1 -> sa2.ns2 (this should be allowed in permissive mode)
@@ -691,7 +691,7 @@ func TestListOutboundServicesForIdentity(t *testing.T) {
 		},
 		{
 			name:           "gateway",
-			svcIdentity:    "gateway.osm-system.cluster.local",
+			svcIdentity:    "gateway.osm-system",
 			expectedList:   []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService, tests.BookbuyerService},
 			permissiveMode: true,
 		},

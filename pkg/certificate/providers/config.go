@@ -65,7 +65,8 @@ func NewCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Con
 				},
 			},
 			Spec: v1alpha2.MeshRootCertificateSpec{
-				Provider: options.AsProviderSpec(),
+				TrustDomain: "cluster.local",
+				Provider:    options.AsProviderSpec(),
 			},
 			// TODO(#4502): Detect if an actual MRC exists, and set the status accordingly.
 			Status: v1alpha2.MeshRootCertificateStatus{

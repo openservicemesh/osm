@@ -16,6 +16,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	tresorfake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -100,7 +102,9 @@ func TestNewResponse(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, fmt.Errorf("dummy error")
 	}), nil)
-	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+
+	cm := tresorfake.NewFake(nil)
+	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
 	assert.NotNil(err)
 	assert.Nil(resources)
 
@@ -108,7 +112,7 @@ func TestNewResponse(t *testing.T) {
 		return []service.MeshService{tests.BookbuyerService}, nil
 	}), nil)
 
-	resources, err = NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+	resources, err = NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
 	assert.Empty(err)
 	assert.NotNil(resources)
 	// There are 3 listeners configured based on the configuration:
@@ -183,7 +187,8 @@ func TestNewResponseForMulticlusterGateway(t *testing.T) {
 		tests.BookstoreV1Service,
 	}).AnyTimes()
 
-	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+	cm := tresorfake.NewFake(nil)
+	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
 	assert.Empty(err)
 	assert.NotNil(resources)
 	// There is only one listeners configured for the gateway proxy:

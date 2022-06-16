@@ -15,6 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
+	tresorfake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
@@ -49,7 +50,9 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 		EnableEgressPolicy: false,
 	}).AnyTimes()
 
-	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+	mc := tresorfake.NewFake(nil)
+
+	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, mc, proxyRegistry)
 	a.Nil(err)
 	a.Len(resources, 1) // only outbound routes configured for this test
 

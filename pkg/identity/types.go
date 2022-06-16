@@ -9,18 +9,15 @@ import (
 const (
 	// namespaceNameSeparator used for marshalling/unmarshalling MeshService to a string or vice versa
 	namespaceNameSeparator = "/"
-
-	// ClusterLocalTrustDomain is the trust domain for the local kubernetes cluster
-	ClusterLocalTrustDomain = "cluster.local"
 )
 
 // ServiceIdentity is the type used to represent the identity for a service
-// For Kubernetes services this string will be in the format: <ServiceAccount>.<Namespace>.cluster.local
+// For Kubernetes services this string will be in the format: <ServiceAccount>.<Namespace>
 type ServiceIdentity string
 
 // New returns a new ServiceIdentity for the given name and namespace.
 func New(name, namespace string) ServiceIdentity {
-	return ServiceIdentity(fmt.Sprintf("%s.%s.%s", name, namespace, ClusterLocalTrustDomain))
+	return ServiceIdentity(fmt.Sprintf("%s.%s", name, namespace))
 }
 
 // WildcardServiceIdentity is a wildcard to match all service identities
@@ -38,11 +35,10 @@ func (si ServiceIdentity) IsWildcard() bool {
 
 // AsPrincipal converts the ServiceIdentity to a Principal with the given trust domain.
 func (si ServiceIdentity) AsPrincipal(trustDomain string) string {
-	// TODO(4754): concatenate the trustdomain when it is removed from the SI.
 	if si.IsWildcard() {
 		return si.String()
 	}
-	return si.String()
+	return fmt.Sprintf("%s.%s", si.String(), trustDomain)
 }
 
 // ToK8sServiceAccount converts a ServiceIdentity to a K8sServiceAccount to help with transition from K8sServiceAccount to ServiceIdentity

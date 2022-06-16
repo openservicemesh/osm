@@ -29,10 +29,10 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 			name: "traffic target without TCP routes",
 			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
 				Name:        "ns-1/test-1",
-				Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+				Destination: identity.ServiceIdentity("sa-1.ns-1"),
 				Sources: []identity.ServiceIdentity{
-					identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-					identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+					identity.ServiceIdentity("sa-2.ns-2"),
+					identity.ServiceIdentity("sa-3.ns-3"),
 				},
 				TCPRouteMatches: nil,
 			},
@@ -55,10 +55,10 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 			name: "traffic target with TCP routes",
 			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
 				Name:        "ns-1/test-1",
-				Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+				Destination: identity.ServiceIdentity("sa-1.ns-1"),
 				Sources: []identity.ServiceIdentity{
-					identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-					identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+					identity.ServiceIdentity("sa-2.ns-2"),
+					identity.ServiceIdentity("sa-3.ns-3"),
 				},
 				TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 					{
@@ -121,10 +121,10 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentity("sa-2.ns-2"),
+						identity.ServiceIdentity("sa-3.ns-3"),
 					},
 					TCPRouteMatches: nil,
 				},
@@ -141,17 +141,17 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentity("sa-2.ns-2"),
+						identity.ServiceIdentity("sa-3.ns-3"),
 					},
 				},
 				{
 					Name:        "ns-1/test-2",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-4.ns-2.cluster.local"),
+						identity.ServiceIdentity("sa-4.ns-2"),
 					},
 				},
 			},
@@ -208,10 +208,10 @@ func TestBuildRBACFilter(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentity("sa-2.ns-2"),
+						identity.ServiceIdentity("sa-3.ns-3"),
 					},
 					TCPRouteMatches: nil,
 				},
@@ -226,17 +226,17 @@ func TestBuildRBACFilter(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentity("sa-2.ns-2"),
+						identity.ServiceIdentity("sa-3.ns-3"),
 					},
 				},
 				{
 					Name:        "ns-1/test-2",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-4.ns-2.cluster.local"),
+						identity.ServiceIdentity("sa-4.ns-2"),
 					},
 				},
 			},

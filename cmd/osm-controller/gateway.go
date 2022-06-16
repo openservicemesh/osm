@@ -15,7 +15,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/multicluster"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
@@ -38,7 +37,7 @@ func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManage
 	}
 
 	gatewayCN := multicluster.GetMulticlusterGatewaySubjectCommonName(osmServiceAccount, osmNamespace)
-	bootstrapCert, err := certManager.IssueCertificate(gatewayCN, constants.XDSCertificateValidityPeriod)
+	bootstrapCert, err := certManager.IssueCertificate(gatewayCN, certificate.WithValidityPeriod(constants.XDSCertificateValidityPeriod))
 	if err != nil {
 		return errors.Errorf("Error issuing bootstrap certificate for OSM gateway: %s", err)
 	}
@@ -47,7 +46,7 @@ func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManage
 		NodeID:         bootstrapCert.GetCommonName().String(),
 		AdminPort:      constants.EnvoyAdminPort,
 		XDSClusterName: constants.OSMControllerName,
-		XDSHost:        fmt.Sprintf("%s.%s.svc.%s", constants.OSMControllerName, osmNamespace, identity.ClusterLocalTrustDomain),
+		XDSHost:        fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, osmNamespace),
 		XDSPort:        constants.ADSServerPort,
 	})
 	if err != nil {

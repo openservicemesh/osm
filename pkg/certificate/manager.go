@@ -24,7 +24,7 @@ func NewManager(mrcClient MRCClient, serviceCertValidityDuration time.Duration, 
 		return nil, err
 	}
 
-	c := &issuer{Issuer: client, ID: clientID, CertificateAuthority: ca}
+	c := &issuer{Issuer: client, ID: clientID, CertificateAuthority: ca, TrustDomain: mrcs[0].Spec.TrustDomain}
 
 	m := &Manager{
 		// The signingIssuer is responsible for signing all newly issued certificates
@@ -59,15 +59,23 @@ func (m *Manager) Start(checkInterval time.Duration, stop <-chan struct{}) {
 // GetTrustDomain returns the trust domain from the configured signingkey issuer.
 // Note that the CRD uses a default, so this value will always be set.
 func (m *Manager) GetTrustDomain() string {
-	// TODO(4754): implement
-	return ""
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.signingIssuer.TrustDomain
 }
 
 func (m *Manager) checkAndRotate() {
 	// NOTE: checkAndRotate can reintroduce a certificate that has been released, thereby creating an unbounded cache.
 	// A certificate can also have been rotated already, leaving the list of issued certs stale, and we re-rotate.
 	// the latter is not a bug, but a source of inefficiency.
-	for _, cert := range m.ListIssuedCertificates() {
+
+	certs := map[string]*Certificate{}
+	m.cache.Range(func(keyIface interface{}, certInterface interface{}) bool {
+		key := keyIface.(string)
+		certs[key] = certInterface.(*Certificate)
+		return true // continue the iteration
+	})
+	for key, cert := range certs {
 		shouldRotate := cert.ShouldRotate()
 
 		word := map[bool]string{true: "will", false: "will not"}[shouldRotate]
@@ -78,7 +86,14 @@ func (m *Manager) checkAndRotate() {
 			RenewBeforeCertExpires)
 
 		if shouldRotate {
-			newCert, err := m.IssueCertificate(cert.GetCommonName(), m.serviceCertValidityDuration)
+			opts := []IssueOption{WithValidityPeriod(m.serviceCertValidityDuration)}
+			// if the key is equal to the common name, then it was issued with FullCNProvided(). This will prevent
+			// an additional trust domain from being appended. We don't do this in every case, in case the trust domain
+			// has changed since the last issue.
+			if key == cert.CommonName.String() {
+				opts = append(opts, FullCNProvided())
+			}
+			newCert, err := m.IssueCertificate(key, opts...)
 			if err != nil {
 				// TODO(#3962): metric might not be scraped before process restart resulting from this error
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).
@@ -97,8 +112,8 @@ func (m *Manager) checkAndRotate() {
 	}
 }
 
-func (m *Manager) getFromCache(cn CommonName) *Certificate {
-	certInterface, exists := m.cache.Load(cn)
+func (m *Manager) getFromCache(key string) *Certificate {
+	certInterface, exists := m.cache.Load(key)
 	if !exists {
 		return nil
 	}
@@ -112,18 +127,24 @@ func (m *Manager) getFromCache(cn CommonName) *Certificate {
 }
 
 // IssueCertificate implements Manager and returns a newly issued certificate from the given client.
-func (m *Manager) IssueCertificate(cn CommonName, validityPeriod time.Duration) (*Certificate, error) {
+func (m *Manager) IssueCertificate(prefix string, opts ...IssueOption) (*Certificate, error) {
 	var err error
-	cert := m.getFromCache(cn) // Don't call this while holding the lock
+	cert := m.getFromCache(prefix) // Don't call this while holding the lock
 
-	m.mu.RLock()
+	options := defaultOptions(m.serviceCertValidityDuration)
+
+	for _, o := range opts {
+		o(options)
+	}
+
+	m.mu.Lock()
 	validatingIssuer := m.validatingIssuer
 	signingIssuer := m.signingIssuer
-	m.mu.RUnlock()
+	m.mu.Unlock()
 
 	start := time.Now()
 	if cert == nil || cert.signingIssuerID != signingIssuer.ID || cert.validatingIssuerID != validatingIssuer.ID {
-		cert, err = signingIssuer.IssueCertificate(cn, validityPeriod)
+		cert, err = signingIssuer.IssueCertificate(options.formatCN(prefix, signingIssuer.TrustDomain), options.validityPeriod)
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +159,7 @@ func (m *Manager) IssueCertificate(cn CommonName, validityPeriod time.Duration) 
 		cert.validatingIssuerID = validatingIssuer.ID
 	}
 
-	m.cache.Store(cn, cert)
+	m.cache.Store(prefix, cert)
 
 	log.Trace().Msgf("It took %s to issue certificate with SerialNumber=%s", time.Since(start), cert.GetSerialNumber())
 
@@ -146,9 +167,9 @@ func (m *Manager) IssueCertificate(cn CommonName, validityPeriod time.Duration) 
 }
 
 // ReleaseCertificate is called when a cert will no longer be needed and should be removed from the system.
-func (m *Manager) ReleaseCertificate(cn CommonName) {
-	log.Trace().Msgf("Releasing certificate %s", cn)
-	m.cache.Delete(cn)
+func (m *Manager) ReleaseCertificate(key string) {
+	log.Trace().Msgf("Releasing certificate %s", key)
+	m.cache.Delete(key)
 }
 
 // ListIssuedCertificates implements CertificateDebugger interface and returns the list of issued certificates.

@@ -68,10 +68,11 @@ type InboundTrafficPolicy struct {
 	RateLimit *policyv1alpha1.RateLimitSpec `json:"rate_limit:omitempty"`
 }
 
-// Rule is a struct that represents which service identities (authenticated principals) can access a Route
+// Rule is a struct that represents which authenticated principals can access a Route.
+// A principal is of the form <service-identity>.<trust-domain>. It can also contain wildcards.
 type Rule struct {
 	Route                    RouteWeightedClusters `json:"route:omitempty"`
-	AllowedServiceIdentities mapset.Set            `json:"allowed_service_identities:omitempty"`
+	AllowedServiceIdentities mapset.Set            `json:"allowed_princinpals:omitempty"`
 }
 
 // OutboundTrafficPolicy is a struct that associates a list of Routes with outbound traffic on a set of Hostnames

@@ -30,7 +30,7 @@ func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (
 // List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
 func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 	// return single empty object in the list.
-	return []*v1alpha2.MeshRootCertificate{{}}, nil
+	return []*v1alpha2.MeshRootCertificate{{Spec: v1alpha2.MeshRootCertificateSpec{TrustDomain: "fake.example.com"}}}, nil
 }
 
 // NewFake constructs a fake certificate client using a certificate

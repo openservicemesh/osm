@@ -19,6 +19,7 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	tresorfake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -251,7 +252,9 @@ func TestRDSRespose(t *testing.T) {
 			mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 
-			resources, err := rds.NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+			cm := tresorfake.NewFake(nil)
+
+			resources, err := rds.NewResponse(mockCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
 			assert.Nil(err)
 			assert.NotNil(resources)
 

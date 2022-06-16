@@ -22,9 +22,10 @@ func TestBuild(t *testing.T) {
 		expectedPolicy        *xds_rbac.Policy
 	}{
 		{
-			name:       "testing rules for single principal",
-			identities: []identity.ServiceIdentity{identity.New("foo", "domain"), identity.New("bar", "domain")},
-			ports:      []uint16{80},
+			name:        "testing rules for single principal",
+			identities:  []identity.ServiceIdentity{identity.New("foo", "domain"), identity.New("bar", "domain")},
+			ports:       []uint16{80},
+			trustDomain: "cluster.local",
 			expectedPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
 					{
@@ -182,6 +183,8 @@ func TestBuild(t *testing.T) {
 			}
 
 			pb.UseANDForPermissions(tc.applyPermissionsAsAND)
+			pb.SetTrustDomain(tc.trustDomain)
+
 			policy := pb.Build()
 			assert.Equal(tc.expectedPolicy, policy)
 		})
