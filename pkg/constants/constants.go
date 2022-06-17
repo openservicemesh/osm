@@ -191,25 +191,25 @@ const (
 // Annotations and labels used by the MeshRootCertificate
 const (
 	// MRCStateValidatingRollout is the validating rollout status option for the State of the MeshRootCertificate
-	MRCStateValidatingRollout = "validatingRollout"
+	MRCStateValidatingRollout string = "validatingRollout"
 
 	// MRCStateIssuingRollout is the issuing rollout status option for the State of the MeshRootCertificate
-	MRCStateIssuingRollout = "issuingRollout"
+	MRCStateIssuingRollout string = "issuingRollout"
 
 	// MRCStateActive is the active status option for the State of the MeshRootCertificate
-	MRCStateActive = "active"
-
-	// MRCStateIssuingRollback is the issuing rollback status option for the State of the MeshRootCertificate
-	MRCStateIssuingRollback = "issuingRollback"
+	MRCStateActive string = "active"
 
 	// MRCStateValidatingRollback is the validating rollback status option for the State of the MeshRootCertificate
-	MRCStateValidatingRollback = "validatingRollback"
+	MRCStateValidatingRollback string = "validatingRollback"
+
+	// MRCStateIssuingRollback is the issuing rollback status option for the State of the MeshRootCertificate
+	MRCStateIssuingRollback string = "issuingRollback"
 
 	// MRCStateInactive is the inactive status option for the State of the MeshRootCertificate
-	MRCStateInactive = "inactive"
+	MRCStateInactive string = "inactive"
 
 	// MRCStateError is the error status option for the State of the MeshRootCertificate
-	MRCStateError = "error"
+	MRCStateError string = "error"
 )
 
 // Labels used by the control plane

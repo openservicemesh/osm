@@ -19,6 +19,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func TestIngressBackendValidator(t *testing.T) {
@@ -1404,7 +1405,7 @@ func TestValidateMRCdelete(t *testing.T) {
 		existingMRCs int
 	}{
 		{
-			name: "MeshRootCertificate",
+			name: "Successfully Delete One MRC",
 			input: &admissionv1.AdmissionRequest{
 				Operation: admissionv1.Delete,
 				Kind: metav1.GroupVersionKind{
@@ -1479,7 +1480,7 @@ func existingMRCs(num int) []*configv1alpha2.MeshRootCertificate {
 				TrustDomain: "trustdomain",
 			},
 			Status: configv1alpha2.MeshRootCertificateStatus{
-				RotationStage: constants.MRCStateComplete,
+				State: constants.MRCStateActive,
 			},
 		}, {
 			TypeMeta: metav1.TypeMeta{
@@ -1492,16 +1493,19 @@ func existingMRCs(num int) []*configv1alpha2.MeshRootCertificate {
 			},
 			Spec: configv1alpha2.MeshRootCertificateSpec{
 				Provider: configv1alpha2.ProviderSpec{
-					CertManager: &configv1alpha2.CertManagerProviderSpec{
-						IssuerName:  "localhost2",
-						IssuerKind:  "issuerkind2",
-						IssuerGroup: "issuergroup2",
+					Tresor: &configv1alpha2.TresorProviderSpec{
+						CA: configv1alpha2.TresorCASpec{
+							SecretRef: corev1.SecretReference{
+								Name:      "osm-ca-bundle",
+								Namespace: "test-namepsace",
+							},
+						},
 					},
 				},
 				TrustDomain: "trustdomain2",
 			},
 			Status: configv1alpha2.MeshRootCertificateStatus{
-				RotationStage: constants.MRCStateComplete,
+				State: constants.MRCStateActive,
 			},
 		},
 	}

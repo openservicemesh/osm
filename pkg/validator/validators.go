@@ -267,8 +267,14 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 	return nil, nil
 }
 
+type MRCInfo struct {
+	storedMRC    *configv1alpha2.MeshRootCertificate
+	suggestedMRC *configv1alpha2.MeshRootCertificate
+	allStoredMRC []*configv1alpha2.MeshRootCertificate
+}
+
 // meshRootCertificateValidator validates the MeshRootCertificate CRD.
-func meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+func (m MRCInfo) meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 	mrcSetting := &configv1alpha2.MeshRootCertificate{}
 
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(mrcSetting); err != nil {
@@ -276,8 +282,8 @@ func meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admission
 	}
 
 	//todo(schristoff:)fake data for now
-	allMRCs := []configv1alpha2.MeshRootCertificate{}
-	numAppliedMRC := len(allMRCs)
+	m.allStoredMRC = []*configv1alpha2.MeshRootCertificate{}
+	numAppliedMRC := len(m.allStoredMRC)
 
 	switch req.Operation {
 	case admissionv1.Delete:
@@ -285,72 +291,91 @@ func meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admission
 			return nil, errors.Errorf("must have more than one Mesh Root Certificate to delete")
 		}
 
-		for _, v := range allMRCs {
+		for _, v := range m.allStoredMRC {
 			if mrcSetting.Name == v.Name {
-				currentMRC := &v
-				return validateMRCdelete(currentMRC, mrcSetting)
+				m.storedMRC = v
+				return nil, m.validateMRCdelete()
+				break
 			}
 		}
 		return nil, errors.Errorf("cannot find mesh root certificate with name %v", mrcSetting.Name)
 
 	case admissionv1.Create:
-		if numAppliedMRC == 2 {
-			return nil, errors.Errorf("cannot create more then two Mesh Root Certificates")
-		}
+		//count only active, make sure no more than 2 active
+		if !m.validateMRCcreate() {
+			return nil, errors.Errorf("cannot create more than two active certificates")
 
-		return validateMRCcreate(mrcSetting)
+		}
 
 	case admissionv1.Update:
-		for _, v := range allMRCs {
+		for _, v := range m.allStoredMRC {
 			if mrcSetting.Name == v.Name {
-				currentMRC := &v
-				return validateMRCupdate(currentMRC, mrcSetting)
+				m.storedMRC = v
+				break
+			} else {
+				return nil, errors.Errorf("cannot find mesh root certificate with name %v", mrcSetting.Name)
+
 			}
 		}
-		return nil, errors.Errorf("cannot find mesh root certificate with name %v", mrcSetting.Name)
+		if !m.validateMRCupdate() {
+			return nil, errors.Errorf("cannot transition %v in current state %v into state %v",
+				m.storedMRC.Name, m.storedMRC.Status.State, m.suggestedMRC.Status.State)
+		}
 	}
 
 	return nil, nil
 }
 
-func validateMRCdelete(current *configv1alpha2.MeshRootCertificate,
-	applied *configv1alpha2.MeshRootCertificate) (*admissionv1.AdmissionResponse, error) {
-	//todo(schristoff): will we ever be stuck in these states? how/where do we get out?
-	// if osm gets stuck, will it touch this and get blocked?
-	switch current.Status.RotationStage {
-	case constants.MRCStageIssuing:
-		return nil, errors.Errorf("cannot delete certificate %v in stage %v", current.Name, current.Status.RotationStage)
-	case constants.MRCStageValidating:
-		return nil, errors.Errorf("cannot delete certificate %v in stage %v", current.Name, current.Status.RotationStage)
+func (m MRCInfo) validateMRCdelete() error {
+	//Delete inactive or error only
+	switch m.storedMRC.Status.State {
+	case constants.MRCStateInactive, constants.MRCStateError:
+		return nil
 	default:
-		return nil, nil
+		return errors.Errorf("cannot delete certificate %v in stage %v", m.storedMRC.Name, m.storedMRC.Status.State)
 	}
 }
 
-func validateMRCupdate(current *configv1alpha2.MeshRootCertificate,
-	applied *configv1alpha2.MeshRootCertificate) (*admissionv1.AdmissionResponse, error) {
-	//prevent out of order status changes
-	// we can do:
-	// validating -> issuing
-	// issuing -> validating
-	// complete -> none?
-	switch current.Status.RotationStage {
-	//where are the const for these?
-	case constants.MRCStageValidating:
-		if applied.Status.RotationStage == constants.MRCStateComplete {
-			return nil, errors.Errorf("cannot place %v in %v into complete", applied.Name, current.Status)
-		}
-	case constants.MRCStageIssuing:
-		if applied.Status.RotationStage == constants.MRCStageValidating {
-			return nil, errors.Errorf("cannot place %v in %v into validating", applied.Name, current.Status)
-		}
-	case constants.MRCStateComplete:
-		return nil, errors.Errorf("cannot place %v in %v into any other state", applied.Name, current.Status)
-	}
-	return nil, nil
+func (m MRCInfo) validateMRCupdate() bool {
+	return m.validateMRCTransition()
 }
 
-func validateMRCcreate(
-	applied *configv1alpha2.MeshRootCertificate) (*admissionv1.AdmissionResponse, error) {
-	return nil, nil
+func (m MRCInfo) validateMRCcreate() bool {
+	return m.countActiveMRCs() < 2
+}
+
+func (m MRCInfo) validateMRCTransition() bool {
+	allowedTransitions := map[string][]string{
+		constants.MRCStateIssuingRollout:     {constants.MRCStateValidatingRollout, constants.MRCStateError},
+		constants.MRCStateValidatingRollout:  {constants.MRCStateActive, constants.MRCStateError},
+		constants.MRCStateActive:             {constants.MRCStateValidatingRollback, constants.MRCStateError},
+		constants.MRCStateValidatingRollback: {constants.MRCStateIssuingRollback, constants.MRCStateError},
+		constants.MRCStateIssuingRollback:    {constants.MRCStateInactive, constants.MRCStateError},
+	}
+	//look up storedMRC state key
+	//applied state must be in the values for that key
+	if allowedStates, ok := allowedTransitions[m.storedMRC.Status.State]; ok {
+		for _, state := range allowedStates {
+			//if going into active, safety check we have less than two
+			if m.suggestedMRC.Status.State == constants.MRCStateActive {
+				return m.countActiveMRCs() < 2
+			}
+			return m.suggestedMRC.Status.State == state
+		}
+	}
+	// on false we could probably return []string of allowedStates for better
+	// user exp. but that makes the logic less pretty
+	return false
+}
+
+func (m MRCInfo) countActiveMRCs() int {
+	var active int
+	for _, mrc := range m.allStoredMRC {
+		if mrc.Status.State == constants.MRCStateActive {
+			active++
+		}
+	}
+	// we could probably store names of active certs and
+	// return them for a better user exp. ?
+	return active
 }
