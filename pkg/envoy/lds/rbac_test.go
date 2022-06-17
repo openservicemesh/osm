@@ -8,9 +8,9 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
 
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -255,7 +255,7 @@ func TestBuildRBACFilter(t *testing.T) {
 			rbacFilter, err := lb.buildRBACFilter()
 			assert.Equal(err != nil, tc.expectErr)
 
-			assert.Equal(rbacFilter.Name, wellknown.RoleBasedAccessControl)
+			assert.Equal(envoy.L4RBACFilterName, rbacFilter.Name)
 		})
 	}
 }

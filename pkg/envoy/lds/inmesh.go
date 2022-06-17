@@ -10,7 +10,6 @@ import (
 	xds_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/local_ratelimit/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -113,7 +112,7 @@ func (lb *listenerBuilder) getInboundHTTPFilters(trafficMatch *trafficpolicy.Tra
 		return nil, errors.Wrapf(err, "Error marshalling inbound HTTP connection manager for proxy with identity %s and traffic match %s", lb.serviceIdentity, trafficMatch.Name)
 	}
 	httpConnectionManagerFilter := &xds_listener.Filter{
-		Name: wellknown.HTTPConnectionManager,
+		Name: envoy.HTTPConnectionManagerFilterName,
 		ConfigType: &xds_listener.Filter_TypedConfig{
 			TypedConfig: marshalledInboundConnManager,
 		},
@@ -166,7 +165,7 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(trafficMatch *trafficpo
 		},
 
 		TransportSocket: &xds_core.TransportSocket{
-			Name: wellknown.TransportSocketTls,
+			Name: trafficMatch.Name,
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: marshalledDownstreamTLSContext,
 			},
@@ -216,7 +215,7 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(trafficMatch *trafficpol
 		},
 		Filters: filters,
 		TransportSocket: &xds_core.TransportSocket{
-			Name: wellknown.TransportSocketTls,
+			Name: trafficMatch.Name,
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: marshalledDownstreamTLSContext,
 			},
@@ -264,7 +263,7 @@ func (lb *listenerBuilder) getInboundTCPFilters(trafficMatch *trafficpolicy.Traf
 		return nil, err
 	}
 	tcpProxyFilter := &xds_listener.Filter{
-		Name:       wellknown.TCPProxy,
+		Name:       envoy.TCPProxyFilterName,
 		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledTCPProxy},
 	}
 	filters = append(filters, tcpProxyFilter)
@@ -304,7 +303,7 @@ func buildTCPLocalRateLimitFilter(config *policyv1alpha1.TCPLocalRateLimitSpec, 
 	}
 
 	filter := &xds_listener.Filter{
-		Name:       wellknown.RateLimit,
+		Name:       envoy.L4LocalRateLimitFilterName,
 		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledConfig},
 	}
 
@@ -339,7 +338,7 @@ func (lb *listenerBuilder) getOutboundHTTPFilter(routeConfigName string) (*xds_l
 	}
 
 	return &xds_listener.Filter{
-		Name:       wellknown.HTTPConnectionManager,
+		Name:       envoy.HTTPConnectionManagerFilterName,
 		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledFilter},
 	}, nil
 }
@@ -449,7 +448,7 @@ func (lb *listenerBuilder) getOutboundTCPFilter(trafficMatch trafficpolicy.Traff
 	}
 
 	return &xds_listener.Filter{
-		Name:       wellknown.TCPProxy,
+		Name:       envoy.TCPProxyFilterName,
 		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledTCPProxy},
 	}, nil
 }

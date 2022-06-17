@@ -3,15 +3,6 @@ package injector
 import (
 	"time"
 
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/structpb"
-
-	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/errcode"
-
 	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -21,6 +12,14 @@ import (
 	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	xds_http_connection_manager "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
+	"github.com/golang/protobuf/ptypes/any"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/structpb"
+
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 const (
@@ -133,7 +132,12 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 			},
 			HttpFilters: []*xds_http_connection_manager.HttpFilter{
 				{
-					Name: "envoy.filters.http.router",
+					Name: envoy.HTTPRouterFilterName,
+					ConfigType: &xds_http_connection_manager.HttpFilter_TypedConfig{
+						TypedConfig: &any.Any{
+							TypeUrl: envoy.HTTPRouterFilterTypeURL,
+						},
+					},
 				},
 			},
 		}
@@ -146,7 +150,7 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 		filterChain = &xds_listener.FilterChain{
 			Filters: []*xds_listener.Filter{
 				{
-					Name: "envoy.filters.network.http_connection_manager",
+					Name: envoy.HTTPConnectionManagerFilterName,
 					ConfigType: &xds_listener.Filter_TypedConfig{
 						TypedConfig: pbHTTPConnectionManager,
 					},
@@ -176,7 +180,7 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 		filterChain = &xds_listener.FilterChain{
 			Filters: []*xds_listener.Filter{
 				{
-					Name: wellknown.TCPProxy,
+					Name: envoy.TCPProxyFilterName,
 					ConfigType: &xds_listener.Filter_TypedConfig{
 						TypedConfig: pbTCPProxy,
 					},

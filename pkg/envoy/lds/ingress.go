@@ -5,7 +5,6 @@ import (
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -92,7 +91,7 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 		},
 		Filters: []*xds_listener.Filter{
 			{
-				Name: wellknown.HTTPConnectionManager,
+				Name: envoy.HTTPConnectionManagerFilterName,
 				ConfigType: &xds_listener.Filter_TypedConfig{
 					TypedConfig: marshalledIngressConnManager,
 				},
@@ -121,7 +120,7 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 		}
 
 		filterChain.TransportSocket = &xds_core.TransportSocket{
-			Name: wellknown.TransportSocketTls,
+			Name: trafficMatch.Name,
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: marshalledDownstreamTLSContext,
 			},

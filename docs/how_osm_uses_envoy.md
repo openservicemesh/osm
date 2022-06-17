@@ -74,7 +74,7 @@ Below is a significantly paired down Listener configuration, which depicts the r
                   },
                   "filters":[
                      {
-                        "name":"envoy.filters.network.http_connection_manager",
+                        "name":"http_connection_manager",
                         "typed_config":{
                            "@type":"type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
                            "rds":{

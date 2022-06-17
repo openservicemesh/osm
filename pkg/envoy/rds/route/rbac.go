@@ -3,11 +3,11 @@ package route
 import (
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	xds_http_rbac "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
 
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -54,5 +54,5 @@ func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule, trustDomain string)
 		return nil, err
 	}
 
-	return map[string]*any.Any{wellknown.HTTPRoleBasedAccessControl: marshalled}, nil
+	return map[string]*any.Any{envoy.HTTPRBACFilterName: marshalled}, nil
 }
