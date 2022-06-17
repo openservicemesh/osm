@@ -9,7 +9,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/constants"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -1334,6 +1336,7 @@ func TestMeshRootCertificateValidator(t *testing.T) {
 		{
 			name: "MeshRootCertificate",
 			input: &admissionv1.AdmissionRequest{
+				Operation: admissionv1.Create,
 				Kind: metav1.GroupVersionKind{
 					Group:   "configv1alpha2",
 					Version: "config.openservicemesh.io",
@@ -1390,4 +1393,117 @@ func TestMeshRootCertificateValidator(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateMRCdelete(t *testing.T) {
+	testCases := []struct {
+		name         string
+		input        *admissionv1.AdmissionRequest
+		expResp      *admissionv1.AdmissionResponse
+		expErrStr    string
+		existingMRCs int
+	}{
+		{
+			name: "MeshRootCertificate",
+			input: &admissionv1.AdmissionRequest{
+				Operation: admissionv1.Delete,
+				Kind: metav1.GroupVersionKind{
+					Group:   "configv1alpha2",
+					Version: "config.openservicemesh.io",
+					Kind:    "MeshRootCertificate",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "config.openservicemesh.io/configv1alpha2",
+						"kind": "MeshRootCertificate",
+						"provider": {
+							"tresor": {
+							 "ca": {
+							  "secretRef": {
+								"name": "osm-ca-bundle",
+								"namespace": "test-namespace"
+							  }
+							 }
+							}
+							}
+					}
+					`),
+				},
+			},
+			expResp:      nil,
+			expErrStr:    "",
+			existingMRCs: 2,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			stop := make(chan struct{})
+			defer close(stop)
+			resp, err := meshRootCertificateValidator(tc.input)
+			assert.Equal(tc.expResp, resp)
+			if tc.expErrStr == "" {
+				// we expect a nil error
+				assert.Nil(err)
+			}
+			if err != nil {
+				assert.Equal(tc.expErrStr, err.Error())
+			}
+		})
+	}
+}
+
+func existingMRCs(num int) []*configv1alpha2.MeshRootCertificate {
+
+	existing := []*configv1alpha2.MeshRootCertificate{
+		{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "MeshRootCertificate",
+				APIVersion: "config.openservicemesh.io/configv1alpha2",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mrctest-1",
+				Namespace: "test",
+			},
+			Spec: configv1alpha2.MeshRootCertificateSpec{
+				Provider: configv1alpha2.ProviderSpec{
+					CertManager: &configv1alpha2.CertManagerProviderSpec{
+						IssuerName:  "localhost",
+						IssuerKind:  "issuerkind",
+						IssuerGroup: "issuergroup",
+					},
+				},
+				TrustDomain: "trustdomain",
+			},
+			Status: configv1alpha2.MeshRootCertificateStatus{
+				RotationStage: constants.MRCStateComplete,
+			},
+		}, {
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "MeshRootCertificate",
+				APIVersion: "config.openservicemesh.io/configv1alpha2",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mrctest-2",
+				Namespace: "test",
+			},
+			Spec: configv1alpha2.MeshRootCertificateSpec{
+				Provider: configv1alpha2.ProviderSpec{
+					CertManager: &configv1alpha2.CertManagerProviderSpec{
+						IssuerName:  "localhost2",
+						IssuerKind:  "issuerkind2",
+						IssuerGroup: "issuergroup2",
+					},
+				},
+				TrustDomain: "trustdomain2",
+			},
+			Status: configv1alpha2.MeshRootCertificateStatus{
+				RotationStage: constants.MRCStateComplete,
+			},
+		},
+	}
+	return existing[:num]
 }
