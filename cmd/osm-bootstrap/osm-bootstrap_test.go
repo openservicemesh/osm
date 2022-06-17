@@ -97,8 +97,7 @@ var testMeshRootCertificate *configv1alpha2.MeshRootCertificate = &configv1alpha
 	},
 	Spec: configv1alpha2.MeshRootCertificateSpec{},
 	Status: configv1alpha2.MeshRootCertificateStatus{
-		State:         constants.MRCStateComplete,
-		RotationStage: constants.MRCStageIssuing,
+		State: constants.MRCStateActive,
 	},
 }
 

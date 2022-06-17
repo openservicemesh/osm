@@ -70,8 +70,7 @@ func NewCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Con
 			},
 			// TODO(#4502): Detect if an actual MRC exists, and set the status accordingly.
 			Status: v1alpha2.MeshRootCertificateStatus{
-				State:         constants.MRCStateComplete,
-				RotationStage: constants.MRCStageIssuing,
+				State: constants.MRCStateActive,
 			},
 		},
 	}

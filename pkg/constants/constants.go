@@ -166,14 +166,26 @@ const (
 	// MRCVersionAnnotation is the annotation used for the version of the MeshRootCertificate
 	MRCVersionAnnotation = "openservicemesh.io/mrc-version"
 
-	// MRCStageValidating is the validating status option for the rotation stage of the MeshRootCertificate
-	MRCStageValidating = "validating"
+	// MRCStateValidatingRollout is the validating rollout status option for the State of the MeshRootCertificate
+	MRCStateValidatingRollout = "validatingRollout"
 
-	// MRCStageIssuing is the issuing status option for the rotation stage of the MeshRootCertificate
-	MRCStageIssuing = "issuing"
+	// MRCStateIssuingRollout is the issuing rollout status option for the State of the MeshRootCertificate
+	MRCStateIssuingRollout = "issuingRollout"
 
-	// MRCStateComplete is the complete status option for the state of the MeshRootCertificate
-	MRCStateComplete = "complete"
+	// MRCStateActive is the active status option for the State of the MeshRootCertificate
+	MRCStateActive = "active"
+
+	// MRCStateIssuingRollback is the issuing rollback status option for the State of the MeshRootCertificate
+	MRCStateIssuingRollback = "issuingRollback"
+
+	// MRCStateValidatingRollback is the validating rollback status option for the State of the MeshRootCertificate
+	MRCStateValidatingRollback = "validatingRollback"
+
+	// MRCStateInactive is the inactive status option for the State of the MeshRootCertificate
+	MRCStateInactive = "inactive"
+
+	// MRCStateError is the error status option for the State of the MeshRootCertificate
+	MRCStateError = "error"
 )
 
 // Labels used by the control plane

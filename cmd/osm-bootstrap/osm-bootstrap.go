@@ -430,8 +430,7 @@ func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigM
 		},
 		Spec: presetMeshRootCertificateSpec,
 		Status: configv1alpha2.MeshRootCertificateStatus{
-			State:         constants.MRCStateComplete,
-			RotationStage: constants.MRCStageIssuing,
+			State: constants.MRCStateActive,
 		},
 	}
 
