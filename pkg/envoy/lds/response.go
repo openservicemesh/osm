@@ -29,17 +29,6 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	lb := newListenerBuilder(meshCatalog, proxy.Identity, cfg, statsHeaders, cm.GetTrustDomain())
 
-	if proxy.Kind() == envoy.KindGateway && cfg.GetFeatureFlags().EnableMulticlusterMode {
-		gatewayListener, err := lb.buildMulticlusterGatewayListener()
-
-		if err != nil {
-			log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error building multicluster gateway listener")
-			return ldsResources, err
-		}
-		ldsResources = append(ldsResources, gatewayListener)
-		return ldsResources, nil
-	}
-
 	// --- OUTBOUND -------------------
 	outboundListener, err := lb.newOutboundListener()
 	if err != nil {

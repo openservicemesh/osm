@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
@@ -15,7 +14,6 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -246,39 +244,6 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 	if matchingUpstreamTrafficSetting := kc.policyClient.GetUpstreamTrafficSetting(opt); matchingUpstreamTrafficSetting != nil && matchingUpstreamTrafficSetting.Name != upstreamTrafficSetting.Name {
 		// duplicate detected
 		return nil, errors.Errorf("UpstreamTrafficSetting %s/%s conflicts with %s/%s since they have the same host %s", ns, upstreamTrafficSetting.ObjectMeta.GetName(), ns, matchingUpstreamTrafficSetting.ObjectMeta.GetName(), matchingUpstreamTrafficSetting.Spec.Host)
-	}
-
-	return nil, nil
-}
-
-// MultiClusterServiceValidator validates the MultiClusterService CRD.
-func MultiClusterServiceValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
-	config := &configv1alpha2.MultiClusterService{}
-	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(config); err != nil {
-		return nil, err
-	}
-
-	clusterNames := make(map[string]bool)
-
-	for _, cluster := range config.Spec.Clusters {
-		if len(strings.TrimSpace(cluster.Name)) == 0 {
-			return nil, errors.New("Cluster name is not valid")
-		}
-		if _, ok := clusterNames[cluster.Name]; ok {
-			return nil, errors.Errorf("Cluster named %s already exists", cluster.Name)
-		}
-		if len(strings.TrimSpace(cluster.Address)) == 0 {
-			return nil, errors.Errorf("Cluster address %s is not valid", cluster.Address)
-		}
-		clusterAddress := strings.Split(cluster.Address, ":")
-		if net.ParseIP(clusterAddress[0]) == nil {
-			return nil, errors.Errorf("Error parsing IP address %s", cluster.Address)
-		}
-		_, err := strconv.ParseUint(clusterAddress[1], 10, 32)
-		if err != nil {
-			return nil, errors.Errorf("Error parsing port value %s", cluster.Address)
-		}
-		clusterNames[cluster.Name] = true
 	}
 
 	return nil, nil

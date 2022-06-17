@@ -253,9 +253,6 @@ const (
 const (
 	// LogFieldContext is the key used to specify the logging context
 	LogFieldContext = "context"
-
-	// LogContextMulticluster is the key used for multicluster log messages
-	LogContextMulticluster = "multicluster"
 )
 
 // Control plane HTTP server paths

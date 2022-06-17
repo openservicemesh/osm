@@ -102,7 +102,4 @@ type ProxyKind string
 const (
 	// KindSidecar implies the proxy is a sidecar
 	KindSidecar ProxyKind = "sidecar"
-
-	// KindGateway implies the proxy is a gateway
-	KindGateway ProxyKind = "gateway"
 )

@@ -254,7 +254,6 @@ func (d *uninstallMeshCmd) uninstallCustomResourceDefinitions() error {
 		"meshRootCertificate.config.openservicemesh.io",
 		"upstreamtrafficsettings.policy.openservicemesh.io",
 		"retries.policy.openservicemesh.io",
-		"multiclusterservices.config.openservicemesh.io",
 		"httproutegroups.specs.smi-spec.io",
 		"tcproutes.specs.smi-spec.io",
 		"trafficsplits.split.smi-spec.io",

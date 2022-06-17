@@ -25,8 +25,6 @@ type Interface interface {
 	MeshConfigs() MeshConfigInformer
 	// MeshRootCertificates returns a MeshRootCertificateInformer.
 	MeshRootCertificates() MeshRootCertificateInformer
-	// MultiClusterServices returns a MultiClusterServiceInformer.
-	MultiClusterServices() MultiClusterServiceInformer
 }
 
 type version struct {
@@ -48,9 +46,4 @@ func (v *version) MeshConfigs() MeshConfigInformer {
 // MeshRootCertificates returns a MeshRootCertificateInformer.
 func (v *version) MeshRootCertificates() MeshRootCertificateInformer {
 	return &meshRootCertificateInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// MultiClusterServices returns a MultiClusterServiceInformer.
-func (v *version) MultiClusterServices() MultiClusterServiceInformer {
-	return &multiClusterServiceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

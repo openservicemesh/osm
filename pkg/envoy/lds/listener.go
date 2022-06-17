@@ -25,7 +25,6 @@ const (
 	// OutboundListenerName is the name of the listener used for outbound traffic
 	OutboundListenerName = "outbound-listener"
 
-	multiclusterListenerName      = "multicluster-listener"
 	prometheusListenerName        = "inbound-prometheus-listener"
 	outboundEgressFilterChainName = "outbound-egress-filter-chain"
 	egressTCPProxyStatPrefix      = "egress-tcp-proxy"

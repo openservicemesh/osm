@@ -24,7 +24,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/openservicemesh/osm/pkg/auth"
-	"github.com/openservicemesh/osm/pkg/catalog"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -85,9 +84,8 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableWASMStats:        false,
-		EnableEgressPolicy:     true,
-		EnableMulticlusterMode: false,
+		EnableWASMStats:    false,
+		EnableEgressPolicy: true,
 	}).AnyTimes()
 
 	proxy, pod, err := getProxy(kubeClient)
@@ -164,46 +162,4 @@ func TestNewResponse(t *testing.T) {
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_INBOUND)
 	assert.NotNil(listener.FilterChains)
 	assert.Len(listener.FilterChains, 1)
-}
-
-func TestNewResponseForMulticlusterGateway(t *testing.T) {
-	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	ctrl := gomock.NewController(t)
-	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableMulticlusterMode: true,
-	}).AnyTimes()
-
-	proxy := envoy.NewProxy(envoy.KindGateway, uuid.New(), identity.New("osm", "osm-system"), nil)
-
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}), nil)
-
-	meshCatalog.EXPECT().ListOutboundServicesForMulticlusterGateway().Return([]service.MeshService{
-		tests.BookstoreV1Service,
-	}).AnyTimes()
-
-	cm := tresorfake.NewFake(nil)
-	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
-	assert.Empty(err)
-	assert.NotNil(resources)
-	// There is only one listeners configured for the gateway proxy:
-	// 1. Multicluster listener (multicluster-listener)
-	assert.Len(resources, 1)
-
-	// validating outbound listener
-	listener, ok := resources[0].(*xds_listener.Listener)
-	assert.True(ok)
-	assert.Equal(listener.Name, multiclusterListenerName)
-	assert.Len(listener.ListenerFilters, 1) // 1 filter is expected: TlsInspector
-	assert.Equal(listener.ListenerFilters[0].Name, wellknown.TlsInspector)
-	assert.NotNil(listener.FilterChains)
-	// There is one filter chains configured on the multicluster-listner based on the configuration:
-	// 1. Filter chain for bookstore-v1
-	assert.Len(listener.FilterChains, 1)
-	assert.Equal(listener.FilterChains[0].Name, fmt.Sprintf("%s-%s", multiclusterGatewayFilterChainName, tests.BookstoreV1ServiceName))
 }

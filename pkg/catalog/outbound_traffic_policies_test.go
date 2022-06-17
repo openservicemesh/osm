@@ -916,7 +916,6 @@ func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockController := k8s.NewMockController(mockCtrl)
 			mockServiceProvider := service.NewMockProvider(mockCtrl)
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
 			mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
 
 			mc := MeshCatalog{

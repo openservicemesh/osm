@@ -321,9 +321,6 @@ osm:
     # -- Enable OSM's Egress policy API.
     # When enabled, fine grained control over Egress (external) traffic is enforced
     enableEgressPolicy: true
-    # -- Enable Multicluster mode.
-    # When enabled, multicluster mode will be enabled in OSM
-    enableMulticlusterMode: false
     # -- Enable async proxy-service mapping
     enableAsyncProxyServiceMapping: false
     # -- Enables OSM's IngressBackend policy API.
@@ -335,11 +332,6 @@ osm:
     enableSnapshotCacheMode: false
     # -- Enable Retry Policy for automatic request retries
     enableRetryPolicy: false
-
-  # -- OSM multicluster feature configuration
-  multicluster:
-    # -- Log level for the multicluster gateway
-    gatewayLogLevel: error
 
   # -- Node tolerations applied to control plane pods.
   # The specified tolerations allow pods to schedule onto nodes with matching taints.

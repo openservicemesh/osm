@@ -27,7 +27,6 @@ type ConfigV1alpha2Interface interface {
 	RESTClient() rest.Interface
 	MeshConfigsGetter
 	MeshRootCertificatesGetter
-	MultiClusterServicesGetter
 }
 
 // ConfigV1alpha2Client is used to interact with features provided by the config.openservicemesh.io group.
@@ -41,10 +40,6 @@ func (c *ConfigV1alpha2Client) MeshConfigs(namespace string) MeshConfigInterface
 
 func (c *ConfigV1alpha2Client) MeshRootCertificates(namespace string) MeshRootCertificateInterface {
 	return newMeshRootCertificates(c, namespace)
-}
-
-func (c *ConfigV1alpha2Client) MultiClusterServices(namespace string) MultiClusterServiceInterface {
-	return newMultiClusterServices(c, namespace)
 }
 
 // NewForConfig creates a new ConfigV1alpha2Client for the given config.

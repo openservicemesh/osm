@@ -20,7 +20,6 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -73,42 +72,6 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, conf
 	upstreamCluster.TypedExtensionProtocolOptions = typedHTTPProtocolOptions
 
 	return upstreamCluster
-}
-
-// getMulticlusterGatewayUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service for the multicluster gateway
-func getMulticlusterGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamSvc service.MeshService, withActiveHealthChecks bool) (*xds_cluster.Cluster, error) {
-	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
-	if err != nil {
-		return nil, err
-	}
-
-	remoteCluster := &xds_cluster.Cluster{
-		Name: upstreamSvc.ServerName(),
-		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
-			Type: xds_cluster.Cluster_STRICT_DNS,
-		},
-		LbPolicy:                      xds_cluster.Cluster_ROUND_ROBIN,
-		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
-		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
-			ClusterName: upstreamSvc.ServerName(),
-			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
-				{
-					LbEndpoints: []*xds_endpoint.LbEndpoint{{
-						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
-							Endpoint: &xds_endpoint.Endpoint{
-								Address: envoy.GetAddress(upstreamSvc.ServerName(), uint32(upstreamSvc.TargetPort)),
-							},
-						},
-					}},
-				},
-			},
-		},
-	}
-
-	if withActiveHealthChecks {
-		enableHealthChecksOnCluster(remoteCluster, upstreamSvc)
-	}
-	return remoteCluster, nil
 }
 
 func enableHealthChecksOnCluster(cluster *xds_cluster.Cluster, upstreamSvc service.MeshService) {

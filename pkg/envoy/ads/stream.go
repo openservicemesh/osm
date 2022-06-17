@@ -360,12 +360,6 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (envoy.ProxyKind, u
 // recordPodMetadata records pod metadata and verifies the certificate issued for this pod
 // is for the same service account as seen on the pod's service account
 func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
-	if p.Kind() == envoy.KindGateway {
-		log.Debug().Str(constants.LogFieldContext, constants.LogContextMulticluster).Str("proxy", p.String()).
-			Msgf("Proxy is a Multicluster gateway, skipping recording pod metadata")
-		return nil
-	}
-
 	pod, err := s.kubecontroller.GetPodForProxy(p)
 	if err != nil {
 		log.Warn().Str("proxy", p.String()).Msg("Could not find pod for connecting proxy. No metadata was recorded.")

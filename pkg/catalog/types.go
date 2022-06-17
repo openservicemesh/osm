@@ -42,9 +42,6 @@ type MeshCataloger interface {
 	// ListOutboundServicesForIdentity list the services the given service identity is allowed to initiate outbound connections to
 	ListOutboundServicesForIdentity(identity.ServiceIdentity) []service.MeshService
 
-	// ListOutboundServicesForMulticlusterGateway lists the upstream services for the multicluster gateway
-	ListOutboundServicesForMulticlusterGateway() []service.MeshService
-
 	// ListInboundServiceIdentities lists the downstream service identities that are allowed to connect to the given service identity
 	ListInboundServiceIdentities(identity.ServiceIdentity) []identity.ServiceIdentity
 
