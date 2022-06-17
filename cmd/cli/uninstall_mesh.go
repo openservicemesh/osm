@@ -179,21 +179,17 @@ func (d *uninstallMeshCmd) run() error {
 			}
 
 			if err == nil {
-				namespaces, _ := selectNamespacesMonitoredByMesh(d.meshName, d.clientSet)
+				namespaces, _ := selectNamespacesMonitoredByMesh(m.name, d.clientSet)
 				for _, ns := range namespaces.Items {
 					removeCmd := &namespaceRemoveCmd{
 						out:       d.out,
 						namespace: ns.Name,
-						meshName:  d.meshName,
+						meshName:  m.name,
 						clientSet: d.clientSet,
 					}
 
-					err := removeCmd.run()
+					_ = removeCmd.run()
 
-					// Unable to remove namespace in mesh
-					if err != nil {
-						return err
-					}
 				}
 				fmt.Fprintf(d.out, "OSM [mesh name: %s] in namespace [%s] uninstalled\n", m.name, m.namespace)
 			}
