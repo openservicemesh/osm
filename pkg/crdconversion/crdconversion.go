@@ -12,6 +12,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
@@ -38,8 +39,8 @@ var apiKindToPath = map[string]string{
 var conversionReviewVersions = []string{"v1beta1", "v1"}
 
 // NewConversionWebhook starts a new web server handling requests from the CRD's
-func NewConversionWebhook(ctx context.Context, kubeClient kubernetes.Interface, crdClient apiclient.ApiextensionsV1Interface, certManager *certificate.Manager, osmNamespace string, enableReconciler bool) error {
-	srv, err := webhook.NewServer(constants.OSMBootstrapName, osmNamespace, constants.CRDConversionWebhookPort, certManager, map[string]http.HandlerFunc{
+func NewConversionWebhook(ctx context.Context, kubeClient kubernetes.Interface, crdClient apiclient.ApiextensionsV1Interface, certManager *certificate.Manager, broker *messaging.Broker, osmNamespace string, enableReconciler bool) error {
+	srv, err := webhook.NewServer(constants.OSMBootstrapName, osmNamespace, constants.CRDConversionWebhookPort, certManager, broker, map[string]http.HandlerFunc{
 		meshConfigConverterPath:            serveMeshConfigConversion,
 		trafficAccessConverterPath:         serveTrafficAccessConversion,
 		httpRouteGroupConverterPath:        serveHTTPRouteGroupConversion,

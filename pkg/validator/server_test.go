@@ -162,7 +162,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
 
-		err = NewValidatingWebhook(context.Background(), webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
+		err = NewValidatingWebhook(context.Background(), webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, broker, kube, policyClient)
 		tassert.NoError(t, err)
 	})
 
@@ -178,7 +178,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
 
-		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
+		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, broker, kube, policyClient)
 		tassert.NoError(t, err)
 	})
 
@@ -196,7 +196,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
 
-		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
+		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, broker, kube, policyClient)
 		tassert.NoError(t, err)
 	})
 }
