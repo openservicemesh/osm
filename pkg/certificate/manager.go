@@ -1,52 +1,43 @@
 package certificate
 
 import (
+	"context"
+	"errors"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-// NewManager creates a new CertManager with the passed CA and CA Private Key
-func NewManager(mrcClient MRCClient, serviceCertValidityDuration time.Duration, msgBroker *messaging.Broker) (*Manager, error) {
-	// TODO(#4502): transition this call to a watch function that knows how to handle multiple MRC and can react to changes.
-	mrcs, err := mrcClient.List()
-	if err != nil {
-		return nil, err
-	}
-
-	client, ca, clientID, err := mrcClient.GetCertIssuerForMRC(mrcs[0])
-	if err != nil {
-		return nil, err
-	}
-
-	c := &issuer{Issuer: client, ID: clientID, CertificateAuthority: ca, TrustDomain: mrcs[0].Spec.TrustDomain}
-
+// NewManager creates a new CertificateManager with the passed MRCClient and options
+func NewManager(ctx context.Context, mrcClient MRCClient, serviceCertValidityDuration time.Duration, msgBroker *messaging.Broker, checkInterval time.Duration) (*Manager, error) {
 	m := &Manager{
-		// The signingIssuer is responsible for signing all newly issued certificates
-		// The validatingIssuer is the issuer that issued existing certificates.
-		// its underlying cert is still in the validating trust store
-		signingIssuer:               c,
-		validatingIssuer:            c,
 		serviceCertValidityDuration: serviceCertValidityDuration,
 		msgBroker:                   msgBroker,
 	}
+
+	err := m.start(ctx, mrcClient)
+	if err != nil {
+		return nil, err
+	}
+
+	m.startRotationTicker(ctx, checkInterval)
 	return m, nil
 }
 
-// Start takes an interval to check if the certificate
-// needs to be rotated
-func (m *Manager) Start(checkInterval time.Duration, stop <-chan struct{}) {
+func (m *Manager) startRotationTicker(ctx context.Context, checkInterval time.Duration) {
 	ticker := time.NewTicker(checkInterval)
 	go func() {
 		m.checkAndRotate()
 		for {
 			select {
-			case <-stop:
+			case <-ctx.Done():
 				ticker.Stop()
 				return
 			case <-ticker.C:
@@ -54,6 +45,103 @@ func (m *Manager) Start(checkInterval time.Duration, stop <-chan struct{}) {
 			}
 		}
 	}()
+}
+
+func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
+	// start a watch and we wait until the manager is initialized so that
+	// the caller gets a manager that's ready to be used
+	var once sync.Once
+	var wg sync.WaitGroup
+	mrcEvents, err := mrcClient.Watch(ctx)
+	if err != nil {
+		return err
+	}
+
+	wg.Add(1)
+
+	go func(wg *sync.WaitGroup, once *sync.Once) {
+		for {
+			select {
+			case <-ctx.Done():
+				if err := ctx.Err(); err != nil {
+					log.Error().Err(err).Msg("context canceled with error. stopping MRC watch...")
+					return
+				}
+
+				log.Info().Msg("context canceled. stopping MRC watch...")
+				return
+			case event, open := <-mrcEvents:
+				if !open {
+					// channel was closed; return
+					log.Info().Msg("stopping MRC watch...")
+					return
+				}
+
+				err = m.handleMRCEvent(mrcClient, event)
+				if err != nil {
+					log.Error().Err(err).Msgf("error encountered processing MRCEvent")
+					continue
+				}
+			}
+
+			if m.signingIssuer != nil && m.validatingIssuer != nil {
+				once.Do(func() {
+					wg.Done()
+				})
+			}
+		}
+	}(&wg, &once)
+
+	done := make(chan struct{})
+
+	// Wait for WaitGroup to finish and notify select when it does
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-time.After(10 * time.Second):
+		// We timed out
+		return errors.New("manager initialization timed out. Make sure your MeshRootCertificate(s) are valid")
+	case <-done:
+	}
+
+	return nil
+}
+
+func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
+	switch event.Type {
+	case MRCEventAdded:
+		mrc := event.MRC
+		if mrc.Status.State == constants.MRCStateError {
+			log.Debug().Msgf("skipping MRC with error state %s", mrc.GetName())
+			return nil
+		}
+
+		client, ca, clientID, err := mrcClient.GetCertIssuerForMRC(mrc)
+		if err != nil {
+			return err
+		}
+
+		c := &issuer{Issuer: client, ID: clientID, CertificateAuthority: ca}
+		switch {
+		case mrc.Status.State == constants.MRCStateActive:
+			m.signingIssuer = c
+			m.validatingIssuer = c
+		case mrc.Status.State == constants.MRCStateIssuingRollback || mrc.Status.State == constants.MRCStateIssuingRollout:
+			m.signingIssuer = c
+		case mrc.Status.State == constants.MRCStateValidatingRollback || mrc.Status.State == constants.MRCStateValidatingRollout:
+			m.validatingIssuer = c
+		default:
+			m.signingIssuer = c
+			m.validatingIssuer = c
+		}
+	case MRCEventUpdated:
+		// TODO
+	}
+
+	return nil
 }
 
 // GetTrustDomain returns the trust domain from the configured signingkey issuer.

@@ -1,10 +1,12 @@
 package certificate
 
 import (
+	"context"
 	"testing"
 	time "time"
 
 	tassert "github.com/stretchr/testify/assert"
+	trequire "github.com/stretchr/testify/require"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
@@ -13,6 +15,7 @@ import (
 
 func TestRotor(t *testing.T) {
 	assert := tassert.New(t)
+	require := trequire.New(t)
 
 	cnPrefix := "foo"
 	validityPeriod := -1 * time.Hour // negative time means this cert has already expired -- will be rotated asap
@@ -20,12 +23,11 @@ func TestRotor(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 	msgBroker := messaging.NewBroker(stop)
-	certManager, err := NewManager(&fakeMRCClient{}, validityPeriod, msgBroker)
-	certManager.Start(5*time.Second, stop)
-	assert.NoError(err)
+	certManager, err := NewManager(context.Background(), &fakeMRCClient{}, validityPeriod, msgBroker, 5*time.Second)
+	require.NoError(err)
 
 	certA, err := certManager.IssueCertificate(cnPrefix, WithValidityPeriod(validityPeriod))
-	assert.NoError(err)
+	require.NoError(err)
 	certRotateChan := msgBroker.GetCertPubSub().Sub(announcements.CertificateRotated.String())
 
 	// Wait for two certificate rotations to be announced and terminate

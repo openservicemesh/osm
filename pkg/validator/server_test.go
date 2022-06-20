@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	tassert "github.com/stretchr/testify/assert"
@@ -144,7 +145,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 	enableReconciler := false
 	validateTrafficTarget := true
 	t.Run("successful startup", func(t *testing.T) {
-		certManager := tresorFake.NewFake(nil)
+		certManager := tresorFake.NewFake(nil, 1*time.Hour)
 
 		port := 41414
 		stop := make(chan struct{})
@@ -166,7 +167,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 	})
 
 	t.Run("successful startup with reconciler enabled and traffic target validation enabled", func(t *testing.T) {
-		certManager := tresorFake.NewFake(nil)
+		certManager := tresorFake.NewFake(nil, 1*time.Hour)
 		enableReconciler = true
 
 		port := 41414
@@ -183,7 +184,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 	})
 
 	t.Run("successful startup with reconciler enabled and validation for traffic target disabled", func(t *testing.T) {
-		certManager := tresorFake.NewFake(nil)
+		certManager := tresorFake.NewFake(nil, 1*time.Hour)
 		enableReconciler = true
 		validateTrafficTarget = false
 

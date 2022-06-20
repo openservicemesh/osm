@@ -2,6 +2,7 @@ package scenarios
 
 import (
 	"testing"
+	"time"
 
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/mock/gomock"
@@ -50,7 +51,8 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 		EnableEgressPolicy: false,
 	}).AnyTimes()
 
-	mc := tresorfake.NewFake(nil)
+	mc := tresorfake.NewFake(nil, 1*time.Hour)
+	a.NotNil(a)
 
 	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, mc, proxyRegistry)
 	a.Nil(err)

@@ -160,9 +160,8 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCLIParameters, "Error validating CLI parameters")
 	}
 
-	stop := signals.RegisterExitHandlers()
-	_, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	stop := signals.RegisterExitHandlers(cancel)
 
 	// Start the default metrics store
 	metricsstore.DefaultMetricsStore.Start(
@@ -203,14 +202,12 @@ func main() {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
 	}
 	// Intitialize certificate manager/provider
-	certManager, err := providers.NewCertificateManager(kubeClient, kubeConfig, cfg, osmNamespace,
-		certOpts, msgBroker)
+	certManager, err := providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
+		certOpts, msgBroker, informerCollection, 5*time.Second)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error initializing certificate manager of kind %s", certProviderKind)
 	}
-	// watch for certificate rotation
-	certManager.Start(5*time.Second, stop)
 
 	// Initialize the sidecar injector webhook
 	if err := injector.NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, osmVersion, webhookTimeout, enableReconciler, stop, cfg, corev1.PullPolicy(osmContainerPullPolicy)); err != nil {

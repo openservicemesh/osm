@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
@@ -40,47 +42,65 @@ var getCA func(certificate.Issuer) (pem.RootCertificate, error) = func(i certifi
 }
 
 // NewCertificateManager returns a new certificate manager, with an MRC compat client.
-// TODO(4502): Use an informer behind a feature flag.
-func NewCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
-	providerNamespace string, options Options, msgBroker *messaging.Broker) (*certificate.Manager, error) {
+// TODO(4713): Use an informer behind a feature flag.
+func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
+	providerNamespace string, options Options, msgBroker *messaging.Broker, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
 	if err := options.Validate(); err != nil {
 		return nil, err
 	}
 
-	// TODO(4502): Switch the compat client to an informer. Might need another struct to compose the informer and
-	// provider generator.
-	mrcClient := &MRCCompatClient{
-		MRCProviderGenerator: MRCProviderGenerator{
-			kubeClient:      kubeClient,
-			kubeConfig:      kubeConfig,
-			KeyBitSize:      cfg.GetCertKeyBitSize(),
-			caExtractorFunc: getCA,
-		},
-		mrc: &v1alpha2.MeshRootCertificate{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "legacy-compat",
-				Namespace: providerNamespace,
-				Annotations: map[string]string{
-					constants.MRCVersionAnnotation: "legacy-compat",
+	var mrcClient certificate.MRCClient
+	if ic == nil || len(ic.List(informers.InformerKeyMeshRootCertificate)) == 0 {
+		// no MRCs detected; use the compat client
+		c := &MRCCompatClient{
+			MRCProviderGenerator: MRCProviderGenerator{
+				kubeClient:      kubeClient,
+				kubeConfig:      kubeConfig,
+				KeyBitSize:      cfg.GetCertKeyBitSize(),
+				caExtractorFunc: getCA,
+			},
+			mrc: &v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "legacy-compat",
+					Namespace: providerNamespace,
+					Annotations: map[string]string{
+						constants.MRCVersionAnnotation: "legacy-compat",
+					},
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					Provider:    options.AsProviderSpec(),
+					TrustDomain: "cluster.local",
+				},
+				Status: v1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
 				},
 			},
-			Spec: v1alpha2.MeshRootCertificateSpec{
-				TrustDomain: "cluster.local",
-				Provider:    options.AsProviderSpec(),
+		}
+		// TODO(#4745): Remove after deprecating the osm.vault.token option.
+		if vaultOption, ok := options.(VaultOptions); ok {
+			c.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
+		}
+		mrcClient = c
+	} else {
+		// we have MRCs; use the MRC Client
+		c := &MRCComposer{
+			MRCProviderGenerator: MRCProviderGenerator{
+				kubeClient:      kubeClient,
+				kubeConfig:      kubeConfig,
+				KeyBitSize:      cfg.GetCertKeyBitSize(),
+				caExtractorFunc: getCA,
 			},
-			// TODO(#4502): Detect if an actual MRC exists, and set the status accordingly.
-			Status: v1alpha2.MeshRootCertificateStatus{
-				State: constants.MRCStateActive,
-			},
-		},
+			informerCollection: ic,
+		}
+		// TODO(#4745): Remove after deprecating the osm.vault.token option.
+		if vaultOption, ok := options.(VaultOptions); ok {
+			c.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
+		}
+
+		mrcClient = c
 	}
 
-	// TODO(#4745): Remove after deprecating the osm.vault.token option.
-	if vaultOption, ok := options.(VaultOptions); ok {
-		mrcClient.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
-	}
-
-	return certificate.NewManager(mrcClient, cfg.GetServiceCertValidityPeriod(), msgBroker)
+	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod(), msgBroker, checkInterval)
 }
 
 // GetCertIssuerForMRC returns a certificate.Issuer generated from the provided MRC.

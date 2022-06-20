@@ -182,9 +182,8 @@ func main() {
 		log.Fatal().Err(err).Msg("Error initializing Kubernetes events recorder")
 	}
 
-	stop := signals.RegisterExitHandlers()
-	_, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	stop := signals.RegisterExitHandlers(cancel)
 
 	// Start the default metrics store
 	metricsstore.DefaultMetricsStore.Start(
@@ -214,14 +213,11 @@ func main() {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
 	}
 
-	// Intitialize certificate manager/provider
-	certManager, err := providers.NewCertificateManager(kubeClient, kubeConfig, cfg, osmNamespace, certOpts, msgBroker)
+	certManager, err := providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace, certOpts, msgBroker, informerCollection, 5*time.Second)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error initializing certificate manager of kind %s", certProviderKind)
 	}
-	// watch for certificate rotation
-	certManager.Start(5*time.Second, stop)
 
 	// Initialize the crd conversion webhook server to support the conversion of OSM's CRDs
 	crdConverterConfig.ListenPort = constants.CRDConversionWebhookPort
@@ -427,6 +423,9 @@ func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigM
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: meshRootCertificateName,
+			Annotations: map[string]string{
+				constants.MRCVersionAnnotation: "0",
+			},
 		},
 		Spec: presetMeshRootCertificateSpec,
 		Status: configv1alpha2.MeshRootCertificateStatus{

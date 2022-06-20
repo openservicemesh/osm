@@ -1,12 +1,18 @@
 package fake
 
 import (
+	"context"
 	"time"
+
+	"github.com/rs/zerolog/log"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
@@ -33,10 +39,47 @@ func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 	return []*v1alpha2.MeshRootCertificate{{Spec: v1alpha2.MeshRootCertificateSpec{TrustDomain: "fake.example.com"}}}, nil
 }
 
+func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
+	ch := make(chan certificate.MRCEvent)
+	go func() {
+		ch <- certificate.MRCEvent{
+			Type: certificate.MRCEventAdded,
+			MRC: &v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+					Annotations: map[string]string{
+						constants.MRCVersionAnnotation: "0",
+					},
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					Provider: v1alpha2.ProviderSpec{
+						Tresor: &v1alpha2.TresorProviderSpec{
+							CA: v1alpha2.TresorCASpec{
+								SecretRef: v1.SecretReference{
+									Name:      "osm-ca-bundle",
+									Namespace: "osm-system",
+								},
+							},
+						},
+					},
+				},
+				Status: v1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
+				},
+			},
+		}
+		close(ch)
+	}()
+
+	return ch, nil
+}
+
 // NewFake constructs a fake certificate client using a certificate
-func NewFake(msgBroker *messaging.Broker) *certificate.Manager {
-	tresorCertManager, err := certificate.NewManager(&fakeMRCClient{}, 1*time.Hour, msgBroker)
+func NewFake(msgBroker *messaging.Broker, duration time.Duration) *certificate.Manager {
+	tresorCertManager, err := certificate.NewManager(context.Background(), &fakeMRCClient{}, 1*time.Hour, msgBroker, duration)
 	if err != nil {
+		log.Error().Err(err).Msg("error encountered creating fake cert manager")
 		return nil
 	}
 	return tresorCertManager

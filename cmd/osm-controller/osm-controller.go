@@ -172,9 +172,8 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCLIParameters, "Error validating CLI parameters")
 	}
 
-	stop := signals.RegisterExitHandlers()
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	stop := signals.RegisterExitHandlers(cancel)
 
 	// Start the default metrics store
 	startMetricsStore()
@@ -208,15 +207,13 @@ func main() {
 	}
 
 	// Intitialize certificate manager/provider
-	certManager, err := providers.NewCertificateManager(kubeClient, kubeConfig, cfg, osmNamespace,
-		certOpts, msgBroker)
+	certManager, err := providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
+		certOpts, msgBroker, informerCollection, 5*time.Second)
 
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error fetching certificate manager of kind %s", certProviderKind)
 	}
-	// watch for certificate rotation
-	certManager.Start(5*time.Second, stop)
 
 	kubeProvider := kube.NewClient(k8sClient, cfg)
 
