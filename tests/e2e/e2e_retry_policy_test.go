@@ -125,7 +125,6 @@ var _ = OSMDescribe("Test Retry Policy",
 
 					By("A request that will be retried NumRetries times then fail")
 					err = wait.Poll(time.Second*3, time.Second*30, func() (bool, error) {
-						defer GinkgoRecover()
 						result := Td.HTTPRequest(req)
 
 						stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "get", "stats", clientPod.Name, "--namespace", client)
