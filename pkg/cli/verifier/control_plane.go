@@ -8,7 +8,6 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/crdconversion"
 )
 
 // ControlPlaneHealthVerifier implements the Verifier interface for control plane health
@@ -48,9 +47,9 @@ func NewControlPlaneHealthVerifier(stdout io.Writer, stderr io.Writer, kubeClien
 		bootstrapProber: &podProber{
 			kubeClient: kubeClient,
 			restConfig: restConfig,
-			port:       crdconversion.HealthzPort,
+			port:       constants.CRDConversionWebhookPort,
 			path:       constants.WebhookHealthPath,
-			protocol:   constants.ProtocolHTTP,
+			protocol:   constants.ProtocolHTTPS,
 		},
 	}
 }

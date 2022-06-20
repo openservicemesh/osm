@@ -95,7 +95,6 @@ func TestUpdateCrdConfiguration(t *testing.T) {
 
 func TestNewConversionWebhook(t *testing.T) {
 	assert := tassert.New(t)
-	crdConversionConfig := Config{}
 	crdClient := fake.NewSimpleClientset()
 	kubeClient := k8sfake.NewSimpleClientset()
 	mockCtrl := gomock.NewController(t)
@@ -104,8 +103,7 @@ func TestNewConversionWebhook(t *testing.T) {
 	fakeCertManager := tresorFake.NewFake(nil, 1*time.Hour)
 	osmNamespace := "-osm-namespace-"
 	enablesReconciler := false
-	stop := make(<-chan struct{})
 
-	actualErr := NewConversionWebhook(crdConversionConfig, kubeClient, crdClient.ApiextensionsV1(), fakeCertManager, osmNamespace, enablesReconciler, stop)
+	actualErr := NewConversionWebhook(context.Background(), kubeClient, crdClient.ApiextensionsV1(), fakeCertManager, osmNamespace, enablesReconciler)
 	assert.NotNil(actualErr)
 }
