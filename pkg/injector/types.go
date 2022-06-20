@@ -19,13 +19,11 @@ var log = logger.New("sidecar-injector")
 
 // mutatingWebhook is the type used to represent the webhook for sidecar injection
 type mutatingWebhook struct {
-	config                 Config
 	kubeClient             kubernetes.Interface
 	certManager            *certificate.Manager
 	kubeController         k8s.Controller
 	osmNamespace           string
 	meshName               string
-	cert                   *certificate.Certificate
 	configurator           configurator.Configurator
 	osmContainerPullPolicy corev1.PullPolicy
 

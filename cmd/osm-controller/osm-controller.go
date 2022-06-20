@@ -255,7 +255,7 @@ func main() {
 
 	clientset := extensionsClientset.NewForConfigOrDie(kubeConfig)
 
-	if err := validator.NewValidatingWebhook(validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, constants.ValidatorWebhookPort, certManager, kubeClient, policyController, stop); err != nil {
+	if err := validator.NewValidatingWebhook(ctx, validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, certManager, kubeClient, policyController); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
 	}
 
@@ -301,6 +301,7 @@ func main() {
 	}
 
 	<-stop
+	cancel()
 	log.Info().Msgf("Stopping osm-controller %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 }
 
