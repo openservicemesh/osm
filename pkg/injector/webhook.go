@@ -343,16 +343,15 @@ func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert *certifi
 	if _, err := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.Background(), &mwhc, metav1.CreateOptions{}); err != nil {
 		// Webhook already exists, update the webhook in this scenario
 		if apierrors.IsAlreadyExists(err) {
-			existingMwhc, err := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), mwhc.Name, metav1.GetOptions{})
+			existing, err := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), mwhc.Name, metav1.GetOptions{})
 			if err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMutatingWebhook)).
 					Msgf("Error getting MutatingWebhookConfiguration %s", webhookName)
 				return err
 			}
 
-			existingMwhc.Webhooks = mwhc.Webhooks
-			existingMwhc.Labels = mwhc.Labels
-			if _, err = clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.Background(), existingMwhc, metav1.UpdateOptions{}); err != nil {
+			mwhc.ObjectMeta = existing.ObjectMeta // copy the object meta which includes resource version, required for updates.
+			if _, err = clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.Background(), &mwhc, metav1.UpdateOptions{}); err != nil {
 				// There might be conflicts when multiple injectors try to update the same resource
 				// One of the injectors will successfully update the resource, hence conflicts shoud be ignored and not treated as an error
 				if !apierrors.IsConflict(err) {

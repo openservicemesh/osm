@@ -10,5 +10,7 @@ spec:
   ports:
     - name: crdconversion
       port: 9443
+    - name: health
+      port: 9091
   selector:
     app: osm-bootstrap

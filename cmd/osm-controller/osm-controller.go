@@ -266,8 +266,8 @@ func main() {
 	// Health/Liveness probes
 	funcProbes := []health.Probes{xdsServer, smi.HealthChecker{DiscoveryClient: clientset.Discovery()}}
 	httpServer.AddHandlers(map[string]http.Handler{
-		constants.OSMControllerReadinessPath: health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
-		constants.OSMControllerLivenessPath:  health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
+		constants.OSMControllerReadinessPath: health.ReadinessHandler(funcProbes, nil),
+		constants.OSMControllerLivenessPath:  health.LivenessHandler(funcProbes, nil),
 	})
 	// Metrics
 	httpServer.AddHandler(constants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
@@ -327,17 +327,6 @@ func startMetricsStore() {
 		metricsstore.DefaultMetricsStore.EventsQueued,
 		metricsstore.DefaultMetricsStore.ReconciliationTotal,
 	)
-}
-
-// getHTTPHealthProbes returns the HTTP health probes served by OSM controller
-func getHTTPHealthProbes() []health.HTTPProbe {
-	return []health.HTTPProbe{
-		// Internal probe to validator's webhook port
-		{
-			URL:      joinURL(fmt.Sprintf("https://%s:%d", constants.LocalhostIPAddress, constants.ValidatorWebhookPort), constants.WebhookHealthPath),
-			Protocol: health.ProtocolHTTPS,
-		},
-	}
 }
 
 func parseFlags() error {

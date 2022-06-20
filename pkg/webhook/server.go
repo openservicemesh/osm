@@ -28,7 +28,6 @@ type Server struct {
 // NewServer returns a new server based on the input. Run() must be called to start the server.
 func NewServer(name, namespace string, port int, cm *certificate.Manager, handlers map[string]http.HandlerFunc, onCertChange CertRotatedFunc) (*Server, error) {
 	mux := http.NewServeMux()
-	mux.Handle(constants.WebhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
 
 	for path, h := range handlers {
 		mux.Handle(path, metricsstore.AddHTTPMetrics(h))
@@ -100,11 +99,4 @@ func (s *Server) setCert(name, namespace string) error {
 	s.mu.Unlock()
 
 	return s.onCertChange(webhookCert)
-}
-
-func healthHandler(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write([]byte("Health OK")); err != nil {
-		log.Error().Err(err).Msg("Error writing bytes for crd-conversion webhook health check handler")
-	}
 }
