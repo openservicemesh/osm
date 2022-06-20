@@ -184,27 +184,25 @@ func (d *uninstallMeshCmd) run() error {
 	}
 
 	err := d.deleteClusterResources()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (d *uninstallMeshCmd) findFlagSpecifiedMesh(meshInfoList []meshInfo) (bool, bool) {
 	meshFlagSpecified := d.meshName != ""
 	specifiedMeshFound := false
-	if meshFlagSpecified {
-		specifiedMeshFound = d.findMesh(meshInfoList)
-		if !specifiedMeshFound {
-			fmt.Fprintf(d.out, "Did not find mesh [%s] in namespace [%s]\n", d.meshName, d.meshNamespace)
-			// print a list of meshes within the cluster for a better user experience
-			err := d.printMeshes()
-			if err != nil {
-				fmt.Fprintf(d.out, "Unable to list meshes in the cluster - [%v]", err)
-			}
+	if !meshFlagSpecified {
+		return meshFlagSpecified, specifiedMeshFound
+	}
+
+	specifiedMeshFound = d.findMesh(meshInfoList)
+	if !specifiedMeshFound {
+		fmt.Fprintf(d.out, "Did not find mesh [%s] in namespace [%s]\n", d.meshName, d.meshNamespace)
+		// print a list of meshes within the cluster for a better user experience
+		if err := d.printMeshes(); err != nil {
+			fmt.Fprintf(d.out, "Unable to list meshes in the cluster - [%v]", err)
 		}
 	}
+
 	return meshFlagSpecified, specifiedMeshFound
 }
 
@@ -226,16 +224,17 @@ func (d *uninstallMeshCmd) promptMeshUninstall(meshInfoList, meshesToUninstall [
 }
 
 func (d *uninstallMeshCmd) deleteNs(ctx context.Context, ns string) error {
-	if d.deleteNamespace {
-		if err := d.clientSet.CoreV1().Namespaces().Delete(ctx, ns, v1.DeleteOptions{}); err != nil {
-			if k8sApiErrors.IsNotFound(err) {
-				fmt.Fprintf(d.out, "OSM namespace [%s] not found\n", ns)
-				return nil
-			}
-			return errors.Errorf("Error occurred while deleting OSM namespace [%s] - %v", ns, err)
-		}
-		fmt.Fprintf(d.out, "OSM namespace [%s] deleted successfully\n", ns)
+	if !d.deleteNamespace {
+		return nil
 	}
+	if err := d.clientSet.CoreV1().Namespaces().Delete(ctx, ns, v1.DeleteOptions{}); err != nil {
+		if k8sApiErrors.IsNotFound(err) {
+			fmt.Fprintf(d.out, "OSM namespace [%s] not found\n", ns)
+			return nil
+		}
+		return errors.Errorf("Error occurred while deleting OSM namespace [%s] - %v", ns, err)
+	}
+	fmt.Fprintf(d.out, "OSM namespace [%s] deleted successfully\n", ns)
 	return nil
 }
 
