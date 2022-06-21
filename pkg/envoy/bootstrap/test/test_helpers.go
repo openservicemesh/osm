@@ -17,7 +17,7 @@ import (
 )
 
 // All the YAML files listed above are in this sub-directory
-const directoryForExpectationsYAML = "../../tests/envoy_xds_expectations/"
+const directoryForExpectationsYAML = "../../../tests/envoy_xds_expectations/"
 
 var log = logger.New("sidecar-injector")
 
@@ -83,23 +83,6 @@ func MarshalAndSaveToFile(someStruct interface{}, filePath string) string {
 	}
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	return string(fileContent)
-}
-
-// ThisFunction runs the given function in a ginkgo.Context(), marshals the output and compares to an expectation loaded from file.
-func ThisFunction(functionName string, fn func() interface{}) {
-	ginkgo.Context(fmt.Sprintf("ThisFunction %s", functionName), func() {
-		ginkgo.It("creates Envoy config", func() {
-			expectationFilePath := path.Join(directoryForExpectationsYAML, fmt.Sprintf("expected_output_%s.yaml", functionName))
-			actualFilePath := path.Join(getTempDir(), fmt.Sprintf("actual_output_%s.yaml", functionName))
-			log.Info().Msgf("Actual output of %s is going to be saved in %s", functionName, actualFilePath)
-			actual := fn()
-
-			expectedYAML := LoadExpectedEnvoyYAML(expectationFilePath)
-			actualYAML := MarshalAndSaveToFile(actual, actualFilePath)
-
-			Compare(functionName, actualFilePath, expectationFilePath, actualYAML, expectedYAML)
-		})
-	})
 }
 
 // ThisXdsClusterFunction runs the given function in a ginkgo.Context(), marshals the output and compares to an expectation loaded from file.

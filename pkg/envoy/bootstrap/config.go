@@ -8,6 +8,7 @@ import (
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_accesslog_stream "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	xds_transport_sockets "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_upstream_http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
@@ -15,9 +16,11 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const (
@@ -281,4 +284,112 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 	}
 
 	return bootstrap, nil
+}
+
+// GenerateEnvoyConfig generates an envoy bootstrap configuration from the given metadata.
+func GenerateEnvoyConfig(config EnvoyBootstrapConfigMeta, cfg configurator.Configurator) (*xds_bootstrap.Bootstrap, error) {
+	bootstrapConfig, err := BuildFromConfig(Config{
+		NodeID:                config.NodeID,
+		AdminPort:             constants.EnvoyAdminPort,
+		XDSClusterName:        constants.OSMControllerName,
+		XDSHost:               config.XDSHost,
+		XDSPort:               config.XDSPort,
+		TLSMinProtocolVersion: config.TLSMinProtocolVersion,
+		TLSMaxProtocolVersion: config.TLSMaxProtocolVersion,
+		CipherSuites:          config.CipherSuites,
+		ECDHCurves:            config.ECDHCurves,
+	})
+	if err != nil {
+		log.Error().Err(err).Msgf("Error building Envoy boostrap config")
+		return nil, err
+	}
+
+	probeListeners, probeClusters, err := getProbeResources(config)
+	if err != nil {
+		return nil, err
+	}
+	bootstrapConfig.StaticResources.Listeners = append(bootstrapConfig.StaticResources.Listeners, probeListeners...)
+	bootstrapConfig.StaticResources.Clusters = append(bootstrapConfig.StaticResources.Clusters, probeClusters...)
+
+	return bootstrapConfig, nil
+}
+
+// GetTLSSDSConfigYAML returns the statically used TLS SDS config YAML.
+func GetTLSSDSConfigYAML() ([]byte, error) {
+	tlsSDSConfig, err := BuildTLSSecret()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error building Envoy TLS Certificate SDS Config")
+		return nil, err
+	}
+
+	configYAML, err := utils.ProtoToYAML(tlsSDSConfig)
+	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingProtoToYAML)).
+			Msgf("Failed to marshal Envoy TLS Certificate SDS Config to yaml")
+		return nil, err
+	}
+	return configYAML, nil
+}
+
+// GetValidationContextSDSConfigYAML returns the statically used validation context SDS config YAML.
+func GetValidationContextSDSConfigYAML() ([]byte, error) {
+	validationContextSDSConfig, err := BuildValidationSecret()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error building Envoy Validation Context SDS Config")
+		return nil, err
+	}
+
+	configYAML, err := utils.ProtoToYAML(validationContextSDSConfig)
+	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingProtoToYAML)).
+			Msgf("Failed to marshal Envoy Validation Context SDS Config to yaml")
+		return nil, err
+	}
+	return configYAML, nil
+}
+
+// getProbeResources returns the listener and cluster objects that are statically configured to serve
+// startup, readiness and liveness probes.
+// These will not change during the lifetime of the Pod.
+// If the original probe defined a TCPSocket action, listener and cluster objects are not configured
+// to serve that probe.
+func getProbeResources(config EnvoyBootstrapConfigMeta) ([]*xds_listener.Listener, []*xds_cluster.Cluster, error) {
+	// This slice is the list of listeners for liveness, readiness, startup IF these have been configured in the Pod Spec
+	var listeners []*xds_listener.Listener
+	var clusters []*xds_cluster.Cluster
+
+	// Is there a liveness probe in the Pod Spec?
+	if config.OriginalHealthProbes.Liveness != nil && !config.OriginalHealthProbes.Liveness.IsTCPSocket {
+		listener, err := getLivenessListener(config.OriginalHealthProbes.Liveness)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting liveness listener")
+			return nil, nil, err
+		}
+		listeners = append(listeners, listener)
+		clusters = append(clusters, getLivenessCluster(config.OriginalHealthProbes.Liveness))
+	}
+
+	// Is there a readiness probe in the Pod Spec?
+	if config.OriginalHealthProbes.Readiness != nil && !config.OriginalHealthProbes.Readiness.IsTCPSocket {
+		listener, err := getReadinessListener(config.OriginalHealthProbes.Readiness)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting readiness listener")
+			return nil, nil, err
+		}
+		listeners = append(listeners, listener)
+		clusters = append(clusters, getReadinessCluster(config.OriginalHealthProbes.Readiness))
+	}
+
+	// Is there a startup probe in the Pod Spec?
+	if config.OriginalHealthProbes.Startup != nil && !config.OriginalHealthProbes.Startup.IsTCPSocket {
+		listener, err := getStartupListener(config.OriginalHealthProbes.Startup)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting startup listener")
+			return nil, nil, err
+		}
+		listeners = append(listeners, listener)
+		clusters = append(clusters, getStartupCluster(config.OriginalHealthProbes.Startup))
+	}
+
+	return listeners, clusters, nil
 }

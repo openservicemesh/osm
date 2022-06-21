@@ -51,11 +51,11 @@ var iptablesInboundStaticRules = []string{
 	// Skip inbound health probes; These ports will be explicitly handled by listeners configured on the
 	// Envoy proxy IF any health probes have been configured in the Pod Spec.
 	// TODO(draychev): Do not add these if no health probes have been defined (https://github.com/openservicemesh/osm/issues/2243)
-	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", livenessProbePort),
-	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", readinessProbePort),
-	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", startupProbePort),
+	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", constants.LivenessProbePort),
+	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", constants.ReadinessProbePort),
+	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", constants.StartupProbePort),
 	// Skip inbound health probes (originally TCPSocket health probes); requests handled by osm-healthcheck
-	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", healthcheckPort),
+	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", constants.HealthcheckPort),
 
 	// Redirect remaining inbound traffic to Envoy
 	"-A OSM_PROXY_INBOUND -p tcp -j OSM_PROXY_IN_REDIRECT",

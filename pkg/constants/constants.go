@@ -152,6 +152,33 @@ const (
 	CRDConversionWebhookPort = 9443
 )
 
+// HealthProbe constants
+const (
+	// LivenessProbePort is the port to use for liveness probe
+	LivenessProbePort = int32(15901)
+
+	// ReadinessProbePort is the port to use for readiness probe
+	ReadinessProbePort = int32(15902)
+
+	// StartupProbePort is the port to use for startup probe
+	StartupProbePort = int32(15903)
+
+	// HealthcheckPort is the port to use for healthcheck probe
+	HealthcheckPort = int32(15904)
+
+	// LivenessProbePath is the path to use for liveness probe
+	LivenessProbePath = "/osm-liveness-probe"
+
+	// ReadinessProbePath is the path to use for readiness probe
+	ReadinessProbePath = "/osm-readiness-probe"
+
+	// StartupProbePath is the path to use for startup probe
+	StartupProbePath = "/osm-startup-probe"
+
+	// HealthcheckPath is the path to use for healthcheck probe
+	HealthcheckPath = "/osm-healthcheck"
+)
+
 // Annotations used by the control plane
 const (
 	// SidecarInjectionAnnotation is the annotation used for sidecar injection
