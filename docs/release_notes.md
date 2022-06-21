@@ -7,6 +7,7 @@
 - Root certificate rotation is now supported through the new CRD, MeshRootCertificate.
 - Along with root certificate rotation we support custom trust domains, as well as rotating to new trust domains with no downtime.
 - Envoy has been updated to v1.22 and uses the `envoyproxy/envoy-distroless` image instead of the deprecated `envoyproxy/envoy-alpine` image.
+- Added support for Kubernetes 1.23 and 1.24
 
 ### Breaking Changes
 
@@ -14,7 +15,8 @@
   - `osm_proxy_response_send_success_count`
   - `osm_proxy_response_send_error_count`
   - `osm_proxy_xds_request_count`
-
+- Support for Kubernetes 1.20 and 1.21 has been dropped
+		
 ## Release v1.1.0
 
 ### Notable changes

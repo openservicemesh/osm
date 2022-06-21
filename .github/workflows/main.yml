@@ -206,10 +206,10 @@ jobs:
         focus: [""]
         bucket: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         include:
-          - k8s_version: v1.22.10
+          - k8s_version: v1.22.9
             focus: "Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP"
             bucket: ".*"
-          - k8s_version: v1.23.7
+          - k8s_version: v1.23.6
             focus: "Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP"
             bucket: ".*"
           - k8s_version: v1.24.1
