@@ -118,8 +118,11 @@ func (d *uninstallMeshCmd) run() error {
 			fmt.Fprintf(d.out, "No OSM control planes found\n")
 			return nil
 		}
+
+		meshFlagSpecified := d.meshName != ""
+
 		// Searches for the mesh specified by the mesh-name flag if specified
-		meshFlagSpecified, specifiedMeshFound := d.findFlagSpecifiedMesh(meshInfoList)
+		specifiedMeshFound := d.findSpecifiedMesh(meshFlagSpecified, meshInfoList)
 		if meshFlagSpecified && !specifiedMeshFound {
 			return nil
 		}
@@ -164,7 +167,7 @@ func (d *uninstallMeshCmd) run() error {
 					return err
 				}
 
-				fmt.Fprintf(d.out, "Error %v when trying to uninstall mesh name [%s] in namespace [%s] - continuing to deleteClusterWideResources and/or deleteNamespace\n", err, m.name, m.namespace)
+				fmt.Fprintf(d.out, "Could not uninstall mesh name [%s] in namespace [%s]- %v - continuing to deleteClusterWideResources and/or deleteNamespace\n", m.name, m.namespace, err)
 			}
 
 			if err == nil {
@@ -187,14 +190,12 @@ func (d *uninstallMeshCmd) run() error {
 	return err
 }
 
-func (d *uninstallMeshCmd) findFlagSpecifiedMesh(meshInfoList []meshInfo) (bool, bool) {
-	meshFlagSpecified := d.meshName != ""
-	specifiedMeshFound := false
+func (d *uninstallMeshCmd) findSpecifiedMesh(meshFlagSpecified bool, meshInfoList []meshInfo) bool {
 	if !meshFlagSpecified {
-		return meshFlagSpecified, specifiedMeshFound
+		return false
 	}
 
-	specifiedMeshFound = d.findMesh(meshInfoList)
+	specifiedMeshFound := d.findMesh(meshInfoList)
 	if !specifiedMeshFound {
 		fmt.Fprintf(d.out, "Did not find mesh [%s] in namespace [%s]\n", d.meshName, d.meshNamespace)
 		// print a list of meshes within the cluster for a better user experience
@@ -203,7 +204,7 @@ func (d *uninstallMeshCmd) findFlagSpecifiedMesh(meshInfoList []meshInfo) (bool,
 		}
 	}
 
-	return meshFlagSpecified, specifiedMeshFound
+	return specifiedMeshFound
 }
 
 func (d *uninstallMeshCmd) promptMeshUninstall(meshInfoList, meshesToUninstall []meshInfo, meshFlagSpecified bool) ([]meshInfo, error) {
@@ -232,7 +233,7 @@ func (d *uninstallMeshCmd) deleteNs(ctx context.Context, ns string) error {
 			fmt.Fprintf(d.out, "OSM namespace [%s] not found\n", ns)
 			return nil
 		}
-		return errors.Errorf("Error occurred while deleting OSM namespace [%s] - %v", ns, err)
+		return errors.Errorf("Could not delete OSM namespace [%s] - %v", ns, err)
 	}
 	fmt.Fprintf(d.out, "OSM namespace [%s] deleted successfully\n", ns)
 	return nil

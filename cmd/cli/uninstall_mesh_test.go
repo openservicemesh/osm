@@ -617,12 +617,12 @@ func TestUninstallClusterWideResources(t *testing.T) {
 	}
 }
 
-func TestFindFlagSpecifiedMesh(t *testing.T) {
+func TestFindSpecifiedMesh(t *testing.T) {
 	tests := []struct {
 		name                  string
 		specifiedMesh         string
 		meshList              []meshInfo
-		expMeshFlagSpecified  bool
+		meshFlagSpecified     bool
 		expSpecifiedMeshFound bool
 	}{
 		{
@@ -634,7 +634,7 @@ func TestFindFlagSpecifiedMesh(t *testing.T) {
 					namespace: testNamespace,
 				},
 			},
-			expMeshFlagSpecified:  false,
+			meshFlagSpecified:     false,
 			expSpecifiedMeshFound: false,
 		},
 		{
@@ -646,7 +646,7 @@ func TestFindFlagSpecifiedMesh(t *testing.T) {
 					namespace: testNamespace,
 				},
 			},
-			expMeshFlagSpecified:  true,
+			meshFlagSpecified:     true,
 			expSpecifiedMeshFound: false,
 		},
 		{
@@ -658,7 +658,7 @@ func TestFindFlagSpecifiedMesh(t *testing.T) {
 					namespace: testNamespace,
 				},
 			},
-			expMeshFlagSpecified:  true,
+			meshFlagSpecified:     true,
 			expSpecifiedMeshFound: true,
 		},
 	}
@@ -703,11 +703,7 @@ func TestFindFlagSpecifiedMesh(t *testing.T) {
 				deleteClusterWideResources: true,
 				actionConfig:               new(action.Configuration),
 			}
-			meshFlagSpecified, specifiedMeshFound := uninstall.findFlagSpecifiedMesh(test.meshList)
-			fmt.Println("meshFlagSpecified ", meshFlagSpecified)
-			fmt.Println("specifiedMeshFound ", specifiedMeshFound)
-
-			assert.Equal(meshFlagSpecified, test.expMeshFlagSpecified)
+			specifiedMeshFound := uninstall.findSpecifiedMesh(test.meshFlagSpecified, test.meshList)
 			assert.Equal(specifiedMeshFound, test.expSpecifiedMeshFound)
 		})
 	}
