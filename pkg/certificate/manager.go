@@ -157,7 +157,7 @@ func (m *Manager) GetTrustDomain() string {
 	return m.signingIssuer.TrustDomain
 }
 
-// ShouldRotate determines whether a certificate should be rotated.
+// shouldRotate determines whether a certificate should be rotated.
 func (m *Manager) shouldRotate(c *Certificate) bool {
 	// The certificate is going to expire at a timestamp T
 	// We want to renew earlier. How much earlier is defined in renewBeforeCertExpires.
@@ -246,6 +246,9 @@ func (m *Manager) getFromCache(key string) *Certificate {
 // IssueCertificate returns a newly issued certificate from the given client
 // or an existing valid certificate from the local cache.
 func (m *Manager) IssueCertificate(prefix string, ct CertType, opts ...IssueOption) (*Certificate, error) {
+	// a singleflight group is used here to ensure that only one issueCertificate is in
+	// flight at a time for a given certificate prefix. Helps avoid a race condition if
+	// issueCertificate is called multiple times in a row for the same certificate prefix.
 	cert, err, _ := group.Do(prefix, func() (interface{}, error) {
 		return m.issueCertificate(prefix, ct, opts...)
 	})
