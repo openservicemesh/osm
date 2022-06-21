@@ -303,6 +303,7 @@ jobs:
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "0"
           ENABLE_EGRESS: "false"
           ENABLE_RECONCILER: "false"
+          PERMISSIVE_MODE: "false"
           DEPLOY_TRAFFIC_SPLIT: "true"
           CTR_TAG: ${{ github.sha }}
           USE_PRIVATE_REGISTRY: "false"

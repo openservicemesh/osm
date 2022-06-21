@@ -30,8 +30,8 @@ var _ = OSMDescribe("Test osm control plane installation with Helm",
 
 				// validate osm MeshConfig
 				spec := meshConfig.Spec
-				Expect(spec.Traffic.EnablePermissiveTrafficPolicyMode).To(BeFalse())
-				Expect(spec.Traffic.EnableEgress).To(BeFalse())
+				Expect(spec.Traffic.EnablePermissiveTrafficPolicyMode).To(BeTrue())
+				Expect(spec.Traffic.EnableEgress).To(BeTrue())
 				Expect(spec.Sidecar.LogLevel).To(Equal("error"))
 				Expect(spec.Observability.EnableDebugServer).To(BeFalse())
 				Expect(spec.Observability.Tracing.Enable).To(BeFalse())

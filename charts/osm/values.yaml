@@ -168,10 +168,10 @@ osm:
   enableDebugServer: false
 
   # -- Enable permissive traffic policy mode
-  enablePermissiveTrafficPolicy: false
+  enablePermissiveTrafficPolicy: true
 
   # -- Enable egress in the mesh
-  enableEgress: false
+  enableEgress: true
 
   # -- Enable reconciler for OSM's CRDs and mutating webhook
   enableReconciler: false
