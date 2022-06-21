@@ -51,7 +51,7 @@ func main() {
 
 	log.Info().Msgf("Starting OSM healthcheck HTTP server")
 	go func() {
-		if err := server.ListenAndServe(); err != nil {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal().Err(err).Msg("Failed to start OSM healthcheck HTTP server")
 		}
 	}()

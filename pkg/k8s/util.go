@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -9,7 +10,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/remotecommand"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -177,4 +185,80 @@ func NamespacedNameFrom(name string) (types.NamespacedName, error) {
 // IsHeadlessService determines whether or not a corev1.Service is a headless service
 func IsHeadlessService(svc corev1.Service) bool {
 	return len(svc.Spec.ClusterIP) == 0 || svc.Spec.ClusterIP == corev1.ClusterIPNone
+}
+
+func StopJobSidecars(stop <-chan struct{}, broker *messaging.Broker, config *rest.Config, clientset kubernetes.Interface) {
+	pods := broker.GetKubeEventPubSub().Sub(string(announcements.PodUpdated))
+	for {
+		select {
+		case <-stop:
+			return
+		case e := <-pods:
+			pod := e.(events.PubSubMessage).NewObj.(*corev1.Pod)
+			isJob := false
+			for _, o := range pod.OwnerReferences {
+				if o.Kind == "Job" && o.APIVersion == "batch/v1" {
+					isJob = true
+					break
+				}
+			}
+			if !isJob {
+				continue
+			}
+
+			var sidecars []string
+			otherContainersRunning := false
+			for _, s := range pod.Status.ContainerStatuses {
+				if s.Name == constants.EnvoyContainerName || s.Name == "osm-healthcheck" {
+					if s.State.Running != nil {
+						sidecars = append(sidecars, s.Name)
+					}
+				} else if s.State.Running != nil {
+					otherContainersRunning = true
+					break
+				}
+			}
+			if otherContainersRunning {
+				continue
+			}
+
+			for _, sidecar := range sidecars {
+				log.Debug().Msgf("stopping container %s in pod %s/%s", sidecar, pod.Namespace, pod.Name)
+
+				req := clientset.CoreV1().RESTClient().
+					Post().
+					Resource("pods").
+					Name(pod.Name).
+					Namespace(pod.Namespace).
+					SubResource("exec")
+
+				req.VersionedParams(
+					&corev1.PodExecOptions{
+						Command:   []string{"kill", "1"},
+						Container: sidecar,
+						Stdout:    true,
+						Stderr:    true,
+					},
+					scheme.ParameterCodec,
+				)
+				exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+				if err != nil {
+					log.Error().Err(err).Msg("failed to initialize executor")
+					continue
+				}
+				stdout := bytes.NewBuffer(nil)
+				stderr := bytes.NewBuffer(nil)
+				err = exec.Stream(remotecommand.StreamOptions{
+					Stdout: stdout,
+					Stderr: stderr,
+				})
+				if err != nil {
+					log.Error().Err(err).Msg("command failed")
+					continue
+				}
+
+				log.Debug().Str("stdout", stdout.String()).Str("stderr", stderr.String()).Msgf("stopped container %s in pod %s/%s", sidecar, pod.Namespace, pod.Name)
+			}
+		}
+	}
 }

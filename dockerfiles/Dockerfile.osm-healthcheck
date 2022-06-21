@@ -10,5 +10,5 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o osm-healthcheck -ldflags "$LDFLAGS" ./cmd/osm-healthcheck
 
-FROM gcr.io/distroless/static
+FROM busybox
 COPY --from=builder /osm/osm-healthcheck /

@@ -321,6 +321,8 @@ func main() {
 		}
 	}
 
+	go k8s.StopJobSidecars(stop, msgBroker, kubeConfig, kubeClient)
+
 	<-stop
 	log.Info().Msgf("Stopping osm-controller %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 }
