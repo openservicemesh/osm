@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"golang.org/x/sync/singleflight"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -16,8 +15,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
-
-var group singleflight.Group
 
 // NewManager creates a new CertificateManager with the passed MRCClient and options
 func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, msgBroker *messaging.Broker, checkInterval time.Duration) (*Manager, error) {
@@ -249,7 +246,7 @@ func (m *Manager) IssueCertificate(prefix string, ct CertType, opts ...IssueOpti
 	// a singleflight group is used here to ensure that only one issueCertificate is in
 	// flight at a time for a given certificate prefix. Helps avoid a race condition if
 	// issueCertificate is called multiple times in a row for the same certificate prefix.
-	cert, err, _ := group.Do(prefix, func() (interface{}, error) {
+	cert, err, _ := m.group.Do(prefix, func() (interface{}, error) {
 		return m.issueCertificate(prefix, ct, opts...)
 	})
 	if err != nil {

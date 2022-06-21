@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
+
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -111,6 +113,8 @@ type Manager struct {
 	signingIssuer *issuer
 	// equal to signingIssuer if there is no additional public cert issuer.
 	validatingIssuer *issuer
+
+	group singleflight.Group
 }
 
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
