@@ -82,7 +82,7 @@ Read more about [OSM's high level goals, design, and architecture](DESIGN.md).
 ## Install
 
 ### Prerequisites
-- Kubernetes cluster running Kubernetes v1.20.0 or greater
+- Kubernetes cluster running Kubernetes v1.22.10 or greater
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
 
