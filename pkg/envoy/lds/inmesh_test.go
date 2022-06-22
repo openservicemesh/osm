@@ -7,13 +7,13 @@ import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/envoy"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -111,7 +111,7 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 				assert.Len(httpFilterChain.FilterChainMatch.PrefixRanges, len(tc.trafficMatch.DestinationIPRanges))
 
 				for _, filter := range httpFilterChain.Filters {
-					assert.Equal(wellknown.HTTPConnectionManager, filter.Name)
+					assert.Equal(envoy.HTTPConnectionManagerFilterName, filter.Name)
 				}
 			}
 		})
@@ -195,7 +195,7 @@ func TestGetOutboundTCPFilterChainForService(t *testing.T) {
 				assert.Len(tcpFilterChain.FilterChainMatch.PrefixRanges, len(tc.destinationIPRanges))
 
 				for _, filter := range tcpFilterChain.Filters {
-					assert.Equal(wellknown.TCPProxy, filter.Name)
+					assert.Equal(envoy.TCPProxyFilterName, filter.Name)
 				}
 			}
 		})
@@ -250,7 +250,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{wellknown.RoleBasedAccessControl, wellknown.HTTPConnectionManager},
+			expectedFilterNames: []string{envoy.L4RBACFilterName, envoy.HTTPConnectionManagerFilterName},
 			expectError:         false,
 		},
 		{
@@ -268,7 +268,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{wellknown.HTTPConnectionManager},
+			expectedFilterNames: []string{envoy.HTTPConnectionManagerFilterName},
 			expectError:         false,
 		},
 		{
@@ -294,7 +294,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{wellknown.RateLimit, wellknown.HTTPConnectionManager},
+			expectedFilterNames: []string{envoy.L4LocalRateLimitFilterName, envoy.HTTPConnectionManagerFilterName},
 			expectError:         false,
 		},
 	}
@@ -378,7 +378,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{wellknown.RoleBasedAccessControl, wellknown.TCPProxy},
+			expectedFilterNames: []string{envoy.L4RBACFilterName, envoy.TCPProxyFilterName},
 			expectError:         false,
 		},
 		{
@@ -396,7 +396,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{wellknown.TCPProxy},
+			expectedFilterNames: []string{envoy.TCPProxyFilterName},
 			expectError:         false,
 		},
 		{
@@ -422,7 +422,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{wellknown.RateLimit, wellknown.TCPProxy},
+			expectedFilterNames: []string{envoy.L4LocalRateLimitFilterName, envoy.TCPProxyFilterName},
 			expectError:         false,
 		},
 	}
@@ -652,7 +652,7 @@ func TestGetOutboundTCPFilter(t *testing.T) {
 			actualConfig := &xds_tcp_proxy.TcpProxy{}
 			err = filter.GetTypedConfig().UnmarshalTo(actualConfig)
 			assert.Nil(err)
-			assert.Equal(wellknown.TCPProxy, filter.Name)
+			assert.Equal(envoy.TCPProxyFilterName, filter.Name)
 
 			assert.Equal(tc.expectedTCPProxyConfig.ClusterSpecifier, actualConfig.ClusterSpecifier)
 
@@ -682,5 +682,5 @@ func TestGetOutboundHTTPFilter(t *testing.T) {
 
 	filter, err := lb.getOutboundHTTPFilter(route.OutboundRouteConfigName)
 	assert.NoError(err)
-	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
+	assert.Equal(filter.Name, envoy.HTTPConnectionManagerFilterName)
 }

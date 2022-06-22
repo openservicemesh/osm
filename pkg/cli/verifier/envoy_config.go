@@ -11,7 +11,6 @@ import (
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_secret "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +18,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -332,10 +332,10 @@ func findOutboundFilterChainForServicePort(meshSvc service.MeshService, dstIPRan
 func getFilterForProtocol(protocol string) string {
 	switch protocol {
 	case constants.ProtocolHTTP:
-		return wellknown.HTTPConnectionManager
+		return envoy.HTTPConnectionManagerFilterName
 
 	case constants.ProtocolTCP, constants.ProtocolHTTPS:
-		return wellknown.TCPProxy
+		return envoy.TCPProxyFilterName
 
 	default:
 		return ""

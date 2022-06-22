@@ -10,7 +10,6 @@ import (
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -203,7 +202,7 @@ func TestNewResponse(t *testing.T) {
 			ServiceName: "",
 		},
 		TransportSocket: &xds_core.TransportSocket{
-			Name: wellknown.TransportSocketTls,
+			Name: "default/bookstore-v1|80",
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: string(envoy.TypeUpstreamTLSContext),
@@ -234,7 +233,7 @@ func TestNewResponse(t *testing.T) {
 			ServiceName: "",
 		},
 		TransportSocket: &xds_core.TransportSocket{
-			Name: wellknown.TransportSocketTls,
+			Name: "default/bookstore-v2|80",
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: string(envoy.TypeUpstreamTLSContext),

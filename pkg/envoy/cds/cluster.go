@@ -9,7 +9,6 @@ import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	extensions_upstream_http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/pkg/errors"
@@ -46,7 +45,7 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, conf
 	upstreamCluster := &xds_cluster.Cluster{
 		Name: config.Name,
 		TransportSocket: &xds_core.TransportSocket{
-			Name: wellknown.TransportSocketTls,
+			Name: config.Name,
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: marshalledUpstreamTLSContext,
 			},

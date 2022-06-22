@@ -50,9 +50,9 @@ osm:
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
   # -- Envoy sidecar image for Linux workloads
-  sidecarImage: envoyproxy/envoy-alpine:v1.19.3@sha256:874e699857e023d9234b10ffc5af39ccfc9011feab89638e56ac4042ecd4b0f3
+  sidecarImage: envoyproxy/envoy-distroless:v1.22.2@sha256:541d31419b95e3c62d8cc0967db9cdb4ad2782cc08faa6f15f04c081200e324a
   # -- Envoy sidecar image for Windows workloads
-  sidecarWindowsImage: envoyproxy/envoy-windows:v1.19.3@sha256:f990f024e7e95f07b6c0d416684734607761e382c35d1ba9414c7e3fbf23969c
+  sidecarWindowsImage: envoyproxy/envoy-windows:v1.22.1@sha256:92733f8e5beae5c45df204a0e13edbd29e99adf962d1b1c7869b197d85c64bd0
   # -- Curl image for control plane init container
   curlImage: curlimages/curl
 
@@ -369,13 +369,13 @@ contour:
     image:
       registry: docker.io
       repository: projectcontour/contour
-      tag: v1.18.0
+      tag: v1.21.1
   # -- Contour envoy edge proxy configuration
   envoy:
     image:
       registry: docker.io
-      repository: envoyproxy/envoy-alpine
-      tag: v1.19.3
+      repository: envoyproxy/envoy-distroless
+      tag: v1.22.2
 
 #
 # -- SMI configuration

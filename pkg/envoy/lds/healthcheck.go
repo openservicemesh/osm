@@ -4,7 +4,6 @@ import (
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_health_check "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/health_check/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -37,7 +36,7 @@ func getHealthCheckFilter() (*xds_hcm.HttpFilter, error) {
 	}
 
 	return &xds_hcm.HttpFilter{
-		Name: wellknown.HealthCheck,
+		Name: envoy.HTTPHealthCheckFilterName,
 		ConfigType: &xds_hcm.HttpFilter_TypedConfig{
 			TypedConfig: hcAny,
 		},
