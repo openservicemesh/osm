@@ -1,7 +1,6 @@
 package certificate
 
 import (
-	"math/rand"
 	time "time"
 
 	"github.com/rs/zerolog/log"
@@ -67,18 +66,6 @@ func (c *Certificate) GetIssuingCA() pem.RootCertificate {
 // for this certificates holder
 func (c *Certificate) GetTrustedCAs() pem.RootCertificate {
 	return c.TrustedCAs
-}
-
-// ShouldRotate determines whether a certificate should be rotated.
-func (c *Certificate) ShouldRotate() bool {
-	// The certificate is going to expire at a timestamp T
-	// We want to renew earlier. How much earlier is defined in renewBeforeCertExpires.
-	// We add a few seconds noise to the early renew period so that certificates that may have been
-	// created at the same time are not renewed at the exact same time.
-
-	intNoise := rand.Intn(noiseSeconds) // #nosec G404
-	secondsNoise := time.Duration(intNoise) * time.Second
-	return time.Until(c.GetExpiration()) <= (RenewBeforeCertExpires + secondsNoise)
 }
 
 // NewFromPEM is a helper returning a *certificate.Certificate from the PEM components given.

@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
+
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -38,6 +40,21 @@ func (cn CommonName) String() string {
 	return string(cn)
 }
 
+// CertType is the type of certificate. This is only used by OSM.
+type CertType string
+
+const (
+	// Internal is the CertType representing all certs issued for use by the OSM
+	// control plane.
+	Internal CertType = "internal"
+
+	// IngressGateway is the CertType for certs issued for use by ingress gateways.
+	IngressGateway CertType = "ingressGateway"
+
+	// Service is the CertType for certs issued for use by the data plane.
+	Service CertType = "service"
+)
+
 // Certificate represents an x509 certificate.
 type Certificate struct {
 	// The CommonName of the certificate
@@ -63,6 +80,8 @@ type Certificate struct {
 
 	signingIssuerID    string
 	validatingIssuerID string
+
+	certType CertType
 }
 
 // Issuer is the interface for a certificate authority that can issue certificates from a given root certificate.
@@ -85,13 +104,17 @@ type Manager struct {
 	// Types: map[certificate.CommonName]*certificate.Certificate
 	cache sync.Map
 
-	serviceCertValidityDuration time.Duration
+	ingressCertValidityDuration func() time.Duration
+	// TODO(#4711): define serviceCertValidityDuration in the MRC
+	serviceCertValidityDuration func() time.Duration
 	msgBroker                   *messaging.Broker
 
 	mu            sync.Mutex // mu syncrhonizes acces to the below resources.
 	signingIssuer *issuer
 	// equal to signingIssuer if there is no additional public cert issuer.
 	validatingIssuer *issuer
+
+	group singleflight.Group
 }
 
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.

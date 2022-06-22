@@ -92,10 +92,12 @@ func (i *fakeIssuer) IssueCertificate(cn CommonName, validityPeriod time.Duratio
 
 // FakeCertManager is a testing helper that returns a *certificate.Manager
 func FakeCertManager() (*Manager, error) {
+	getCertValidityDuration := func() time.Duration { return validity }
 	cm, err := NewManager(
 		context.Background(),
 		&fakeMRCClient{},
-		validity,
+		getCertValidityDuration,
+		getCertValidityDuration,
 		nil,
 		1*time.Hour,
 	)

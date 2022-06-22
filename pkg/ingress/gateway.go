@@ -45,8 +45,7 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCer
 	}
 
 	// Validate the validity duration
-	certValidityDuration, err := time.ParseDuration(spec.ValidityDuration)
-	if err != nil {
+	if _, err := time.ParseDuration(spec.ValidityDuration); err != nil {
 		return errors.Wrapf(err, "Invalid cert duration '%s' specified", spec.ValidityDuration)
 	}
 
@@ -61,7 +60,7 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCer
 
 	// A certificate for this CN may be cached already. Delete it before issuing a new certificate.
 	c.certProvider.ReleaseCertificate(certCN)
-	issuedCert, err := c.certProvider.IssueCertificate(certCN, certificate.WithValidityPeriod(certValidityDuration), certificate.FullCNProvided())
+	issuedCert, err := c.certProvider.IssueCertificate(certCN, certificate.IngressGateway, certificate.FullCNProvided())
 	if err != nil {
 		return errors.Wrapf(err, "Error issuing a certificate for ingress gateway")
 	}

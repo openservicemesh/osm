@@ -50,7 +50,7 @@ func NewConversionWebhook(config Config, kubeClient kubernetes.Interface, crdCli
 	// the cert provisioned with the ConversionWebhook on the CRD's
 	crdConversionWebhookHandlerCert, err := certManager.IssueCertificate(
 		fmt.Sprintf("%s.%s.svc", constants.OSMBootstrapName, osmNamespace),
-		certificate.WithValidityPeriod(constants.XDSCertificateValidityPeriod), certificate.FullCNProvided())
+		certificate.Internal, certificate.FullCNProvided())
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the crd-converter: %+v", err)
 	}

@@ -242,7 +242,7 @@ func main() {
 	proxyRegistry := registry.NewProxyRegistry(proxyMapper, msgBroker)
 	go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
 
-	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, certificate.WithValidityPeriod(constants.XDSCertificateValidityPeriod))
+	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, certificate.Internal)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing XDS certificate to ADS server")
 	}

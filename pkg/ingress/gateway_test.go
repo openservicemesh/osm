@@ -323,9 +323,18 @@ func TestHandleCertificateChange(t *testing.T) {
 
 			msgBroker := messaging.NewBroker(stop)
 
-			fakeClient := fake.NewSimpleClientset()
-			fakeCertManager := tresorFake.NewFake(msgBroker, 5*time.Second)
+			validityDuration := 1 * time.Hour
+			if tc.previousCertSpec != nil {
+				validityDuration, _ = time.ParseDuration(tc.previousCertSpec.ValidityDuration)
+			}
+			certValidityDuration := &validityDuration
+			getCertValidityDuration := func() time.Duration {
+				return *certValidityDuration
+			}
 
+			fakeCertManager := tresorFake.NewFakeWithValidityDuration(getCertValidityDuration, msgBroker, 5*time.Second)
+
+			fakeClient := fake.NewSimpleClientset()
 			c := client{
 				kubeClient:   fakeClient,
 				certProvider: fakeCertManager,
@@ -343,6 +352,9 @@ func TestHandleCertificateChange(t *testing.T) {
 			}
 
 			if tc.updatedMeshConfig != nil {
+				if tc.updatedMeshConfig.Spec.Certificate.IngressGateway != nil {
+					*certValidityDuration, _ = time.ParseDuration(tc.updatedMeshConfig.Spec.Certificate.IngressGateway.ValidityDuration)
+				}
 				msgBroker.GetKubeEventPubSub().Pub(events.PubSubMessage{
 					Kind:   announcements.MeshConfigUpdated,
 					NewObj: tc.updatedMeshConfig,

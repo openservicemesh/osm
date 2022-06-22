@@ -76,8 +76,14 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent,
 }
 
 // NewFake constructs a fake certificate client using a certificate
-func NewFake(msgBroker *messaging.Broker, duration time.Duration) *certificate.Manager {
-	tresorCertManager, err := certificate.NewManager(context.Background(), &fakeMRCClient{}, 1*time.Hour, msgBroker, duration)
+func NewFake(msgBroker *messaging.Broker, checkInterval time.Duration) *certificate.Manager {
+	getValidityDuration := func() time.Duration { return 1 * time.Hour }
+	return NewFakeWithValidityDuration(getValidityDuration, msgBroker, checkInterval)
+}
+
+// NewFakeWithValidityDuration constructs a fake certificate manager with specified cert validity duration
+func NewFakeWithValidityDuration(getCertValidityDuration func() time.Duration, msgBroker *messaging.Broker, checkInterval time.Duration) *certificate.Manager {
+	tresorCertManager, err := certificate.NewManager(context.Background(), &fakeMRCClient{}, getCertValidityDuration, getCertValidityDuration, msgBroker, checkInterval)
 	if err != nil {
 		log.Error().Err(err).Msg("error encountered creating fake cert manager")
 		return nil

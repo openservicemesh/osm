@@ -3,6 +3,7 @@ package certificate
 import (
 	"context"
 	"errors"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -16,9 +17,10 @@ import (
 )
 
 // NewManager creates a new CertificateManager with the passed MRCClient and options
-func NewManager(ctx context.Context, mrcClient MRCClient, serviceCertValidityDuration time.Duration, msgBroker *messaging.Broker, checkInterval time.Duration) (*Manager, error) {
+func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, msgBroker *messaging.Broker, checkInterval time.Duration) (*Manager, error) {
 	m := &Manager{
-		serviceCertValidityDuration: serviceCertValidityDuration,
+		serviceCertValidityDuration: getServiceCertValidityPeriod,
+		ingressCertValidityDuration: getIngressCertValidityDuration,
 		msgBroker:                   msgBroker,
 	}
 
@@ -152,54 +154,82 @@ func (m *Manager) GetTrustDomain() string {
 	return m.signingIssuer.TrustDomain
 }
 
+// shouldRotate determines whether a certificate should be rotated.
+func (m *Manager) shouldRotate(c *Certificate) bool {
+	// The certificate is going to expire at a timestamp T
+	// We want to renew earlier. How much earlier is defined in renewBeforeCertExpires.
+	// We add a few seconds noise to the early renew period so that certificates that may have been
+	// created at the same time are not renewed at the exact same time.
+	intNoise := rand.Intn(noiseSeconds) // #nosec G404
+	secondsNoise := time.Duration(intNoise) * time.Second
+	renewBefore := RenewBeforeCertExpires + secondsNoise
+	if time.Until(c.GetExpiration()) <= renewBefore {
+		log.Info().Msgf("Cert %s should be rotated; expires in %+v; renewBefore is %+v",
+			c.GetCommonName(),
+			time.Until(c.GetExpiration()),
+			renewBefore)
+		return true
+	}
+
+	m.mu.Lock()
+	validatingIssuer := m.validatingIssuer
+	signingIssuer := m.signingIssuer
+	m.mu.Unlock()
+
+	// During root certificate rotation the Issuers will change. If the Manager's Issuers are
+	// different than the validating Issuer and signing Issuer IDs in the certificate, the
+	// certificate must be reissued with the correct Issuers for the current rotation stage and
+	// state. If there is no root certificate rotation in progress, the cert and Manager Issuers
+	// will match.
+	if c.signingIssuerID != signingIssuer.ID || c.validatingIssuerID != validatingIssuer.ID {
+		log.Info().Msgf("Cert %s should be rotated; in progress root certificate rotation",
+			c.GetCommonName())
+		return true
+	}
+	return false
+}
+
 func (m *Manager) checkAndRotate() {
 	// NOTE: checkAndRotate can reintroduce a certificate that has been released, thereby creating an unbounded cache.
 	// A certificate can also have been rotated already, leaving the list of issued certs stale, and we re-rotate.
 	// the latter is not a bug, but a source of inefficiency.
-
 	certs := map[string]*Certificate{}
 	m.cache.Range(func(keyIface interface{}, certInterface interface{}) bool {
 		key := keyIface.(string)
 		certs[key] = certInterface.(*Certificate)
 		return true // continue the iteration
 	})
+
 	for key, cert := range certs {
-		shouldRotate := cert.ShouldRotate()
+		opts := []IssueOption{}
+		if key == cert.CommonName.String() {
+			opts = append(opts, FullCNProvided())
+		}
 
-		word := map[bool]string{true: "will", false: "will not"}[shouldRotate]
-		log.Trace().Msgf("Cert %s %s be rotated; expires in %+v; renewBeforeCertExpires is %+v",
-			cert.GetCommonName(),
-			word,
-			time.Until(cert.GetExpiration()),
-			RenewBeforeCertExpires)
-
-		if shouldRotate {
-			opts := []IssueOption{WithValidityPeriod(m.serviceCertValidityDuration)}
-			// if the key is equal to the common name, then it was issued with FullCNProvided(). This will prevent
-			// an additional trust domain from being appended. We don't do this in every case, in case the trust domain
-			// has changed since the last issue.
-			if key == cert.CommonName.String() {
-				opts = append(opts, FullCNProvided())
-			}
-			newCert, err := m.IssueCertificate(key, opts...)
-			if err != nil {
-				// TODO(#3962): metric might not be scraped before process restart resulting from this error
-				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).
-					Msgf("Error rotating cert SerialNumber=%s", cert.GetSerialNumber())
-				continue
-			}
-
-			m.msgBroker.GetCertPubSub().Pub(events.PubSubMessage{
-				Kind:   announcements.CertificateRotated,
-				NewObj: newCert,
-				OldObj: cert,
-			}, announcements.CertificateRotated.String())
-
-			log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s", cert.SerialNumber, newCert.SerialNumber)
+		_, err := m.IssueCertificate(key, cert.certType, opts...)
+		if err != nil {
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).
+				Msgf("Error rotating cert SerialNumber=%s", cert.GetSerialNumber())
 		}
 	}
 }
 
+func (m *Manager) getValidityDurationForCertType(ct CertType) time.Duration {
+	switch ct {
+	case Internal:
+		return constants.OSMCertificateValidityPeriod
+	case IngressGateway:
+		return m.ingressCertValidityDuration()
+	case Service:
+		return m.serviceCertValidityDuration()
+	default:
+		log.Debug().Msgf("Unknown certificate type %s provided when getting validity duration", ct)
+		return constants.OSMCertificateValidityPeriod
+	}
+}
+
+// getFromCache returns the certificate with the specified cn from cache if it exists.
+// Note: getFromCache might return an expired or invalid certificate.
 func (m *Manager) getFromCache(key string) *Certificate {
 	certInterface, exists := m.cache.Load(key)
 	if !exists {
@@ -207,20 +237,36 @@ func (m *Manager) getFromCache(key string) *Certificate {
 	}
 	cert := certInterface.(*Certificate)
 	log.Trace().Msgf("Certificate found in cache SerialNumber=%s", cert.GetSerialNumber())
-	if cert.ShouldRotate() {
-		log.Trace().Msgf("Certificate found in cache but has expired SerialNumber=%s", cert.GetSerialNumber())
-		return nil
-	}
 	return cert
 }
 
-// IssueCertificate implements Manager and returns a newly issued certificate from the given client.
-func (m *Manager) IssueCertificate(prefix string, opts ...IssueOption) (*Certificate, error) {
-	var err error
+// IssueCertificate returns a newly issued certificate from the given client
+// or an existing valid certificate from the local cache.
+func (m *Manager) IssueCertificate(prefix string, ct CertType, opts ...IssueOption) (*Certificate, error) {
+	// a singleflight group is used here to ensure that only one issueCertificate is in
+	// flight at a time for a given certificate prefix. Helps avoid a race condition if
+	// issueCertificate is called multiple times in a row for the same certificate prefix.
+	cert, err, _ := m.group.Do(prefix, func() (interface{}, error) {
+		return m.issueCertificate(prefix, ct, opts...)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return cert.(*Certificate), nil
+}
+
+func (m *Manager) issueCertificate(prefix string, ct CertType, opts ...IssueOption) (*Certificate, error) {
+	var rotate bool
 	cert := m.getFromCache(prefix) // Don't call this while holding the lock
+	if cert != nil {
+		// check if cert needs to be rotated
+		rotate = m.shouldRotate(cert)
+		if !rotate {
+			return cert, nil
+		}
+	}
 
-	options := defaultOptions(m.serviceCertValidityDuration)
-
+	options := &issueOptions{}
 	for _, o := range opts {
 		o(options)
 	}
@@ -231,27 +277,40 @@ func (m *Manager) IssueCertificate(prefix string, opts ...IssueOption) (*Certifi
 	m.mu.Unlock()
 
 	start := time.Now()
-	if cert == nil || cert.signingIssuerID != signingIssuer.ID || cert.validatingIssuerID != validatingIssuer.ID {
-		cert, err = signingIssuer.IssueCertificate(options.formatCN(prefix, signingIssuer.TrustDomain), options.validityPeriod)
-		if err != nil {
-			return nil, err
-		}
 
-		// if we have different signing and validating issuers,
-		// create the cert's trust context
-		if validatingIssuer.ID != signingIssuer.ID {
-			cert = cert.newMergedWithRoot(validatingIssuer.CertificateAuthority)
-		}
-
-		cert.signingIssuerID = signingIssuer.ID
-		cert.validatingIssuerID = validatingIssuer.ID
+	validityDuration := m.getValidityDurationForCertType(ct)
+	newCert, err := signingIssuer.IssueCertificate(options.formatCN(prefix, signingIssuer.TrustDomain), validityDuration)
+	if err != nil {
+		return nil, err
 	}
 
-	m.cache.Store(prefix, cert)
+	// if we have different signing and validating issuers,
+	// create the cert's trust context
+	if validatingIssuer.ID != signingIssuer.ID {
+		newCert = newCert.newMergedWithRoot(validatingIssuer.CertificateAuthority)
+	}
 
-	log.Trace().Msgf("It took %s to issue certificate with SerialNumber=%s", time.Since(start), cert.GetSerialNumber())
+	newCert.signingIssuerID = signingIssuer.ID
+	newCert.validatingIssuerID = validatingIssuer.ID
 
-	return cert, nil
+	newCert.certType = ct
+
+	m.cache.Store(prefix, newCert)
+
+	log.Trace().Msgf("It took %s to issue certificate with SerialNumber=%s", time.Since(start), newCert.GetSerialNumber())
+
+	if rotate {
+		// Certificate was rotated
+		m.msgBroker.GetCertPubSub().Pub(events.PubSubMessage{
+			Kind:   announcements.CertificateRotated,
+			NewObj: newCert,
+			OldObj: cert,
+		}, announcements.CertificateRotated.String())
+
+		log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s", cert.SerialNumber, newCert.SerialNumber)
+	}
+
+	return newCert, nil
 }
 
 // ReleaseCertificate is called when a cert will no longer be needed and should be removed from the system.
