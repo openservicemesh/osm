@@ -69,11 +69,17 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.certmanager.issuerGroup | string | `"cert-manager.io"` | cert-manager issuer group |
 | osm.certmanager.issuerKind | string | `"Issuer"` | cert-manager issuer kind |
 | osm.certmanager.issuerName | string | `"osm-ca"` | cert-manager issuer namecert-manager issuer name |
-| osm.cleanup.affinity | object | `{}` |  |
-| osm.cleanup.nodeSelector."kubernetes.io/arch" | string | `"amd64"` |  |
-| osm.cleanup.nodeSelector."kubernetes.io/os" | string | `"linux"` |  |
+| osm.cleanup.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key | string | `"kubernetes.io/os"` |  |
+| osm.cleanup.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator | string | `"In"` |  |
+| osm.cleanup.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0] | string | `"linux"` |  |
+| osm.cleanup.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].key | string | `"kubernetes.io/arch"` |  |
+| osm.cleanup.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].operator | string | `"In"` |  |
+| osm.cleanup.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[0] | string | `"amd64"` |  |
+| osm.cleanup.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[1] | string | `"arm64"` |  |
+| osm.cleanup.nodeSelector | object | `{}` |  |
 | osm.cleanup.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.configResyncInterval | string | `"0s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
+| osm.controlPlaneTolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.controllerLogLevel | string | `"info"` | Controller log verbosity |
 | osm.curlImage | string | `"curlimages/curl"` | Curl image for control plane init container |
 | osm.deployGrafana | bool | `false` | Deploy Grafana with OSM installation |
@@ -104,11 +110,19 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.fluentBit.registry | string | `"fluent"` | Registry for Fluent Bit sidecar container |
 | osm.fluentBit.tag | string | `"1.6.4"` | Fluent Bit sidecar image tag |
 | osm.fluentBit.workspaceId | string | `""` | WorkspaceId for Fluent Bit output plugin to Log Analytics |
-| osm.grafana.affinity | object | `{}` |  |
+| osm.grafana.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key | string | `"kubernetes.io/os"` |  |
+| osm.grafana.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator | string | `"In"` |  |
+| osm.grafana.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0] | string | `"linux"` |  |
+| osm.grafana.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].key | string | `"kubernetes.io/arch"` |  |
+| osm.grafana.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].operator | string | `"In"` |  |
+| osm.grafana.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[0] | string | `"amd64"` |  |
+| osm.grafana.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[1] | string | `"arm64"` |  |
+| osm.grafana.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[2] | string | `"arm"` |  |
+| osm.grafana.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[3] | string | `"ppc64le"` |  |
+| osm.grafana.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[4] | string | `"s390x"` |  |
 | osm.grafana.enableRemoteRendering | bool | `false` | Enable Remote Rendering in Grafana |
 | osm.grafana.image | string | `"grafana/grafana:8.2.2"` | Image used for Grafana |
-| osm.grafana.nodeSelector."kubernetes.io/arch" | string | `"amd64"` |  |
-| osm.grafana.nodeSelector."kubernetes.io/os" | string | `"linux"` |  |
+| osm.grafana.nodeSelector | object | `{}` |  |
 | osm.grafana.port | int | `3000` | Grafana service's port |
 | osm.grafana.rendererImage | string | `"grafana/grafana-image-renderer:3.2.1"` | Image used for Grafana Renderer |
 | osm.grafana.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
@@ -198,7 +212,6 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.osmController.autoScale.memory.targetAverageUtilization | int | `80` | Average target memory utilization (%) |
 | osm.osmController.autoScale.minReplicas | int | `1` | Minimum replicas for autoscale |
 | osm.osmController.enablePodDisruptionBudget | bool | `false` | Enable Pod Disruption Budget |
-| osm.osmController.nodeSelector | object | `{}` |  |
 | osm.osmController.podLabels | object | `{}` | OSM controller's pod labels |
 | osm.osmController.replicaCount | int | `1` | OSM controller's replica count (ignored when autoscale.enable is true) |
 | osm.osmController.resource | object | `{"limits":{"cpu":"1.5","memory":"1G"},"requests":{"cpu":"0.5","memory":"128M"}}` | OSM controller's container resource parameters. See https://docs.openservicemesh.io/docs/guides/ha_scale/scale/ for more details. |
@@ -232,6 +245,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.prometheus.resources | object | `{"limits":{"cpu":"1","memory":"2G"},"requests":{"cpu":"0.5","memory":"512M"}}` | Prometheus's container resource parameters |
 | osm.prometheus.retention | object | `{"time":"15d"}` | Prometheus data rentention configuration |
 | osm.prometheus.retention.time | string | `"15d"` | Prometheus data retention time |
+| osm.prometheus.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.sidecarImage | string | `"envoyproxy/envoy-distroless:v1.22.2@sha256:541d31419b95e3c62d8cc0967db9cdb4ad2782cc08faa6f15f04c081200e324a"` | Envoy sidecar image for Linux workloads |
 | osm.sidecarWindowsImage | string | `"envoyproxy/envoy-windows:v1.22.1@sha256:92733f8e5beae5c45df204a0e13edbd29e99adf962d1b1c7869b197d85c64bd0"` | Envoy sidecar image for Windows workloads |
 | osm.tracing.address | string | `""` | Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md |
@@ -249,6 +263,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.tracing.image | string | `"jaegertracing/all-in-one"` | Image used for tracing |
 | osm.tracing.nodeSelector | object | `{}` |  |
 | osm.tracing.port | int | `9411` | Port of the tracing collector service |
+| osm.tracing.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.trustDomain | string | `"cluster.local"` | The trust domain to use as part of the common name when requesting new certificates. |
 | osm.validatorWebhook.webhookConfigurationName | string | `""` | Name of the ValidatingWebhookConfiguration |
 | osm.vault.host | string | `""` | Hashicorp Vault host/service - where Vault is installed |

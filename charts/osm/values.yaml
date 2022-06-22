@@ -88,10 +88,6 @@ osm:
         # -- Average target memory utilization (%)
         targetAverageUtilization: 80
 
-    ## Node labels for pod assignment
-    ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: {}
-
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
     affinity:
@@ -143,6 +139,33 @@ osm:
       time: 15d
     # -- Image used for Prometheus
     image: prom/prometheus:v2.34.0
+    ## Node labels for pod assignment
+    ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+    nodeSelector: {}
+
+    ## Affinity settings for pod assignment
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/os
+              operator: In
+              values:
+              - linux
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+              - arm64
+              - arm
+              - ppc64le
+              - s390x
+
+    # -- Node tolerations applied to control plane pods.
+    # The specified tolerations allow pods to schedule onto nodes with matching taints.
+    tolerations: []
 
   # -- The trust domain to use as part of the common name when requesting new certificates.
   trustDomain: cluster.local
@@ -553,13 +576,24 @@ osm:
   cleanup:
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector:
-      kubernetes.io/arch: amd64
-      kubernetes.io/os: linux
+    nodeSelector: {}
 
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-    affinity: {}
+    affinity: 
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                  - linux
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+                  - arm64
 
     # -- Node tolerations applied to control plane pods.
     # The specified tolerations allow pods to schedule onto nodes with matching taints.

@@ -236,9 +236,6 @@
                         "affinity": {
                             "type": "object"
                         },
-                        "nodeSelector": {
-                            "type": "object"
-                        },
                         "tolerations": {
                             "type": "array"
                         }
@@ -968,36 +965,6 @@
                     },
                     "additionalProperties": false
                 },
-                "multicluster": {
-                    "$id": "#/properties/osm/properties/multicluster",
-                    "type": "object",
-                    "title": "Multicluster",
-                    "description": "Configuration for multicluster features",
-                    "required": [
-                        "gatewayLogLevel"
-                    ],
-                    "properties": {
-                        "gatewayLogLevel": {
-                            "$id": "#/properties/osm/properties/multicluster/properties/gatewayLogLevel",
-                            "type": "string",
-                            "title": "the gatewayLogLevel port",
-                            "description": "Log level for the multicluster gateway",
-                            "pattern": "^(trace|debug|info|warning|warn|error|critical|off)$",
-                            "examples": [
-                                "error"
-                            ]
-                        },
-                        "affinity": {
-                            "type": "object"
-                        },
-                        "nodeSelector": {
-                            "type": "object"
-                        },
-                        "tolerations": {
-                            "type": "array"
-                        }
-                    }
-                },
                 "featureFlags": {
                     "$id": "#/properties/osm/properties/featureFlags",
                     "type": "object",
@@ -1488,8 +1455,15 @@
                     "properties": {
                         "affinity": {
                             "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
-                    }
+                    },
+                    "additionalProperties": false
                 },
                 "cleanup": {
                     "$id": "#/properties/osm/properties/preinstall",
@@ -1500,8 +1474,15 @@
                     "properties": {
                         "affinity": {
                             "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
-                    }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false
