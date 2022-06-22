@@ -9,7 +9,6 @@ import (
 	xds_http_rbac "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	tassert "github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -99,9 +98,8 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 				return
 			}
 
-			marshalled := rbacFilter[envoy.HTTPRBACFilterName]
 			httpRBACPerRoute := &xds_http_rbac.RBACPerRoute{}
-			err = marshalled.UnmarshalTo(httpRBACPerRoute)
+			err = rbacFilter.UnmarshalTo(httpRBACPerRoute)
 			assert.Nil(err)
 
 			rbacRules := httpRBACPerRoute.Rbac.Rules

@@ -87,19 +87,22 @@ const (
 )
 
 // Filter names - can be any name (not used by Envoy to determine the filter to use)
-// *Note: HTTP RBAC filter still requires a wellknown name
+// *Note: HTTP typed filters referenced in RDS require a wellknown name
 const (
 	// HTTP filters
 	HTTPConnectionManagerFilterName = "http_connection_manager"
 	HTTPRouterFilterName            = "http_router"
 	HTTPLuaFilterName               = "http_lua"
-	HTTPLocalRateLimitFilterName    = "http_local_rate_limit"
-	HTTPExtAuthzFilterName          = "http_external_authz"
-	HTTPHealthCheckFilterName       = "http_health_check"
 
-	// The HTTP RBAC filter still requires a wellknown name
-	// See https://github.com/envoyproxy/envoy/issues/21759#issuecomment-1159243250
-	HTTPRBACFilterName = "envoy.filters.http.rbac"
+	HTTPExtAuthzFilterName    = "http_external_authz"
+	HTTPHealthCheckFilterName = "http_health_check"
+
+	// The HTTP typed filters referenced in the RDS configuration still need to
+	// use wellknown names. These filters are configured as a map where the key is
+	// the filter name and value is the marshalled filter config.
+	// See https://github.com/envoyproxy/envoy/issues/21759#issuecomment-1163570994
+	HTTPRBACFilterName           = "envoy.filters.http.rbac"
+	HTTPLocalRateLimitFilterName = "envoy.filters.http.local_ratelimit"
 
 	// Network (L4) filters
 	TCPProxyFilterName         = "tcp_proxy"

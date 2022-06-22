@@ -9,6 +9,7 @@ import (
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/mock/gomock"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
@@ -41,12 +42,12 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 		expectedRouteConfigFields *xds_route.RouteConfiguration
 	}{
 		{
-			name:                      "no policies provided",
+			name:                      "no inbound policy",
 			inbound:                   &trafficpolicy.InboundMeshTrafficPolicy{},
 			expectedRouteConfigFields: nil,
 		},
 		{
-			name: "inbound policy provided",
+			name: "basic inbound policy ",
 			inbound: &trafficpolicy.InboundMeshTrafficPolicy{
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
 					80: {
@@ -95,9 +96,19 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 						Routes: []*xds_route.Route{
 							{
 								// corresponds to ingressPolicies[0].Rules[0]
+
+								// Only the filter name is matched, not the marshalled config
+								TypedPerFilterConfig: map[string]*any.Any{
+									envoy.HTTPRBACFilterName: nil,
+								},
 							},
 							{
 								// corresponds to ingressPolicies[0].Rules[1]
+
+								// Only the filter name is matched, not the marshalled config
+								TypedPerFilterConfig: map[string]*any.Any{
+									envoy.HTTPRBACFilterName: nil,
+								},
 							},
 						},
 					},
@@ -107,6 +118,87 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 							{
 								// corresponds to ingressPolicies[1].Rules[0]
 							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "inbound policy with VirtualHost and Route level local rate limiting",
+			inbound: &trafficpolicy.InboundMeshTrafficPolicy{
+				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+					80: {
+						{
+							Name:      "bookstore-v1-default",
+							Hostnames: []string{"bookstore-v1.default.svc.cluster.local"},
+							Rules: []*trafficpolicy.Rule{
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
+										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+										RateLimit: &policyv1alpha1.HTTPPerRouteRateLimitSpec{
+											Local: &policyv1alpha1.HTTPLocalRateLimitSpec{
+												Requests: 10,
+												Unit:     "second",
+											},
+										},
+									},
+									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+								},
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
+										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+										RateLimit: &policyv1alpha1.HTTPPerRouteRateLimitSpec{
+											Local: &policyv1alpha1.HTTPLocalRateLimitSpec{
+												Requests: 10,
+												Unit:     "second",
+											},
+										},
+									},
+									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+								},
+							},
+							RateLimit: &policyv1alpha1.RateLimitSpec{
+								Local: &policyv1alpha1.LocalRateLimitSpec{
+									HTTP: &policyv1alpha1.HTTPLocalRateLimitSpec{
+										Requests: 100,
+										Unit:     "minute",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedRouteConfigFields: &xds_route.RouteConfiguration{
+				Name: "rds-inbound.80",
+				VirtualHosts: []*xds_route.VirtualHost{
+					{
+						Name: "inbound_virtual-host|bookstore-v1.default.svc.cluster.local",
+						Routes: []*xds_route.Route{
+							{
+								// corresponds to ingressPolicies[0].Rules[0]
+
+								// Only the filter name is matched, not the marshalled config
+								TypedPerFilterConfig: map[string]*any.Any{
+									envoy.HTTPRBACFilterName:           nil,
+									envoy.HTTPLocalRateLimitFilterName: nil,
+								},
+							},
+							{
+								// corresponds to ingressPolicies[0].Rules[1]
+
+								// Only the filter name is matched, not the marshalled config
+								TypedPerFilterConfig: map[string]*any.Any{
+									envoy.HTTPRBACFilterName:           nil,
+									envoy.HTTPLocalRateLimitFilterName: nil,
+								},
+							},
+						},
+						// Only the filter name is matched, not the marshalled config
+						TypedPerFilterConfig: map[string]*any.Any{
+							envoy.HTTPLocalRateLimitFilterName: nil,
 						},
 					},
 				},
@@ -138,6 +230,18 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 
 				for i, vh := range routeConfig.VirtualHosts {
 					assert.Len(vh.Routes, len(tc.expectedRouteConfigFields.VirtualHosts[i].Routes))
+
+					// Verify that the expected typed filters on the VirtualHost are present
+					for filter := range tc.expectedRouteConfigFields.VirtualHosts[i].TypedPerFilterConfig {
+						assert.Contains(vh.TypedPerFilterConfig, filter)
+					}
+
+					// Verify that the expected typed filters on the Route are present
+					for j, route := range vh.Routes {
+						for filter := range tc.expectedRouteConfigFields.VirtualHosts[i].Routes[j].TypedPerFilterConfig {
+							assert.Contains(route.TypedPerFilterConfig, filter)
+						}
+					}
 				}
 			}
 		})
