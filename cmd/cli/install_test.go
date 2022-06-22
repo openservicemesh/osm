@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -26,12 +27,32 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-var (
+const (
 	testRegistrySecret = "test-registry-secret"
 	testVaultHost      = "vault.osm.svc.cluster.local"
 	testVaultToken     = "token"
 	testChartPath      = "testdata/test-chart"
+	kubeVersionMajor   = 1
+	kubeVersionMinor   = 22
+	kubeVersionPatch   = 9
 )
+
+func helmCapabilities() *chartutil.Capabilities {
+	defaultCapabilities := chartutil.DefaultCapabilities.Copy()
+	// Intentionally avoiding charutil.ParseKubeVersion so we don't have to
+	// deal with error handling when generating the capabilities.
+	defaultCapabilities.KubeVersion = chartutil.KubeVersion{
+		Version: fmt.Sprintf(
+			"v%d.%d.%d",
+			kubeVersionMajor,
+			kubeVersionMinor,
+			kubeVersionPatch,
+		),
+		Major: strconv.Itoa(kubeVersionMajor),
+		Minor: strconv.Itoa(kubeVersionMinor),
+	}
+	return defaultCapabilities
+}
 
 var _ = Describe("Running the install command", func() {
 
@@ -55,7 +76,7 @@ var _ = Describe("Running the install command", func() {
 				KubeClient: &kubefake.PrintingKubeClient{
 					Out: ioutil.Discard,
 				},
-				Capabilities: chartutil.DefaultCapabilities,
+				Capabilities: helmCapabilities(),
 				Log:          func(format string, v ...interface{}) {},
 			}
 
@@ -117,7 +138,7 @@ var _ = Describe("Running the install command", func() {
 				KubeClient: &kubefake.PrintingKubeClient{
 					Out: ioutil.Discard,
 				},
-				Capabilities: chartutil.DefaultCapabilities,
+				Capabilities: helmCapabilities(),
 				Log:          func(format string, v ...interface{}) {},
 			}
 
@@ -179,7 +200,7 @@ var _ = Describe("Running the install command", func() {
 				Releases: store,
 				KubeClient: &kubefake.PrintingKubeClient{
 					Out: ioutil.Discard},
-				Capabilities: chartutil.DefaultCapabilities,
+				Capabilities: helmCapabilities(),
 				Log:          func(format string, v ...interface{}) {},
 			}
 
@@ -254,7 +275,7 @@ var _ = Describe("Running the install command", func() {
 				Releases: store,
 				KubeClient: &kubefake.PrintingKubeClient{
 					Out: ioutil.Discard},
-				Capabilities: chartutil.DefaultCapabilities,
+				Capabilities: helmCapabilities(),
 				Log:          func(format string, v ...interface{}) {},
 			}
 
@@ -298,7 +319,7 @@ var _ = Describe("Running the install command", func() {
 				Releases: store,
 				KubeClient: &kubefake.PrintingKubeClient{
 					Out: ioutil.Discard},
-				Capabilities: chartutil.DefaultCapabilities,
+				Capabilities: helmCapabilities(),
 				Log:          func(format string, v ...interface{}) {},
 			}
 
@@ -371,7 +392,7 @@ var _ = Describe("deployPrometheus is true", func() {
 			Releases: store,
 			KubeClient: &kubefake.PrintingKubeClient{
 				Out: ioutil.Discard},
-			Capabilities: chartutil.DefaultCapabilities,
+			Capabilities: helmCapabilities(),
 			Log:          func(format string, v ...interface{}) {},
 		}
 

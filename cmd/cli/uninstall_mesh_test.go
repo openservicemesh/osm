@@ -11,7 +11,6 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/action"
 	helm "helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chartutil"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage"
@@ -226,7 +225,7 @@ func TestUninstallCmd(t *testing.T) {
 				Releases: store,
 				KubeClient: &kubefake.PrintingKubeClient{
 					Out: ioutil.Discard},
-				Capabilities: chartutil.DefaultCapabilities,
+				Capabilities: helmCapabilities(),
 				Log:          func(format string, v ...interface{}) {},
 			}
 
@@ -560,7 +559,7 @@ func TestUninstallClusterWideResources(t *testing.T) {
 				Releases: store,
 				KubeClient: &kubefake.PrintingKubeClient{
 					Out: ioutil.Discard},
-				Capabilities: chartutil.DefaultCapabilities,
+				Capabilities: helmCapabilities(),
 				Log:          func(format string, v ...interface{}) {},
 			}
 
