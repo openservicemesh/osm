@@ -7,9 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
-
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -21,7 +19,7 @@ const (
 // buildInboundRBACFilterForRule builds an HTTP RBAC per route filter based on the given traffic policy rule.
 // The principals in the RBAC policy are derived from the allowed service accounts specified in the given rule.
 // The permissions in the RBAC policy are implicitly set to ANY (all permissions).
-func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule, trustDomain string) (map[string]*any.Any, error) {
+func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule, trustDomain string) (*any.Any, error) {
 	if rule.AllowedServiceIdentities == nil {
 		return nil, errors.Errorf("traffipolicy.Rule.AllowedServiceIdentities not set")
 	}
@@ -54,5 +52,5 @@ func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule, trustDomain string)
 		return nil, err
 	}
 
-	return map[string]*any.Any{envoy.HTTPRBACFilterName: marshalled}, nil
+	return marshalled, nil
 }
