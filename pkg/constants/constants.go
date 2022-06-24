@@ -163,9 +163,6 @@ const (
 
 // Annotations and labels used by the MeshRootCertificate
 const (
-	// MRCVersionAnnotation is the annotation used for the version of the MeshRootCertificate
-	MRCVersionAnnotation = "openservicemesh.io/mrc-version"
-
 	// MRCStateValidatingRollout is the validating rollout status option for the State of the MeshRootCertificate
 	MRCStateValidatingRollout = "validatingRollout"
 

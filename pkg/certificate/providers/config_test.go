@@ -2,7 +2,6 @@ package providers
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -175,9 +174,6 @@ func TestGetCertificateManager(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "osm-mesh-root-certificate",
 					Namespace: "osm-system",
-					Annotations: map[string]string{
-						constants.MRCVersionAnnotation: "0",
-					},
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					Provider: v1alpha2.ProviderSpec{
@@ -207,7 +203,7 @@ func TestGetCertificateManager(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf(tc.name), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
 			oldCA := getCA
@@ -226,7 +222,7 @@ func TestGetCertificateManager(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker, ic, 1*time.Hour)
+			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.configClient, tc.restConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker, ic, 1*time.Hour)
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)

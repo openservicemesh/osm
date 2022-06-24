@@ -1,7 +1,10 @@
 package providers
 
+/*
 import (
 	"context"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -27,3 +30,11 @@ func (c *MRCCompatClient) Watch(ctx context.Context) (<-chan certificate.MRCEven
 
 	return ch, nil
 }
+
+func (c *MRCCompatClient) Update(mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	return c.configClient.ConfigV1alpha2().MeshRootCertificates(mrc.Namespace).UpdateStatus(context.Background(), mrc, metav1.UpdateOptions{})
+}
+
+func (m *MRCCompatClient) Get(id string, ns string) (*v1alpha2.MeshRootCertificate, error) {
+	return m.configClient.ConfigV1alpha2().MeshRootCertificates(ns).Get(context.Background(), id, metav1.GetOptions{})
+}*/

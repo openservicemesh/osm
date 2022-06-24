@@ -207,7 +207,7 @@ func main() {
 	}
 
 	// Intitialize certificate manager/provider
-	certManager, err := providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
+	certManager, err := providers.NewCertificateManager(ctx, kubeClient, configClient, kubeConfig, cfg, osmNamespace,
 		certOpts, msgBroker, informerCollection, 5*time.Second)
 
 	if err != nil {

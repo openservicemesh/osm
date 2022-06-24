@@ -202,8 +202,8 @@ func main() {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
 	}
 	// Intitialize certificate manager/provider
-	certManager, err := providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
-		certOpts, msgBroker, informerCollection, 5*time.Second)
+	certManager, err := providers.NewCertificateManager(ctx, kubeClient, configClient, kubeConfig, cfg,
+		osmNamespace, certOpts, msgBroker, informerCollection, 5*time.Second)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error initializing certificate manager of kind %s", certProviderKind)

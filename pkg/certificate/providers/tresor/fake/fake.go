@@ -44,13 +44,10 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent,
 	go func() {
 		ch <- certificate.MRCEvent{
 			Type: certificate.MRCEventAdded,
-			MRC: &v1alpha2.MeshRootCertificate{
+			NewMRC: &v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "osm-mesh-root-certificate",
 					Namespace: "osm-system",
-					Annotations: map[string]string{
-						constants.MRCVersionAnnotation: "0",
-					},
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					Provider: v1alpha2.ProviderSpec{
@@ -73,6 +70,20 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent,
 	}()
 
 	return ch, nil
+}
+
+func (c *fakeMRCClient) Update(id, ns, status string, mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	if mrc != nil {
+		mrc.Status.State = status
+		return mrc, nil
+	}
+	return &v1alpha2.MeshRootCertificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      id,
+			Namespace: ns,
+		},
+		Spec:   v1alpha2.MeshRootCertificateSpec{TrustDomain: "fake.example.com"},
+		Status: v1alpha2.MeshRootCertificateStatus{State: status}}, nil
 }
 
 // NewFake constructs a fake certificate client using a certificate

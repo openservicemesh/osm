@@ -92,6 +92,7 @@ type Issuer interface {
 
 type issuer struct {
 	Issuer
+	// name of the associated MRC
 	ID          string
 	TrustDomain string
 	// memoized once the first certificate is issued
@@ -124,6 +125,9 @@ type MRCClient interface {
 
 	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.
 	GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, string, error)
+
+	// Update updates an MRC with the provided MRC. Returns the updated MRC.
+	Update(id, ns, status string, mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error)
 }
 
 // MRCEventType is a type alias for a string describing the type of MRC event
@@ -132,8 +136,10 @@ type MRCEventType string
 // MRCEvent describes a change event on a given MRC
 type MRCEvent struct {
 	Type MRCEventType
+	// The previous observed version of the MRC as of the time of this event
+	OldMRC *v1alpha2.MeshRootCertificate
 	// The last observed version of the MRC as of the time of this event
-	MRC *v1alpha2.MeshRootCertificate
+	NewMRC *v1alpha2.MeshRootCertificate
 }
 
 var (
@@ -150,4 +156,8 @@ type MRCEventBroker interface {
 	// MRCs. Watch returns a channel that emits events, and
 	// an error if the subscription goes awry.
 	Watch(context.Context) (<-chan MRCEvent, error)
+}
+
+type MRCUpdater interface {
+	Update(context.Context)
 }

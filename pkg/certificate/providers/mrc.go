@@ -3,7 +3,10 @@ package providers
 import (
 	"context"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
+
+	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -11,10 +14,12 @@ import (
 )
 
 // MRCComposer is a composer object that allows consumers
-// to observe MRCs (via List() and Watch()) as well as generate
-// `certificate.Provider`s from those MRCs
+// to observe MRCs (via List() and Watch()), generate
+// `certificate.Provider`s from those MRCs, and update the
+// MRCs
 type MRCComposer struct {
 	informerCollection *informers.InformerCollection
+	configClient       configClientset.Interface
 	MRCProviderGenerator
 }
 
@@ -48,18 +53,18 @@ func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, e
 			mrc := obj.(*v1alpha2.MeshRootCertificate)
 			log.Debug().Msgf("received MRC add event for MRC %s/%s", mrc.GetNamespace(), mrc.GetName())
 			eventChan <- certificate.MRCEvent{
-				Type: certificate.MRCEventAdded,
-				MRC:  mrc,
+				Type:   certificate.MRCEventAdded,
+				NewMRC: mrc,
 			}
 		},
-		// We don't really care about the previous version
-		// since the "state machine" of the MRC is well defined
-		UpdateFunc: func(_, newObj interface{}) {
-			mrc := newObj.(*v1alpha2.MeshRootCertificate)
-			log.Debug().Msgf("received MRC update event for MRC %s/%s", mrc.GetNamespace(), mrc.GetName())
+		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+			newMRC := newObj.(*v1alpha2.MeshRootCertificate)
+			oldMRC := oldObj.(*v1alpha2.MeshRootCertificate)
+			log.Debug().Msgf("received MRC update event for MRC %s/%s", newMRC.GetNamespace(), newMRC.GetName())
 			eventChan <- certificate.MRCEvent{
-				Type: certificate.MRCEventUpdated,
-				MRC:  mrc,
+				Type:   certificate.MRCEventUpdated,
+				OldMRC: oldMRC,
+				NewMRC: newMRC,
 			}
 		},
 		// We don't care about deletes because the only deletes that should
@@ -69,4 +74,22 @@ func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, e
 	})
 
 	return eventChan, nil
+}
+
+// Update returns an updated MRC. If no MRC is provided, the MRC is obtained using the ID and
+// namespace. The status of the MRC is set to the provided status and the updated MRC is
+// returned.
+func (m *MRCComposer) Update(id, ns, status string, mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	var err error
+	updatedMRC := mrc
+	if updatedMRC == nil {
+		updatedMRC, err = m.configClient.ConfigV1alpha2().MeshRootCertificates(ns).Get(context.Background(), id, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	updatedMRC.Status.State = status
+
+	return m.configClient.ConfigV1alpha2().MeshRootCertificates(updatedMRC.Namespace).UpdateStatus(context.Background(), updatedMRC, metav1.UpdateOptions{})
 }

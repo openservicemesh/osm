@@ -213,7 +213,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
 	}
 
-	certManager, err := providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace, certOpts, msgBroker, informerCollection, 5*time.Second)
+	certManager, err := providers.NewCertificateManager(ctx, kubeClient, configClient, kubeConfig, cfg, osmNamespace, certOpts, msgBroker, informerCollection, 5*time.Second)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error initializing certificate manager of kind %s", certProviderKind)
@@ -423,9 +423,6 @@ func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigM
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: meshRootCertificateName,
-			Annotations: map[string]string{
-				constants.MRCVersionAnnotation: "0",
-			},
 		},
 		Spec: presetMeshRootCertificateSpec,
 		Status: configv1alpha2.MeshRootCertificateStatus{

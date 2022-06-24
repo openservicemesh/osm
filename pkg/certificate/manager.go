@@ -3,11 +3,13 @@ package certificate
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -15,6 +17,14 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
+
+var allowedMRCStateChanges = map[string][]string{
+	constants.MRCStateValidatingRollout:  {constants.MRCStateIssuingRollout, constants.MRCStateError},
+	constants.MRCStateIssuingRollout:     {constants.MRCStateActive, constants.MRCStateError},
+	constants.MRCStateActive:             {constants.MRCStateIssuingRollback, constants.MRCStateError},
+	constants.MRCStateIssuingRollback:    {constants.MRCStateValidatingRollback, constants.MRCStateError},
+	constants.MRCStateValidatingRollback: {constants.MRCStateInactive, constants.MRCStateError},
+}
 
 // NewManager creates a new CertificateManager with the passed MRCClient and options
 func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, msgBroker *messaging.Broker, checkInterval time.Duration) (*Manager, error) {
@@ -115,7 +125,7 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
 	switch event.Type {
 	case MRCEventAdded:
-		mrc := event.MRC
+		mrc := event.NewMRC
 		if mrc.Status.State == constants.MRCStateError {
 			log.Debug().Msgf("skipping MRC with error state %s", mrc.GetName())
 			return nil
@@ -127,17 +137,17 @@ func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
 		}
 
 		c := &issuer{Issuer: client, ID: clientID, CertificateAuthority: ca}
-		switch {
-		case mrc.Status.State == constants.MRCStateActive:
+		switch mrc.Status.State {
+		case constants.MRCStateActive, constants.MRCStateValidatingRollback:
 			m.mu.Lock()
 			m.signingIssuer = c
 			m.validatingIssuer = c
 			m.mu.Unlock()
-		case mrc.Status.State == constants.MRCStateIssuingRollback || mrc.Status.State == constants.MRCStateIssuingRollout:
+		case constants.MRCStateIssuingRollout:
 			m.mu.Lock()
 			m.signingIssuer = c
 			m.mu.Unlock()
-		case mrc.Status.State == constants.MRCStateValidatingRollback || mrc.Status.State == constants.MRCStateValidatingRollout:
+		case constants.MRCStateIssuingRollback, constants.MRCStateValidatingRollout:
 			m.mu.Lock()
 			m.validatingIssuer = c
 			m.mu.Unlock()
@@ -148,10 +158,109 @@ func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
 			m.mu.Unlock()
 		}
 	case MRCEventUpdated:
-		// TODO
+		// check if the update was a status change, ignore if not
+		if event.OldMRC == nil || event.NewMRC == nil || event.OldMRC.Status.State == event.NewMRC.Status.State {
+			log.Debug().Msgf("ignoring update event for MRC %s since status did not change", event.NewMRC.Name)
+			return nil
+		}
+
+		return m.handleMRCStatusUpdate(mrcClient, event)
+	}
+	return nil
+}
+
+func (m *Manager) handleMRCStatusUpdate(mrcClient MRCClient, event MRCEvent) error {
+	oldMRC := event.OldMRC
+	newMRC := event.NewMRC
+
+	if !ValidStateChange(oldMRC.Status.State, newMRC.Status.State) {
+		msg := fmt.Sprintf("invalid state change for MRC %s: %s -> %s",
+			newMRC.Name, oldMRC.Status.State, newMRC.Status.State)
+		log.Error().Msg(msg)
+		return errors.New(msg)
 	}
 
+	switch newMRC.Status.State {
+	case constants.MRCStateValidatingRollout:
+		// Should be handled by MRC added event
+
+	case constants.MRCStateIssuingRollout:
+		// verify ID of validatingIssuer is the same as the ID of the updated MRC
+		if newMRC.Name != m.validatingIssuer.ID {
+			msg := fmt.Sprintf("expected MRC %s with updated status %s to be the current validatingIssuer %s",
+				newMRC.Name, constants.MRCStateIssuingRollout, m.validatingIssuer.ID)
+			log.Error().Msg(msg)
+			return errors.New(msg)
+		}
+
+		rollbackMRCID := m.signingIssuer.ID
+
+		tempIssuer := m.signingIssuer
+		m.signingIssuer = m.validatingIssuer
+		m.validatingIssuer = tempIssuer
+
+		_, err := mrcClient.Update(rollbackMRCID, newMRC.Namespace, constants.MRCStateIssuingRollback, nil)
+		if apierrors.IsConflict(err) {
+			log.Debug().Msgf("attempted to update MRC %s status to %s, but was already updated: %s",
+				rollbackMRCID, constants.MRCStateIssuingRollback, err)
+			return nil
+		} else if err != nil {
+			log.Error().Msgf("failed to update MRC %s status to %s: %s",
+				rollbackMRCID, constants.MRCStateIssuingRollback, err)
+			return err
+		}
+
+		log.Debug().Msgf("successfully updated status of MRC %s to %s", rollbackMRCID, constants.MRCStateIssuingRollback)
+	case constants.MRCStateActive:
+		if newMRC.Name != m.signingIssuer.ID {
+			msg := fmt.Sprintf("expected MRC %s with updated status %s to be the current signingIssuer %s",
+				newMRC.Name, constants.MRCStateActive, m.validatingIssuer.ID)
+			log.Error().Msg(msg)
+			return errors.New(msg)
+		}
+
+		rollbackMRCID := m.validatingIssuer.ID
+		m.validatingIssuer = m.signingIssuer
+
+		if m.validatingIssuer.ID != m.signingIssuer.ID {
+			msg := fmt.Sprintf("for MRC %s expected validatingIssuer ID %s to be the same as the signingIssuer ID %s",
+				newMRC.Name, constants.MRCStateActive, m.validatingIssuer.ID)
+			log.Error().Msg(msg)
+			return errors.New(msg)
+		}
+
+		_, err := mrcClient.Update(rollbackMRCID, newMRC.Namespace, constants.MRCStateValidatingRollback, nil)
+		if apierrors.IsConflict(err) {
+			log.Debug().Msgf("attempted to update MRC %s status to %s, but was already updated: %s",
+				rollbackMRCID, constants.MRCStateIssuingRollback, err)
+			break
+		} else if err != nil {
+			msg := fmt.Sprintf("failed to update MRC %s status to %s: %s",
+				rollbackMRCID, constants.MRCStateIssuingRollback, err)
+			log.Error().Msg(msg)
+			return errors.New(msg)
+		}
+
+		log.Debug().Msgf("successfully updated status of MRC %s to %s", rollbackMRCID, constants.MRCStateIssuingRollback)
+	case constants.MRCStateIssuingRollback, constants.MRCStateValidatingRollback:
+		log.Info().Msgf("no operation required on %s status update to MRC %s", newMRC.Status.State, newMRC.Name)
+	case constants.MRCStateInactive:
+		// TODO(jaellio): delete MRC
+	}
 	return nil
+}
+
+func ValidStateChange(oldMRCStatus, newMRCStatus string) bool {
+	allowedStates, ok := allowedMRCStateChanges[oldMRCStatus]
+	if !ok {
+		return false
+	}
+	for _, state := range allowedStates {
+		if state == newMRCStatus {
+			return true
+		}
+	}
+	return false
 }
 
 // GetTrustDomain returns the trust domain from the configured signingkey issuer.

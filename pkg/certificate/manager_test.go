@@ -7,9 +7,12 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 	trequire "github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
@@ -312,4 +315,239 @@ func TestIssueCertificate(t *testing.T) {
 		assert.EqualError(err, "id1 failed")
 		assert.Nil(cert)
 	})
+}
+
+func TestHandleMRCEvent(t *testing.T) {
+	testCases := []struct {
+		name                       string
+		mrcEvent                   MRCEvent
+		expectedSigningIssuerID    string
+		expectedValidatingIssuerID string
+		expectedError              bool
+	}{
+		{
+			name: "add valid MRC in active state",
+			mrcEvent: MRCEvent{
+				Type: MRCEventAdded,
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "mrc",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateActive,
+					},
+				},
+			},
+			expectedSigningIssuerID:    "mrc",
+			expectedValidatingIssuerID: "mrc",
+			expectedError:              false,
+		},
+		{
+			name: "add valid MRC in issuingRollout state",
+			mrcEvent: MRCEvent{
+				Type: MRCEventAdded,
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "mrc",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateIssuingRollout,
+					},
+				},
+			},
+			expectedSigningIssuerID: "mrc",
+			expectedError:           false,
+		},
+		{
+			name: "add valid MRC in issuingRollback state",
+			mrcEvent: MRCEvent{
+				Type: MRCEventAdded,
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "mrc",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateIssuingRollback,
+					},
+				},
+			},
+			expectedValidatingIssuerID: "mrc",
+			expectedError:              false,
+		},
+		{
+			name: "add MRC with unknown status",
+			mrcEvent: MRCEvent{
+				Type: MRCEventAdded,
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "mrc",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: "unknown",
+					},
+				},
+			},
+			expectedSigningIssuerID:    "mrc",
+			expectedValidatingIssuerID: "mrc",
+			expectedError:              false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			cm := &Manager{}
+
+			err := cm.handleMRCEvent(&fakeMRCClient{}, tc.mrcEvent)
+			if tc.expectedError {
+				assert.Error(err)
+			} else {
+				assert.NoError(err)
+			}
+
+			if tc.expectedSigningIssuerID != "" {
+				assert.NotNil(cm.signingIssuer)
+				assert.Equal(tc.expectedSigningIssuerID, cm.signingIssuer.ID)
+			} else {
+				assert.Nil(cm.signingIssuer)
+			}
+
+			if tc.expectedValidatingIssuerID != "" {
+				assert.NotNil(cm.validatingIssuer)
+				assert.Equal(tc.expectedValidatingIssuerID, cm.validatingIssuer.ID)
+			} else {
+				assert.Nil(cm.validatingIssuer)
+			}
+		})
+	}
+}
+
+func TestHandleMRCStatusUpdate(t *testing.T) {
+	testCases := []struct {
+		name                       string
+		signingIssuerID            string
+		validatingIssuerID         string
+		mrcEvent                   MRCEvent
+		expectedSigningIssuerID    string
+		expectedValidatingIssuerID string
+		expectedError              bool
+	}{
+		{
+			name:               "update to issuingRollout status",
+			signingIssuerID:    "mrc2",
+			validatingIssuerID: "mrc",
+			mrcEvent: MRCEvent{
+				Type: MRCEventUpdated,
+				OldMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mrc",
+						Namespace: "ns",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateValidatingRollout,
+					},
+				},
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mrc",
+						Namespace: "ns",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateIssuingRollout,
+					},
+				},
+			},
+			expectedSigningIssuerID:    "mrc",
+			expectedValidatingIssuerID: "mrc2",
+			expectedError:              false,
+		},
+		{
+			name:               "update to active status",
+			signingIssuerID:    "mrc",
+			validatingIssuerID: "mrc2",
+			mrcEvent: MRCEvent{
+				Type: MRCEventUpdated,
+				OldMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mrc",
+						Namespace: "ns",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateIssuingRollout,
+					},
+				},
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mrc",
+						Namespace: "ns",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateActive,
+					},
+				},
+			},
+			expectedSigningIssuerID:    "mrc",
+			expectedValidatingIssuerID: "mrc",
+			expectedError:              false,
+		},
+		{
+			name:               "invalid update to issuingRollout status",
+			signingIssuerID:    "mrc2",
+			validatingIssuerID: "mrc",
+			mrcEvent: MRCEvent{
+				Type: MRCEventUpdated,
+				OldMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mrc2",
+						Namespace: "ns",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateValidatingRollout,
+					},
+				},
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mrc2",
+						Namespace: "ns",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateIssuingRollout,
+					},
+				},
+			},
+			expectedSigningIssuerID:    "mrc2",
+			expectedValidatingIssuerID: "mrc",
+			expectedError:              true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			cm := &Manager{
+				signingIssuer: &issuer{
+					ID:                   tc.signingIssuerID,
+					Issuer:               &fakeIssuer{id: tc.signingIssuerID, err: false},
+					CertificateAuthority: pem.RootCertificate(tc.signingIssuerID),
+				},
+				validatingIssuer: &issuer{
+					ID:                   tc.validatingIssuerID,
+					Issuer:               &fakeIssuer{id: tc.validatingIssuerID, err: false},
+					CertificateAuthority: pem.RootCertificate(tc.validatingIssuerID),
+				},
+			}
+
+			err := cm.handleMRCStatusUpdate(&fakeMRCClient{}, tc.mrcEvent)
+			if tc.expectedError {
+				assert.Error(err)
+			} else {
+				assert.NoError(err)
+			}
+
+			assert.Equal(tc.expectedSigningIssuerID, cm.signingIssuer.ID)
+			assert.Equal(tc.expectedValidatingIssuerID, cm.validatingIssuer.ID)
+		})
+	}
 }
