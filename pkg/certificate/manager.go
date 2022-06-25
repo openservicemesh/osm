@@ -185,19 +185,24 @@ func (m *Manager) handleMRCStatusUpdate(mrcClient MRCClient, event MRCEvent) err
 		// Should be handled by MRC added event
 
 	case constants.MRCStateIssuingRollout:
-		// verify ID of validatingIssuer is the same as the ID of the updated MRC
-		if newMRC.Name != m.validatingIssuer.ID {
+		m.mu.Lock()
+		validatingIssuerID := m.validatingIssuer.ID // Does this need to be locked?
+		m.mu.Unlock()
+
+		if newMRC.Name != validatingIssuerID {
 			msg := fmt.Sprintf("expected MRC %s with updated status %s to be the current validatingIssuer %s",
-				newMRC.Name, constants.MRCStateIssuingRollout, m.validatingIssuer.ID)
+				newMRC.Name, constants.MRCStateIssuingRollout, validatingIssuerID)
 			log.Error().Msg(msg)
 			return errors.New(msg)
 		}
 
+		m.mu.Lock()
 		rollbackMRCID := m.signingIssuer.ID
 
 		tempIssuer := m.signingIssuer
 		m.signingIssuer = m.validatingIssuer
 		m.validatingIssuer = tempIssuer
+		m.mu.Unlock()
 
 		_, err := mrcClient.Update(rollbackMRCID, newMRC.Namespace, constants.MRCStateIssuingRollback, nil)
 		if apierrors.IsConflict(err) {
@@ -212,19 +217,26 @@ func (m *Manager) handleMRCStatusUpdate(mrcClient MRCClient, event MRCEvent) err
 
 		log.Debug().Msgf("successfully updated status of MRC %s to %s", rollbackMRCID, constants.MRCStateIssuingRollback)
 	case constants.MRCStateActive:
-		if newMRC.Name != m.signingIssuer.ID {
+		m.mu.Lock()
+		signingIssuerID := m.signingIssuer.ID
+		m.mu.Unlock()
+
+		if newMRC.Name != signingIssuerID {
 			msg := fmt.Sprintf("expected MRC %s with updated status %s to be the current signingIssuer %s",
-				newMRC.Name, constants.MRCStateActive, m.validatingIssuer.ID)
+				newMRC.Name, constants.MRCStateActive, signingIssuerID)
 			log.Error().Msg(msg)
 			return errors.New(msg)
 		}
 
+		m.mu.Lock()
 		rollbackMRCID := m.validatingIssuer.ID
 		m.validatingIssuer = m.signingIssuer
+		validatingIssuerID := m.validatingIssuer.ID
+		m.mu.Unlock()
 
-		if m.validatingIssuer.ID != m.signingIssuer.ID {
+		if validatingIssuerID != signingIssuerID {
 			msg := fmt.Sprintf("for MRC %s expected validatingIssuer ID %s to be the same as the signingIssuer ID %s",
-				newMRC.Name, constants.MRCStateActive, m.validatingIssuer.ID)
+				newMRC.Name, validatingIssuerID, signingIssuerID)
 			log.Error().Msg(msg)
 			return errors.New(msg)
 		}
