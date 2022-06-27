@@ -51,42 +51,173 @@ func TestGetCertificateManager(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:              "tresor as the certificate manager",
-			options:           TresorOptions{SecretName: "osm-ca-bundle"},
 			providerNamespace: "osm-system",
 			cfg:               mockConfigurator,
-			kubeClient:        fake.NewSimpleClientset(),
+			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					Provider: v1alpha2.ProviderSpec{
+						Tresor: &v1alpha2.TresorProviderSpec{
+							CA: v1alpha2.TresorCASpec{
+								SecretRef: v1.SecretReference{
+									Name:      "osm-ca-bundle",
+									Namespace: "osm-system",
+								},
+							},
+						},
+					},
+				},
+				Status: v1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
+				},
+			}),
+			kubeClient: fake.NewSimpleClientset(),
+			informerCollectionFunc: func(tc testCase) (*informers.InformerCollection, error) {
+				ic, err := informers.NewInformerCollection("osm", nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient))
+				if err != nil {
+					return nil, err
+				}
+
+				return ic, nil
+			},
 		},
-		{
+		/*{
 			name:              "tresor with no secret",
-			options:           TresorOptions{},
 			providerNamespace: "osm-system",
 			cfg:               mockConfigurator,
-			kubeClient:        fake.NewSimpleClientset(),
-			expectError:       true,
+			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					Provider: v1alpha2.ProviderSpec{
+						Tresor: &v1alpha2.TresorProviderSpec{
+							CA: v1alpha2.TresorCASpec{
+								SecretRef: v1.SecretReference{
+									Name:      "",
+									Namespace: "",
+								},
+							},
+						},
+					},
+				},
+				Status: v1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
+				},
+			}),
+			kubeClient:  fake.NewSimpleClientset(),
+			expectError: true,
+			informerCollectionFunc: func(tc testCase) (*informers.InformerCollection, error) {
+				ic, err := informers.NewInformerCollection("osm", nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient))
+				if err != nil {
+					return nil, err
+				}
+
+				return ic, nil
+			},
 		},
 		{
-			name:              "certManager as the certificate manager",
-			kubeClient:        fake.NewSimpleClientset(),
-			restConfig:        &rest.Config{},
-			cfg:               mockConfigurator,
+			name:       "certManager as the certificate manager",
+			kubeClient: fake.NewSimpleClientset(),
+			restConfig: &rest.Config{},
+			cfg:        mockConfigurator,
+			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					Provider: v1alpha2.ProviderSpec{
+						CertManager: &v1alpha2.CertManagerProviderSpec{
+							IssuerName:  "test-name",
+							IssuerKind:  "ClusterIssuer",
+							IssuerGroup: "cert-manager.io",
+						},
+					},
+				},
+				Status: v1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
+				},
+			}),
 			providerNamespace: "osm-system",
-			options:           CertManagerOptions{IssuerName: "test-name", IssuerKind: "ClusterIssuer", IssuerGroup: "cert-manager.io"},
+			informerCollectionFunc: func(tc testCase) (*informers.InformerCollection, error) {
+				ic, err := informers.NewInformerCollection("osm", nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient))
+				if err != nil {
+					return nil, err
+				}
+
+				return ic, nil
+			},
 		},
 		{
 			name:        "Fail to validate Config",
 			options:     VaultOptions{},
 			expectError: true,
+			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					Provider: v1alpha2.ProviderSpec{
+						Vault: &v1alpha2.VaultProviderSpec{
+							Host:     "",
+							Port:     0,
+							Role:     "",
+							Protocol: "",
+						},
+					},
+				},
+				Status: v1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
+				},
+			}),
+			informerCollectionFunc: func(tc testCase) (*informers.InformerCollection, error) {
+				ic, err := informers.NewInformerCollection("osm", nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient))
+				if err != nil {
+					return nil, err
+				}
+
+				return ic, nil
+			},
 		},
 		{
 			name: "Valid Vault protocol",
 			options: VaultOptions{
-				VaultHost:     "vault.default.svc.cluster.local",
-				VaultToken:    "vault-token",
-				VaultRole:     "role",
-				VaultPort:     8200,
-				VaultProtocol: "http",
+				VaultToken: "vault-token",
 			},
 			cfg: mockConfigurator,
+			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					Provider: v1alpha2.ProviderSpec{
+						Vault: &v1alpha2.VaultProviderSpec{
+							Host:     "vault.default.svs.cluster.local",
+							Port:     8200,
+							Role:     "role",
+							Protocol: "http",
+						},
+					},
+				},
+				Status: v1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
+				},
+			}),
+			informerCollectionFunc: func(tc testCase) (*informers.InformerCollection, error) {
+				ic, err := informers.NewInformerCollection("osm", nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient))
+				if err != nil {
+					return nil, err
+				}
+
+				return ic, nil
+			},
 		},
 		{
 			name: "Valid Vault protocol using vault secret defined in MRC",
@@ -147,22 +278,67 @@ func TestGetCertificateManager(t *testing.T) {
 		{
 			name: "Not a valid Vault protocol",
 			options: VaultOptions{
-				VaultHost:     "vault.default.svc.cluster.local",
-				VaultToken:    "vault-token",
-				VaultRole:     "role",
-				VaultPort:     8200,
-				VaultProtocol: "hi",
+				VaultToken: "vault-token",
 			},
+			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					Provider: v1alpha2.ProviderSpec{
+						Vault: &v1alpha2.VaultProviderSpec{
+							Host:     "vault.default.svs.cluster.local",
+							Port:     8200,
+							Role:     "role",
+							Protocol: "hi",
+						},
+					},
+				},
+				Status: v1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
+				},
+			}),
 			expectError: true,
+			informerCollectionFunc: func(tc testCase) (*informers.InformerCollection, error) {
+				ic, err := informers.NewInformerCollection("osm", nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient))
+				if err != nil {
+					return nil, err
+				}
+
+				return ic, nil
+			},
 		},
 		{
 			name: "Invalid cert manager options",
-			options: CertManagerOptions{
-				IssuerKind:  "test-kind",
-				IssuerGroup: "cert-manager.io",
-			},
-			cfg:         mockConfigurator,
+			cfg:  mockConfigurator,
+			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					Provider: v1alpha2.ProviderSpec{
+						CertManager: &v1alpha2.CertManagerProviderSpec{
+							IssuerName:  "",
+							IssuerKind:  "test-kind",
+							IssuerGroup: "cert-manager.io",
+						},
+					},
+				},
+				Status: v1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
+				},
+			}),
 			expectError: true,
+			informerCollectionFunc: func(tc testCase) (*informers.InformerCollection, error) {
+				ic, err := informers.NewInformerCollection("osm", nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient))
+				if err != nil {
+					return nil, err
+				}
+
+				return ic, nil
+			},
 		},
 		{
 			name:              "Reads MRC from informer collection",
@@ -199,7 +375,7 @@ func TestGetCertificateManager(t *testing.T) {
 
 				return ic, nil
 			},
-		},
+		},*/
 	}
 
 	for _, tc := range testCases {
