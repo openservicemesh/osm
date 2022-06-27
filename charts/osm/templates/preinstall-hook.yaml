@@ -80,3 +80,11 @@ spec:
       affinity:
       {{- toYaml .Values.osm.preinstall.affinity | nindent 8 }}
       {{- end }}
+      {{- if .Values.osm.preinstall.nodeSelector }}
+      nodeSelector:
+      {{- toYaml .Values.osm.preinstall.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.preinstall.tolerations }}
+      tolerations:
+      {{- toYaml .Values.osm.preinstall.tolerations | nindent 8 }}
+      {{- end }}
