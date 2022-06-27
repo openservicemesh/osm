@@ -318,9 +318,7 @@ func (cv configValidator) meshRootCertificateValidator(req *admissionv1.Admissio
 		}
 
 	case admissionv1.Update:
-		if m.getStoredMRC() {
-			return nil, m.validateMRCdelete()
-		} else {
+		if !m.getStoredMRC() {
 			return nil, errors.Errorf("cannot find mesh root certificate with name %v", mrcSetting.Name)
 		}
 
