@@ -39,7 +39,7 @@ func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 	return []*v1alpha2.MeshRootCertificate{{Spec: v1alpha2.MeshRootCertificateSpec{TrustDomain: "fake.example.com"}}}, nil
 }
 
-func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
+func (c *fakeMRCClient) Watch(ctx context.Context, namespace string) (<-chan certificate.MRCEvent, error) {
 	ch := make(chan certificate.MRCEvent)
 	go func() {
 		ch <- certificate.MRCEvent{
@@ -83,7 +83,7 @@ func NewFake(msgBroker *messaging.Broker, checkInterval time.Duration) *certific
 
 // NewFakeWithValidityDuration constructs a fake certificate manager with specified cert validity duration
 func NewFakeWithValidityDuration(getCertValidityDuration func() time.Duration, msgBroker *messaging.Broker, checkInterval time.Duration) *certificate.Manager {
-	tresorCertManager, err := certificate.NewManager(context.Background(), &fakeMRCClient{}, getCertValidityDuration, getCertValidityDuration, msgBroker, checkInterval)
+	tresorCertManager, err := certificate.NewManager(context.Background(), &fakeMRCClient{}, getCertValidityDuration, getCertValidityDuration, msgBroker, checkInterval, "")
 	if err != nil {
 		log.Error().Err(err).Msg("error encountered creating fake cert manager")
 		return nil

@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
@@ -31,7 +32,10 @@ func NewConfigurator(informerCollection *informers.InformerCollection, osmNamesp
 		Delete: announcements.MeshConfigDeleted,
 	}
 
-	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, k8s.GetEventHandlerFuncs(nil, meshConfigEventTypes, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, k8s.GetEventHandlerFuncs(func(obj interface{}) bool {
+		mc := obj.(*v1alpha2.MeshConfig)
+		return mc.GetName() == meshConfigName
+	}, meshConfigEventTypes, msgBroker))
 	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, c.metricsHandler())
 
 	meshRootCertificateEventTypes := k8s.EventTypes{
@@ -39,7 +43,10 @@ func NewConfigurator(informerCollection *informers.InformerCollection, osmNamesp
 		Update: announcements.MeshRootCertificateUpdated,
 		Delete: announcements.MeshRootCertificateDeleted,
 	}
-	informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, k8s.GetEventHandlerFuncs(nil, meshRootCertificateEventTypes, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, k8s.GetEventHandlerFuncs(func(obj interface{}) bool {
+		mrc := obj.(*v1alpha2.MeshRootCertificate)
+		return mrc.GetNamespace() == osmNamespace
+	}, meshRootCertificateEventTypes, msgBroker))
 
 	return c
 }

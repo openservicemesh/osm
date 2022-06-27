@@ -34,7 +34,7 @@ func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 	}}, nil
 }
 
-func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
+func (c *fakeMRCClient) Watch(ctx context.Context, namespace string) (<-chan MRCEvent, error) {
 	ch := make(chan MRCEvent)
 	go func() {
 		ch <- MRCEvent{
@@ -100,6 +100,7 @@ func FakeCertManager() (*Manager, error) {
 		getCertValidityDuration,
 		nil,
 		1*time.Hour,
+		"",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error creating fakeCertManager, err: %w", err)

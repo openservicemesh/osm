@@ -17,14 +17,14 @@ import (
 )
 
 // NewManager creates a new CertificateManager with the passed MRCClient and options
-func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, msgBroker *messaging.Broker, checkInterval time.Duration) (*Manager, error) {
+func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, msgBroker *messaging.Broker, checkInterval time.Duration, ns string) (*Manager, error) {
 	m := &Manager{
 		serviceCertValidityDuration: getServiceCertValidityPeriod,
 		ingressCertValidityDuration: getIngressCertValidityDuration,
 		msgBroker:                   msgBroker,
 	}
 
-	err := m.start(ctx, mrcClient)
+	err := m.start(ctx, mrcClient, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -49,12 +49,12 @@ func (m *Manager) startRotationTicker(ctx context.Context, checkInterval time.Du
 	}()
 }
 
-func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
+func (m *Manager) start(ctx context.Context, mrcClient MRCClient, ns string) error {
 	// start a watch and we wait until the manager is initialized so that
 	// the caller gets a manager that's ready to be used
 	var once sync.Once
 	var wg sync.WaitGroup
-	mrcEvents, err := mrcClient.Watch(ctx)
+	mrcEvents, err := mrcClient.Watch(ctx, ns)
 	if err != nil {
 		return err
 	}
