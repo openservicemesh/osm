@@ -2,6 +2,7 @@ package validator
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -16,6 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -68,6 +71,10 @@ type validateFunc func(req *admissionv1.AdmissionRequest) (*admissionv1.Admissio
 // policyValidator is a validator that has access to a policy
 type policyValidator struct {
 	policyClient policy.Controller
+}
+
+type configValidator struct {
+	configClient *configClientset.Clientset
 }
 
 func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
@@ -270,34 +277,37 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 type MRCInfo struct {
 	storedMRC    *configv1alpha2.MeshRootCertificate
 	suggestedMRC *configv1alpha2.MeshRootCertificate
-	allStoredMRC []*configv1alpha2.MeshRootCertificate
+	allStoredMRC []configv1alpha2.MeshRootCertificate
 }
 
 // meshRootCertificateValidator validates the MeshRootCertificate CRD.
-func (m MRCInfo) meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
-	mrcSetting := &configv1alpha2.MeshRootCertificate{}
+func (cv configValidator) meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	var err error
 
-	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(mrcSetting); err != nil {
+	m := newMRCInfo()
+
+	mrcSetting := &configv1alpha2.MeshRootCertificate{}
+	if err = json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(mrcSetting); err != nil {
 		return nil, err
 	}
 
-	//todo(schristoff:)fake data for now
-	m.allStoredMRC = []*configv1alpha2.MeshRootCertificate{}
-	numAppliedMRC := len(m.allStoredMRC)
+	m.suggestedMRC = mrcSetting
+
+	if err = m.getAllStoredMRC(cv, mrcSetting.GetNamespace()); err != nil {
+		return nil, err
+	}
 
 	switch req.Operation {
 	case admissionv1.Delete:
-		if numAppliedMRC == 1 {
+
+		if len(m.allStoredMRC) == 1 {
 			return nil, errors.Errorf("must have more than one Mesh Root Certificate to delete")
 		}
 
-		for _, v := range m.allStoredMRC {
-			if mrcSetting.Name == v.Name {
-				m.storedMRC = v
-				return nil, m.validateMRCdelete()
-				break
-			}
+		if m.getStoredMRC() {
+			return nil, m.validateMRCdelete()
 		}
+
 		return nil, errors.Errorf("cannot find mesh root certificate with name %v", mrcSetting.Name)
 
 	case admissionv1.Create:
@@ -308,15 +318,12 @@ func (m MRCInfo) meshRootCertificateValidator(req *admissionv1.AdmissionRequest)
 		}
 
 	case admissionv1.Update:
-		for _, v := range m.allStoredMRC {
-			if mrcSetting.Name == v.Name {
-				m.storedMRC = v
-				break
-			} else {
-				return nil, errors.Errorf("cannot find mesh root certificate with name %v", mrcSetting.Name)
-
-			}
+		if m.getStoredMRC() {
+			return nil, m.validateMRCdelete()
+		} else {
+			return nil, errors.Errorf("cannot find mesh root certificate with name %v", mrcSetting.Name)
 		}
+
 		if !m.validateMRCupdate() {
 			return nil, errors.Errorf("cannot transition %v in current state %v into state %v",
 				m.storedMRC.Name, m.storedMRC.Status.State, m.suggestedMRC.Status.State)
@@ -346,8 +353,8 @@ func (m MRCInfo) validateMRCcreate() bool {
 
 func (m MRCInfo) validateMRCTransition() bool {
 	allowedTransitions := map[string][]string{
-		constants.MRCStateIssuingRollout:     {constants.MRCStateValidatingRollout, constants.MRCStateError},
-		constants.MRCStateValidatingRollout:  {constants.MRCStateActive, constants.MRCStateError},
+		constants.MRCStateValidatingRollout:  {constants.MRCStateIssuingRollout, constants.MRCStateError},
+		constants.MRCStateIssuingRollout:     {constants.MRCStateActive, constants.MRCStateError},
 		constants.MRCStateActive:             {constants.MRCStateValidatingRollback, constants.MRCStateError},
 		constants.MRCStateValidatingRollback: {constants.MRCStateIssuingRollback, constants.MRCStateError},
 		constants.MRCStateIssuingRollback:    {constants.MRCStateInactive, constants.MRCStateError},
@@ -368,6 +375,10 @@ func (m MRCInfo) validateMRCTransition() bool {
 	return false
 }
 
+func newMRCInfo() MRCInfo {
+	return MRCInfo{}
+}
+
 func (m MRCInfo) countActiveMRCs() int {
 	var active int
 	for _, mrc := range m.allStoredMRC {
@@ -378,4 +389,23 @@ func (m MRCInfo) countActiveMRCs() int {
 	// we could probably store names of active certs and
 	// return them for a better user exp. ?
 	return active
+}
+
+func (m MRCInfo) getAllStoredMRC(cv configValidator, ns string) error {
+	mrcs, err := cv.configClient.ConfigV1alpha2().MeshRootCertificates(ns).
+		List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	m.allStoredMRC = mrcs.Items
+	return nil
+}
+
+func (m MRCInfo) getStoredMRC() bool {
+	for _, v := range m.allStoredMRC {
+		if m.suggestedMRC.Name == v.Name {
+			m.storedMRC = &v
+		}
+	}
+	return false
 }
