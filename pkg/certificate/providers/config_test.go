@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
@@ -85,6 +86,62 @@ func TestGetCertificateManager(t *testing.T) {
 				VaultRole:     "role",
 				VaultPort:     8200,
 				VaultProtocol: "http",
+			},
+			cfg: mockConfigurator,
+		},
+		{
+			name: "Valid Vault protocol using vault secret defined in MRC",
+			options: VaultOptions{
+				VaultHost:     "vault.default.svc.cluster.local",
+				VaultRole:     "role",
+				VaultPort:     8200,
+				VaultProtocol: "http",
+			},
+			kubeClient: fake.NewSimpleClientset(&v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "vault-token",
+					Namespace: "osm-system",
+				},
+				Data: map[string][]byte{
+					"token": []byte("secret"),
+				},
+			}),
+			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+					Annotations: map[string]string{
+						constants.MRCVersionAnnotation: "0",
+					},
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					Provider: v1alpha2.ProviderSpec{
+						Vault: &v1alpha2.VaultProviderSpec{
+							Host:     "vault.default.svc.cluster.local",
+							Role:     "role",
+							Port:     8200,
+							Protocol: "http",
+							Token: v1alpha2.VaultTokenSpec{
+								SecretKeyRef: v1alpha2.SecretKeyReferenceSpec{
+									Name:      "vault-token",
+									Namespace: "osm-system",
+									Key:       "token",
+								},
+							},
+						},
+					},
+				},
+				Status: v1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
+				},
+			}),
+			informerCollectionFunc: func(tc testCase) (*informers.InformerCollection, error) {
+				ic, err := informers.NewInformerCollection("osm", nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient))
+				if err != nil {
+					return nil, err
+				}
+
+				return ic, nil
 			},
 			cfg: mockConfigurator,
 		},
@@ -180,6 +237,81 @@ func TestGetCertificateManager(t *testing.T) {
 
 			if opt, ok := tc.options.(TresorOptions); ok && !tc.expectError {
 				_, err := tc.kubeClient.CoreV1().Secrets(tc.providerNamespace).Get(context.TODO(), opt.SecretName, metav1.GetOptions{})
+				assert.NoError(err)
+			}
+		})
+	}
+}
+
+func TestGetHashiVaultOSMToken(t *testing.T) {
+	validVaultTokenSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "osm-system",
+			Name:      "osm-vault-token",
+		},
+		Data: map[string][]byte{
+			"token": []byte("token"),
+		},
+	}
+
+	invalidVaultTokenSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "osm-system",
+			Name:      "osm-vault-token",
+		},
+		Data: map[string][]byte{
+			"noop": []byte("noop"),
+		},
+	}
+
+	testCases := []struct {
+		name         string
+		secretKeyRef *v1alpha2.SecretKeyReferenceSpec
+		kubeClient   kubernetes.Interface
+		expectError  bool
+	}{
+		{
+			name: "No Vault token secret",
+			secretKeyRef: &v1alpha2.SecretKeyReferenceSpec{
+				Name:      "osm-vault-token",
+				Namespace: "osm-system",
+				Key:       "token",
+			},
+			kubeClient:  fake.NewSimpleClientset(),
+			expectError: true,
+		},
+		{
+			name: "Invalid Vault token secret",
+			secretKeyRef: &v1alpha2.SecretKeyReferenceSpec{
+				Name:      "osm-vault-token",
+				Namespace: "osm-system",
+				Key:       "token",
+			},
+			kubeClient:  fake.NewSimpleClientset([]runtime.Object{invalidVaultTokenSecret}...),
+			expectError: true,
+		},
+		{
+			name: "Valid Vault token secret",
+			secretKeyRef: &v1alpha2.SecretKeyReferenceSpec{
+				Name:      "osm-vault-token",
+				Namespace: "osm-system",
+				Key:       "token",
+			},
+			kubeClient:  fake.NewSimpleClientset([]runtime.Object{validVaultTokenSecret}...),
+			expectError: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			token, err := getHashiVaultOSMToken(tc.secretKeyRef, tc.kubeClient)
+			if tc.expectError {
+				assert.Empty(token)
+				assert.Error(err)
+			} else {
+				assert.NotEmpty(token)
 				assert.NoError(err)
 			}
 		})
