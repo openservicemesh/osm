@@ -12,11 +12,12 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
+	fakeConfigClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
-
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
 	corev1 "k8s.io/api/core/v1"
@@ -1328,11 +1329,12 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 
 func TestMeshRootCertificateValidator(t *testing.T) {
 	testCases := []struct {
-		name      string
-		input     *admissionv1.AdmissionRequest
-		expResp   *admissionv1.AdmissionResponse
-		expErrStr string
-		// existingMCRSettings		 		[]configv1alpha2.MeshRootCertificate{}
+		name         string
+		input        *admissionv1.AdmissionRequest
+		expResp      *admissionv1.AdmissionResponse
+		isErr        bool
+		expErrStr    string
+		existingMRCs int
 	}{
 		{
 			name: "MeshRootCertificate",
@@ -1374,77 +1376,22 @@ func TestMeshRootCertificateValidator(t *testing.T) {
 			stop := make(chan struct{})
 			defer close(stop)
 
-			// objects := make([]runtime.Object, len(tc.existingUpstreamTrafficSettings))
-			// for i := range tc.existingUpstreamTrafficSettings {
-			// 	objects[i] = tc.existingUpstreamTrafficSettings[i]
-			// }
-
-			// k8sController := k8s.NewMockController(mockCtrl)
-			// if len(objects) > 0 {
-			// 	k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
-			// }
-			resp, err := meshRootCertificateValidator(tc.input)
-			assert.Equal(tc.expResp, resp)
-			if tc.expErrStr == "" {
-				// we expect a nil error
-				assert.Nil(err)
+			existingMRCs(tc.existingMRCs)
+			objects := make([]runtime.Object, tc.existingMRCs)
+			for i, v := range existingMRCs(tc.existingMRCs) {
+				objects[i] = v
 			}
-			if err != nil {
-				assert.Equal(tc.expErrStr, err.Error())
-			}
-		})
-	}
-}
 
-func TestValidateMRCdelete(t *testing.T) {
-	testCases := []struct {
-		name         string
-		input        *admissionv1.AdmissionRequest
-		expResp      *admissionv1.AdmissionResponse
-		expErrStr    string
-		existingMRCs int
-	}{
-		{
-			name: "Successfully Delete One MRC",
-			input: &admissionv1.AdmissionRequest{
-				Operation: admissionv1.Delete,
-				Kind: metav1.GroupVersionKind{
-					Group:   "configv1alpha2",
-					Version: "config.openservicemesh.io",
-					Kind:    "MeshRootCertificate",
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(`
-					{
-						"apiVersion": "config.openservicemesh.io/configv1alpha2",
-						"kind": "MeshRootCertificate",
-						"provider": {
-							"tresor": {
-							 "ca": {
-							  "secretRef": {
-								"name": "osm-ca-bundle",
-								"namespace": "test-namespace"
-							  }
-							 }
-							}
-							}
-					}
-					`),
-				},
-			},
-			expResp:      nil,
-			expErrStr:    "",
-			existingMRCs: 2,
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
-			stop := make(chan struct{})
-			defer close(stop)
-			resp, err := meshRootCertificateValidator(tc.input)
+			configClient := fakeConfigClientset.NewSimpleClientset(objects...)
+
+			cv := configValidator{configClient: configClient}
+
+			k8sController := k8s.NewMockController(mockCtrl)
+			if len(objects) > 0 {
+				k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
+			}
+
+			resp, err := cv.meshRootCertificateValidator(tc.input)
 			assert.Equal(tc.expResp, resp)
 			if tc.expErrStr == "" {
 				// we expect a nil error

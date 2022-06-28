@@ -2,7 +2,6 @@ package validator
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -18,7 +17,6 @@ import (
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -74,7 +72,7 @@ type policyValidator struct {
 }
 
 type configValidator struct {
-	configClient *configClientset.Clientset
+	configClient configClientset.Interface
 }
 
 func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
@@ -274,12 +272,6 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 	return nil, nil
 }
 
-type MRCInfo struct {
-	storedMRC    *configv1alpha2.MeshRootCertificate
-	suggestedMRC *configv1alpha2.MeshRootCertificate
-	allStoredMRC []configv1alpha2.MeshRootCertificate
-}
-
 // meshRootCertificateValidator validates the MeshRootCertificate CRD.
 func (cv configValidator) meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 	var err error
@@ -329,81 +321,4 @@ func (cv configValidator) meshRootCertificateValidator(req *admissionv1.Admissio
 	}
 
 	return nil, nil
-}
-
-func (m MRCInfo) validateMRCdelete() error {
-	//Delete inactive or error only
-	switch m.storedMRC.Status.State {
-	case constants.MRCStateInactive, constants.MRCStateError:
-		return nil
-	default:
-		return errors.Errorf("cannot delete certificate %v in stage %v", m.storedMRC.Name, m.storedMRC.Status.State)
-	}
-}
-
-func (m MRCInfo) validateMRCupdate() bool {
-	return m.validateMRCTransition()
-}
-
-func (m MRCInfo) validateMRCcreate() bool {
-	return m.countActiveMRCs() < 2
-}
-
-func (m MRCInfo) validateMRCTransition() bool {
-	allowedTransitions := map[string][]string{
-		constants.MRCStateValidatingRollout:  {constants.MRCStateIssuingRollout, constants.MRCStateError},
-		constants.MRCStateIssuingRollout:     {constants.MRCStateActive, constants.MRCStateError},
-		constants.MRCStateActive:             {constants.MRCStateValidatingRollback, constants.MRCStateError},
-		constants.MRCStateValidatingRollback: {constants.MRCStateIssuingRollback, constants.MRCStateError},
-		constants.MRCStateIssuingRollback:    {constants.MRCStateInactive, constants.MRCStateError},
-	}
-	//look up storedMRC state key
-	//applied state must be in the values for that key
-	if allowedStates, ok := allowedTransitions[m.storedMRC.Status.State]; ok {
-		for _, state := range allowedStates {
-			//if going into active, safety check we have less than two
-			if m.suggestedMRC.Status.State == constants.MRCStateActive {
-				return m.countActiveMRCs() < 2
-			}
-			return m.suggestedMRC.Status.State == state
-		}
-	}
-	// on false we could probably return []string of allowedStates for better
-	// user exp. but that makes the logic less pretty
-	return false
-}
-
-func newMRCInfo() MRCInfo {
-	return MRCInfo{}
-}
-
-func (m MRCInfo) countActiveMRCs() int {
-	var active int
-	for _, mrc := range m.allStoredMRC {
-		if mrc.Status.State == constants.MRCStateActive {
-			active++
-		}
-	}
-	// we could probably store names of active certs and
-	// return them for a better user exp. ?
-	return active
-}
-
-func (m MRCInfo) getAllStoredMRC(cv configValidator, ns string) error {
-	mrcs, err := cv.configClient.ConfigV1alpha2().MeshRootCertificates(ns).
-		List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	m.allStoredMRC = mrcs.Items
-	return nil
-}
-
-func (m MRCInfo) getStoredMRC() bool {
-	for _, v := range m.allStoredMRC {
-		if m.suggestedMRC.Name == v.Name {
-			m.storedMRC = &v
-		}
-	}
-	return false
 }
