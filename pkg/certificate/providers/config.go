@@ -100,7 +100,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 		mrcClient = c
 	}
 
-	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, msgBroker, checkInterval, providerNamespace)
+	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, msgBroker, checkInterval)
 }
 
 // GetCertIssuerForMRC returns a certificate.Issuer generated from the provided MRC.

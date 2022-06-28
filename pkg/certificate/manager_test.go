@@ -83,7 +83,7 @@ func TestRotor(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 	msgBroker := messaging.NewBroker(stop)
-	certManager, err := NewManager(context.Background(), &fakeMRCClient{}, getServiceCertValidityPeriod, getIngressGatewayCertValidityPeriod, msgBroker, 5*time.Second, "")
+	certManager, err := NewManager(context.Background(), &fakeMRCClient{}, getServiceCertValidityPeriod, getIngressGatewayCertValidityPeriod, msgBroker, 5*time.Second)
 	require.NoError(err)
 
 	certA, err := certManager.IssueCertificate(cnPrefix, Service)

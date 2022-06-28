@@ -83,7 +83,7 @@ func NewFake(msgBroker *messaging.Broker, checkInterval time.Duration) *certific
 
 // NewFakeWithValidityDuration constructs a fake certificate manager with specified cert validity duration
 func NewFakeWithValidityDuration(getCertValidityDuration func() time.Duration, msgBroker *messaging.Broker, checkInterval time.Duration) *certificate.Manager {
-	tresorCertManager, err := certificate.NewManager(context.Background(), &fakeMRCClient{}, getCertValidityDuration, getCertValidityDuration, msgBroker, checkInterval, "")
+	tresorCertManager, err := certificate.NewManager(context.Background(), &fakeMRCClient{}, getCertValidityDuration, getCertValidityDuration, msgBroker, checkInterval)
 	if err != nil {
 		log.Error().Err(err).Msg("error encountered creating fake cert manager")
 		return nil
