@@ -3,7 +3,6 @@ package providers
 import (
 	"context"
 
-	"github.com/rs/zerolog/log"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
