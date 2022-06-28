@@ -22,7 +22,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
@@ -44,7 +43,7 @@ var getCA func(certificate.Issuer) (pem.RootCertificate, error) = func(i certifi
 // NewCertificateManager returns a new certificate manager, with an MRC compat client.
 // TODO(4713): Use an informer behind a feature flag.
 func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
-	providerNamespace string, options Options, msgBroker *messaging.Broker, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
+	providerNamespace string, options Options, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
 	if err := options.Validate(); err != nil {
 		return nil, err
 	}
@@ -100,7 +99,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 		mrcClient = c
 	}
 
-	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, msgBroker, checkInterval)
+	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, checkInterval)
 }
 
 // GetCertIssuerForMRC returns a certificate.Issuer generated from the provided MRC.

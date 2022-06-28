@@ -100,13 +100,13 @@ func TestProvisionIngressGatewayCert(t *testing.T) {
 
 			fakeClient := fake.NewSimpleClientset()
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			fakeCertProvider := tresorFake.NewFake(msgBroker, 1*time.Hour)
+			fakeCertProvider := tresorFake.NewFake(1 * time.Hour)
 
 			c := client{
-				kubeClient:   fakeClient,
-				certProvider: fakeCertProvider,
-				cfg:          mockConfigurator,
-				msgBroker:    msgBroker,
+				kubeClient:  fakeClient,
+				certManager: fakeCertProvider,
+				cfg:         mockConfigurator,
+				msgBroker:   msgBroker,
 			}
 
 			mockConfigurator.EXPECT().GetMeshConfig().Return(tc.meshConfig).Times(1)
@@ -189,11 +189,11 @@ func TestCreateAndStoreGatewayCert(t *testing.T) {
 			a := assert.New(t)
 
 			fakeClient := fake.NewSimpleClientset()
-			fakeCertProvider := tresorFake.NewFake(nil, 1*time.Hour)
+			fakeCertProvider := tresorFake.NewFake(1 * time.Hour)
 
 			c := client{
-				kubeClient:   fakeClient,
-				certProvider: fakeCertProvider,
+				kubeClient:  fakeClient,
+				certManager: fakeCertProvider,
 			}
 
 			err := c.createAndStoreGatewayCert(tc.certSpec)
@@ -248,6 +248,28 @@ func TestHandleCertificateChange(t *testing.T) {
 					Certificate: configv1alpha2.CertificateSpec{
 						IngressGateway: &configv1alpha2.IngressGatewayCertSpec{
 							SubjectAltNames:  []string{"foo.bar.cluster.local"},
+							ValidityDuration: "1h",
+							Secret:           testSecret,
+						},
+					},
+				},
+			},
+			stopChan:            make(chan struct{}),
+			expectSecretToExist: true,
+		},
+		{
+			name: "Cert spec changes to new value",
+			previousCertSpec: &configv1alpha2.IngressGatewayCertSpec{
+				SubjectAltNames:  []string{"foo.bar.cluster.local"},
+				ValidityDuration: "1h",
+				Secret:           testSecret,
+			},
+			previousMeshConfig: nil,
+			updatedMeshConfig: &configv1alpha2.MeshConfig{
+				Spec: configv1alpha2.MeshConfigSpec{
+					Certificate: configv1alpha2.CertificateSpec{
+						IngressGateway: &configv1alpha2.IngressGatewayCertSpec{
+							SubjectAltNames:  []string{"foo.bar.cluster.remote"},
 							ValidityDuration: "1h",
 							Secret:           testSecret,
 						},
@@ -332,13 +354,13 @@ func TestHandleCertificateChange(t *testing.T) {
 				return *certValidityDuration
 			}
 
-			fakeCertManager := tresorFake.NewFakeWithValidityDuration(getCertValidityDuration, msgBroker, 5*time.Second)
+			fakeCertManager := tresorFake.NewFakeWithValidityDuration(getCertValidityDuration, 5*time.Second)
 
 			fakeClient := fake.NewSimpleClientset()
 			c := client{
-				kubeClient:   fakeClient,
-				certProvider: fakeCertManager,
-				msgBroker:    msgBroker,
+				kubeClient:  fakeClient,
+				certManager: fakeCertManager,
+				msgBroker:   msgBroker,
 			}
 
 			go c.handleCertificateChange(tc.previousCertSpec, tc.stopChan)

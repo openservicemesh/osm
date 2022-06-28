@@ -68,11 +68,6 @@ func (b *Broker) GetKubeEventPubSub() *pubsub.PubSub {
 	return b.kubeEventPubSub
 }
 
-// GetCertPubSub returns the PubSub instance corresponding to certificate events
-func (b *Broker) GetCertPubSub() *pubsub.PubSub {
-	return b.certPubSub
-}
-
 // GetTotalQProxyEventCount returns the total number of events read from the workqueue
 // pertaining to proxy updates
 func (b *Broker) GetTotalQProxyEventCount() uint64 {

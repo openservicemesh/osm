@@ -7,21 +7,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cskr/pubsub"
 	"github.com/rs/zerolog/log"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 // NewManager creates a new CertificateManager with the passed MRCClient and options
-func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, msgBroker *messaging.Broker, checkInterval time.Duration) (*Manager, error) {
+func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, checkInterval time.Duration) (*Manager, error) {
 	m := &Manager{
 		serviceCertValidityDuration: getServiceCertValidityPeriod,
 		ingressCertValidityDuration: getIngressCertValidityDuration,
-		msgBroker:                   msgBroker,
+		pubsub:                      pubsub.New(1),
 	}
 
 	err := m.start(ctx, mrcClient)
@@ -256,12 +254,10 @@ func (m *Manager) IssueCertificate(prefix string, ct CertType, opts ...IssueOpti
 }
 
 func (m *Manager) issueCertificate(prefix string, ct CertType, opts ...IssueOption) (*Certificate, error) {
-	var rotate bool
 	cert := m.getFromCache(prefix) // Don't call this while holding the lock
 	if cert != nil {
 		// check if cert needs to be rotated
-		rotate = m.shouldRotate(cert)
-		if !rotate {
+		if !m.shouldRotate(cert) {
 			return cert, nil
 		}
 	}
@@ -299,17 +295,7 @@ func (m *Manager) issueCertificate(prefix string, ct CertType, opts ...IssueOpti
 
 	log.Trace().Msgf("It took %s to issue certificate with SerialNumber=%s", time.Since(start), newCert.GetSerialNumber())
 
-	if rotate {
-		// Certificate was rotated
-		m.msgBroker.GetCertPubSub().Pub(events.PubSubMessage{
-			Kind:   announcements.CertificateRotated,
-			NewObj: newCert,
-			OldObj: cert,
-		}, announcements.CertificateRotated.String())
-
-		log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s", cert.SerialNumber, newCert.SerialNumber)
-	}
-
+	m.pub(prefix, cert)
 	return newCert, nil
 }
 
@@ -327,4 +313,23 @@ func (m *Manager) ListIssuedCertificates() []*Certificate {
 		return true // continue the iteration
 	})
 	return certs
+}
+
+func (m *Manager) pub(key string, cert *Certificate) {
+	m.pubsub.Pub(cert, key) // maybe publish to all..
+}
+
+// WatchRotations returns a channel that will receive notifications when a certificate with the given key is rotated.
+// They key is the value passed to IssueCertificate.
+// The returnted function must be called to unsubscribe.
+// The channel only uses interfaces due to internal implementation details. We can consider refactoring to return
+// the cert.
+func (m *Manager) WatchRotations(key string) (<-chan interface{}, func()) {
+	ch := m.pubsub.Sub(key)
+	return ch, func() {
+		go m.pubsub.Unsub(ch)
+		// drain
+		for range ch {
+		}
+	}
 }

@@ -50,7 +50,7 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 
 	stop := make(chan struct{})
 
-	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	certManager := tresorFake.NewFake(1 * time.Hour)
 
 	// Create a bookstoreV1 pod
 	bookstoreV1Pod := tests.NewPodFixture(tests.BookstoreV1Service.Namespace, tests.BookstoreV1Service.Name, tests.BookstoreServiceAccountName, tests.PodLabels)

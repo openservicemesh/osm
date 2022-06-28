@@ -8,9 +8,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	trequire "github.com/stretchr/testify/require"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 func TestShouldRotate(t *testing.T) {
@@ -82,20 +80,23 @@ func TestRotor(t *testing.T) {
 
 	stop := make(chan struct{})
 	defer close(stop)
-	msgBroker := messaging.NewBroker(stop)
-	certManager, err := NewManager(context.Background(), &fakeMRCClient{}, getServiceCertValidityPeriod, getIngressGatewayCertValidityPeriod, msgBroker, 5*time.Second)
+	certManager, err := NewManager(context.Background(), &fakeMRCClient{}, getServiceCertValidityPeriod, getIngressGatewayCertValidityPeriod, 5*time.Second)
 	require.NoError(err)
 
 	certA, err := certManager.IssueCertificate(cnPrefix, Service)
 	require.NoError(err)
-	certRotateChan := msgBroker.GetCertPubSub().Sub(announcements.CertificateRotated.String())
+	certRotateChan1, unsub1 := certManager.WatchRotations(cnPrefix)
+	certRotateChan2, unsub2 := certManager.WatchRotations(cnPrefix)
 
 	// Wait for two certificate rotations to be announced and terminate
-	<-certRotateChan
-	newCert, err := certManager.IssueCertificate(cnPrefix, Service)
+	<-certRotateChan1
+	<-certRotateChan2
+	newCert := certManager.getFromCache(cnPrefix)
 	assert.NoError(err)
 	assert.NotEqual(certA.GetExpiration(), newCert.GetExpiration())
 	assert.NotEqual(certA, newCert)
+	unsub1()
+	unsub2()
 }
 
 func TestReleaseCertificate(t *testing.T) {
@@ -179,7 +180,6 @@ func TestIssueCertificate(t *testing.T) {
 
 	stop := make(chan struct{})
 	defer close(stop)
-	msgBroker := messaging.NewBroker(stop)
 
 	t.Run("single key issuer", func(t *testing.T) {
 		cm := &Manager{
@@ -187,7 +187,6 @@ func TestIssueCertificate(t *testing.T) {
 			// The root certificate signing all newly issued certificates
 			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
 			validatingIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake2.domain.com"},
-			msgBroker:        msgBroker,
 		}
 		// single signingIssuer, not cached
 		cert1, err := cm.IssueCertificate(cnPrefix, Service)
@@ -225,7 +224,6 @@ func TestIssueCertificate(t *testing.T) {
 			// The root certificate signing all newly issued certificates
 			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
 			validatingIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2"), TrustDomain: "fake2.domain.com"},
-			msgBroker:        msgBroker,
 		}
 
 		// Not cached
@@ -283,7 +281,6 @@ func TestIssueCertificate(t *testing.T) {
 			// The root certificate signing all newly issued certificates
 			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}, CertificateAuthority: pem.RootCertificate("id1")},
 			validatingIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2", err: true}, CertificateAuthority: pem.RootCertificate("id2")},
-			msgBroker:        msgBroker,
 		}
 
 		// bad signingIssuer

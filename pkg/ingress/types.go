@@ -20,6 +20,6 @@ type client struct {
 	kubeClient     kubernetes.Interface
 	kubeController k8s.Controller
 	cfg            configurator.Configurator
-	certProvider   *certificate.Manager
+	certManager    *certificate.Manager
 	msgBroker      *messaging.Broker
 }

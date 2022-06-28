@@ -47,9 +47,6 @@ func TestAllEvents(t *testing.T) {
 	meshCfgChan := c.GetKubeEventPubSub().Sub(announcements.MeshConfigUpdated.String())
 	defer c.Unsub(c.kubeEventPubSub, meshCfgChan)
 
-	certRotateChan := c.GetCertPubSub().Sub(announcements.CertificateRotated.String())
-	defer c.Unsub(c.certPubSub, certRotateChan)
-
 	numEventTriggers := 50
 	// Endpoints add/update/delete will result in proxy update events
 	numProxyUpdatesPerEventTrigger := 3
@@ -148,15 +145,6 @@ func TestAllEvents(t *testing.T) {
 		close(doneVerifyingMeshCfgEvents)
 	}()
 
-	doneVerifyingCertEvents := make(chan struct{})
-	go func() {
-		numExpectedCertEvents := numEventTriggers * 1 // 1 == 1 cert rotation event per trigger
-		for i := 0; i < numExpectedCertEvents; i++ {
-			<-certRotateChan
-		}
-		close(doneVerifyingCertEvents)
-	}()
-
 	doneVerifyingProxyEvents := make(chan struct{})
 	go func() {
 		// Verify that atleast 1 proxy update pub-sub is received. We only verify one
@@ -169,7 +157,6 @@ func TestAllEvents(t *testing.T) {
 	<-doneVerifyingPodEvents
 	<-doneVerifyingEndpointEvents
 	<-doneVerifyingMeshCfgEvents
-	<-doneVerifyingCertEvents
 	<-doneVerifyingProxyEvents
 
 	a.EqualValues(c.GetTotalQEventCount(), numEventTriggers*(numProxyUpdatesPerEventTrigger+numNonProxyUpdatesPerEventTrigger))

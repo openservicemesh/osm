@@ -13,7 +13,7 @@ import (
 
 func TestNewGrpc(t *testing.T) {
 	assert := tassert.New(t)
-	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	certManager := tresorFake.NewFake(1 * time.Hour)
 	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.Internal)
 	assert.NoError(err)
 
@@ -52,7 +52,7 @@ func TestNewGrpc(t *testing.T) {
 func TestGrpcServe(t *testing.T) {
 	assert := tassert.New(t)
 
-	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	certManager := tresorFake.NewFake(1 * time.Hour)
 	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.Internal)
 
 	assert.NoError(err)

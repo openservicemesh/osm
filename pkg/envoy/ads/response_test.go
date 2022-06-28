@@ -95,7 +95,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	Context("Test sendAllResponses()", func() {
 
-		certManager := tresorFake.NewFake(nil, 1*time.Hour)
+		certManager := tresorFake.NewFake(1 * time.Hour)
 		certPEM, _ := certManager.IssueCertificate(proxySvcAccount.ToServiceIdentity().String(), certificate.Service)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
@@ -175,7 +175,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	Context("Test sendSDSResponse()", func() {
 
-		certManager := tresorFake.NewFake(nil, 1*time.Hour)
+		certManager := tresorFake.NewFake(1 * time.Hour)
 		certCNPrefix := fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace)
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCNPrefix, certificate.Service)

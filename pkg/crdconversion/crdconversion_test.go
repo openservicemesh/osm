@@ -101,7 +101,7 @@ func TestNewConversionWebhook(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	fakeCertManager := tresorFake.NewFake(nil, 1*time.Hour)
+	fakeCertManager := tresorFake.NewFake(1 * time.Hour)
 	osmNamespace := "-osm-namespace-"
 	enablesReconciler := false
 	stop := make(<-chan struct{})

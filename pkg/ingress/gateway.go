@@ -59,8 +59,7 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCer
 	certCN := spec.SubjectAltNames[0]
 
 	// A certificate for this CN may be cached already. Delete it before issuing a new certificate.
-	c.certProvider.ReleaseCertificate(certCN)
-	issuedCert, err := c.certProvider.IssueCertificate(certCN, certificate.IngressGateway, certificate.FullCNProvided())
+	issuedCert, err := c.certManager.IssueCertificate(certCN, certificate.IngressGateway, certificate.FullCNProvided())
 	if err != nil {
 		return errors.Wrapf(err, "Error issuing a certificate for ingress gateway")
 	}
@@ -104,9 +103,14 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 	meshConfigUpdateChan := kubePubSub.Sub(announcements.MeshConfigUpdated.String())
 	defer c.msgBroker.Unsub(kubePubSub, meshConfigUpdateChan)
 
-	certPubSub := c.msgBroker.GetCertPubSub()
-	certRotateChan := certPubSub.Sub(announcements.CertificateRotated.String())
-	defer c.msgBroker.Unsub(certPubSub, certRotateChan)
+	var certRotateChan <-chan interface{}
+	var unsubCertRotations func()
+
+	if currentCertSpec != nil && len(currentCertSpec.SubjectAltNames) > 0 {
+		certRotateChan, unsubCertRotations = c.certManager.WatchRotations(currentCertSpec.SubjectAltNames[0])
+	} else {
+		certRotateChan, unsubCertRotations = make(chan interface{}), func() {}
+	}
 
 	for {
 		select {
@@ -133,48 +137,41 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 				log.Debug().Msg("Ingress gateway certificate spec was not updated")
 				continue
 			}
-			if newCertSpec == nil && currentCertSpec != nil {
-				// Implies the certificate reference was removed, delete the corresponding secret and certificate
-				if err := c.removeGatewayCertAndSecret(*currentCertSpec); err != nil {
-					log.Error().Err(err).Msg("Error removing stale gateway certificate/secret")
+
+			if newCertSpec == nil {
+				if currentCertSpec != nil {
+					// Implies the certificate reference was removed, delete the corresponding secret and certificate
+					if err := c.removeGatewayCertAndSecret(*currentCertSpec); err != nil {
+						log.Error().Err(err).Msg("Error removing stale gateway certificate/secret")
+					}
 				}
-			} else if newCertSpec != nil {
-				// New cert spec is not nil and is not the same as the current cert spec, update required
-				err := c.createAndStoreGatewayCert(*newCertSpec)
-				if err != nil {
-					log.Error().Err(err).Msgf("Error updating ingress gateway cert and secret")
-				}
+				currentCertSpec = nil
+
+				// reset channels here.
+				unsubCertRotations()
+				certRotateChan, unsubCertRotations = make(chan interface{}), func() {}
+				continue
 			}
+
+			// New cert spec is not nil and is not the same as the current cert spec, update required
+			if len(newCertSpec.SubjectAltNames) == 0 {
+				log.Error().Msg("Ingress gateway certificate spec must specify at least 1 SAN")
+				continue
+			}
+			unsubCertRotations()
+			certRotateChan, unsubCertRotations = c.certManager.WatchRotations(newCertSpec.SubjectAltNames[0])
+			err := c.createAndStoreGatewayCert(*newCertSpec)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error updating ingress gateway cert and secret")
+			}
+
 			currentCertSpec = newCertSpec
 
 		// A certificate was rotated
-		case msg, ok := <-certRotateChan:
-			if !ok {
-				log.Warn().Msg("Notification channel closed for certificate rotation")
-				continue
-			}
-
-			event, ok := msg.(events.PubSubMessage)
-			if !ok {
-				log.Error().Msgf("Received unexpected message %T on channel, expected PubSubMessage", event)
-				continue
-			}
-			cert, ok := event.NewObj.(*certificate.Certificate)
-			if !ok {
-				log.Error().Msgf("Received unexpected message %T on cert rotation channel, expected Certificate", cert)
-				continue
-			}
-
+		case <-certRotateChan:
 			// This should never happen, but guarding against a panic due to the usage of a pointer
 			if currentCertSpec == nil {
 				log.Error().Msgf("Current ingress gateway cert spec is nil, but a certificate for it was rotated - unexpected")
-				continue
-			}
-
-			cnInCertSpec := currentCertSpec.SubjectAltNames[0] // Only single SAN is supported in certs
-
-			// Only update the secret if the cert rotated matches the cert spec
-			if cert.GetCommonName() != certificate.CommonName(cnInCertSpec) {
 				continue
 			}
 
@@ -184,6 +181,8 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 			}
 
 		case <-stop:
+			// Instead of defer, we call here, in the only return statement, in case the channel is changed.
+			unsubCertRotations()
 			return
 		}
 	}
@@ -191,12 +190,11 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 
 // removeGatewayCertAndSecret removes the secret and certificate corresponding to the existing cert spec
 func (c *client) removeGatewayCertAndSecret(storedCertSpec configv1alpha2.IngressGatewayCertSpec) error {
+	c.certManager.ReleaseCertificate(storedCertSpec.SubjectAltNames[0]) // Only single SAN is supported in certs
 	err := c.kubeClient.CoreV1().Secrets(storedCertSpec.Secret.Namespace).Delete(context.Background(), storedCertSpec.Secret.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
-
-	c.certProvider.ReleaseCertificate(storedCertSpec.SubjectAltNames[0]) // Only single SAN is supported in certs
 
 	return nil
 }
