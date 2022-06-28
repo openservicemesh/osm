@@ -3,12 +3,12 @@ package providers
 import (
 	"context"
 
+	"github.com/rs/zerolog/log"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
-	"github.com/rs/zerolog/log"
 )
 
 // MRCComposer is a composer object that allows consumers
