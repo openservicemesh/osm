@@ -39,7 +39,7 @@ func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 	return []*v1alpha2.MeshRootCertificate{{Spec: v1alpha2.MeshRootCertificateSpec{TrustDomain: "fake.example.com"}}}, nil
 }
 
-func (c *fakeMRCClient) Watch(ctx context.Context, namespace string) (<-chan certificate.MRCEvent, error) {
+func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
 	ch := make(chan certificate.MRCEvent)
 	go func() {
 		ch <- certificate.MRCEvent{

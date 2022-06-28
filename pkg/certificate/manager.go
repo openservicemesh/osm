@@ -54,7 +54,7 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient, ns string) err
 	// the caller gets a manager that's ready to be used
 	var once sync.Once
 	var wg sync.WaitGroup
-	mrcEvents, err := mrcClient.Watch(ctx, ns)
+	mrcEvents, err := mrcClient.Watch(ctx)
 	if err != nil {
 		return err
 	}

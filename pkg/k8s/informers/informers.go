@@ -86,12 +86,16 @@ func WithSMIClients(smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTr
 }
 
 // WithConfigClient sets the config client for the InformerCollection
-func WithConfigClient(configClient configClientset.Interface) InformerCollectionOption {
+func WithConfigClient(configClient configClientset.Interface, meshConfigName, osmNamespace string) InformerCollectionOption {
 	return func(ic *InformerCollection) {
-		informerFactory := configInformers.NewSharedInformerFactory(configClient, DefaultKubeEventResyncInterval)
+		listOption := configInformers.WithTweakListOptions(func(opt *metav1.ListOptions) {
+			opt.FieldSelector = fields.OneTermEqualSelector(metav1.ObjectNameField, meshConfigName).String()
+		})
+		meshConfiginformerFactory := configInformers.NewSharedInformerFactoryWithOptions(configClient, DefaultKubeEventResyncInterval, configInformers.WithNamespace(osmNamespace), listOption)
+		mrcInformerFactory := configInformers.NewSharedInformerFactoryWithOptions(configClient, DefaultKubeEventResyncInterval, configInformers.WithNamespace(osmNamespace))
 
-		ic.informers[InformerKeyMeshConfig] = informerFactory.Config().V1alpha2().MeshConfigs().Informer()
-		ic.informers[InformerKeyMeshRootCertificate] = informerFactory.Config().V1alpha2().MeshRootCertificates().Informer()
+		ic.informers[InformerKeyMeshConfig] = meshConfiginformerFactory.Config().V1alpha2().MeshConfigs().Informer()
+		ic.informers[InformerKeyMeshRootCertificate] = mrcInformerFactory.Config().V1alpha2().MeshRootCertificates().Informer()
 	}
 }
 

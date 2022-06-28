@@ -15,7 +15,7 @@ func (c *MRCCompatClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 }
 
 // Watch is a basic Watch implementation for the MRC attached to the compat client
-func (c *MRCCompatClient) Watch(ctx context.Context, namespace string) (<-chan certificate.MRCEvent, error) {
+func (c *MRCCompatClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
 	ch := make(chan certificate.MRCEvent)
 	go func() {
 		ch <- certificate.MRCEvent{

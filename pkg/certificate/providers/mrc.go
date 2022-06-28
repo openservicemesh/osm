@@ -42,16 +42,12 @@ func (m *MRCComposer) List() ([]*v1alpha2.MeshRootCertificate, error) {
 // from the informerCollection's MRC store. Channels returned from multiple invocations of
 // Watch() are unique and have no coordination with each other. Events are guaranteed
 // to be ordered for any particular resources, but NOT across different resources.
-func (m *MRCComposer) Watch(ctx context.Context, namespace string) (<-chan certificate.MRCEvent, error) {
+func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
 	eventChan := make(chan certificate.MRCEvent)
 	m.informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			log.Debug().Msg("received MRC add event")
 			mrc := obj.(*v1alpha2.MeshRootCertificate)
-			// If there's a specific namespace passed in don't send the MRCEvent unless the MRC's namespace matches
-			if namespace != "" && mrc.GetNamespace() != namespace {
-				return
-			}
 			eventChan <- certificate.MRCEvent{
 				Type: certificate.MRCEventAdded,
 				MRC:  mrc,
@@ -62,9 +58,6 @@ func (m *MRCComposer) Watch(ctx context.Context, namespace string) (<-chan certi
 		UpdateFunc: func(_, newObj interface{}) {
 			log.Debug().Msg("received MRC update event")
 			mrc := newObj.(*v1alpha2.MeshRootCertificate)
-			if namespace != "" && mrc.GetNamespace() != namespace {
-				return
-			}
 			eventChan <- certificate.MRCEvent{
 				Type: certificate.MRCEventUpdated,
 				MRC:  mrc,

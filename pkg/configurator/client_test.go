@@ -24,7 +24,7 @@ func TestGetMeshConfig(t *testing.T) {
 	meshConfigClient := fakeConfig.NewSimpleClientset()
 	stop := make(chan struct{})
 
-	ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClient))
+	ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClient, osmMeshConfigName, osmNamespace))
 	a.Nil(err)
 
 	c := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)

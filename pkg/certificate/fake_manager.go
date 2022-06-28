@@ -34,7 +34,7 @@ func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 	}}, nil
 }
 
-func (c *fakeMRCClient) Watch(ctx context.Context, namespace string) (<-chan MRCEvent, error) {
+func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 	ch := make(chan MRCEvent)
 	go func() {
 		ch <- MRCEvent{

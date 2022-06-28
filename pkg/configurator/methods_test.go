@@ -31,7 +31,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 		meshConfigClientSet := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
 
-		ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClientSet))
+		ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClientSet, osmMeshConfigName, osmNamespace))
 		tassert.Nil(t, err)
 
 		cfg := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
@@ -465,7 +465,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 			stop := make(chan struct{})
 			defer close(stop)
 
-			ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClientSet))
+			ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClientSet, osmMeshConfigName, osmNamespace))
 			assert.Nil(err)
 
 			cfg := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
