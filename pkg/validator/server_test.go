@@ -161,9 +161,10 @@ func TestNewValidatingWebhook(t *testing.T) {
 		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
 		tassert.NoError(t, err)
 		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
-
-		err = NewValidatingWebhook(context.Background(), webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
+		ctx, cancel := context.WithCancel(context.Background())
+		err = NewValidatingWebhook(ctx, webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
 		tassert.NoError(t, err)
+		cancel()
 	})
 
 	t.Run("successful startup with reconciler enabled and traffic target validation enabled", func(t *testing.T) {

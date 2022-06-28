@@ -242,7 +242,6 @@ func main() {
 	}
 
 	<-stop
-	cancel()
 	log.Info().Msgf("Stopping osm-injector %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 }
 

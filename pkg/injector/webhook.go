@@ -64,7 +64,7 @@ func NewMutatingWebhook(ctx context.Context, kubeClient kubernetes.Interface, ce
 	},
 		func(cert *certificate.Certificate) error {
 			if err := createOrUpdateMutatingWebhook(kubeClient, cert, webhookTimeout, webhookConfigName, meshName, osmNamespace, osmVersion, enableReconciler); err != nil {
-				return errors.Errorf("Error creating MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
+				return err
 			}
 			return nil
 		})

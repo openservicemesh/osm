@@ -17,6 +17,7 @@ type CertRotatedFunc func(cert *certificate.Certificate) error
 
 // Server is a construct to run generic HTTPS webhook servers.
 type Server struct {
+	name         string
 	cm           *certificate.Manager
 	server       *http.Server
 	onCertChange CertRotatedFunc
@@ -34,6 +35,7 @@ func NewServer(name, namespace string, port int, cm *certificate.Manager, handle
 	}
 
 	s := &Server{
+		name:         name,
 		cm:           cm,
 		onCertChange: onCertChange,
 	}
@@ -42,7 +44,7 @@ func NewServer(name, namespace string, port int, cm *certificate.Manager, handle
 		Handler: mux,
 		// #nosec G402
 		TLSConfig: &tls.Config{
-			GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
+			GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
 				s.mu.Lock()
 				defer s.mu.Unlock()
 				return &s.cert, nil
@@ -50,7 +52,7 @@ func NewServer(name, namespace string, port int, cm *certificate.Manager, handle
 			MinVersion: tls.VersionTLS13,
 		},
 	}
-	// set the certificate once.
+	// set the certificate once, which will also call onCertChange.
 	if err := s.setCert(name, namespace); err != nil {
 		return nil, err
 	}
@@ -59,10 +61,10 @@ func NewServer(name, namespace string, port int, cm *certificate.Manager, handle
 
 // Run actually starts the server. It blocks until the passed in context is done.
 func (s *Server) Run(ctx context.Context) {
-	log.Info().Msgf("Starting conversion webhook server on: %s", s.server.Addr)
+	log.Info().Msgf("Starting %s webhook server on: %s", s.name, s.server.Addr)
 	go func() {
 		err := s.server.ListenAndServeTLS("", "") // err is always non-nil
-		log.Error().Err(err).Msg("crd-converter webhook HTTP server failed to start")
+		log.Error().Err(err).Msgf("%s webhook HTTP server shutdown")
 	}()
 
 	// Wait on exit signals
@@ -70,16 +72,16 @@ func (s *Server) Run(ctx context.Context) {
 
 	// Stop the servers
 	if err := s.server.Shutdown(ctx); err != nil {
-		log.Error().Err(err).Msg("Error shutting down crd-conversion webhook HTTP server")
+		log.Error().Err(err).Msgf("Error shutting down %s webhook HTTP server", s.name)
 	} else {
-		log.Info().Msg("Done shutting down crd-conversion webhook HTTP server")
+		log.Info().Msgf("Done shutting down %s webhook HTTP server", s.name)
 	}
 }
 
 func (s *Server) setCert(name, namespace string) error {
 	// This is a certificate issued for the webhook handler
 	// This cert does not have to be related to the Envoy certs, but it does have to match
-	// the cert provisioned with the ConversionWebhook on the CRD's
+	// the cert provisioned.
 	webhookCert, err := s.cm.IssueCertificate(
 		fmt.Sprintf("%s.%s.svc", name, namespace),
 		certificate.Internal,

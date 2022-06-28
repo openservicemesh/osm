@@ -51,7 +51,7 @@ func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, 
 		validationAPIPath: v.doValidation,
 	}, func(cert *certificate.Certificate) error {
 		if err := createOrUpdateValidatingWebhook(kubeClient, cert, webhookConfigName, meshName, osmNamespace, osmVersion, validateTrafficTarget, enableReconciler); err != nil {
-			return errors.Errorf("Error creating ValidatingWebhookConfiguration %s: %+v", webhookConfigName, err)
+			return err
 		}
 		return nil
 	})
