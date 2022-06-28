@@ -8,7 +8,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
+
+var log = logger.New("certificate/provider")
 
 // Kind specifies the certificate provider kind
 type Kind string

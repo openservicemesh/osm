@@ -90,6 +90,62 @@ func TestGetCertificateManager(t *testing.T) {
 			cfg: mockConfigurator,
 		},
 		{
+			name: "Valid Vault protocol using vault secret defined in MRC",
+			options: VaultOptions{
+				VaultHost:     "vault.default.svc.cluster.local",
+				VaultRole:     "role",
+				VaultPort:     8200,
+				VaultProtocol: "http",
+			},
+			kubeClient: fake.NewSimpleClientset(&v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "vault-token",
+					Namespace: "osm-system",
+				},
+				Data: map[string][]byte{
+					"token": []byte("secret"),
+				},
+			}),
+			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+					Annotations: map[string]string{
+						constants.MRCVersionAnnotation: "0",
+					},
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					Provider: v1alpha2.ProviderSpec{
+						Vault: &v1alpha2.VaultProviderSpec{
+							Host:     "vault.default.svc.cluster.local",
+							Role:     "role",
+							Port:     8200,
+							Protocol: "http",
+							Token: v1alpha2.VaultTokenSpec{
+								SecretKeyRef: v1alpha2.SecretKeyReferenceSpec{
+									Name:      "vault-token",
+									Namespace: "osm-system",
+									Key:       "token",
+								},
+							},
+						},
+					},
+				},
+				Status: v1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
+				},
+			}),
+			informerCollectionFunc: func(tc testCase) (*informers.InformerCollection, error) {
+				ic, err := informers.NewInformerCollection("osm", nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient))
+				if err != nil {
+					return nil, err
+				}
+
+				return ic, nil
+			},
+			cfg: mockConfigurator,
+		},
+		{
 			name: "Not a valid Vault protocol",
 			options: VaultOptions{
 				VaultHost:     "vault.default.svc.cluster.local",

@@ -193,6 +193,7 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 	var err error
 	vaultToken := c.DefaultVaultToken
 	if vaultToken == "" {
+		log.Debug().Msgf("Attempting to get Vault token from secret %s", provider.Token.SecretKeyRef.Name)
 		vaultToken, err = getHashiVaultOSMToken(&provider.Token.SecretKeyRef, c.kubeClient)
 		if err != nil {
 			return nil, "", err
@@ -214,7 +215,7 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 	return vaultClient, id, nil
 }
 
-// getHashiVaultOSMToken returns the Hashi Vault token
+// getHashiVaultOSMToken returns the Hashi Vault token from the secret specified in the provided secret key reference
 func getHashiVaultOSMToken(secretKeyRef *v1alpha2.SecretKeyReferenceSpec, kubeClient kubernetes.Interface) (string, error) {
 	tokenSecret, err := kubeClient.CoreV1().Secrets(secretKeyRef.Namespace).Get(context.TODO(), secretKeyRef.Name, metav1.GetOptions{})
 	if err != nil {

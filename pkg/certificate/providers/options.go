@@ -37,7 +37,7 @@ func (options VaultOptions) Validate() error {
 	}
 
 	if options.VaultToken == "" {
-		return errors.New("VaultToken not specified in Hashi Vault options")
+		log.Warn().Msg("VaultToken is not specified in Hashi Vault options. The token secret reference option must be specified.")
 	}
 
 	if options.VaultRole == "" {

@@ -135,9 +135,9 @@ osm:
     # -- The Kubernetes secret storing the Vault token used in OSM
     secret:
       # -- The Kubernetes secret name storing the Vault token used in OSM
-      name: osm-vault-token
+      name: ""
       # -- The Kubernetes secret key with the value bring the Vault token
-      key: token
+      key: ""
 
   #
   # -- cert-manager.io configuration

@@ -98,7 +98,7 @@ func TestValidateVaultOptions(t *testing.T) {
 				VaultToken:    "",
 				VaultRole:     "vault-role",
 			},
-			expectErr: true,
+			expectErr: false,
 		},
 		{
 			testName: "Empty role",
