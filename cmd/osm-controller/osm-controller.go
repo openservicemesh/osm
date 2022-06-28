@@ -187,7 +187,7 @@ func main() {
 	informerCollection, err := informers.NewInformerCollection(meshName, stop,
 		informers.WithKubeClient(kubeClient),
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
-		informers.WithConfigClient(configClient),
+		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
 		informers.WithPolicyClient(policyClient),
 	)
 	if err != nil {

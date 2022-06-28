@@ -147,7 +147,7 @@ var (
 // MRCEventBroker describes any type that allows the caller to Watch() MRCEvents
 type MRCEventBroker interface {
 	// Watch allows the caller to subscribe to events surrounding
-	// MRCs that belong to this particular mesh. Watch returns a channel
-	// that emits events, and an error if the subscription goes awry.
+	// MRCs. Watch returns a channel that emits events, and
+	// an error if the subscription goes awry.
 	Watch(context.Context) (<-chan MRCEvent, error)
 }

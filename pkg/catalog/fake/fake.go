@@ -48,7 +48,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 
 	osmNamespace := "-test-osm-namespace-"
 	osmMeshConfigName := "-test-osm-mesh-config-"
-	ic, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kubeClient), informers.WithConfigClient(meshConfigClient))
+	ic, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kubeClient), informers.WithConfigClient(meshConfigClient, osmMeshConfigName, osmNamespace))
 	if err != nil {
 		return nil
 	}

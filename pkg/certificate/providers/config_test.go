@@ -139,7 +139,7 @@ func TestGetCertificateManager(t *testing.T) {
 				},
 			}),
 			informerCollectionFunc: func(tc testCase) (*informers.InformerCollection, error) {
-				ic, err := informers.NewInformerCollection("osm", nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient))
+				ic, err := informers.NewInformerCollection("osm", nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient, "", "osm-namespace"))
 				if err != nil {
 					return nil, err
 				}

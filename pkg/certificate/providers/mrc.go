@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 
+	"github.com/rs/zerolog/log"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
@@ -46,6 +47,7 @@ func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, e
 	m.informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			mrc := obj.(*v1alpha2.MeshRootCertificate)
+			log.Debug().Msgf("received MRC add event for MRC %s/%s", mrc.GetNamespace(), mrc.GetName())
 			eventChan <- certificate.MRCEvent{
 				Type: certificate.MRCEventAdded,
 				MRC:  mrc,
@@ -55,6 +57,7 @@ func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, e
 		// since the "state machine" of the MRC is well defined
 		UpdateFunc: func(_, newObj interface{}) {
 			mrc := newObj.(*v1alpha2.MeshRootCertificate)
+			log.Debug().Msgf("received MRC update event for MRC %s/%s", mrc.GetNamespace(), mrc.GetName())
 			eventChan <- certificate.MRCEvent{
 				Type: certificate.MRCEventUpdated,
 				MRC:  mrc,

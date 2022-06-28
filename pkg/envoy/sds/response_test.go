@@ -58,7 +58,7 @@ func TestNewResponse(t *testing.T) {
 	podID := uuid.New()
 
 	proxy := envoy.NewProxy(envoy.KindSidecar, podID, proxySvcAccount.ToServiceIdentity(), nil)
-	ic, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(fakeKubeClient), informers.WithConfigClient(fakeConfigClient))
+	ic, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(fakeKubeClient), informers.WithConfigClient(fakeConfigClient, "-the-mesh-config-name-", "-osm-namespace-"))
 	assert.Nil(err)
 
 	cfg := configurator.NewConfigurator(ic, "-osm-namespace-", "-the-mesh-config-name-", nil)

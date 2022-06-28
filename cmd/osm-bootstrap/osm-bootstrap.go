@@ -198,7 +198,7 @@ func main() {
 
 	informerCollection, err := informers.NewInformerCollection(meshName, stop,
 		informers.WithKubeClient(kubeClient),
-		informers.WithConfigClient(configClient),
+		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
 	)
 
 	if err != nil {
