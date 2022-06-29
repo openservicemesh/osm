@@ -1147,6 +1147,126 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 			expResp:   nil,
 			expErrStr: "",
 		},
+		{
+			name: "UpstreamTrafficSetting with valid rate limiting config",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "UpstreamTrafficSetting",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "policy.openservicemesh.io/v1alpha1",
+						"kind": "UpstreamTrafficSetting",
+						"metadata": {
+							"name": "httpbin",
+							"namespace": "test"
+						},
+						"spec": {
+							"host": "httpbin.test.svc.cluster.local",
+							"rateLimit": {
+								"local": {
+									"http": {
+										"responseStatusCode": 429
+									}
+								}
+							},
+							"httpRoutes": [
+								{
+								"rateLimit": {
+									"local": {
+										"responseStatusCode": 503
+									}
+								}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "UpstreamTrafficSetting with invalid vhost rate limiting HTTP status code",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "UpstreamTrafficSetting",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "policy.openservicemesh.io/v1alpha1",
+						"kind": "UpstreamTrafficSetting",
+						"metadata": {
+							"name": "httpbin",
+							"namespace": "test"
+						},
+						"spec": {
+							"host": "httpbin.test.svc.cluster.local",
+							"rateLimit": {
+								"local": {
+									"http": {
+										"responseStatusCode": 1
+									}
+								}
+							}
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Invalid responseStatusCode 1. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+		},
+		{
+			name: "UpstreamTrafficSetting with invalid HTTP route rate limiting status code",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "UpstreamTrafficSetting",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "policy.openservicemesh.io/v1alpha1",
+						"kind": "UpstreamTrafficSetting",
+						"metadata": {
+							"name": "httpbin",
+							"namespace": "test"
+						},
+						"spec": {
+							"host": "httpbin.test.svc.cluster.local",
+							"rateLimit": {
+								"local": {
+									"http": {
+										"responseStatusCode": 429
+									}
+								}
+							},
+							"httpRoutes": [
+								{
+								"rateLimit": {
+									"local": {
+										"responseStatusCode": 1
+									}
+								}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Invalid responseStatusCode 1. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+		},
 	}
 
 	for _, tc := range testCases {
