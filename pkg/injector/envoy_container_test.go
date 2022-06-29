@@ -12,7 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-func Test_getPlatformSpecificSpecComponents(t *testing.T) {
+func TestGetPlatformSpecificSpecComponents(t *testing.T) {
 	const (
 		windowsImage = "windowsImage"
 		linuxImage   = "linuxImage"
