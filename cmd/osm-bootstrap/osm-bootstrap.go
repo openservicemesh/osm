@@ -221,7 +221,7 @@ func main() {
 	}
 
 	// Initialize the crd conversion webhook server to support the conversion of OSM's CRDs
-	if err := crdconversion.NewConversionWebhook(ctx, kubeClient, crdClient, certManager, osmNamespace, enableReconciler); err != nil {
+	if err := crdconversion.NewConversionWebhook(ctx, kubeClient, crdClient, certManager, msgBroker, osmNamespace, enableReconciler); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating crd conversion webhook")
 	}
 

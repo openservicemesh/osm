@@ -9,7 +9,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -66,7 +65,7 @@ func NewServer(name, namespace string, port int, cm *certificate.Manager, broker
 	// the cert provisioned with the ConversionWebhook on the CRD's
 	webhookCert, err := s.cm.IssueCertificate(
 		s.certName(),
-		certificate.WithValidityPeriod(constants.XDSCertificateValidityPeriod),
+		certificate.Internal,
 		certificate.FullCNProvided())
 	if err != nil {
 		return nil, err

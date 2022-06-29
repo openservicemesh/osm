@@ -36,7 +36,7 @@ func TestNewServer(t *testing.T) {
 
 	s.Run(ctx)
 
-	cert, err := cm.IssueCertificate("my-webhook")
+	cert, err := cm.IssueCertificate("my-webhook", certificate.Internal)
 	assert.NoError(err)
 
 	broker.GetCertPubSub().Pub(events.PubSubMessage{

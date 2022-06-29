@@ -16,6 +16,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -104,6 +105,8 @@ func TestNewConversionWebhook(t *testing.T) {
 	osmNamespace := "-osm-namespace-"
 	enablesReconciler := false
 
-	actualErr := NewConversionWebhook(context.Background(), kubeClient, crdClient.ApiextensionsV1(), fakeCertManager, osmNamespace, enablesReconciler)
+	stop := make(chan struct{})
+	actualErr := NewConversionWebhook(context.Background(), kubeClient, crdClient.ApiextensionsV1(), fakeCertManager, messaging.NewBroker(stop), osmNamespace, enablesReconciler)
 	assert.NotNil(actualErr)
+	close(stop)
 }
