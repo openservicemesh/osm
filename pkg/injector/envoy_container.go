@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -25,6 +26,7 @@ func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS stri
 		envoyContainer = cfg.GetEnvoyWindowsImage()
 	} else {
 		podSecurityContext = &corev1.SecurityContext{
+			AllowPrivilegeEscalation: pointer.BoolPtr(false),
 			RunAsUser: func() *int64 {
 				uid := constants.EnvoyUID
 				return &uid
