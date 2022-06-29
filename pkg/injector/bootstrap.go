@@ -57,7 +57,7 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 	if err != nil {
 		return nil, err
 	}
-	// marshalAndSaveBootstrap
+
 	return wh.marshalAndSaveBootstrap(name, namespace, config, cert)
 }
 

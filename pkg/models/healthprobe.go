@@ -16,7 +16,7 @@ type HealthProbe struct {
 	IsTCPSocket bool
 }
 
-// HealthProbes is to serve as an indication whether the given healthProbe has been rewritten
+// HealthProbes is to serve as an indication of whether the given healthProbe has been rewritten
 type HealthProbes struct {
 	Liveness, Readiness, Startup *HealthProbe
 }
