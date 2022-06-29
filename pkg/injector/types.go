@@ -37,24 +37,3 @@ type Config struct {
 	// ListenPort defines the port on which the sidecar injector listens
 	ListenPort int
 }
-
-// Context needed to compose the Envoy bootstrap YAML.
-type envoyBootstrapConfigMeta struct {
-	EnvoyAdminPort uint32
-	XDSClusterName string
-	NodeID         string
-
-	// Host and port of the Envoy xDS server
-	XDSHost string
-	XDSPort uint32
-
-	// The bootstrap Envoy config will be affected by the liveness, readiness, startup probes set on
-	// the pod this Envoy is fronting.
-	OriginalHealthProbes healthProbes
-
-	// Sidecar TLS configuration
-	TLSMinProtocolVersion string
-	TLSMaxProtocolVersion string
-	CipherSuites          []string
-	ECDHCurves            []string
-}

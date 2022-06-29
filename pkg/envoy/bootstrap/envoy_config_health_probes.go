@@ -1,4 +1,4 @@
-package injector
+package bootstrap
 
 import (
 	"time"
@@ -20,6 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 const (
@@ -32,25 +33,25 @@ const (
 	startupListener   = "startup_listener"
 )
 
-func getLivenessCluster(originalProbe *healthProbe) *xds_cluster.Cluster {
+func getLivenessCluster(originalProbe *models.HealthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
-	return getProbeCluster(livenessCluster, originalProbe.port)
+	return getProbeCluster(livenessCluster, originalProbe.Port)
 }
 
-func getReadinessCluster(originalProbe *healthProbe) *xds_cluster.Cluster {
+func getReadinessCluster(originalProbe *models.HealthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
-	return getProbeCluster(readinessCluster, originalProbe.port)
+	return getProbeCluster(readinessCluster, originalProbe.Port)
 }
 
-func getStartupCluster(originalProbe *healthProbe) *xds_cluster.Cluster {
+func getStartupCluster(originalProbe *models.HealthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
-	return getProbeCluster(startupCluster, originalProbe.port)
+	return getProbeCluster(startupCluster, originalProbe.Port)
 }
 
 func getProbeCluster(clusterName string, port int32) *xds_cluster.Cluster {
@@ -88,30 +89,30 @@ func getProbeCluster(clusterName string, port int32) *xds_cluster.Cluster {
 	}
 }
 
-func getLivenessListener(originalProbe *healthProbe) (*xds_listener.Listener, error) {
+func getLivenessListener(originalProbe *models.HealthProbe) (*xds_listener.Listener, error) {
 	if originalProbe == nil {
 		return nil, nil
 	}
-	return getProbeListener(livenessListener, livenessCluster, livenessProbePath, livenessProbePort, originalProbe)
+	return getProbeListener(livenessListener, livenessCluster, constants.LivenessProbePath, constants.LivenessProbePort, originalProbe)
 }
 
-func getReadinessListener(originalProbe *healthProbe) (*xds_listener.Listener, error) {
+func getReadinessListener(originalProbe *models.HealthProbe) (*xds_listener.Listener, error) {
 	if originalProbe == nil {
 		return nil, nil
 	}
-	return getProbeListener(readinessListener, readinessCluster, readinessProbePath, readinessProbePort, originalProbe)
+	return getProbeListener(readinessListener, readinessCluster, constants.ReadinessProbePath, constants.ReadinessProbePort, originalProbe)
 }
 
-func getStartupListener(originalProbe *healthProbe) (*xds_listener.Listener, error) {
+func getStartupListener(originalProbe *models.HealthProbe) (*xds_listener.Listener, error) {
 	if originalProbe == nil {
 		return nil, nil
 	}
-	return getProbeListener(startupListener, startupCluster, startupProbePath, startupProbePort, originalProbe)
+	return getProbeListener(startupListener, startupCluster, constants.StartupProbePath, constants.StartupProbePort, originalProbe)
 }
 
-func getProbeListener(listenerName, clusterName, newPath string, port int32, originalProbe *healthProbe) (*xds_listener.Listener, error) {
+func getProbeListener(listenerName, clusterName, newPath string, port int32, originalProbe *models.HealthProbe) (*xds_listener.Listener, error) {
 	var filterChain *xds_listener.FilterChain
-	if originalProbe.isHTTP {
+	if originalProbe.IsHTTP {
 		httpAccessLog, err := getHTTPAccessLog()
 		if err != nil {
 			return nil, err
@@ -126,7 +127,7 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 				RouteConfig: &xds_route.RouteConfiguration{
 					Name: "local_route",
 					VirtualHosts: []*xds_route.VirtualHost{
-						getVirtualHost(newPath, clusterName, originalProbe.path, originalProbe.timeout),
+						getVirtualHost(newPath, clusterName, originalProbe.Path, originalProbe.Timeout),
 					},
 				},
 			},

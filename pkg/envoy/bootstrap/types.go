@@ -3,6 +3,7 @@ package bootstrap
 
 import (
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 var log = logger.New("envoy/bootstrap")
@@ -35,4 +36,26 @@ type Config struct {
 
 	// ECDHCurves is the list of ECDH curves it supports
 	ECDHCurves []string
+}
+
+// EnvoyBootstrapConfigMeta contains context needed to compose the Envoy bootstrap YAML.
+// TODO: remove this and leverage a simpler builder pattern.
+type EnvoyBootstrapConfigMeta struct {
+	EnvoyAdminPort uint32
+	XDSClusterName string
+	NodeID         string
+
+	// Host and port of the Envoy xDS server
+	XDSHost string
+	XDSPort uint32
+
+	// The bootstrap Envoy config will be affected by the liveness, readiness, startup probes set on
+	// the pod this Envoy is fronting.
+	OriginalHealthProbes models.HealthProbes
+
+	// Sidecar TLS configuration
+	TLSMinProtocolVersion string
+	TLSMaxProtocolVersion string
+	CipherSuites          []string
+	ECDHCurves            []string
 }

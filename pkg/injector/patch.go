@@ -119,9 +119,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		return nil, err
 	}
 
-	if (originalHealthProbes.liveness != nil && originalHealthProbes.liveness.isTCPSocket) ||
-		(originalHealthProbes.readiness != nil && originalHealthProbes.readiness.isTCPSocket) ||
-		(originalHealthProbes.startup != nil && originalHealthProbes.startup.isTCPSocket) {
+	if originalHealthProbes.UsesTCP() {
 		healthcheckContainer := corev1.Container{
 			Name:            "osm-healthcheck",
 			Image:           os.Getenv("OSM_DEFAULT_HEALTHCHECK_CONTAINER_IMAGE"),
@@ -134,7 +132,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 			},
 			Ports: []corev1.ContainerPort{
 				{
-					ContainerPort: healthcheckPort,
+					ContainerPort: constants.HealthcheckPort,
 				},
 			},
 		}

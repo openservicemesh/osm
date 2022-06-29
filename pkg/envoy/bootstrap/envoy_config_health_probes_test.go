@@ -1,4 +1,4 @@
-package injector
+package bootstrap
 
 import (
 	"testing"
@@ -10,16 +10,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/openservicemesh/osm/pkg/injector/test"
+	"github.com/openservicemesh/osm/pkg/envoy/bootstrap/test"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the Pod's health probes to pass through Envoy", func() {
 
 	timeout := 42 * time.Second
-	liveness := &healthProbe{path: "/liveness", port: 81, isHTTP: true, isTCPSocket: false, timeout: timeout}
-	livenessNonHTTP := &healthProbe{port: 81, isHTTP: false, isTCPSocket: false, timeout: timeout}
-	readiness := &healthProbe{path: "/readiness", port: 82, isHTTP: true, isTCPSocket: false, timeout: timeout}
-	startup := &healthProbe{path: "/startup", port: 83, isHTTP: true, isTCPSocket: false, timeout: timeout}
+	liveness := &models.HealthProbe{Path: "/liveness", Port: 81, IsHTTP: true, IsTCPSocket: false, Timeout: timeout}
+	livenessNonHTTP := &models.HealthProbe{Port: 81, IsHTTP: false, IsTCPSocket: false, Timeout: timeout}
+	readiness := &models.HealthProbe{Path: "/readiness", Port: 82, IsHTTP: true, IsTCPSocket: false, Timeout: timeout}
+	startup := &models.HealthProbe{Path: "/startup", Port: 83, IsHTTP: true, IsTCPSocket: false, Timeout: timeout}
 
 	// Listed below are the functions we are going to test.
 	// The key in the map is the name of the function -- must match what's in the value of the map.
@@ -68,7 +69,7 @@ var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the 
 func TestGetProbeCluster(t *testing.T) {
 	type probeClusterTest struct {
 		name     string
-		probe    *healthProbe
+		probe    *models.HealthProbe
 		expected *xds_cluster.Cluster
 	}
 
@@ -115,7 +116,7 @@ func TestGetProbeCluster(t *testing.T) {
 func TestGetProbeListener(t *testing.T) {
 	type probeListenerTest struct {
 		name     string
-		probe    *healthProbe
+		probe    *models.HealthProbe
 		expected *xds_listener.Listener
 		err      error
 	}
