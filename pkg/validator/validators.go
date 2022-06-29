@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
+	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
@@ -244,6 +245,23 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 	if matchingUpstreamTrafficSetting := kc.policyClient.GetUpstreamTrafficSetting(opt); matchingUpstreamTrafficSetting != nil && matchingUpstreamTrafficSetting.Name != upstreamTrafficSetting.Name {
 		// duplicate detected
 		return nil, errors.Errorf("UpstreamTrafficSetting %s/%s conflicts with %s/%s since they have the same host %s", ns, upstreamTrafficSetting.ObjectMeta.GetName(), ns, matchingUpstreamTrafficSetting.ObjectMeta.GetName(), matchingUpstreamTrafficSetting.Spec.Host)
+	}
+
+	// Validate rate limiting config
+	rl := upstreamTrafficSetting.Spec.RateLimit
+	if rl != nil && rl.Local != nil && rl.Local.HTTP != nil {
+		if _, ok := xds_type.StatusCode_name[int32(rl.Local.HTTP.ResponseStatusCode)]; !ok {
+			return nil, errors.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+				rl.Local.HTTP.ResponseStatusCode)
+		}
+	}
+	for _, route := range upstreamTrafficSetting.Spec.HTTPRoutes {
+		if route.RateLimit != nil && route.RateLimit.Local != nil {
+			if _, ok := xds_type.StatusCode_name[int32(route.RateLimit.Local.ResponseStatusCode)]; !ok {
+				return nil, errors.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+					route.RateLimit.Local.ResponseStatusCode)
+			}
+		}
 	}
 
 	return nil, nil
