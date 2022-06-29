@@ -26,30 +26,10 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '9091'
     spec:
+      {{- if .Values.osm.injector.affinity }}
       affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/os
-                operator: In
-                values:
-                - linux
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                - amd64
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - osm-injector
-              topologyKey: kubernetes.io/hostname
-            weight: 100
+      {{- toYaml .Values.osm.injector.affinity | nindent 8 }}
+      {{- end }}
       priorityClassName: system-node-critical
       serviceAccountName: {{ .Release.Name }}
       {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
@@ -129,7 +109,11 @@ spec:
       imagePullSecrets:
 {{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
     {{- end }}
-    {{- if .Values.osm.controlPlaneTolerations }}
+      {{- if .Values.osm.injector.nodeSelector }}
+      nodeSelector:
+      {{- toYaml .Values.osm.injector.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.injector.tolerations }}
       tolerations:
-{{ toYaml .Values.osm.controlPlaneTolerations | indent 8 }}
-    {{- end }}
+      {{- toYaml .Values.osm.injector.tolerations | nindent 8 }}
+      {{- end }}

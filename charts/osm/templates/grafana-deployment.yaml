@@ -24,9 +24,6 @@ spec:
       {{- include "restricted.securityContext" . | nindent 6 }}
       {{- end }}
       serviceAccountName: osm-grafana
-      nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
       containers:
         - name: grafana
           image: {{.Values.osm.grafana.image}}
@@ -106,4 +103,16 @@ spec:
             name: osm-grafana-dashboard-definition-dataplane
         - name: osm-grafana-storage
           emptyDir: {}
+      {{- if .Values.osm.grafana.affinity }}
+      affinity:
+      {{- toYaml .Values.osm.grafana.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.grafana.nodeSelector }}
+      nodeSelector:
+      {{- toYaml .Values.osm.grafana.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.grafana.tolerations }}
+      tolerations:
+      {{- toYaml .Values.osm.grafana.tolerations | nindent 8 }}
+      {{- end }}
 {{- end }}
