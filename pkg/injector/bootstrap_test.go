@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -101,6 +102,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				Image:           envoyImage,
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				SecurityContext: &corev1.SecurityContext{
+					AllowPrivilegeEscalation: pointer.BoolPtr(false),
 					RunAsUser: func() *int64 {
 						uid := constants.EnvoyUID
 						return &uid
