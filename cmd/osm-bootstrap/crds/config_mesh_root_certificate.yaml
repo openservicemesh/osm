@@ -36,7 +36,7 @@ spec:
       storage: true
       additionalPrinterColumns:
         - description: Current state of the MeshRootCertificate config
-          jsonPath: .status.currentState
+          jsonPath: .status.state
           name: State
           type: string
       schema:

@@ -356,10 +356,19 @@ func TestCreateMeshRootCertificate(t *testing.T) {
 			}
 
 			err := b.createMeshRootCertificate()
-			assert.Equal(tc.expectErr, err != nil)
+			if !tc.expectErr {
+				assert.NoError(err)
+			} else {
+				assert.Error(err)
+			}
 
-			_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), meshRootCertificateName, metav1.GetOptions{})
-			assert.Equal(tc.expectDefaultMeshRootCertificate, err == nil)
+			mrc, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), meshRootCertificateName, metav1.GetOptions{})
+			if tc.expectDefaultMeshRootCertificate {
+				assert.NoError(err)
+				assert.Equal(constants.MRCStateActive, mrc.Status.State)
+			} else {
+				assert.Error(err)
+			}
 		})
 	}
 }

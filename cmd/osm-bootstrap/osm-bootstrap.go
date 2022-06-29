@@ -395,11 +395,24 @@ func (b *bootstrap) createMeshRootCertificate() error {
 	if err != nil {
 		return err
 	}
-	_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshRootCertificate, metav1.CreateOptions{})
+	createdMRC, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshRootCertificate, metav1.CreateOptions{})
 	if apierrors.IsAlreadyExists(err) {
 		log.Info().Msgf("MeshRootCertificate already exists in %s. Skip creating.", b.namespace)
 		return nil
 	}
+	if err != nil {
+		return err
+	}
+
+	createdMRC.Status = configv1alpha2.MeshRootCertificateStatus{
+		State: constants.MRCStateActive,
+	}
+
+	_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).UpdateStatus(context.Background(), createdMRC, metav1.UpdateOptions{})
+	if apierrors.IsAlreadyExists(err) {
+		log.Info().Msgf("MeshRootCertificate statys already exists in %s. Skip creating.", b.namespace)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -428,9 +441,6 @@ func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigM
 			},
 		},
 		Spec: presetMeshRootCertificateSpec,
-		Status: configv1alpha2.MeshRootCertificateStatus{
-			State: constants.MRCStateActive,
-		},
 	}
 
 	return mrc, util.CreateApplyAnnotation(mrc, unstructured.UnstructuredJSONScheme)
