@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
@@ -64,14 +63,14 @@ func (s *Server) Run(ctx context.Context) {
 	log.Info().Msgf("Starting %s webhook server on: %s", s.name, s.server.Addr)
 	go func() {
 		err := s.server.ListenAndServeTLS("", "") // err is always non-nil
-		log.Error().Err(err).Msgf("%s webhook HTTP server shutdown")
+		log.Error().Err(err).Msgf("%s webhook HTTP server shutdown", s.name)
 	}()
 
 	// Wait on exit signals
 	<-ctx.Done()
 
 	// Stop the servers
-	if err := s.server.Shutdown(ctx); err != nil {
+	if err := s.server.Shutdown(context.TODO()); err != nil {
 		log.Error().Err(err).Msgf("Error shutting down %s webhook HTTP server", s.name)
 	} else {
 		log.Info().Msgf("Done shutting down %s webhook HTTP server", s.name)

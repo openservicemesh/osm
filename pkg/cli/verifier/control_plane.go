@@ -40,16 +40,16 @@ func NewControlPlaneHealthVerifier(stdout io.Writer, stderr io.Writer, kubeClien
 		injectorProber: &podProber{
 			kubeClient: kubeClient,
 			restConfig: restConfig,
-			port:       constants.InjectorWebhookPort,
+			port:       constants.OSMHTTPServerPort,
 			path:       constants.WebhookHealthPath,
-			protocol:   constants.ProtocolHTTPS,
+			protocol:   constants.ProtocolHTTP,
 		},
 		bootstrapProber: &podProber{
 			kubeClient: kubeClient,
 			restConfig: restConfig,
-			port:       constants.CRDConversionWebhookPort,
+			port:       constants.OSMHTTPServerPort,
 			path:       constants.WebhookHealthPath,
-			protocol:   constants.ProtocolHTTPS,
+			protocol:   constants.ProtocolHTTP,
 		},
 	}
 }
