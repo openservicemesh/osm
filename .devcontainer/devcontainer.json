@@ -2,13 +2,16 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/master/containers/docker-existing-dockerfile
 {
 	"name": "Dev Docker Environment",
-	"image": "osm:dev",
+	// "image": "osm:dev",
+	"image": "osm-fips:dev",
+	
 
 	// Sets the run context to one level up instead of the .devcontainer folder.
 	"context": "..",
 
 	// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
-	"dockerFile": "..\\Dockerfile",
+	// "dockerFile": "../Dockerfile",
+	"dockerFile": "../Dockerfile.fips",
 
 	//"workspaceMount":"source=${localWorkspaceFolder},target=/go/src/github.com/openservicemesh/osm,type=bind,consistency=cached",
 
@@ -41,6 +44,6 @@
 
 	// Add the IDs of extensions you want installed when the container is created in the array below.
 	"extensions": [
-		"ms-vscode.go"
+		"golang.go"
 	]
 }

@@ -21,7 +21,7 @@ BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
 BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
 BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
 BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
-PERMISSIVE_MODE="${PERMISSIVE_MODE:-false}"
+PERMISSIVE_MODE="${PERMISSIVE_MODE:-false}" # The demo depends on permissive mode being disabled
 CERT_MANAGER="${CERT_MANAGER:-tresor}"
 CTR_REGISTRY="${CTR_REGISTRY:-localhost:5000}"
 CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
@@ -43,6 +43,7 @@ DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 TIMEOUT="${TIMEOUT:-90s}"
 USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
 PUBLISH_IMAGES="${PUBLISH_IMAGES:-true}"
+DOCKER_BUILD_CMD="${DOCKER_BUILD_CMD:-make docker-build}"
 
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
@@ -90,7 +91,7 @@ if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
 fi
 
 if [ "$PUBLISH_IMAGES" = true ]; then
-    make docker-build
+    $DOCKER_BUILD_CMD
 fi
 
 ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"

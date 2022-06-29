@@ -35,7 +35,7 @@ func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []b
 		ClientAuth:         tls.RequireAndVerifyClientCert,
 		Certificates:       []tls.Certificate{certif},
 		ClientCAs:          certPool,
-		MinVersion:         tls.VersionTLS13,
+		MinVersion:         tls.VersionTLS12,
 	}
 	return grpc.Creds(credentials.NewTLS(&tlsConfig)), nil
 }

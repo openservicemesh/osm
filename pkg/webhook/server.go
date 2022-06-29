@@ -50,7 +50,7 @@ func NewServer(name, namespace string, port int, cm *certificate.Manager, handle
 				defer s.mu.Unlock()
 				return &s.cert, nil
 			},
-			MinVersion: tls.VersionTLS13,
+			MinVersion: tls.VersionTLS12,
 		},
 	}
 	// set the certificate once, which will also call onCertChange.

@@ -2,7 +2,7 @@ name: Pre-release
 on:
   push:
     tags:
-      - "pre-rel-v[0-9]+.[0-9]+.[0-9]+"
+      - "pre-rel-v*-fips"
       - "v0.0.0-nightly*"
 
 env:
@@ -36,17 +36,17 @@ jobs:
         env:
           CTR_TAG: ${{ needs.version.outputs.version }}
           VERIFY_TAGS: "true"
-        run: make docker-build-cross
+        run: make docker-build-fips
       - name: Push images with latest tag
         # Only for non-pre-releases
         if: ${{ !(contains(env.VERSION, '-alpha.') || contains(env.VERSION, '-beta.') || contains(env.VERSION, '-rc.') || contains(env.VERSION, '-nightly.')) }}
         env:
           CTR_TAG: latest
-        run: make docker-build-cross
+        run: make docker-build-fips
       - name: Image digests
         env:
           CTR_TAG: ${{ needs.version.outputs.version }}
-        run: make docker-digests-osm
+        run: make docker-digests-osm-fips
 
   imagescan:
     name: Scan images for security vulnerabilities

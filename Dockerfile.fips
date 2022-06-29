@@ -1,0 +1,12 @@
+
+#build stage
+FROM mcr.microsoft.com/oss/go/microsoft/golang:1.17-fips-cbl-mariner2.0 AS builder
+
+RUN yum update -y
+RUN yum install -y make git gcc gcc-c++ glibc-devel openssl-devel bash ca-certificates
+ENV GOPATH=/usr/local/go/tools
+ENV PATH=$PATH:$GOPATH/bin
+RUN go install golang.org/x/tools/...@latest
+RUN go install golang.org/x/tools/gopls/...@latest
+RUN go install -v github.com/ramya-rao-a/go-outline@latest
+RUN go install github.com/go-delve/delve/cmd/dlv@latest

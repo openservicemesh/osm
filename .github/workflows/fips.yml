@@ -1,9 +1,9 @@
-name: Go
+name: Go-FIPS
 on:
   push:
     branches:
-      - main
-      - release-v[0-9]+.[0-9]+.[0-9]+
+      - fips-playground
+      - "release-*-fips"
     paths-ignore:
       - "docs/**"
       - "**.md"
@@ -12,8 +12,8 @@ on:
       - "OWNERS"
   pull_request:
     branches:
-      - main
-      - release-v[0-9]+.[0-9]+.[0-9]+
+      - main # TODO: Remove; just for testing
+      - "release-*-fips"
     paths-ignore:
       - "docs/**"
       - "**.md"
@@ -41,14 +41,26 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/oss/go/microsoft/golang:1.17-fips-cbl-mariner2.0
+      env:
+        GNUPGHOME: /root/.gnupg
     steps:
+      - name: Yum Update
+        run: |
+          yum update -y
+          yum install -y make git gcc gcc-c++ glibc-devel openssl-devel bash ca-certificates diffutils
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - name: Setup Go Cache
+        uses: actions/cache@v3
         with:
-          go-version-file: go.mod
-          cache: true
+          path: |
+            /root/.cache/go-build
+            /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: go build deps
         run: make embed-files-test
       - name: golangci-lint
@@ -60,32 +72,60 @@ jobs:
   codegen:
     name: Codegen
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/oss/go/microsoft/golang:1.17-fips-cbl-mariner2.0
+      env:
+        GNUPGHOME: /root/.gnupg
     steps:
+      - name: Yum Update
+        run: |
+          yum update -y
+          yum install -y make git gcc gcc-c++ glibc-devel openssl-devel bash ca-certificates
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - name: Setup Go Cache
+        uses: actions/cache@v3
         with:
-          go-version-file: go.mod
-          cache: true
+          path: |
+            /root/.cache/go-build
+            /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: go mod tidy
-        run: make go-mod-tidy
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          make go-mod-tidy
       - name: Codegen checks
         run: make check-codegen
 
   mocks:
     name: Mocks
+    container:
+      image: mcr.microsoft.com/oss/go/microsoft/golang:1.17-fips-cbl-mariner2.0
+      env:
+        GNUPGHOME: /root/.gnupg
     runs-on: ubuntu-latest
     steps:
+      - name: Yum Update
+        run: |
+          yum update -y
+          yum install -y make git gcc gcc-c++ glibc-devel openssl-devel bash ca-certificates
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - name: Setup Go Cache
+        uses: actions/cache@v3
         with:
-          go-version-file: go.mod
-          cache: true
+          path: |
+            /root/.cache/go-build
+            /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: go mod tidy
-        run: make go-mod-tidy
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          make go-mod-tidy
       - name: gomock checks
         run: make check-mocks
 
@@ -101,31 +141,58 @@ jobs:
   build:
     name: Go build
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/oss/go/microsoft/golang:1.17-fips-cbl-mariner2.0
+      env:
+        GNUPGHOME: /root/.gnupg
     steps:
+      - name: Yum Update
+        run: |
+          yum update -y
+          yum install -y make git gcc gcc-c++ glibc-devel openssl-devel bash ca-certificates
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - name: Setup Go Cache
+        uses: actions/cache@v3
         with:
-          go-version-file: go.mod
-          cache: true
+          path: |
+            /root/.cache/go-build
+            /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Go Build
         run: make build-ci
 
   unittest:
     name: Go test
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/oss/go/microsoft/golang:1.17-fips-cbl-mariner2.0
+      env:
+        GNUPGHOME: /root/.gnupg
+        GOFIPS: 1
     needs: build
     steps:
+      - name: Yum Update
+        run: |
+          yum update -y
+          yum install -y make git gcc gcc-c++ glibc-devel openssl-devel bash ca-certificates
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - name: Setup Go Cache
+        uses: actions/cache@v3
         with:
-          go-version-file: go.mod
-          cache: true
+          path: |
+            /root/.cache/go-build
+            /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: go mod tidy
-        run: make go-mod-tidy
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          make go-mod-tidy
       - name: Test
         run: make go-test-coverage
       - name: Upload Coverage
@@ -151,10 +218,10 @@ jobs:
         run: make trivy-ci-setup
       - name: Scan docker images for vulnerabilities
         run: make trivy-scan-images
-
+   
   e2etest:
     name: Go test e2e
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # No need for fips container here, since the OSM images being built/tested are using the FIPS image
     needs: build
     strategy:
       matrix:
@@ -185,7 +252,7 @@ jobs:
       - name: Build test dependencies
         env:
           DOCKER_BUILDX_OUTPUT: type=docker
-        run: make docker-build-osm build-osm docker-build-tcp-echo-server
+        run: make docker-build-osm-fips build-osm-fips docker-build-tcp-echo-server
       - name: Run tests
         id: test
         env:
@@ -215,7 +282,7 @@ jobs:
 
   integration-tresor:
     name: Integration Test with Tresor, SMI traffic policies, and egress disabled
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # No need for fips container here, since the OSM images being built/tested are using the FIPS image
     needs: [build]
     steps:
       - name: Checkout
@@ -236,16 +303,18 @@ jobs:
           DEPLOY_TRAFFIC_SPLIT: "true"
           CTR_TAG: ${{ github.sha }}
           USE_PRIVATE_REGISTRY: "false"
+          DOCKER_BUILD_CMD: "make docker-build-fips"
         run: |
           touch .env
           make kind-up
           ./demo/run-osm-demo.sh
           go run ./ci/cmd/maestro.go
 
+# TODO: FIPS windows isn't a goal right now, correct? So we should only push the linux fips images
   images:
-    name: Docker Images
+    name: Docker FIPS Images
     runs-on: ubuntu-latest
-    if: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release-')) && github.event_name == 'push' }}
+    if: ${{ startsWith(github.ref, 'refs/heads/release-') && github.event_name == 'push' }}
     env:
       DOCKER_USER: ${{ secrets.RELEASE_DOCKER_USER }}
       DOCKER_PASS: ${{ secrets.RELEASE_DOCKER_PASS }}
@@ -258,4 +327,4 @@ jobs:
       - name: Push images with git sha tag
         env:
           CTR_TAG: ${{ github.sha }}
-        run: make docker-build-cross
+        run: make docker-build-fips
