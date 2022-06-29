@@ -8,6 +8,7 @@
 - Along with root certificate rotation we support custom trust domains, as well as rotating to new trust domains with no downtime.
 - Envoy has been updated to v1.22 and uses the `envoyproxy/envoy-distroless` image instead of the deprecated `envoyproxy/envoy-alpine` image.
 - Added support for Kubernetes 1.23 and 1.24
+- `Rate limiting`: Added capability to perform local per-instance [rate limiting of TCP connections and HTTP requests](https://release-v1-2.docs.openservicemesh.io/docs/guides/traffic_management/rate_limiting).
 
 ### Breaking Changes
 
