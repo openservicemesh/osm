@@ -32,6 +32,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
@@ -564,12 +565,13 @@ var _ = Describe("Testing Injector Functions", func() {
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
 		certManager := tresorFake.NewFake(nil, 1*time.Hour)
+		broker := messaging.NewBroker(stop)
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
 		_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
-		actualErr := NewMutatingWebhook(context.Background(), kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, cfg, "")
+		actualErr := NewMutatingWebhook(context.Background(), kubeClient, certManager, broker, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, cfg, "")
 		Expect(actualErr).NotTo(HaveOccurred())
 		close(stop)
 	})
@@ -582,10 +584,11 @@ var _ = Describe("Testing Injector Functions", func() {
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
 		certManager := tresorFake.NewFake(nil, 1*time.Hour)
+		broker := messaging.NewBroker(stop)
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
-		actualErr := NewMutatingWebhook(context.Background(), kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, cfg, "")
+		actualErr := NewMutatingWebhook(context.Background(), kubeClient, certManager, broker, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, cfg, "")
 		Expect(actualErr).NotTo(HaveOccurred())
 		_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())

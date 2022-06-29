@@ -23,6 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
@@ -37,7 +38,7 @@ const (
 )
 
 // NewMutatingWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewMutatingWebhook(ctx context.Context, kubeClient kubernetes.Interface, certManager *certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName, osmVersion string, webhookTimeout int32, enableReconciler bool, cfg configurator.Configurator, osmContainerPullPolicy corev1.PullPolicy) error {
+func NewMutatingWebhook(ctx context.Context, kubeClient kubernetes.Interface, certManager *certificate.Manager, broker *messaging.Broker, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName, osmVersion string, webhookTimeout int32, enableReconciler bool, cfg configurator.Configurator, osmContainerPullPolicy corev1.PullPolicy) error {
 	wh := mutatingWebhook{
 		kubeClient:             kubeClient,
 		certManager:            certManager,
@@ -59,7 +60,7 @@ func NewMutatingWebhook(ctx context.Context, kubeClient kubernetes.Interface, ce
 	// because of the specifics of MutatingWebhookConfiguration template in this repository.
 
 	// Start the MutatingWebhook web server
-	srv, err := webhook.NewServer(constants.OSMInjectorName, osmNamespace, constants.InjectorWebhookPort, certManager, map[string]http.HandlerFunc{
+	srv, err := webhook.NewServer(constants.OSMInjectorName, osmNamespace, constants.InjectorWebhookPort, certManager, broker, map[string]http.HandlerFunc{
 		webhookCreatePod: http.HandlerFunc(wh.podCreationHandler),
 	},
 		func(cert *certificate.Certificate) error {
