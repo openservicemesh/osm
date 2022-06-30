@@ -19,6 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	fakeConfigClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -160,8 +161,9 @@ func TestNewValidatingWebhook(t *testing.T) {
 		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
 		tassert.NoError(t, err)
 		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
+		configClient := fakeConfigClientset.NewSimpleClientset()
 		ctx, cancel := context.WithCancel(context.Background())
-		err = NewValidatingWebhook(ctx, webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
+		err = NewValidatingWebhook(ctx, webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, configClient, policyClient)
 		tassert.NoError(t, err)
 		cancel()
 	})
@@ -177,8 +179,9 @@ func TestNewValidatingWebhook(t *testing.T) {
 		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
 		tassert.NoError(t, err)
 		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
+		configClient := fakeConfigClientset.NewSimpleClientset()
 
-		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
+		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, configClient, policyClient)
 		tassert.NoError(t, err)
 	})
 
@@ -195,8 +198,9 @@ func TestNewValidatingWebhook(t *testing.T) {
 		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
 		tassert.NoError(t, err)
 		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
+		configClient := fakeConfigClientset.NewSimpleClientset()
 
-		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
+		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, configClient, policyClient)
 		tassert.NoError(t, err)
 	})
 }

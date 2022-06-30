@@ -37,6 +37,14 @@ func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert *certi
 				Resources:   []string{"ingressbackends", "egresses"},
 			},
 		},
+		{
+			Operations: []admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+			Rule: admissionregv1.Rule{
+				APIGroups:   []string{"config.openservicemesh.io"},
+				APIVersions: []string{"v1alpha2"},
+				Resources:   []string{"meshrootcertificate"},
+			},
+		},
 	}
 
 	if validateTrafficTarget {

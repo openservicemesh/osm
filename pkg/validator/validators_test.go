@@ -12,6 +12,7 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
+	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	fakeConfigClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 
@@ -20,7 +21,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
-	corev1 "k8s.io/api/core/v1"
 )
 
 func TestIngressBackendValidator(t *testing.T) {
@@ -91,7 +91,7 @@ func TestIngressBackendValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "Expected 'port.protocol' to be 'http' or 'https', got: invalid",
+			expErrStr: "expected 'port.protocol' to be 'http' or 'https', got: invalid",
 		},
 		{
 			name: "IngressBackend with valid TLS config succeeds",
@@ -273,7 +273,7 @@ func TestIngressBackendValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "Invalid 'source.name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got 'invalid'",
+			expErrStr: "invalid 'source.name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got 'invalid'",
 		},
 		{
 			name: "IngressBackend with valid source kind Service",
@@ -458,7 +458,7 @@ func TestIngressBackendValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "Invalid 'source.kind' value specified. Must be one of: Service, AuthenticatedPrincipal, IPRange",
+			expErrStr: "invalid 'source.kind' value specified. Must be one of: Service, AuthenticatedPrincipal, IPRange",
 		},
 		{
 			name: "IngressBackend with invalid source kind",
@@ -494,7 +494,7 @@ func TestIngressBackendValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "Invalid 'source.kind' value specified. Must be one of: Service, AuthenticatedPrincipal, IPRange",
+			expErrStr: "invalid 'source.kind' value specified. Must be one of: Service, AuthenticatedPrincipal, IPRange",
 		},
 		{
 			name: "IngressBackend has duplicate backends",
@@ -535,7 +535,7 @@ func TestIngressBackendValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "Duplicate backends detected with service name: test and port: 80",
+			expErrStr: "duplicate backends detected with service name: test and port: 80",
 		},
 		{
 			name: "success: IngressBackend has duplicate backend names but different ports",
@@ -841,7 +841,7 @@ func TestEgressValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "Expected 'matches.apiGroup' to be one of [specs.smi-spec.io/v1alpha4 policy.openservicemesh.io/v1alpha1], got: invalid",
+			expErrStr: "expected 'matches.apiGroup' to be one of [specs.smi-spec.io/v1alpha4 policy.openservicemesh.io/v1alpha1], got: invalid",
 		},
 		{
 			name: "Egress with valid http route and API group passes",
@@ -933,7 +933,7 @@ func TestEgressValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "Cannot have more than 1 UpstreamTrafficSetting match",
+			expErrStr: "cannot have more than 1 UpstreamTrafficSetting match",
 		},
 	}
 
@@ -1015,7 +1015,7 @@ func TestTrafficTargetValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "The traffic target namespace (another-namespace) must match spec.Destination.Namespace (destination-namespace)",
+			expErrStr: "the traffic target namespace (another-namespace) must match spec.Destination.Namespace (destination-namespace)",
 		},
 	}
 
@@ -1107,7 +1107,7 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "UpstreamTrafficSetting test/httpbin conflicts with test/httpbin1 since they have the same host httpbin.test.svc.cluster.local",
+			expErrStr: "upstreamTrafficSetting test/httpbin conflicts with test/httpbin1 since they have the same host httpbin.test.svc.cluster.local",
 		},
 		{
 			name: "success: UpstreamTrafficSetting with duplicate host on update",
@@ -1227,7 +1227,7 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "Invalid responseStatusCode 1. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+			expErrStr: "invalid responseStatusCode 1. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
 		},
 		{
 			name: "UpstreamTrafficSetting with invalid HTTP route rate limiting status code",
@@ -1270,7 +1270,7 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "Invalid responseStatusCode 1. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+			expErrStr: "invalid responseStatusCode 1. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
 		},
 	}
 
@@ -1331,13 +1331,133 @@ func TestMeshRootCertificateValidator(t *testing.T) {
 	testCases := []struct {
 		name         string
 		input        *admissionv1.AdmissionRequest
-		expResp      *admissionv1.AdmissionResponse
-		isErr        bool
 		expErrStr    string
 		existingMRCs int
 	}{
 		{
-			name: "MeshRootCertificate",
+			name: "MeshRootCertificate with invalid Tresor certificate provider update",
+			input: &admissionv1.AdmissionRequest{
+				Operation: admissionv1.Update,
+				Kind: metav1.GroupVersionKind{
+					Group:   "configv1alpha2",
+					Version: "config.openservicemesh.io",
+					Kind:    "MeshRootCertificate",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "config.openservicemesh.io/configv1alpha2",
+						"kind": "MeshRootCertificate",
+						"metadata": {
+							"name": "osm-mesh-root-certificate",
+							"namespace": "osm-system"
+						},
+						"spec": {
+							"provider": {
+								"tresor": {
+									"ca": {
+										"secretRef": {
+											"name": "osm-ca-bundle",
+											"namespace": "osm-system"
+										}
+									}
+								}
+							}
+						}
+					}
+					`),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "config.openservicemesh.io/configv1alpha2",
+						"kind": "MeshRootCertificate",
+						"metadata": {
+							"name": "osm-mesh-root-certificate",
+							"namespace": "osm-system"
+						},
+						"spec": {
+							"provider": {
+								"tresor": {
+									"ca": {
+										"secretRef": {
+											"name": "new-osm-ca-bundle",
+											"namespace": "test-namespace"
+										}
+									}
+								}
+							}
+						}
+					}
+					`),
+				},
+			},
+			expErrStr: "cannot update certificate provider settings for MRC osm-system/osm-mesh-root-certificate",
+		},
+		{
+			name: "MeshRootCertificate with invalid trust domain update",
+			input: &admissionv1.AdmissionRequest{
+				Operation: admissionv1.Update,
+				Kind: metav1.GroupVersionKind{
+					Group:   "configv1alpha2",
+					Version: "config.openservicemesh.io",
+					Kind:    "MeshRootCertificate",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "config.openservicemesh.io/configv1alpha2",
+						"kind": "MeshRootCertificate",
+						"metadata": {
+							"name": "osm-mesh-root-certificate",
+							"namespace": "osm-system"
+						},
+						"spec": {
+							"trustDomain": "newtrustdomain",
+							"provider": {
+								"tresor": {
+							 		"ca": {
+										"secretRef": {
+											"name": "osm-ca-bundle",
+											"namespace": "osm-system"
+							  			}
+							 		}
+								}
+							}
+						}
+					}
+					`),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "config.openservicemesh.io/configv1alpha2",
+						"kind": "MeshRootCertificate",
+						"metadata": {
+							"name": "osm-mesh-root-certificate",
+							"namespace": "osm-system"
+						},
+						"spec": {
+							"trustDomain": "oldtrustdomain",
+							"provider": {
+								"tresor": {
+							 		"ca": {
+										"secretRef": {
+											"name": "osm-ca-bundle",
+											"namespace": "osm-system"
+							  			}
+							 		}
+								}
+							}
+						}
+					}
+					`),
+				},
+			},
+			expErrStr: "cannot update trust domain for MRC osm-system/osm-mesh-root-certificate",
+		},
+		{
+			name: "MeshRootCertificate with invalid trust domain on create",
 			input: &admissionv1.AdmissionRequest{
 				Operation: admissionv1.Create,
 				Kind: metav1.GroupVersionKind{
@@ -1350,111 +1470,371 @@ func TestMeshRootCertificateValidator(t *testing.T) {
 					{
 						"apiVersion": "config.openservicemesh.io/configv1alpha2",
 						"kind": "MeshRootCertificate",
-						"provider": {
-							"tresor": {
-							 "ca": {
-							  "secretRef": {
-								"name": "osm-ca-bundle",
-								"namespace": "test-namespace"
-							  }
-							 }
+						"metadata": {
+							"name": "osm-mesh-root-certificate",
+							"namespace": "osm-system"
+						},
+						"spec": {
+							"trustDomain": "",
+							"provider": {
+								"tresor": {
+							 		"ca": {
+										"secretRef": {
+											"name": "osm-ca-bundle",
+											"namespace": "osm-system"
+							  			}
+							 		}
+								}
 							}
-							}
+						}
 					}
 					`),
 				},
 			},
-			expResp:   nil,
+			expErrStr: "trustDomain must be non empty for MRC osm-system/osm-mesh-root-certificate",
+		},
+		{
+			name: "MeshRootCertificate with no state on create",
+			input: &admissionv1.AdmissionRequest{
+				Operation: admissionv1.Create,
+				Kind: metav1.GroupVersionKind{
+					Group:   "configv1alpha2",
+					Version: "config.openservicemesh.io",
+					Kind:    "MeshRootCertificate",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "config.openservicemesh.io/configv1alpha2",
+						"kind": "MeshRootCertificate",
+						"metadata": {
+							"name": "osm-mesh-root-certificate",
+							"namespace": "osm-system"
+						},
+						"spec": {
+							"trustDomain": "trustDomain",
+							"provider": {
+								"tresor": {
+							 		"ca": {
+										"secretRef": {
+											"name": "osm-ca-bundle",
+											"namespace": "osm-system"
+							  			}
+							 		}
+								}
+							}
+						}
+					}
+					`),
+				},
+			},
 			expErrStr: "",
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
-			stop := make(chan struct{})
-			defer close(stop)
-
-			existingMRCs(tc.existingMRCs)
-			objects := make([]runtime.Object, tc.existingMRCs)
-			for i, v := range existingMRCs(tc.existingMRCs) {
-				objects[i] = v
-			}
-
-			configClient := fakeConfigClientset.NewSimpleClientset(objects...)
-
-			cv := configValidator{configClient: configClient}
-
-			k8sController := k8s.NewMockController(mockCtrl)
-			if len(objects) > 0 {
-				k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
-			}
+			cv := configValidator{configClient: fakeConfigClientset.NewSimpleClientset(), osmNamespace: "osm-system"}
 
 			resp, err := cv.meshRootCertificateValidator(tc.input)
-			assert.Equal(tc.expResp, resp)
 			if tc.expErrStr == "" {
-				// we expect a nil error
-				assert.Nil(err)
-			}
-			if err != nil {
+				assert.NoError(err)
+				assert.Nil(resp)
+			} else {
 				assert.Equal(tc.expErrStr, err.Error())
+				assert.Nil(resp)
 			}
 		})
 	}
 }
 
-func existingMRCs(num int) []*configv1alpha2.MeshRootCertificate {
-
-	existing := []*configv1alpha2.MeshRootCertificate{
+func TestActiveRootCertificateRotation(t *testing.T) {
+	assert := tassert.New(t)
+	testCases := []struct {
+		name         string
+		mrc          configv1alpha2.MeshRootCertificate
+		configClient configClientset.Interface
+		expResp      bool
+	}{
 		{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "MeshRootCertificate",
-				APIVersion: "config.openservicemesh.io/configv1alpha2",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "mrctest-1",
-				Namespace: "test",
-			},
-			Spec: configv1alpha2.MeshRootCertificateSpec{
-				Provider: configv1alpha2.ProviderSpec{
-					CertManager: &configv1alpha2.CertManagerProviderSpec{
-						IssuerName:  "localhost",
-						IssuerKind:  "issuerkind",
-						IssuerGroup: "issuergroup",
-					},
+			name: "active rotation, 2 existing MRCs",
+			mrc: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "newmrc",
+					Namespace: "osm-namespace",
 				},
-				TrustDomain: "trustdomain",
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateValidatingRollout,
+				},
 			},
-			Status: configv1alpha2.MeshRootCertificateStatus{
-				State: constants.MRCStateActive,
-			},
-		}, {
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "MeshRootCertificate",
-				APIVersion: "config.openservicemesh.io/configv1alpha2",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "mrctest-2",
-				Namespace: "test",
-			},
-			Spec: configv1alpha2.MeshRootCertificateSpec{
-				Provider: configv1alpha2.ProviderSpec{
-					Tresor: &configv1alpha2.TresorProviderSpec{
-						CA: configv1alpha2.TresorCASpec{
-							SecretRef: corev1.SecretReference{
-								Name:      "osm-ca-bundle",
-								Namespace: "test-namepsace",
-							},
+			configClient: fakeConfigClientset.NewSimpleClientset(
+				[]runtime.Object{
+					&configv1alpha2.MeshRootCertificate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mrc1",
+							Namespace: "osm-namespace",
+						},
+						Status: configv1alpha2.MeshRootCertificateStatus{
+							State: constants.MRCStateIssuingRollback,
 						},
 					},
+					&configv1alpha2.MeshRootCertificate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mrc2",
+							Namespace: "osm-namespace",
+						},
+						Status: configv1alpha2.MeshRootCertificateStatus{
+							State: constants.MRCStateIssuingRollout,
+						},
+					},
+				}...,
+			),
+			expResp: true,
+		},
+		{
+			name: "no active rotation, 2 existing MRCs",
+			mrc: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "newmrc",
+					Namespace: "osm-namespace",
 				},
-				TrustDomain: "trustdomain2",
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateValidatingRollout,
+				},
 			},
-			Status: configv1alpha2.MeshRootCertificateStatus{
-				State: constants.MRCStateActive,
+			configClient: fakeConfigClientset.NewSimpleClientset(
+				[]runtime.Object{
+					&configv1alpha2.MeshRootCertificate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mrc1",
+							Namespace: "osm-namespace",
+						},
+						Status: configv1alpha2.MeshRootCertificateStatus{
+							State: constants.MRCStateActive,
+						},
+					},
+					&configv1alpha2.MeshRootCertificate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mrc2",
+							Namespace: "osm-namespace",
+						},
+						Status: configv1alpha2.MeshRootCertificateStatus{
+							State: constants.MRCStateInactive,
+						},
+					},
+				}...,
+			),
+			expResp: false,
+		},
+		{
+			name: "no active rotation, 2 existing MRCs, 1 in error state",
+			mrc: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "newmrc",
+					Namespace: "osm-namespace",
+				},
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateValidatingRollout,
+				},
 			},
+			configClient: fakeConfigClientset.NewSimpleClientset(
+				[]runtime.Object{
+					&configv1alpha2.MeshRootCertificate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mrc1",
+							Namespace: "osm-namespace",
+						},
+						Status: configv1alpha2.MeshRootCertificateStatus{
+							State: constants.MRCStateActive,
+						},
+					},
+					&configv1alpha2.MeshRootCertificate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mrc2",
+							Namespace: "osm-namespace",
+						},
+						Status: configv1alpha2.MeshRootCertificateStatus{
+							State: constants.MRCStateError,
+						},
+					},
+				}...,
+			),
+			expResp: false,
+		},
+		{
+			name: "no active rotation, 2 existing MRCs, one of which is the mrc being updated",
+			mrc: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mrc2",
+					Namespace: "osm-namespace",
+				},
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateIssuingRollout,
+				},
+			},
+			configClient: fakeConfigClientset.NewSimpleClientset(
+				[]runtime.Object{
+					&configv1alpha2.MeshRootCertificate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mrc1",
+							Namespace: "osm-namespace",
+						},
+						Status: configv1alpha2.MeshRootCertificateStatus{
+							State: constants.MRCStateActive,
+						},
+					},
+					&configv1alpha2.MeshRootCertificate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mrc2",
+							Namespace: "osm-namespace",
+						},
+						Status: configv1alpha2.MeshRootCertificateStatus{
+							State: constants.MRCStateValidatingRollout,
+						},
+					},
+				}...,
+			),
+			expResp: false,
 		},
 	}
-	return existing[:num]
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cv := configValidator{configClient: tc.configClient, osmNamespace: "osm-namespace"}
+
+			active := cv.activeRootCertificateRotation(&tc.mrc)
+
+			assert.Equal(tc.expResp, active)
+		})
+	}
+}
+
+func TestValidateMeshRootCertificateStatusTransition(t *testing.T) {
+	assert := tassert.New(t)
+	testCases := []struct {
+		name   string
+		oldMRC configv1alpha2.MeshRootCertificate
+		newMRC configv1alpha2.MeshRootCertificate
+		expErr bool
+	}{
+		{
+			name: "no status change",
+			oldMRC: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mrc",
+					Namespace: "osm-namespace",
+				},
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateValidatingRollout,
+				},
+			},
+			newMRC: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mrc",
+					Namespace: "osm-namespace",
+				},
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateValidatingRollout,
+				},
+			},
+			expErr: false,
+		},
+		{
+			name: "valid status transition from '' to 'validatingRollout'",
+			oldMRC: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mrc",
+					Namespace: "osm-namespace",
+				},
+			},
+			newMRC: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mrc",
+					Namespace: "osm-namespace",
+				},
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateValidatingRollout,
+				},
+			},
+			expErr: false,
+		},
+		{
+			name: "unknown old mrc state 'running'",
+			oldMRC: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mrc",
+					Namespace: "osm-namespace",
+				},
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: "running",
+				},
+			},
+			newMRC: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mrc",
+					Namespace: "osm-namespace",
+				},
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateIssuingRollback,
+				},
+			},
+			expErr: true,
+		},
+		{
+			name: "unknown new mrc state 'rollback'",
+			oldMRC: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mrc",
+					Namespace: "osm-namespace",
+				},
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateIssuingRollback,
+				},
+			},
+			newMRC: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mrc",
+					Namespace: "osm-namespace",
+				},
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: "rollback",
+				},
+			},
+			expErr: true,
+		},
+		{
+			name: "invalid status update from 'validatingRollout' to 'active'",
+			oldMRC: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mrc",
+					Namespace: "osm-namespace",
+				},
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateValidatingRollout,
+				},
+			},
+			newMRC: configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mrc",
+					Namespace: "osm-namespace",
+				},
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
+				},
+			},
+			expErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateMeshRootCertificateStatusTransition(&tc.oldMRC, &tc.newMRC)
+
+			if tc.expErr {
+				assert.Error(err)
+			} else {
+				assert.NoError(err)
+			}
+		})
+	}
 }

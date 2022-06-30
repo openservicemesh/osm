@@ -33,13 +33,14 @@ type validatingWebhookServer struct {
 }
 
 // NewValidatingWebhook returns a validatingWebhookServer with the defaultValidators that were previously registered.
-func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler, validateTrafficTarget bool, certManager *certificate.Manager, kubeClient kubernetes.Interface, configClient *configClientset.Clientset, policyClient policy.Controller) error {
+func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler, validateTrafficTarget bool, certManager *certificate.Manager, kubeClient kubernetes.Interface, configClient configClientset.Interface, policyClient policy.Controller) error {
 	kv := &policyValidator{
 		policyClient: policyClient,
 	}
 
 	cv := &configValidator{
 		configClient: configClient,
+		osmNamespace: osmNamespace,
 	}
 
 	v := &validatingWebhookServer{

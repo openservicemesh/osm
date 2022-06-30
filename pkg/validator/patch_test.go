@@ -32,6 +32,15 @@ var (
 			Resources:   []string{"traffictargets"},
 		},
 	}
+
+	configRule = admissionregv1.RuleWithOperations{
+		Operations: []admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+		Rule: admissionregv1.Rule{
+			APIGroups:   []string{"config.openservicemesh.io"},
+			APIVersions: []string{"v1alpha2"},
+			Resources:   []string{"meshrootcertificate"},
+		},
+	}
 )
 
 func TestCreateValidatingWebhook(t *testing.T) {
@@ -51,12 +60,12 @@ func TestCreateValidatingWebhook(t *testing.T) {
 		{
 			name:                  "with smi validation enabled",
 			validateTrafficTarget: true,
-			expectedRules:         []admissionregv1.RuleWithOperations{ingressRule, trafficTargetRule},
+			expectedRules:         []admissionregv1.RuleWithOperations{ingressRule, configRule, trafficTargetRule},
 		},
 		{
 			name:                  "with smi validation disabled",
 			validateTrafficTarget: false,
-			expectedRules:         []admissionregv1.RuleWithOperations{ingressRule},
+			expectedRules:         []admissionregv1.RuleWithOperations{ingressRule, configRule},
 		},
 	}
 

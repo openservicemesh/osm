@@ -2,19 +2,22 @@ package validator
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
+	"reflect"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	admissionv1 "k8s.io/api/admission/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 
@@ -71,8 +74,10 @@ type policyValidator struct {
 	policyClient policy.Controller
 }
 
+// configValidator is a validator that has access to a config
 type configValidator struct {
 	configClient configClientset.Interface
+	osmNamespace string
 }
 
 func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
@@ -82,7 +87,7 @@ func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Adm
 	}
 
 	if trafficTarget.Spec.Destination.Namespace != trafficTarget.Namespace {
-		return nil, fmt.Errorf("The traffic target namespace (%s) must match spec.Destination.Namespace (%s)",
+		return nil, fmt.Errorf("the traffic target namespace (%s) must match spec.Destination.Namespace (%s)",
 			trafficTarget.Namespace, trafficTarget.Spec.Destination.Namespace)
 	}
 
@@ -107,7 +112,7 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 	conflictingIngressBackends := mapset.NewSet()
 	for _, backend := range ingressBackend.Spec.Backends {
 		if unique := backends.Add(setEntry{backend.Name, backend.Port.Number}); !unique {
-			return nil, fmt.Errorf("Duplicate backends detected with service name: %s and port: %d", backend.Name, backend.Port.Number)
+			return nil, fmt.Errorf("duplicate backends detected with service name: %s and port: %d", backend.Name, backend.Port.Number)
 		}
 
 		fakeMeshSvc := service.MeshService{
@@ -151,7 +156,7 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 			}
 
 		default:
-			return nil, fmt.Errorf("Expected 'port.protocol' to be 'http' or 'https', got: %s", backend.Port.Protocol)
+			return nil, fmt.Errorf("expected 'port.protocol' to be 'http' or 'https', got: %s", backend.Port.Protocol)
 		}
 	}
 
@@ -178,11 +183,11 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 
 		case policyv1alpha1.KindIPRange:
 			if _, _, err := net.ParseCIDR(source.Name); err != nil {
-				return nil, fmt.Errorf("Invalid 'source.name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got '%s'", source.Name)
+				return nil, fmt.Errorf("invalid 'source.name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got '%s'", source.Name)
 			}
 
 		default:
-			return nil, fmt.Errorf("Invalid 'source.kind' value specified. Must be one of: %s, %s, %s",
+			return nil, fmt.Errorf("invalid 'source.kind' value specified. Must be one of: %s, %s, %s",
 				policyv1alpha1.KindService, policyv1alpha1.KindAuthenticatedPrincipal, policyv1alpha1.KindIPRange)
 		}
 	}
@@ -208,7 +213,7 @@ func egressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 				// no additional validation
 
 			default:
-				return nil, fmt.Errorf("Expected 'matches.kind' for match '%s' to be 'HTTPRouteGroup', got: %s", m.Name, m.Kind)
+				return nil, fmt.Errorf("expected 'matches.kind' for match '%s' to be 'HTTPRouteGroup', got: %s", m.Name, m.Kind)
 			}
 
 		case policyv1alpha1.SchemeGroupVersion.String():
@@ -217,17 +222,17 @@ func egressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 				upstreamTrafficSettingMatchCount++
 
 			default:
-				return nil, fmt.Errorf("Expected 'matches.kind' for match '%s' to be 'UpstreamTrafficSetting', got: %s", m.Name, m.Kind)
+				return nil, fmt.Errorf("expected 'matches.kind' for match '%s' to be 'UpstreamTrafficSetting', got: %s", m.Name, m.Kind)
 			}
 
 		default:
-			return nil, fmt.Errorf("Expected 'matches.apiGroup' to be one of %v, got: %s", allowedAPIGroups, *m.APIGroup)
+			return nil, fmt.Errorf("expected 'matches.apiGroup' to be one of %v, got: %s", allowedAPIGroups, *m.APIGroup)
 		}
 	}
 
 	// Can't have more than 1 UpstreamTrafficSetting match for an Egress policy
 	if upstreamTrafficSettingMatchCount > 1 {
-		return nil, fmt.Errorf("Cannot have more than 1 UpstreamTrafficSetting match")
+		return nil, fmt.Errorf("cannot have more than 1 UpstreamTrafficSetting match")
 	}
 
 	return nil, nil
@@ -249,21 +254,21 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 	opt := policy.UpstreamTrafficSettingGetOpt{Host: upstreamTrafficSetting.Spec.Host}
 	if matchingUpstreamTrafficSetting := kc.policyClient.GetUpstreamTrafficSetting(opt); matchingUpstreamTrafficSetting != nil && matchingUpstreamTrafficSetting.Name != upstreamTrafficSetting.Name {
 		// duplicate detected
-		return nil, fmt.Errorf("UpstreamTrafficSetting %s/%s conflicts with %s/%s since they have the same host %s", ns, upstreamTrafficSetting.ObjectMeta.GetName(), ns, matchingUpstreamTrafficSetting.ObjectMeta.GetName(), matchingUpstreamTrafficSetting.Spec.Host)
+		return nil, fmt.Errorf("upstreamTrafficSetting %s/%s conflicts with %s/%s since they have the same host %s", ns, upstreamTrafficSetting.ObjectMeta.GetName(), ns, matchingUpstreamTrafficSetting.ObjectMeta.GetName(), matchingUpstreamTrafficSetting.Spec.Host)
 	}
 
 	// Validate rate limiting config
 	rl := upstreamTrafficSetting.Spec.RateLimit
 	if rl != nil && rl.Local != nil && rl.Local.HTTP != nil {
 		if _, ok := xds_type.StatusCode_name[int32(rl.Local.HTTP.ResponseStatusCode)]; !ok {
-			return nil, fmt.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+			return nil, fmt.Errorf("invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
 				rl.Local.HTTP.ResponseStatusCode)
 		}
 	}
 	for _, route := range upstreamTrafficSetting.Spec.HTTPRoutes {
 		if route.RateLimit != nil && route.RateLimit.Local != nil {
 			if _, ok := xds_type.StatusCode_name[int32(route.RateLimit.Local.ResponseStatusCode)]; !ok {
-				return nil, fmt.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+				return nil, fmt.Errorf("invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
 					route.RateLimit.Local.ResponseStatusCode)
 			}
 		}
@@ -272,53 +277,125 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 	return nil, nil
 }
 
-// meshRootCertificateValidator validates the MeshRootCertificate CRD.
-func (cv configValidator) meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
-	var err error
+var validMRCTransitions = map[string][]string{
+	constants.MRCStateValidatingRollout:  {constants.MRCStateIssuingRollout, constants.MRCStateError},
+	constants.MRCStateIssuingRollout:     {constants.MRCStateActive, constants.MRCStateError},
+	constants.MRCStateActive:             {constants.MRCStateValidatingRollback, constants.MRCStateError},
+	constants.MRCStateValidatingRollback: {constants.MRCStateIssuingRollback, constants.MRCStateError},
+	constants.MRCStateIssuingRollback:    {constants.MRCStateInactive, constants.MRCStateError},
+	constants.MRCStateInactive:           {},
+	constants.MRCStateError:              {},
+	"":                                   {constants.MRCStateValidatingRollout, constants.MRCStateError},
+}
 
-	m := newMRCInfo()
-
-	mrcSetting := &configv1alpha2.MeshRootCertificate{}
-	if err = json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(mrcSetting); err != nil {
-		return nil, err
-	}
-
-	m.suggestedMRC = mrcSetting
-
-	if err = m.getAllStoredMRC(cv, mrcSetting.GetNamespace()); err != nil {
-		return nil, err
-	}
-
+// meshRootCertificateValidator validates the MeshRootCertificate custom resource
+func (cv *configValidator) meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 	switch req.Operation {
-	case admissionv1.Delete:
-
-		if len(m.allStoredMRC) == 1 {
-			return nil, errors.Errorf("must have more than one Mesh Root Certificate to delete")
-		}
-
-		if m.getStoredMRC() {
-			return nil, m.validateMRCdelete()
-		}
-
-		return nil, errors.Errorf("cannot find mesh root certificate with name %v", mrcSetting.Name)
-
 	case admissionv1.Create:
-		//count only active, make sure no more than 2 active
-		if !m.validateMRCcreate() {
-			return nil, errors.Errorf("cannot create more than two active certificates")
-
+		newMRC := &configv1alpha2.MeshRootCertificate{}
+		if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(newMRC); err != nil {
+			return nil, err
 		}
 
+		if newMRC.Spec.TrustDomain == "" {
+			return nil, fmt.Errorf("trustDomain must be non empty for MRC %s/%s", newMRC.GetNamespace(), newMRC.GetName())
+		}
+
+		// if no state is set, MRC will not be considered for rotation
+		if newMRC.Status.State == "" {
+			return nil, nil
+		}
+
+		if cv.activeRootCertificateRotation(newMRC) {
+			return nil, fmt.Errorf("cannot create MRC %s/%s with status %s. Certificate rotation in progress. At most, only 2 MRCs can be in non error or non inactive states",
+				newMRC.GetNamespace(), newMRC.GetName(), newMRC.Status.State)
+		}
+
+		if _, ok := validMRCTransitions[newMRC.Status.State]; !ok {
+			return nil, fmt.Errorf("invalid status %s for MRC %s/%s. Must be %s, %s, %s, %s, %s, %s, or %s",
+				newMRC.Status.State, newMRC.GetNamespace(), newMRC.GetName(), constants.MRCStateValidatingRollout,
+				constants.MRCStateIssuingRollout, constants.MRCStateActive, constants.MRCStateIssuingRollback,
+				constants.MRCStateValidatingRollback, constants.MRCStateInactive, constants.MRCStateError)
+		}
 	case admissionv1.Update:
-		if !m.getStoredMRC() {
-			return nil, errors.Errorf("cannot find mesh root certificate with name %v", mrcSetting.Name)
+		newMRC, oldMRC := &configv1alpha2.MeshRootCertificate{}, &configv1alpha2.MeshRootCertificate{}
+		if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(newMRC); err != nil {
+			return nil, err
+		}
+		if err := json.NewDecoder(bytes.NewBuffer(req.OldObject.Raw)).Decode(oldMRC); err != nil {
+			return nil, err
 		}
 
-		if !m.validateMRCupdate() {
-			return nil, errors.Errorf("cannot transition %v in current state %v into state %v",
-				m.storedMRC.Name, m.storedMRC.Status.State, m.suggestedMRC.Status.State)
+		if !reflect.DeepEqual(oldMRC.Spec.Provider, newMRC.Spec.Provider) {
+			return nil, fmt.Errorf("cannot update certificate provider settings for MRC %s/%s", newMRC.GetNamespace(), newMRC.GetName())
+		}
+
+		if oldMRC.Spec.TrustDomain != newMRC.Spec.TrustDomain {
+			return nil, fmt.Errorf("cannot update trust domain for MRC %s/%s", newMRC.GetNamespace(), newMRC.GetName())
+		}
+
+		if oldMRC.Status.State == newMRC.Status.State {
+			return nil, nil
+		}
+
+		if err := validateMeshRootCertificateStatusTransition(oldMRC, newMRC); err != nil {
+			return nil, err
+		}
+
+		if cv.activeRootCertificateRotation(newMRC) {
+			return nil, fmt.Errorf("cannot update MRC %s/%s root with status %s. Certificate rotation in progress. At most, only 2 MRCs can be in non error or non inactive states",
+				newMRC.GetNamespace(), newMRC.GetName(), newMRC.Status.State)
 		}
 	}
 
 	return nil, nil
+}
+
+// activeRootCertificateRotation returns true if there is an active OSM root certificate rotation, false otherwise
+func (cv *configValidator) activeRootCertificateRotation(newMRC *configv1alpha2.MeshRootCertificate) bool {
+	mrcList, err := cv.configClient.ConfigV1alpha2().MeshRootCertificates(cv.osmNamespace).List(context.TODO(), v1.ListOptions{})
+	if err != nil {
+		log.Error().Err(err)
+		return false
+	}
+
+	inUseMRCs := 0
+	for _, mrc := range mrcList.Items {
+		if mrc.Status.State != "" && mrc.Status.State != constants.MRCStateError && mrc.Status.State != constants.MRCStateInactive && mrc.GetName() != newMRC.GetName() {
+			inUseMRCs++
+		}
+	}
+
+	if inUseMRCs >= 2 {
+		log.Debug().Msgf("root certificate rotation in progress. Found %d MRCs in non error, not inactive, or empty states", inUseMRCs)
+		return true
+	}
+
+	return false
+}
+
+// validateMeshRootCertificateTransition verifies that the MRC status update is valid
+func validateMeshRootCertificateStatusTransition(oldMRC *configv1alpha2.MeshRootCertificate, newMRC *configv1alpha2.MeshRootCertificate) error {
+	if oldMRC == nil || newMRC == nil {
+		return fmt.Errorf("cannot validate state transition of a nil MRC")
+	}
+
+	if oldMRC.Status.State == newMRC.Status.State {
+		log.Debug().Msgf("no status update for MRC %s/%s with state %s", newMRC.GetNamespace(), newMRC.GetName(), newMRC.Status.State)
+		return nil
+	}
+
+	validStates, ok := validMRCTransitions[oldMRC.Status.State]
+	if !ok {
+		return fmt.Errorf("invalid status update for MRC %s/%s from %s state to %s state. Old state %s not found in list of supported states",
+			newMRC.GetNamespace(), newMRC.GetName(), oldMRC.Status.State, newMRC.Status.State, oldMRC.Status.State)
+	}
+
+	for _, state := range validStates {
+		if state == newMRC.Status.State {
+			return nil
+		}
+	}
+	return fmt.Errorf("invalid status update for MRC %s/%s from %s state to %s state. New state %s not found in list of supported states",
+		newMRC.GetNamespace(), newMRC.GetName(), oldMRC.Status.State, newMRC.Status.State, oldMRC.Status.State)
 }

@@ -7,7 +7,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -27,7 +26,6 @@ type mutatingWebhook struct {
 	meshName               string
 	configurator           configurator.Configurator
 	osmContainerPullPolicy corev1.PullPolicy
-	meshRootCertificate    v1alpha2.MeshRootCertificate
 
 	nonInjectNamespaces mapset.Set
 }
