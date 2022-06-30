@@ -54,8 +54,6 @@ spec:
               containerPort: 9443
             - name: "metrics"
               containerPort: 9091
-            - name: "health"
-              containerPort: 9095
           command: ['/osm-bootstrap']
           args: [
             "--verbosity", "{{.Values.osm.controllerLogLevel}}",
@@ -87,14 +85,14 @@ spec:
             httpGet:
               scheme: HTTP
               path: /healthz
-              port: 9095
+              port: 9091
           livenessProbe:
             initialDelaySeconds: 5
             timeoutSeconds: 5
             httpGet:
               scheme: HTTP
               path: /healthz
-              port: 9095
+              port: 9091
           env:
             # The BOOTSTRAP_POD_NAME env variable sets pod name dynamically, used by osm-bootstrap to register events
             - name: BOOTSTRAP_POD_NAME

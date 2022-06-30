@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -147,7 +148,6 @@ func TestNewValidatingWebhook(t *testing.T) {
 	t.Run("successful startup", func(t *testing.T) {
 		certManager := tresorFake.NewFake(nil, 1*time.Hour)
 
-		port := 41414
 		stop := make(chan struct{})
 		defer close(stop)
 		broker := messaging.NewBroker(stop)
@@ -161,16 +161,16 @@ func TestNewValidatingWebhook(t *testing.T) {
 		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
 		tassert.NoError(t, err)
 		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
-
-		err = NewValidatingWebhook(webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policyClient, nil)
+		ctx, cancel := context.WithCancel(context.Background())
+		err = NewValidatingWebhook(ctx, webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
 		tassert.NoError(t, err)
+		cancel()
 	})
 
 	t.Run("successful startup with reconciler enabled and traffic target validation enabled", func(t *testing.T) {
 		certManager := tresorFake.NewFake(nil, 1*time.Hour)
 		enableReconciler = true
 
-		port := 41414
 		stop := make(chan struct{})
 		defer close(stop)
 		broker := messaging.NewBroker(stop)
@@ -179,7 +179,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
 
-		err = NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policyClient, nil)
+		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
 		tassert.NoError(t, err)
 	})
 
@@ -188,7 +188,6 @@ func TestNewValidatingWebhook(t *testing.T) {
 		enableReconciler = true
 		validateTrafficTarget = false
 
-		port := 41414
 		stop := make(chan struct{})
 		defer close(stop)
 		broker := messaging.NewBroker(stop)
@@ -198,7 +197,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
 
-		err = NewValidatingWebhook("my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, port, certManager, kube, policyClient, nil)
+		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
 		tassert.NoError(t, err)
 	})
 }
@@ -255,12 +254,4 @@ func TestDoValidation(t *testing.T) {
 			tassert.Equal(t, test.expectedResponseCode, res.StatusCode)
 		})
 	}
-}
-
-func TestHealthHandler(t *testing.T) {
-	w := httptest.NewRecorder()
-	healthHandler(w, nil)
-
-	res := w.Result()
-	tassert.Equal(t, http.StatusOK, res.StatusCode)
 }

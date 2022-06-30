@@ -7,6 +7,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/health"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -55,8 +57,6 @@ var (
 	webhookTimeout     int32
 	osmVersion         string
 
-	injectorConfig injector.Config
-
 	certProviderKind string
 
 	enableReconciler bool
@@ -84,9 +84,6 @@ func init() {
 	flags.Int32Var(&webhookTimeout, "webhook-timeout", int32(20), "Timeout of the MutatingWebhookConfiguration")
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
 	flags.StringVar(&osmVersion, "osm-version", "", "Version of OSM")
-
-	// sidecar injector options
-	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
@@ -161,6 +158,7 @@ func main() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	stop := signals.RegisterExitHandlers(cancel)
 
 	// Start the default metrics store
@@ -210,7 +208,7 @@ func main() {
 	}
 
 	// Initialize the sidecar injector webhook
-	if err := injector.NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, osmVersion, webhookTimeout, enableReconciler, stop, cfg, corev1.PullPolicy(osmContainerPullPolicy)); err != nil {
+	if err := injector.NewMutatingWebhook(ctx, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, osmVersion, webhookTimeout, enableReconciler, cfg, corev1.PullPolicy(osmContainerPullPolicy)); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
 	}
 
@@ -223,6 +221,9 @@ func main() {
 	httpServer.AddHandler(constants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
 	// Version
 	httpServer.AddHandler(constants.VersionPath, version.GetVersionHandler())
+	// Health checks
+	httpServer.AddHandler(constants.WebhookHealthPath, http.HandlerFunc(health.SimpleHandler))
+
 	// Start HTTP server
 	err = httpServer.Start()
 	if err != nil {

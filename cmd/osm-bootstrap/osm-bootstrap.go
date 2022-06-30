@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/health"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -60,8 +62,6 @@ var (
 	osmMeshConfigName  string
 	meshName           string
 	osmVersion         string
-
-	crdConverterConfig crdconversion.Config
 
 	certProviderKind string
 
@@ -183,6 +183,7 @@ func main() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	stop := signals.RegisterExitHandlers(cancel)
 
 	// Start the default metrics store
@@ -220,8 +221,7 @@ func main() {
 	}
 
 	// Initialize the crd conversion webhook server to support the conversion of OSM's CRDs
-	crdConverterConfig.ListenPort = constants.CRDConversionWebhookPort
-	if err := crdconversion.NewConversionWebhook(crdConverterConfig, kubeClient, crdClient, certManager, osmNamespace, enableReconciler, stop); err != nil {
+	if err := crdconversion.NewConversionWebhook(ctx, kubeClient, crdClient, certManager, osmNamespace, enableReconciler); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating crd conversion webhook")
 	}
 
@@ -234,6 +234,9 @@ func main() {
 	httpServer.AddHandler(constants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
 	// Version
 	httpServer.AddHandler(constants.VersionPath, version.GetVersionHandler())
+
+	httpServer.AddHandler(constants.WebhookHealthPath, http.HandlerFunc(health.SimpleHandler))
+
 	// Start HTTP server
 	err = httpServer.Start()
 	if err != nil {
@@ -249,6 +252,7 @@ func main() {
 	}
 
 	<-stop
+	cancel()
 	log.Info().Msgf("Stopping osm-bootstrap %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 }
 
