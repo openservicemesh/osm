@@ -71,14 +71,6 @@ type CertManagerOptions struct {
 	IssuerGroup string
 }
 
-// MRCCompatClient is a backwards compatible client to convert old certificate options into an MRC.
-// It's intent is to match the custom interface that will wrap the MRC k8s informer.
-// TODO(#4502): Remove this entirely once we are fully onboarded to MRC informers.
-type MRCCompatClient struct {
-	MRCProviderGenerator
-	mrc *v1alpha2.MeshRootCertificate
-}
-
 // MRCProviderGenerator knows how to convert a given MRC to its appropriate provider.
 type MRCProviderGenerator struct {
 	kubeClient kubernetes.Interface

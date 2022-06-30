@@ -49,55 +49,18 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 		return nil, err
 	}
 
-	var mrcClient certificate.MRCClient
-	if ic == nil || len(ic.List(informers.InformerKeyMeshRootCertificate)) == 0 {
-		// no MRCs detected; use the compat client
-		c := &MRCCompatClient{
-			MRCProviderGenerator: MRCProviderGenerator{
-				kubeClient:      kubeClient,
-				kubeConfig:      kubeConfig,
-				KeyBitSize:      cfg.GetCertKeyBitSize(),
-				caExtractorFunc: getCA,
-			},
-			mrc: &v1alpha2.MeshRootCertificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "legacy-compat",
-					Namespace: providerNamespace,
-					Annotations: map[string]string{
-						constants.MRCVersionAnnotation: "legacy-compat",
-					},
-				},
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Provider:    options.AsProviderSpec(),
-					TrustDomain: "cluster.local",
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					State: constants.MRCStateActive,
-				},
-			},
-		}
-		// TODO(#4745): Remove after deprecating the osm.vault.token option.
-		if vaultOption, ok := options.(VaultOptions); ok {
-			c.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
-		}
-		mrcClient = c
-	} else {
-		// we have MRCs; use the MRC Client
-		c := &MRCComposer{
-			MRCProviderGenerator: MRCProviderGenerator{
-				kubeClient:      kubeClient,
-				kubeConfig:      kubeConfig,
-				KeyBitSize:      cfg.GetCertKeyBitSize(),
-				caExtractorFunc: getCA,
-			},
-			informerCollection: ic,
-		}
-		// TODO(#4745): Remove after deprecating the osm.vault.token option.
-		if vaultOption, ok := options.(VaultOptions); ok {
-			c.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
-		}
-
-		mrcClient = c
+	mrcClient := &MRCComposer{
+		MRCProviderGenerator: MRCProviderGenerator{
+			kubeClient:      kubeClient,
+			kubeConfig:      kubeConfig,
+			KeyBitSize:      cfg.GetCertKeyBitSize(),
+			caExtractorFunc: getCA,
+		},
+		informerCollection: ic,
+	}
+	// TODO(#4745): Remove after deprecating the osm.vault.token option.
+	if vaultOption, ok := options.(VaultOptions); ok {
+		mrcClient.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
 	}
 
 	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, msgBroker, checkInterval)
@@ -130,13 +93,6 @@ func (c *MRCProviderGenerator) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertifi
 	}
 
 	return issuer, ca, id, nil
-}
-
-func getMRCID(mrc *v1alpha2.MeshRootCertificate) (string, error) {
-	if mrc.Annotations == nil || mrc.Annotations[constants.MRCVersionAnnotation] == "" {
-		return "", fmt.Errorf("no annotation found for MRC %s/%s, expected annotation %s", mrc.Namespace, mrc.Name, constants.MRCVersionAnnotation)
-	}
-	return mrc.Annotations[constants.MRCVersionAnnotation], nil
 }
 
 // getTresorOSMCertificateManager returns a certificate manager instance with Tresor as the certificate provider
@@ -175,11 +131,7 @@ func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.Mesh
 		return nil, "", fmt.Errorf("failed to instantiate Tresor as a Certificate Manager: %w", err)
 	}
 
-	id, err := getMRCID(mrc)
-	if err != nil {
-		return nil, "", err
-	}
-	return tresorClient, id, nil
+	return tresorClient, mrc.Name, nil
 }
 
 // getHashiVaultOSMCertificateManager returns a certificate manager instance with Hashi Vault as the certificate provider
@@ -208,11 +160,8 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 	if err != nil {
 		return nil, "", fmt.Errorf("error instantiating Hashicorp Vault as a Certificate Manager: %w", err)
 	}
-	id, err := getMRCID(mrc)
-	if err != nil {
-		return nil, "", err
-	}
-	return vaultClient, id, nil
+
+	return vaultClient, mrc.Name, nil
 }
 
 // getHashiVaultOSMToken returns the Hashi Vault token from the secret specified in the provided secret key reference
@@ -251,9 +200,6 @@ func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2
 	if err != nil {
 		return nil, "", fmt.Errorf("error instantiating Jetstack cert-manager client: %w", err)
 	}
-	id, err := getMRCID(mrc)
-	if err != nil {
-		return nil, "", err
-	}
-	return cmClient, id, nil
+
+	return cmClient, mrc.Name, nil
 }

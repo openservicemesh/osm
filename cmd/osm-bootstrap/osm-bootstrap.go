@@ -436,9 +436,6 @@ func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigM
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: meshRootCertificateName,
-			Annotations: map[string]string{
-				constants.MRCVersionAnnotation: "0",
-			},
 		},
 		Spec: presetMeshRootCertificateSpec,
 	}
