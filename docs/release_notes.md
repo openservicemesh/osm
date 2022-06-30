@@ -7,8 +7,11 @@
 - Root certificate rotation is now supported through the new CRD, MeshRootCertificate.
 - Along with root certificate rotation we support custom trust domains, as well as rotating to new trust domains with no downtime.
 - Envoy has been updated to v1.22 and uses the `envoyproxy/envoy-distroless` image instead of the deprecated `envoyproxy/envoy-alpine` image.
+  - This means that `kubectl exec -c envoy ... -- sh` will no longer work for the Envoy sidecar
 - Added support for Kubernetes 1.23 and 1.24
+- Removed support for Kubernetes 1.21
 - `Rate limiting`: Added capability to perform local per-instance [rate limiting of TCP connections and HTTP requests](https://release-v1-2.docs.openservicemesh.io/docs/guides/traffic_management/rate_limiting).
+- Statefulsets and headless services should now work as expected
 
 ### Breaking Changes
 
