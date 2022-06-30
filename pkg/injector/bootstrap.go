@@ -50,12 +50,12 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 		CipherSuites:          wh.configurator.GetMeshConfig().Spec.Sidecar.CipherSuites,
 		ECDHCurves:            wh.configurator.GetMeshConfig().Spec.Sidecar.ECDHCurves,
 	}
-	config, err := builder.Build()
+	bootstrapConfig, err := builder.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return wh.marshalAndSaveBootstrap(name, namespace, config, cert)
+	return wh.marshalAndSaveBootstrap(name, namespace, bootstrapConfig, cert)
 }
 
 func (wh *mutatingWebhook) marshalAndSaveBootstrap(name, namespace string, config *xds_bootstrap.Bootstrap, cert *certificate.Certificate) (*corev1.Secret, error) {
