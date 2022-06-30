@@ -8,6 +8,8 @@ on:
       - "docs/**"
       - "**.md"
       - "scripts/cleanup/**"
+      - "CODEOWNERS"
+      - "OWNERS"
   pull_request:
     branches:
       - main
@@ -16,6 +18,8 @@ on:
       - "docs/**"
       - "**.md"
       - "scripts/cleanup/**"
+      - "CODEOWNERS"
+      - "OWNERS"
 env:
   CI_WAIT_FOR_OK_SECONDS: 60
   CI_MAX_ITERATIONS_THRESHOLD: 60
