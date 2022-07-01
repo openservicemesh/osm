@@ -37,7 +37,7 @@ func TestSetupMutualTLS(t *testing.T) {
 	serverType := "ADS"
 	goodCertPem := adsCert.GetCertificateChain()
 	goodKeyPem := adsCert.GetPrivateKey()
-	goodCA := adsCert.GetIssuingCA()
+	goodCA := adsCert.GetTrustedCAs()
 	var emptyByteArray []byte
 
 	setupMutualTLStests := []setupMutualTLStest{

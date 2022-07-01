@@ -3,8 +3,6 @@ package certificate
 import (
 	time "time"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/errcode"
 )
