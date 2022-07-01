@@ -446,10 +446,13 @@
                     "additionalProperties": false,
                     "properties": {
                         "enableMeshRootCertificate": {
-                            "$id": "#/properties/osm/properties/enableMeshRootCertificate",
+                            "$id": "#/properties/osm/properties/unsafe/properties/enableMeshRootCertificate",
                             "type": "boolean",
                             "title": "Enable the MeshRootCertificate",
-                            "description": "Using the MeshRootCertificate to configure the OSM certificate provider is not supported on "
+                            "description": "Using the MeshRootCertificate to configure the OSM certificate provider is not supported",
+                            "examples": [
+                                false
+                            ]
                         }
                     }
                 },

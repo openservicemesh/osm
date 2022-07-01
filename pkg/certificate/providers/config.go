@@ -44,7 +44,7 @@ var getCA func(certificate.Issuer) (pem.RootCertificate, error) = func(i certifi
 // NewCertificateManager returns a new certificate manager with a MRC compat client.
 // TODO(4713): Remove and use NewCertificateManagerFromMRC
 func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
-	providerNamespace string, option Options, msgBroker *messaging.Broker, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
+	providerNamespace string, option Options, msgBroker *messaging.Broker, checkInterval time.Duration) (*certificate.Manager, error) {
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}
@@ -60,9 +60,6 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "legacy-compat",
 				Namespace: providerNamespace,
-				Annotations: map[string]string{
-					constants.MRCVersionAnnotation: "legacy-compat",
-				},
 			},
 			Spec: v1alpha2.MeshRootCertificateSpec{
 				Provider:    option.AsProviderSpec(),
@@ -134,13 +131,6 @@ func (c *MRCProviderGenerator) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertifi
 	return issuer, ca, id, nil
 }
 
-func getMRCID(mrc *v1alpha2.MeshRootCertificate) (string, error) {
-	if mrc.Annotations == nil || mrc.Annotations[constants.MRCVersionAnnotation] == "" {
-		return "", fmt.Errorf("no annotation found for MRC %s/%s, expected annotation %s", mrc.Namespace, mrc.Name, constants.MRCVersionAnnotation)
-	}
-	return mrc.Annotations[constants.MRCVersionAnnotation], nil
-}
-
 // getTresorOSMCertificateManager returns a certificate manager instance with Tresor as the certificate provider
 func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, string, error) {
 	var err error
@@ -177,11 +167,7 @@ func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.Mesh
 		return nil, "", fmt.Errorf("failed to instantiate Tresor as a Certificate Manager: %w", err)
 	}
 
-	id, err := getMRCID(mrc)
-	if err != nil {
-		return nil, "", err
-	}
-	return tresorClient, id, nil
+	return tresorClient, mrc.Name, nil
 }
 
 // getHashiVaultOSMCertificateManager returns a certificate manager instance with Hashi Vault as the certificate provider
@@ -210,11 +196,8 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 	if err != nil {
 		return nil, "", fmt.Errorf("error instantiating Hashicorp Vault as a Certificate Manager: %w", err)
 	}
-	id, err := getMRCID(mrc)
-	if err != nil {
-		return nil, "", err
-	}
-	return vaultClient, id, nil
+
+	return vaultClient, mrc.Name, nil
 }
 
 // getHashiVaultOSMToken returns the Hashi Vault token from the secret specified in the provided secret key reference
@@ -253,9 +236,6 @@ func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2
 	if err != nil {
 		return nil, "", fmt.Errorf("error instantiating Jetstack cert-manager client: %w", err)
 	}
-	id, err := getMRCID(mrc)
-	if err != nil {
-		return nil, "", err
-	}
-	return cmClient, id, nil
+
+	return cmClient, mrc.Name, nil
 }

@@ -43,9 +43,6 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "osm-mesh-root-certificate",
 					Namespace: "osm-system",
-					Annotations: map[string]string{
-						constants.MRCVersionAnnotation: "0",
-					},
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					Provider: v1alpha2.ProviderSpec{

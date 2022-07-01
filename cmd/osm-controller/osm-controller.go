@@ -112,8 +112,8 @@ func init() {
 	flags.StringVar(&vaultOptions.VaultToken, "vault-token", "", "Secret token for the the Hashi Vault")
 	flags.StringVar(&vaultOptions.VaultRole, "vault-role", "openservicemesh", "Name of the Vault role dedicated to Open Service Mesh")
 	flags.IntVar(&vaultOptions.VaultPort, "vault-port", 8200, "Port of the Hashi Vault")
-	flags.StringVar(&vaultOptions.VaultRole, "vault-token-secret-name", "", "Name of the secret storing the Vault token used in OSM")
-	flags.StringVar(&vaultOptions.VaultRole, "vault-token-secret-key", "", "Key for the vault token used in OSM")
+	flags.StringVar(&vaultOptions.VaultTokenSecretName, "vault-token-secret-name", "", "Name of the secret storing the Vault token used in OSM")
+	flags.StringVar(&vaultOptions.VaultTokenSecretKey, "vault-token-secret-key", "", "Key for the vault token used in OSM")
 
 	// Cert-manager certificate manager/provider options
 	flags.StringVar(&certManagerOptions.IssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
@@ -222,7 +222,7 @@ func main() {
 		}
 	} else {
 		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
-			certOpts, msgBroker, informerCollection, 5*time.Second)
+			certOpts, msgBroker, 5*time.Second)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error fetching certificate manager of kind %s", certProviderKind)

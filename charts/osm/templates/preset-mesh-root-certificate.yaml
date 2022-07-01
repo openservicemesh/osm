@@ -1,3 +1,4 @@
+{{- if .Values.osm.unsafe.enableMeshRootCertificate }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -42,3 +43,4 @@ data:
         {{- end}}
       }
     }
+{{- end}}

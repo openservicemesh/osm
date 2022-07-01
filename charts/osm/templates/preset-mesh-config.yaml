@@ -1,4 +1,3 @@
-{{- if .Values.osm.unsafe.enableMeshRootCertificate }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -59,4 +58,3 @@ data:
         "enableRetryPolicy": {{.Values.osm.featureFlags.enableRetryPolicy | mustToJson}}
       }
     }
-{{- end }}
