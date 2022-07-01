@@ -13,7 +13,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
@@ -50,6 +49,7 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent,
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -60,7 +60,6 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent,
 							},
 						},
 					},
-					TrustDomain: "cluster.local",
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
@@ -74,14 +73,14 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent,
 }
 
 // NewFake constructs a fake certificate client using a certificate
-func NewFake(msgBroker *messaging.Broker, checkInterval time.Duration) *certificate.Manager {
+func NewFake(checkInterval time.Duration) *certificate.Manager {
 	getValidityDuration := func() time.Duration { return 1 * time.Hour }
-	return NewFakeWithValidityDuration(getValidityDuration, msgBroker, checkInterval)
+	return NewFakeWithValidityDuration(getValidityDuration, checkInterval)
 }
 
 // NewFakeWithValidityDuration constructs a fake certificate manager with specified cert validity duration
-func NewFakeWithValidityDuration(getCertValidityDuration func() time.Duration, msgBroker *messaging.Broker, checkInterval time.Duration) *certificate.Manager {
-	tresorCertManager, err := certificate.NewManager(context.Background(), &fakeMRCClient{}, getCertValidityDuration, getCertValidityDuration, msgBroker, checkInterval)
+func NewFakeWithValidityDuration(getCertValidityDuration func() time.Duration, checkInterval time.Duration) *certificate.Manager {
+	tresorCertManager, err := certificate.NewManager(context.Background(), &fakeMRCClient{}, getCertValidityDuration, getCertValidityDuration, checkInterval)
 	if err != nil {
 		log.Error().Err(err).Msg("error encountered creating fake cert manager")
 		return nil

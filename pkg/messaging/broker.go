@@ -35,7 +35,6 @@ func NewBroker(stopCh <-chan struct{}) *Broker {
 		proxyUpdatePubSub: pubsub.New(0),
 		proxyUpdateCh:     make(chan proxyUpdateEvent),
 		kubeEventPubSub:   pubsub.New(0),
-		certPubSub:        pubsub.New(0),
 	}
 
 	go b.runWorkqueueProcessor(stopCh)
@@ -66,11 +65,6 @@ func (b *Broker) GetProxyUpdatePubSub() *pubsub.PubSub {
 // GetKubeEventPubSub returns the PubSub instance corresponding to k8s events
 func (b *Broker) GetKubeEventPubSub() *pubsub.PubSub {
 	return b.kubeEventPubSub
-}
-
-// GetCertPubSub returns the PubSub instance corresponding to certificate events
-func (b *Broker) GetCertPubSub() *pubsub.PubSub {
-	return b.certPubSub
 }
 
 // GetTotalQProxyEventCount returns the total number of events read from the workqueue

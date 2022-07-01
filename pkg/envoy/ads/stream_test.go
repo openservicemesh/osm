@@ -13,45 +13,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 )
 
-func TestIsCNForProxy(t *testing.T) {
-	type testCase struct {
-		name     string
-		cn       certificate.CommonName
-		proxy    *envoy.Proxy
-		expected bool
-	}
-
-	testCases := []testCase{
-		{
-			name: "workload CN belongs to proxy",
-			cn:   certificate.CommonName("svc-acc.namespace.cluster.local"),
-			proxy: func() *envoy.Proxy {
-				p := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("svc-acc", "namespace"), nil)
-				return p
-			}(),
-			expected: true,
-		},
-		{
-			name: "workload CN does not belong to proxy",
-			cn:   certificate.CommonName("svc-acc.namespace.cluster.local"),
-			proxy: func() *envoy.Proxy {
-				p := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("svc-acc-foo", "namespace"), nil)
-				return p
-			}(),
-			expected: false,
-		},
-	}
-
-	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			assert := tassert.New(t)
-
-			actual := isCNforProxy(tc.proxy, tc.cn)
-			assert.Equal(tc.expected, actual)
-		})
-	}
-}
-
 func findSliceElem(slice []string, elem string) bool {
 	for _, v := range slice {
 		if v == elem {

@@ -55,7 +55,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 
 	cfg := configurator.NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
 
-	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	certManager := tresorFake.NewFake(1 * time.Hour)
 
 	// #1683 tracks potential improvements to the following dynamic mocks
 	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {

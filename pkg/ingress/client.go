@@ -1,8 +1,6 @@
 package ingress
 
 import (
-	"fmt"
-
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -13,7 +11,7 @@ import (
 
 // Initialize initializes the client and starts the ingress gateway certificate manager routine
 func Initialize(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{},
-	cfg configurator.Configurator, certProvider *certificate.Manager, msgBroker *messaging.Broker) error {
+	cfg configurator.Configurator, certProvider *certificate.Manager, msgBroker *messaging.Broker) {
 	c := &client{
 		kubeClient:     kubeClient,
 		kubeController: kubeController,
@@ -22,9 +20,5 @@ func Initialize(kubeClient kubernetes.Interface, kubeController k8s.Controller, 
 		msgBroker:      msgBroker,
 	}
 
-	if err := c.provisionIngressGatewayCert(stop); err != nil {
-		return fmt.Errorf("Error provisioning ingress gateway certificate: %w", err)
-	}
-
-	return nil
+	go c.provisionIngressGatewayCert(c.cfg.GetMeshConfig().Spec.Certificate.IngressGateway, stop)
 }

@@ -2013,7 +2013,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			fakeCertManager := tresorFake.NewFake(nil, 1*time.Hour)
+			fakeCertManager := tresorFake.NewFake(1 * time.Hour)
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
