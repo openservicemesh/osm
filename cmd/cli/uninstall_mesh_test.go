@@ -623,7 +623,6 @@ func TestFindSpecifiedMesh(t *testing.T) {
 		name                  string
 		specifiedMesh         string
 		meshList              []meshInfo
-		meshFlagSpecified     bool
 		expSpecifiedMeshFound bool
 	}{
 		{
@@ -635,7 +634,6 @@ func TestFindSpecifiedMesh(t *testing.T) {
 					namespace: testNamespace,
 				},
 			},
-			meshFlagSpecified:     false,
 			expSpecifiedMeshFound: false,
 		},
 		{
@@ -647,7 +645,6 @@ func TestFindSpecifiedMesh(t *testing.T) {
 					namespace: testNamespace,
 				},
 			},
-			meshFlagSpecified:     true,
 			expSpecifiedMeshFound: false,
 		},
 		{
@@ -659,7 +656,6 @@ func TestFindSpecifiedMesh(t *testing.T) {
 					namespace: testNamespace,
 				},
 			},
-			meshFlagSpecified:     true,
 			expSpecifiedMeshFound: true,
 		},
 	}
@@ -704,7 +700,7 @@ func TestFindSpecifiedMesh(t *testing.T) {
 				deleteClusterWideResources: true,
 				actionConfig:               new(action.Configuration),
 			}
-			specifiedMeshFound := uninstall.findSpecifiedMesh(test.meshFlagSpecified, test.meshList)
+			specifiedMeshFound := uninstall.findSpecifiedMesh(test.meshList)
 			assert.Equal(specifiedMeshFound, test.expSpecifiedMeshFound)
 		})
 	}
@@ -715,7 +711,6 @@ func TestPromptMeshUninstall(t *testing.T) {
 		name                 string
 		userPromptsYes       bool
 		meshInfoList         []meshInfo
-		meshFlagSpecified    bool
 		specifiedMeshName    string
 		expMeshesToUninstall []meshInfo
 	}{
@@ -728,7 +723,6 @@ func TestPromptMeshUninstall(t *testing.T) {
 					namespace: testNamespace,
 				},
 			},
-			meshFlagSpecified:    false,
 			specifiedMeshName:    "",
 			expMeshesToUninstall: []meshInfo{},
 		},
@@ -741,7 +735,6 @@ func TestPromptMeshUninstall(t *testing.T) {
 					namespace: testNamespace,
 				},
 			},
-			meshFlagSpecified: false,
 			specifiedMeshName: "",
 			expMeshesToUninstall: []meshInfo{
 				{
@@ -759,7 +752,6 @@ func TestPromptMeshUninstall(t *testing.T) {
 					namespace: testNamespace,
 				},
 			},
-			meshFlagSpecified:    true,
 			specifiedMeshName:    testMeshName,
 			expMeshesToUninstall: []meshInfo{},
 		},
@@ -772,7 +764,6 @@ func TestPromptMeshUninstall(t *testing.T) {
 					namespace: testNamespace,
 				},
 			},
-			meshFlagSpecified: true,
 			specifiedMeshName: testMeshName,
 			expMeshesToUninstall: []meshInfo{
 				{
@@ -832,7 +823,7 @@ func TestPromptMeshUninstall(t *testing.T) {
 				actionConfig:               new(action.Configuration),
 			}
 
-			meshList, err := uninstall.promptMeshUninstall(test.meshInfoList, meshesToUninstall, test.meshFlagSpecified)
+			meshList, err := uninstall.promptMeshUninstall(test.meshInfoList, meshesToUninstall)
 			assert.Nil(err)
 			assert.ElementsMatch(test.expMeshesToUninstall, meshList)
 		})

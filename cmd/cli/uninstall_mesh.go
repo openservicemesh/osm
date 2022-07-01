@@ -74,18 +74,18 @@ func newUninstallMeshCmd(config *action.Configuration, in io.Reader, out io.Writ
 			// get kubeconfig and initialize k8s client
 			kubeconfig, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return fmt.Errorf("Error fetching kubeconfig: %s", err)
 			}
 			uninstall.config = kubeconfig
 
 			uninstall.clientSet, err = kubernetes.NewForConfig(kubeconfig)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
+				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
 			}
 
 			uninstall.extensionsClientset, err = extensionsClientset.NewForConfig(kubeconfig)
 			if err != nil {
-				return errors.Errorf("Could not access extension client set: %s", err)
+				return fmt.Errorf("Could not access extension client set: %s", err)
 			}
 
 			uninstall.meshNamespace = settings.Namespace()
@@ -119,11 +119,9 @@ func (d *uninstallMeshCmd) run() error {
 			return nil
 		}
 
-		meshFlagSpecified := d.meshName != ""
-
 		// Searches for the mesh specified by the mesh-name flag if specified
-		specifiedMeshFound := d.findSpecifiedMesh(meshFlagSpecified, meshInfoList)
-		if meshFlagSpecified && !specifiedMeshFound {
+		specifiedMeshFound := d.findSpecifiedMesh(meshInfoList)
+		if !specifiedMeshFound {
 			return nil
 		}
 
@@ -143,7 +141,7 @@ func (d *uninstallMeshCmd) run() error {
 				return err
 			}
 			// Prompts user on whether to uninstall each OSM mesh in the cluster
-			uninstallMeshes, err := d.promptMeshUninstall(meshInfoList, meshesToUninstall, meshFlagSpecified)
+			uninstallMeshes, err := d.promptMeshUninstall(meshInfoList, meshesToUninstall)
 			if err != nil {
 				return err
 			}
@@ -190,8 +188,12 @@ func (d *uninstallMeshCmd) run() error {
 	return err
 }
 
-func (d *uninstallMeshCmd) findSpecifiedMesh(meshFlagSpecified bool, meshInfoList []meshInfo) bool {
-	if !meshFlagSpecified {
+func (d *uninstallMeshCmd) meshSpecified() bool {
+	return d.meshName != ""
+}
+
+func (d *uninstallMeshCmd) findSpecifiedMesh(meshInfoList []meshInfo) bool {
+	if !d.meshSpecified() {
 		return false
 	}
 
@@ -207,10 +209,10 @@ func (d *uninstallMeshCmd) findSpecifiedMesh(meshFlagSpecified bool, meshInfoLis
 	return specifiedMeshFound
 }
 
-func (d *uninstallMeshCmd) promptMeshUninstall(meshInfoList, meshesToUninstall []meshInfo, meshFlagSpecified bool) ([]meshInfo, error) {
+func (d *uninstallMeshCmd) promptMeshUninstall(meshInfoList, meshesToUninstall []meshInfo) ([]meshInfo, error) {
 	for _, mesh := range meshInfoList {
 		// Only prompt for specified mesh if `mesh-name` is specified
-		if meshFlagSpecified && mesh.name != d.meshName {
+		if d.meshSpecified() && mesh.name != d.meshName {
 			continue
 		}
 		confirm, err := confirm(d.in, d.out, fmt.Sprintf("\nUninstall OSM [mesh name: %s] in namespace [%s] and/or OSM resources?", mesh.name, mesh.namespace), 3)
@@ -233,7 +235,7 @@ func (d *uninstallMeshCmd) deleteNs(ctx context.Context, ns string) error {
 			fmt.Fprintf(d.out, "OSM namespace [%s] not found\n", ns)
 			return nil
 		}
-		return errors.Errorf("Could not delete OSM namespace [%s] - %v", ns, err)
+		return fmt.Errorf("Could not delete OSM namespace [%s] - %v", ns, err)
 	}
 	fmt.Fprintf(d.out, "OSM namespace [%s] deleted successfully\n", ns)
 	return nil
@@ -254,7 +256,7 @@ func (d *uninstallMeshCmd) deleteClusterResources() error {
 
 		failedDeletions := d.uninstallClusterResources()
 		if len(failedDeletions) != 0 {
-			return errors.Errorf("Failed to completely delete the following OSM resource types: %+v", failedDeletions)
+			return fmt.Errorf("Failed to completely delete the following OSM resource types: %+v", failedDeletions)
 		}
 	}
 	return nil
@@ -318,7 +320,7 @@ func (d *uninstallMeshCmd) uninstallCustomResourceDefinitions() error {
 	}
 
 	if len(failedDeletions) != 0 {
-		return errors.Errorf("Failed to delete the following OSM CRDs: %+v", failedDeletions)
+		return fmt.Errorf("Failed to delete the following OSM CRDs: %+v", failedDeletions)
 	}
 
 	return nil
@@ -365,7 +367,7 @@ func (d *uninstallMeshCmd) uninstallMutatingWebhookConfigurations() error {
 	}
 
 	if len(failedDeletions) != 0 {
-		return errors.Errorf("Found but failed to delete the following OSM MutatingWebhookConfigurations: %+v", failedDeletions)
+		return fmt.Errorf("Found but failed to delete the following OSM MutatingWebhookConfigurations: %+v", failedDeletions)
 	}
 
 	return nil
@@ -413,7 +415,7 @@ func (d *uninstallMeshCmd) uninstallValidatingWebhookConfigurations() error {
 	}
 
 	if len(failedDeletions) != 0 {
-		return errors.Errorf("Found but failed to delete the following OSM ValidatingWebhookConfigurations: %+v", failedDeletions)
+		return fmt.Errorf("Found but failed to delete the following OSM ValidatingWebhookConfigurations: %+v", failedDeletions)
 	}
 
 	return nil
@@ -447,7 +449,7 @@ func (d *uninstallMeshCmd) uninstallSecrets() error {
 	}
 
 	if len(failedDeletions) != 0 {
-		return errors.Errorf("Found but failed to delete the following OSM secrets in namespace %s: %+v", d.meshNamespace, failedDeletions)
+		return fmt.Errorf("Found but failed to delete the following OSM secrets in namespace %s: %+v", d.meshNamespace, failedDeletions)
 	}
 
 	return nil
