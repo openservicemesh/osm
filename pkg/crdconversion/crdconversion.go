@@ -181,7 +181,7 @@ func updateCrdConfiguration(cert *certificate.Certificate, crdClient apiclient.A
 					Port:      pointer.Int32(constants.CRDConversionWebhookPort),
 					Path:      &crdConversionPath,
 				},
-				CABundle: cert.GetIssuingCA(),
+				CABundle: cert.GetTrustedCAs(),
 			},
 			ConversionReviewVersions: conversionReviewVersions,
 		},

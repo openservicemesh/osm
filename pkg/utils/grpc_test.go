@@ -19,7 +19,7 @@ func TestNewGrpc(t *testing.T) {
 
 	certPem := adsCert.GetCertificateChain()
 	keyPem := adsCert.GetPrivateKey()
-	rootPem := adsCert.GetIssuingCA()
+	rootPem := adsCert.GetTrustedCAs()
 	var emptyByteArray []byte
 
 	type newGrpcTest struct {
@@ -59,7 +59,7 @@ func TestGrpcServe(t *testing.T) {
 
 	serverType := "ADS"
 	port := 9999
-	grpcServer, lis, err := NewGrpc(serverType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
+	grpcServer, lis, err := NewGrpc(serverType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetTrustedCAs())
 	assert.Nil(err)
 
 	ctx, cancel := context.WithCancel(context.Background())

@@ -16,7 +16,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
-	tresorfake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
@@ -51,7 +51,7 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 		EnableEgressPolicy: false,
 	}).AnyTimes()
 
-	mc := tresorfake.NewFake(nil, 1*time.Hour)
+	mc := tresorFake.NewFake(nil, 1*time.Hour)
 	a.NotNil(a)
 
 	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, mc, proxyRegistry)

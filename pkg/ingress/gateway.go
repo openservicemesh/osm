@@ -76,7 +76,7 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCer
 // storeCertInSecret stores the certificate in the specified k8s TLS secret
 func (c *client) storeCertInSecret(cert *certificate.Certificate, secret corev1.SecretReference) error {
 	secretData := map[string][]byte{
-		"ca.crt":  cert.GetIssuingCA(),
+		"ca.crt":  cert.GetTrustedCAs(),
 		"tls.crt": cert.GetCertificateChain(),
 		"tls.key": cert.GetPrivateKey(),
 	}

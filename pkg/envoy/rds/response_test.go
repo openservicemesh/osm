@@ -19,7 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	tresorfake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
@@ -297,7 +297,7 @@ func TestNewResponse(t *testing.T) {
 				ResourceNames: []string{},
 			}
 
-			mc := tresorfake.NewFake(nil, 1*time.Hour)
+			mc := tresorFake.NewFake(nil, 1*time.Hour)
 
 			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mockConfigurator, mc, proxyRegistry)
 			assert.Nil(err)
@@ -444,7 +444,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 		return []service.MeshService{tests.BookstoreV1Service}, nil
 	}), nil)
 
-	mc := tresorfake.NewFake(nil, 1*time.Hour)
+	mc := tresorFake.NewFake(nil, 1*time.Hour)
 
 	mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(nil).AnyTimes()

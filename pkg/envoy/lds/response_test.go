@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	tresorfake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
@@ -101,7 +101,7 @@ func TestNewResponse(t *testing.T) {
 		return nil, fmt.Errorf("dummy error")
 	}), nil)
 
-	cm := tresorfake.NewFake(nil, 1*time.Hour)
+	cm := tresorFake.NewFake(nil, 1*time.Hour)
 	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
 	assert.NotNil(err)
 	assert.Nil(resources)
