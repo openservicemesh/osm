@@ -36,13 +36,10 @@ func (wh *mutatingWebhook) createEnvoyBootstrapFromExisting(newBootstrapSecretNa
 }
 
 func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert *certificate.Certificate, originalHealthProbes models.HealthProbes) (*corev1.Secret, error) {
-	configMeta := bootstrap.EnvoyBootstrapConfigMeta{
-		EnvoyAdminPort: constants.EnvoyAdminPort,
-		XDSClusterName: constants.OSMControllerName,
-		NodeID:         cert.GetCommonName().String(),
+	builder := bootstrap.Builder{
+		NodeID: cert.GetCommonName().String(),
 
 		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, osmNamespace),
-		XDSPort: constants.ADSServerPort,
 
 		// OriginalHealthProbes stores the path and port for liveness, readiness, and startup health probes as initially
 		// defined on the Pod Spec.
@@ -53,12 +50,12 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 		CipherSuites:          wh.configurator.GetMeshConfig().Spec.Sidecar.CipherSuites,
 		ECDHCurves:            wh.configurator.GetMeshConfig().Spec.Sidecar.ECDHCurves,
 	}
-	config, err := bootstrap.GenerateEnvoyConfig(configMeta, wh.configurator)
+	bootstrapConfig, err := builder.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return wh.marshalAndSaveBootstrap(name, namespace, config, cert)
+	return wh.marshalAndSaveBootstrap(name, namespace, bootstrapConfig, cert)
 }
 
 func (wh *mutatingWebhook) marshalAndSaveBootstrap(name, namespace string, config *xds_bootstrap.Bootstrap, cert *certificate.Certificate) (*corev1.Secret, error) {
