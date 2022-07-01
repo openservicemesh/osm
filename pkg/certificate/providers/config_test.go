@@ -165,50 +165,13 @@ func TestGetCertificateManager(t *testing.T) {
 			cfg:         mockConfigurator,
 			expectError: true,
 		},
-		{
-			name:              "Reads MRC from informer collection",
-			cfg:               mockConfigurator,
-			kubeClient:        fake.NewSimpleClientset(),
-			options:           TresorOptions{SecretName: "osm-ca-bundle"},
-			providerNamespace: "osm-system",
-			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
-					Namespace: "osm-system",
-					Annotations: map[string]string{
-						constants.MRCVersionAnnotation: "0",
-					},
-				},
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Provider: v1alpha2.ProviderSpec{
-						Tresor: &v1alpha2.TresorProviderSpec{
-							CA: v1alpha2.TresorCASpec{
-								SecretRef: v1.SecretReference{
-									Name:      "osm-ca-bundle",
-									Namespace: "osm-system",
-								},
-							},
-						},
-					},
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					State: constants.MRCStateActive,
-				},
-			}),
-			informerCollectionFunc: func(tc testCase) (*informers.InformerCollection, error) {
-				ic, err := informers.NewInformerCollection("osm", nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient, "", "osm-system"))
-				if err != nil {
-					return nil, err
-				}
-
-				return ic, nil
-			},
-		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf(tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
+
+			certOptions := &CertProviderOptions{UseMeshRootCertificate: false, Option: tc.options}
 
 			oldCA := getCA
 			getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
@@ -226,7 +189,7 @@ func TestGetCertificateManager(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker, ic, 1*time.Hour)
+			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.cfg, tc.providerNamespace, certOptions, tc.msgBroker, ic, 1*time.Hour)
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)

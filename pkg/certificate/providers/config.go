@@ -44,14 +44,16 @@ var getCA func(certificate.Issuer) (pem.RootCertificate, error) = func(i certifi
 // NewCertificateManager returns a new certificate manager, with an MRC compat client.
 // TODO(4713): Use an informer behind a feature flag.
 func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
-	providerNamespace string, options Options, msgBroker *messaging.Broker, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
-	if err := options.Validate(); err != nil {
+	providerNamespace string, certOptions *CertProviderOptions, msgBroker *messaging.Broker, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
+	if certOptions != nil && certOptions.Option != nil {
+		return nil, errors.Errorf("failed to configure certificate manager: certOptions should not be nil")
+	}
+	if err := certOptions.Option.Validate(); err != nil {
 		return nil, err
 	}
 
 	var mrcClient certificate.MRCClient
-	if ic == nil || len(ic.List(informers.InformerKeyMeshRootCertificate)) == 0 {
-		// no MRCs detected; use the compat client
+	if !certOptions.UseMeshRootCertificate {
 		c := &MRCCompatClient{
 			MRCProviderGenerator: MRCProviderGenerator{
 				kubeClient:      kubeClient,
@@ -68,7 +70,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 					},
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
-					Provider:    options.AsProviderSpec(),
+					Provider:    certOptions.Option.AsProviderSpec(),
 					TrustDomain: "cluster.local",
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
@@ -77,12 +79,11 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 			},
 		}
 		// TODO(#4745): Remove after deprecating the osm.vault.token option.
-		if vaultOption, ok := options.(VaultOptions); ok {
+		if vaultOption, ok := certOptions.Option.(VaultOptions); ok {
 			c.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
 		}
 		mrcClient = c
 	} else {
-		// we have MRCs; use the MRC Client
 		c := &MRCComposer{
 			MRCProviderGenerator: MRCProviderGenerator{
 				kubeClient:      kubeClient,
@@ -93,7 +94,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 			informerCollection: ic,
 		}
 		// TODO(#4745): Remove after deprecating the osm.vault.token option.
-		if vaultOption, ok := options.(VaultOptions); ok {
+		if vaultOption, ok := certOptions.Option.(VaultOptions); ok {
 			c.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
 		}
 

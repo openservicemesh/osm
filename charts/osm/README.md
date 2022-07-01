@@ -88,6 +88,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.enableDebugServer | bool | `false` | Enable the debug HTTP server on OSM controller |
 | osm.enableEgress | bool | `true` | Enable egress in the mesh |
 | osm.enableFluentbit | bool | `false` | Enable Fluent Bit sidecar deployment on OSM controller's pod |
+| osm.enableMeshRootCertificate | bool | `false` | Enable the unsupported MeshRootCertificate. Support and functionality are not guaranteed. |
 | osm.enablePermissiveTrafficPolicy | bool | `true` | Enable permissive traffic policy mode |
 | osm.enablePrivilegedInitContainer | bool | `false` | Run init container in privileged mode |
 | osm.enableReconciler | bool | `false` | Enable reconciler for OSM's CRDs and mutating webhook |

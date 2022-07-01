@@ -57,7 +57,8 @@ var (
 	webhookTimeout     int32
 	osmVersion         string
 
-	certProviderKind string
+	certProviderKind          string
+	enableMeshRootCertificate bool
 
 	enableReconciler bool
 
@@ -87,6 +88,7 @@ func init() {
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
+	flags.BoolVar(&enableMeshRootCertificate, "enable-mesh-root-certificate", false, "Enable unsupported MeshRootCertificate to create the OSM Certificate Manager")
 	flags.StringVar(&caBundleSecretName, "ca-bundle-secret-name", "", "Name of the Kubernetes Secret for the OSM CA bundle")
 
 	// Vault certificate manager/provider options
@@ -95,6 +97,8 @@ func init() {
 	flags.StringVar(&vaultOptions.VaultToken, "vault-token", "", "Secret token for the the Hashi Vault")
 	flags.StringVar(&vaultOptions.VaultRole, "vault-role", "openservicemesh", "Name of the Vault role dedicated to Open Service Mesh")
 	flags.IntVar(&vaultOptions.VaultPort, "vault-port", 8200, "Port of the Hashi Vault")
+	flags.StringVar(&vaultOptions.VaultRole, "vault-token-secret-name", "", "Name of the secret storing the Vault token used in OSM")
+	flags.StringVar(&vaultOptions.VaultRole, "vault-token-secret-key", "", "Key for the vault token used in OSM")
 
 	// Cert-manager certificate manager/provider options
 	flags.StringVar(&certManagerOptions.IssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
@@ -111,15 +115,19 @@ func init() {
 }
 
 // TODO(#4502): This function can be deleted once we get rid of cert options.
-func getCertOptions() (providers.Options, error) {
+func getCertOptions() (*providers.CertProviderOptions, error) {
+	certOptions := &providers.CertProviderOptions{UseMeshRootCertificate: enableMeshRootCertificate}
 	switch providers.Kind(certProviderKind) {
 	case providers.TresorKind:
 		tresorOptions.SecretName = caBundleSecretName
-		return tresorOptions, nil
+		certOptions.Option = tresorOptions
+		return certOptions, nil
 	case providers.VaultKind:
-		return vaultOptions, nil
+		certOptions.Option = vaultOptions
+		return certOptions, nil
 	case providers.CertManagerKind:
-		return certManagerOptions, nil
+		certOptions.Option = certManagerOptions
+		return certOptions, nil
 	}
 	return nil, fmt.Errorf("unknown certificate provider kind: %s", certProviderKind)
 }
