@@ -37,14 +37,6 @@ var (
 	ValidCertificateProviders = []Kind{TresorKind, VaultKind, CertManagerKind}
 )
 
-// CertProviderOptions contains the options used to configure the certificate provider.
-// TODO(#4502): Remove CertProviderOptions.
-type CertProviderOptions struct {
-	// flag to specify how to configure the certificate provider
-	UseMeshRootCertificate bool
-	Option                 Options
-}
-
 // Options is an interface that contains required fields to convert the old style options to the new style MRC for
 // each provider type.
 // TODO(#4502): Remove this interface, and all of the options below.

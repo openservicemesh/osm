@@ -88,7 +88,6 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.enableDebugServer | bool | `false` | Enable the debug HTTP server on OSM controller |
 | osm.enableEgress | bool | `true` | Enable egress in the mesh |
 | osm.enableFluentbit | bool | `false` | Enable Fluent Bit sidecar deployment on OSM controller's pod |
-| osm.enableMeshRootCertificate | bool | `false` | Enable the unsupported MeshRootCertificate. Support and functionality are not guaranteed. |
 | osm.enablePermissiveTrafficPolicy | bool | `true` | Enable permissive traffic policy mode |
 | osm.enablePrivilegedInitContainer | bool | `false` | Run init container in privileged mode |
 | osm.enableReconciler | bool | `false` | Enable reconciler for OSM's CRDs and mutating webhook |
@@ -266,6 +265,8 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.tracing.port | int | `9411` | Port of the tracing collector service |
 | osm.tracing.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.trustDomain | string | `"cluster.local"` | The trust domain to use as part of the common name when requesting new certificates. |
+| osm.unsafe | object | `{"enableMeshRootCertificate":false}` | Unsafe values. Behavior is not supported. |
+| osm.unsafe.enableMeshRootCertificate | bool | `false` | Enable the MeshRootCertificate to configure the OSM certificate provider. |
 | osm.validatorWebhook.webhookConfigurationName | string | `""` | Name of the ValidatingWebhookConfiguration |
 | osm.vault.host | string | `""` | Hashicorp Vault host/service - where Vault is installed |
 | osm.vault.port | int | `8200` | port to use to connect to Vault |

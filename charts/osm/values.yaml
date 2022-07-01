@@ -167,8 +167,10 @@ osm:
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
     tolerations: []
 
-  # -- Enable the unsupported MeshRootCertificate. Support and functionality are not guaranteed.
-  enableMeshRootCertificate: false
+  # -- Unsafe values. Behavior is not supported.
+  unsafe:
+    # -- Enable the MeshRootCertificate to configure the OSM certificate provider.
+    enableMeshRootCertificate: false
 
   # -- The trust domain to use as part of the common name when requesting new certificates.
   trustDomain: cluster.local
@@ -551,7 +553,7 @@ osm:
 
   #
   # -- OSM's preinstall hook parameters
-  
+
   preinstall:
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
@@ -584,7 +586,7 @@ osm:
 
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-    affinity: 
+    affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:

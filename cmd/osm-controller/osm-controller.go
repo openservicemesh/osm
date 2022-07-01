@@ -129,19 +129,16 @@ func init() {
 }
 
 // TODO(#4502): This function can be deleted once we get rid of cert options.
-func getCertOptions() (*providers.CertProviderOptions, error) {
-	certOptions := &providers.CertProviderOptions{UseMeshRootCertificate: enableMeshRootCertificate}
+func getCertOptions() (providers.Options, error) {
 	switch providers.Kind(certProviderKind) {
 	case providers.TresorKind:
 		tresorOptions.SecretName = caBundleSecretName
-		certOptions.Option = tresorOptions
-		return certOptions, nil
+		return tresorOptions, nil
 	case providers.VaultKind:
-		certOptions.Option = vaultOptions
-		return certOptions, nil
+		vaultOptions.VaultTokenSecretNamespace = osmNamespace
+		return vaultOptions, nil
 	case providers.CertManagerKind:
-		certOptions.Option = certManagerOptions
-		return certOptions, nil
+		return certManagerOptions, nil
 	}
 	return nil, fmt.Errorf("unknown certificate provider kind: %s", certProviderKind)
 }
@@ -215,12 +212,21 @@ func main() {
 	}
 
 	// Intitialize certificate manager/provider
-	certManager, err := providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
-		certOpts, msgBroker, informerCollection, 5*time.Second)
-
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
-			"Error fetching certificate manager of kind %s", certProviderKind)
+	var certManager *certificate.Manager
+	if enableMeshRootCertificate {
+		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
+			certOpts, msgBroker, informerCollection, 5*time.Second)
+		if err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
+				"Error fetching certificate manager of kind %s from MRC", certProviderKind)
+		}
+	} else {
+		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
+			certOpts, msgBroker, informerCollection, 5*time.Second)
+		if err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
+				"Error fetching certificate manager of kind %s", certProviderKind)
+		}
 	}
 
 	kubeProvider := kube.NewClient(k8sClient, cfg)

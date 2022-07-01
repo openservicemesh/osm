@@ -41,64 +41,65 @@ var getCA func(certificate.Issuer) (pem.RootCertificate, error) = func(i certifi
 	return cert.GetIssuingCA(), nil
 }
 
-// NewCertificateManager returns a new certificate manager, with an MRC compat client.
-// TODO(4713): Use an informer behind a feature flag.
+// NewCertificateManager returns a new certificate manager with a MRC compat client.
+// TODO(4713): Remove and use NewCertificateManagerFromMRC
 func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
-	providerNamespace string, certOptions *CertProviderOptions, msgBroker *messaging.Broker, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
-	if certOptions != nil && certOptions.Option != nil {
-		return nil, errors.Errorf("failed to configure certificate manager: certOptions should not be nil")
-	}
-	if err := certOptions.Option.Validate(); err != nil {
+	providerNamespace string, option Options, msgBroker *messaging.Broker, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
+	if err := option.Validate(); err != nil {
 		return nil, err
 	}
 
-	var mrcClient certificate.MRCClient
-	if !certOptions.UseMeshRootCertificate {
-		c := &MRCCompatClient{
-			MRCProviderGenerator: MRCProviderGenerator{
-				kubeClient:      kubeClient,
-				kubeConfig:      kubeConfig,
-				KeyBitSize:      cfg.GetCertKeyBitSize(),
-				caExtractorFunc: getCA,
-			},
-			mrc: &v1alpha2.MeshRootCertificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "legacy-compat",
-					Namespace: providerNamespace,
-					Annotations: map[string]string{
-						constants.MRCVersionAnnotation: "legacy-compat",
-					},
-				},
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Provider:    certOptions.Option.AsProviderSpec(),
-					TrustDomain: "cluster.local",
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					State: constants.MRCStateActive,
+	mrcClient := &MRCCompatClient{
+		MRCProviderGenerator: MRCProviderGenerator{
+			kubeClient:      kubeClient,
+			kubeConfig:      kubeConfig,
+			KeyBitSize:      cfg.GetCertKeyBitSize(),
+			caExtractorFunc: getCA,
+		},
+		mrc: &v1alpha2.MeshRootCertificate{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "legacy-compat",
+				Namespace: providerNamespace,
+				Annotations: map[string]string{
+					constants.MRCVersionAnnotation: "legacy-compat",
 				},
 			},
-		}
-		// TODO(#4745): Remove after deprecating the osm.vault.token option.
-		if vaultOption, ok := certOptions.Option.(VaultOptions); ok {
-			c.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
-		}
-		mrcClient = c
-	} else {
-		c := &MRCComposer{
-			MRCProviderGenerator: MRCProviderGenerator{
-				kubeClient:      kubeClient,
-				kubeConfig:      kubeConfig,
-				KeyBitSize:      cfg.GetCertKeyBitSize(),
-				caExtractorFunc: getCA,
+			Spec: v1alpha2.MeshRootCertificateSpec{
+				Provider:    option.AsProviderSpec(),
+				TrustDomain: "cluster.local",
 			},
-			informerCollection: ic,
-		}
-		// TODO(#4745): Remove after deprecating the osm.vault.token option.
-		if vaultOption, ok := certOptions.Option.(VaultOptions); ok {
-			c.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
-		}
+			Status: v1alpha2.MeshRootCertificateStatus{
+				State: constants.MRCStateActive,
+			},
+		},
+	}
+	// TODO(#4745): Remove after deprecating the osm.vault.token option.
+	if vaultOption, ok := option.(VaultOptions); ok {
+		mrcClient.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
+	}
 
-		mrcClient = c
+	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, msgBroker, checkInterval)
+}
+
+// NewCertificateManagerFromMRC returns a new certificate manager.
+func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
+	providerNamespace string, option Options, msgBroker *messaging.Broker, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
+	if err := option.Validate(); err != nil {
+		return nil, err
+	}
+
+	mrcClient := &MRCComposer{
+		MRCProviderGenerator: MRCProviderGenerator{
+			kubeClient:      kubeClient,
+			kubeConfig:      kubeConfig,
+			KeyBitSize:      cfg.GetCertKeyBitSize(),
+			caExtractorFunc: getCA,
+		},
+		informerCollection: ic,
+	}
+	// TODO(#4745): Remove after deprecating the osm.vault.token option.
+	if vaultOption, ok := option.(VaultOptions); ok {
+		mrcClient.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
 	}
 
 	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, msgBroker, checkInterval)

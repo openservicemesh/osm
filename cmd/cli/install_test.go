@@ -290,14 +290,6 @@ var _ = Describe("Running the install command", func() {
 			err := installCmd.run(config)
 			Expect(err.Error()).To(ContainSubstring("osm.vault.host is required"))
 		})
-
-		It("should error when token isn't set", func() {
-			installCmd.setOptions = append(installCmd.setOptions,
-				"osm.vault.host=my-host",
-			)
-			err := installCmd.run(config)
-			Expect(err.Error()).To(ContainSubstring("osm.vault.token is required"))
-		})
 	})
 
 	Describe("with the cert-manager certificate manager", func() {

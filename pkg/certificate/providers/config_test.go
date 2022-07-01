@@ -171,8 +171,6 @@ func TestGetCertificateManager(t *testing.T) {
 		t.Run(fmt.Sprintf(tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			certOptions := &CertProviderOptions{UseMeshRootCertificate: false, Option: tc.options}
-
 			oldCA := getCA
 			getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
 				return pem.RootCertificate("id2"), nil
@@ -189,7 +187,7 @@ func TestGetCertificateManager(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.cfg, tc.providerNamespace, certOptions, tc.msgBroker, ic, 1*time.Hour)
+			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker, ic, 1*time.Hour)
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)
