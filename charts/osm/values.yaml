@@ -167,8 +167,8 @@ osm:
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
     tolerations: []
 
-  # -- Unsafe values. Behavior is not supported.
-  unsafe:
+  # -- Experimental values. Behavior is not supported.
+  experimental:
     # -- Enable the MeshRootCertificate to configure the OSM certificate provider.
     enableMeshRootCertificate: false
 
@@ -196,7 +196,7 @@ osm:
     token: ""
     # -- Vault role to be used by Open Service Mesh
     role: openservicemesh
-    # -- The Kubernetes secret storing the Vault token used in OSM
+    # -- The Kubernetes secret storing the Vault token used in OSM. The secret must be located in the namespace of the OSM installation
     secret:
       # -- The Kubernetes secret name storing the Vault token used in OSM
       name: ""

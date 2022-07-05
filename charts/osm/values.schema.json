@@ -438,15 +438,15 @@
                         "envoyproxy/envoy-windows:v1.22.1@sha256:92733f8e5beae5c45df204a0e13edbd29e99adf962d1b1c7869b197d85c64bd0"
                     ]
                 },
-                "unsafe": {
-                    "$id": "#/properties/osm/properties/unsafe",
+                "experimental": {
+                    "$id": "#/properties/osm/properties/experimental",
                     "type": "object",
-                    "title": "The unsafe schema",
+                    "title": "The experimental schema",
                     "description": "Parameters that are unsupported by OSM",
                     "additionalProperties": false,
                     "properties": {
                         "enableMeshRootCertificate": {
-                            "$id": "#/properties/osm/properties/unsafe/properties/enableMeshRootCertificate",
+                            "$id": "#/properties/osm/properties/experimental/properties/enableMeshRootCertificate",
                             "type": "boolean",
                             "title": "Enable the MeshRootCertificate",
                             "description": "Using the MeshRootCertificate to configure the OSM certificate provider is not supported",

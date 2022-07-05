@@ -39,13 +39,12 @@ func TestGetCertificateManager(t *testing.T) {
 		expectError bool
 
 		// params
-		kubeClient             kubernetes.Interface
-		restConfig             *rest.Config
-		cfg                    configurator.Configurator
-		providerNamespace      string
-		options                Options
-		msgBroker              *messaging.Broker
-		informerCollectionFunc func(testCase) (*informers.InformerCollection, error)
+		kubeClient        kubernetes.Interface
+		restConfig        *rest.Config
+		cfg               configurator.Configurator
+		providerNamespace string
+		options           Options
+		msgBroker         *messaging.Broker
 	}
 	testCases := []testCase{
 		{

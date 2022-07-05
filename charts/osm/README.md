@@ -93,6 +93,8 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.enableReconciler | bool | `false` | Enable reconciler for OSM's CRDs and mutating webhook |
 | osm.enforceSingleMesh | bool | `true` | Enforce only deploying one mesh in the cluster |
 | osm.envoyLogLevel | string | `"error"` | Log level for the Envoy proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error` |
+| osm.experimental | object | `{"enableMeshRootCertificate":false}` | Experimental values. Behavior is not supported. |
+| osm.experimental.enableMeshRootCertificate | bool | `false` | Enable the MeshRootCertificate to configure the OSM certificate provider. |
 | osm.featureFlags.enableAsyncProxyServiceMapping | bool | `false` | Enable async proxy-service mapping |
 | osm.featureFlags.enableEgressPolicy | bool | `true` | Enable OSM's Egress policy API. When enabled, fine grained control over Egress (external) traffic is enforced |
 | osm.featureFlags.enableEnvoyActiveHealthChecks | bool | `false` | Enable Envoy active health checks |
@@ -265,14 +267,12 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.tracing.port | int | `9411` | Port of the tracing collector service |
 | osm.tracing.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.trustDomain | string | `"cluster.local"` | The trust domain to use as part of the common name when requesting new certificates. |
-| osm.unsafe | object | `{"enableMeshRootCertificate":false}` | Unsafe values. Behavior is not supported. |
-| osm.unsafe.enableMeshRootCertificate | bool | `false` | Enable the MeshRootCertificate to configure the OSM certificate provider. |
 | osm.validatorWebhook.webhookConfigurationName | string | `""` | Name of the ValidatingWebhookConfiguration |
 | osm.vault.host | string | `""` | Hashicorp Vault host/service - where Vault is installed |
 | osm.vault.port | int | `8200` | port to use to connect to Vault |
 | osm.vault.protocol | string | `"http"` | protocol to use to connect to Vault |
 | osm.vault.role | string | `"openservicemesh"` | Vault role to be used by Open Service Mesh |
-| osm.vault.secret | object | `{"key":"","name":""}` | The Kubernetes secret storing the Vault token used in OSM |
+| osm.vault.secret | object | `{"key":"","name":""}` | The Kubernetes secret storing the Vault token used in OSM. The secret must be located in the namespace of the OSM installation |
 | osm.vault.secret.key | string | `""` | The Kubernetes secret key with the value bring the Vault token |
 | osm.vault.secret.name | string | `""` | The Kubernetes secret name storing the Vault token used in OSM |
 | osm.vault.token | string | `""` | token that should be used to connect to Vault |
