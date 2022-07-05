@@ -20,8 +20,8 @@ var (
 
 type fakeMRCClient struct{}
 
-func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, string, error) {
-	return &fakeIssuer{}, pem.RootCertificate("rootCA"), "fake-issuer-1", nil
+func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error) {
+	return &fakeIssuer{}, pem.RootCertificate("rootCA"), nil
 }
 
 // List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
@@ -43,9 +43,6 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "osm-mesh-root-certificate",
 					Namespace: "osm-system",
-					Annotations: map[string]string{
-						constants.MRCVersionAnnotation: "0",
-					},
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					Provider: v1alpha2.ProviderSpec{

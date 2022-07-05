@@ -22,15 +22,15 @@ const (
 
 type fakeMRCClient struct{}
 
-func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, pem.RootCertificate, string, error) {
+func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, pem.RootCertificate, error) {
 	rootCertCountry := "US"
 	rootCertLocality := "CA"
 	ca, err := tresor.NewCA("Fake Tresor CN", 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, err
 	}
 	issuer, err := tresor.New(ca, rootCertOrganization, 2048)
-	return issuer, pem.RootCertificate("rootCA"), "issuer-1", err
+	return issuer, pem.RootCertificate("rootCA"), err
 }
 
 // List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
@@ -48,9 +48,6 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent,
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "osm-mesh-root-certificate",
 					Namespace: "osm-system",
-					Annotations: map[string]string{
-						constants.MRCVersionAnnotation: "0",
-					},
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					Provider: v1alpha2.ProviderSpec{

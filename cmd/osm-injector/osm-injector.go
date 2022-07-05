@@ -25,6 +25,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/health"
@@ -57,7 +58,8 @@ var (
 	webhookTimeout     int32
 	osmVersion         string
 
-	certProviderKind string
+	certProviderKind          string
+	enableMeshRootCertificate bool
 
 	enableReconciler bool
 
@@ -87,6 +89,7 @@ func init() {
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
+	flags.BoolVar(&enableMeshRootCertificate, "enable-mesh-root-certificate", false, "Enable unsupported MeshRootCertificate to create the OSM Certificate Manager")
 	flags.StringVar(&caBundleSecretName, "ca-bundle-secret-name", "", "Name of the Kubernetes Secret for the OSM CA bundle")
 
 	// Vault certificate manager/provider options
@@ -95,6 +98,8 @@ func init() {
 	flags.StringVar(&vaultOptions.VaultToken, "vault-token", "", "Secret token for the the Hashi Vault")
 	flags.StringVar(&vaultOptions.VaultRole, "vault-role", "openservicemesh", "Name of the Vault role dedicated to Open Service Mesh")
 	flags.IntVar(&vaultOptions.VaultPort, "vault-port", 8200, "Port of the Hashi Vault")
+	flags.StringVar(&vaultOptions.VaultTokenSecretName, "vault-token-secret-name", "", "Name of the secret storing the Vault token used in OSM")
+	flags.StringVar(&vaultOptions.VaultTokenSecretKey, "vault-token-secret-key", "", "Key for the vault token used in OSM")
 
 	// Cert-manager certificate manager/provider options
 	flags.StringVar(&certManagerOptions.IssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
@@ -117,6 +122,7 @@ func getCertOptions() (providers.Options, error) {
 		tresorOptions.SecretName = caBundleSecretName
 		return tresorOptions, nil
 	case providers.VaultKind:
+		vaultOptions.VaultTokenSecretNamespace = osmNamespace
 		return vaultOptions, nil
 	case providers.CertManagerKind:
 		return certManagerOptions, nil
@@ -200,11 +206,21 @@ func main() {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
 	}
 	// Intitialize certificate manager/provider
-	certManager, err := providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
-		certOpts, msgBroker, informerCollection, 5*time.Second)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
-			"Error initializing certificate manager of kind %s", certProviderKind)
+	var certManager *certificate.Manager
+	if enableMeshRootCertificate {
+		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
+			certOpts, msgBroker, informerCollection, 5*time.Second)
+		if err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
+				"Error initializing certificate manager of kind %s from MRC", certProviderKind)
+		}
+	} else {
+		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
+			certOpts, msgBroker, 5*time.Second)
+		if err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
+				"Error initializing certificate manager of kind %s", certProviderKind)
+		}
 	}
 
 	// Initialize the sidecar injector webhook

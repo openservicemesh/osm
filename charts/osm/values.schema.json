@@ -983,7 +983,8 @@
                         "enableIngressBackendPolicy",
                         "enableEnvoyActiveHealthChecks",
                         "enableSnapshotCacheMode",
-                        "enableRetryPolicy"
+                        "enableRetryPolicy",
+                        "enableMeshRootCertificate"
                     ],
                     "properties": {
                         "enableWASMStats": {
@@ -1047,6 +1048,15 @@
                             "description": "Enable automatic request retries.",
                             "examples": [
                                 true
+                            ]
+                        },
+                        "enableMeshRootCertificate": {
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enableMeshRootCertificate",
+                            "type": "boolean",
+                            "title": "Enable the MeshRootCertificate",
+                            "description": "Enable the MeshRootCertificate to configure the OSM certificate provider.",
+                            "examples": [
+                                false
                             ]
                         }
                     },

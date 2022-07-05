@@ -191,7 +191,7 @@ osm:
     token: ""
     # -- Vault role to be used by Open Service Mesh
     role: openservicemesh
-    # -- The Kubernetes secret storing the Vault token used in OSM
+    # -- The Kubernetes secret storing the Vault token used in OSM. The secret must be located in the namespace of the OSM installation
     secret:
       # -- The Kubernetes secret name storing the Vault token used in OSM
       name: ""
@@ -482,6 +482,8 @@ osm:
     enableSnapshotCacheMode: false
     # -- Enable Retry Policy for automatic request retries
     enableRetryPolicy: false
+    # -- Enable the MeshRootCertificate to configure the OSM certificate provider
+    enableMeshRootCertificate: false
 
   # -- Node tolerations applied to control plane pods.
   # The specified tolerations allow pods to schedule onto nodes with matching taints.
@@ -547,7 +549,7 @@ osm:
 
   #
   # -- OSM's preinstall hook parameters
-  
+
   preinstall:
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
@@ -580,7 +582,7 @@ osm:
 
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-    affinity: 
+    affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
