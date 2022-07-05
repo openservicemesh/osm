@@ -58,7 +58,7 @@ spec:
             "--webhook-timeout", "{{.Values.osm.injector.webhookTimeoutSeconds}}",
             "--ca-bundle-secret-name", "{{.Values.osm.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.osm.certificateProvider.kind}}",
-            "--enable-mesh-root-certificate={{.Values.osm.experimental.enableMeshRootCertificate}}",
+            "--enable-mesh-root-certificate={{.Values.osm.featureFlags.enableMeshRootCertificate}}",
             {{ if eq .Values.osm.certificateProvider.kind "vault" }}
             "--vault-host", "{{.Values.osm.vault.host}}",
             "--vault-port", "{{.Values.osm.vault.port}}",

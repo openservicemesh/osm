@@ -103,36 +103,35 @@ func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Int
 }
 
 // GetCertIssuerForMRC returns a certificate.Issuer generated from the provided MRC.
-func (c *MRCProviderGenerator) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, pem.RootCertificate, string, error) {
+func (c *MRCProviderGenerator) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, pem.RootCertificate, error) {
 	p := mrc.Spec.Provider
 	var issuer certificate.Issuer
-	var id string
 	var err error
 	switch {
 	case p.Tresor != nil:
-		issuer, id, err = c.getTresorOSMCertificateManager(mrc)
+		issuer, err = c.getTresorOSMCertificateManager(mrc)
 	case p.Vault != nil:
-		issuer, id, err = c.getHashiVaultOSMCertificateManager(mrc)
+		issuer, err = c.getHashiVaultOSMCertificateManager(mrc)
 	case p.CertManager != nil:
-		issuer, id, err = c.getCertManagerOSMCertificateManager(mrc)
+		issuer, err = c.getCertManagerOSMCertificateManager(mrc)
 	default:
-		return nil, nil, "", fmt.Errorf("Unknown certificate provider: %+v", p)
+		return nil, nil, fmt.Errorf("Unknown certificate provider: %+v", p)
 	}
 
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, err
 	}
 
 	ca, err := c.caExtractorFunc(issuer)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("error generating init cert: %w", err)
+		return nil, nil, fmt.Errorf("error generating init cert: %w", err)
 	}
 
-	return issuer, ca, id, nil
+	return issuer, ca, nil
 }
 
 // getTresorOSMCertificateManager returns a certificate manager instance with Tresor as the certificate provider
-func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, string, error) {
+func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, error) {
 	var err error
 	var rootCert *certificate.Certificate
 
@@ -142,20 +141,20 @@ func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.Mesh
 	// Regardless of success or failure, all instances can proceed to load the same CA.
 	rootCert, err = tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootValidityPeriod, rootCertCountry, rootCertLocality, rootCertOrganization)
 	if err != nil {
-		return nil, "", errors.New("Failed to create new Certificate Authority with cert issuer tresor")
+		return nil, errors.New("Failed to create new Certificate Authority with cert issuer tresor")
 	}
 
 	if rootCert.GetPrivateKey() == nil {
-		return nil, "", errors.New("Root cert does not have a private key")
+		return nil, errors.New("Root cert does not have a private key")
 	}
 
 	rootCert, err = k8s.GetCertificateFromSecret(mrc.Namespace, mrc.Spec.Provider.Tresor.CA.SecretRef.Name, rootCert, c.kubeClient)
 	if err != nil {
-		return nil, "", fmt.Errorf("Failed to synchronize certificate on Secrets API : %w", err)
+		return nil, fmt.Errorf("Failed to synchronize certificate on Secrets API : %w", err)
 	}
 
 	if rootCert.GetPrivateKey() == nil {
-		return nil, "", fmt.Errorf("Root cert does not have a private key: %w", certificate.ErrInvalidCertSecret)
+		return nil, fmt.Errorf("Root cert does not have a private key: %w", certificate.ErrInvalidCertSecret)
 	}
 
 	tresorClient, err := tresor.New(
@@ -164,14 +163,14 @@ func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.Mesh
 		c.KeyBitSize,
 	)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to instantiate Tresor as a Certificate Manager: %w", err)
+		return nil, fmt.Errorf("failed to instantiate Tresor as a Certificate Manager: %w", err)
 	}
 
-	return tresorClient, mrc.Name, nil
+	return tresorClient, nil
 }
 
 // getHashiVaultOSMCertificateManager returns a certificate manager instance with Hashi Vault as the certificate provider
-func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, string, error) {
+func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, error) {
 	provider := mrc.Spec.Provider.Vault
 
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
@@ -184,7 +183,7 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 		log.Debug().Msgf("Attempting to get Vault token from secret %s", provider.Token.SecretKeyRef.Name)
 		vaultToken, err = getHashiVaultOSMToken(&provider.Token.SecretKeyRef, c.kubeClient)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 	}
 
@@ -194,10 +193,10 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 		provider.Role,
 	)
 	if err != nil {
-		return nil, "", fmt.Errorf("error instantiating Hashicorp Vault as a Certificate Manager: %w", err)
+		return nil, fmt.Errorf("error instantiating Hashicorp Vault as a Certificate Manager: %w", err)
 	}
 
-	return vaultClient, mrc.Name, nil
+	return vaultClient, nil
 }
 
 // getHashiVaultOSMToken returns the Hashi Vault token from the secret specified in the provided secret key reference
@@ -216,11 +215,11 @@ func getHashiVaultOSMToken(secretKeyRef *v1alpha2.SecretKeyReferenceSpec, kubeCl
 }
 
 // getCertManagerOSMCertificateManager returns a certificate manager instance with cert-manager as the certificate provider
-func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, string, error) {
+func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, error) {
 	provider := mrc.Spec.Provider.CertManager
 	client, err := cmversionedclient.NewForConfig(c.kubeConfig)
 	if err != nil {
-		return nil, "", fmt.Errorf("Failed to build cert-manager client set: %s", err)
+		return nil, fmt.Errorf("Failed to build cert-manager client set: %s", err)
 	}
 
 	cmClient, err := certmanager.New(
@@ -234,8 +233,8 @@ func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2
 		c.KeyBitSize,
 	)
 	if err != nil {
-		return nil, "", fmt.Errorf("error instantiating Jetstack cert-manager client: %w", err)
+		return nil, fmt.Errorf("error instantiating Jetstack cert-manager client: %w", err)
 	}
 
-	return cmClient, mrc.Name, nil
+	return cmClient, nil
 }

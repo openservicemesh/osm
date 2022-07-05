@@ -123,7 +123,7 @@ type MRCClient interface {
 	MRCEventBroker
 
 	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.
-	GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, string, error)
+	GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error)
 }
 
 // MRCEventType is a type alias for a string describing the type of MRC event

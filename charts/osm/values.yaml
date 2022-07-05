@@ -167,11 +167,6 @@ osm:
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
     tolerations: []
 
-  # -- Experimental values. Behavior is not supported.
-  experimental:
-    # -- Enable the MeshRootCertificate to configure the OSM certificate provider.
-    enableMeshRootCertificate: false
-
   # -- The trust domain to use as part of the common name when requesting new certificates.
   trustDomain: cluster.local
 
@@ -202,7 +197,6 @@ osm:
       name: ""
       # -- The Kubernetes secret key with the value bring the Vault token
       key: ""
-
 
   #
   # -- cert-manager.io configuration
@@ -488,6 +482,8 @@ osm:
     enableSnapshotCacheMode: false
     # -- Enable Retry Policy for automatic request retries
     enableRetryPolicy: false
+    # -- Enable the MeshRootCertificate to configure the OSM certificate provider
+    enableMeshRootCertificate: false
 
   # -- Node tolerations applied to control plane pods.
   # The specified tolerations allow pods to schedule onto nodes with matching taints.

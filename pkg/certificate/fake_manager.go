@@ -20,8 +20,8 @@ var (
 
 type fakeMRCClient struct{}
 
-func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, string, error) {
-	return &fakeIssuer{}, pem.RootCertificate("rootCA"), "fake-issuer-1", nil
+func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error) {
+	return &fakeIssuer{}, pem.RootCertificate("rootCA"), nil
 }
 
 // List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
