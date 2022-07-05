@@ -24,7 +24,7 @@ var _ = Describe("Test Certificate Manager", func() {
 		cn := certificate.CommonName("Test CA")
 		rootCertCountry := "US"
 		rootCertLocality := "CA"
-		rootCertOrganization := "Open Service Mesh Tresor"
+		rootCertOrganization := testCertOrgName
 
 		rootCert, err := NewCA(cn, 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
 		if err != nil {

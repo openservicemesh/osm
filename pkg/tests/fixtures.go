@@ -26,6 +26,15 @@ import (
 var ErrDecodingPEMBlock = errors.New("failed to decode PEM block containing certificate")
 
 const (
+	// MeshName is the name of the OSM mesh
+	MeshName = "osm"
+
+	// OsmNamespace is the namespace of OSM control plane
+	OsmNamespace = "osm-system"
+
+	// OsmMeshConfigName is the name of OSM MeshConfig resource
+	OsmMeshConfigName = "osm-mesh-config"
+
 	// Namespace is the commonly used namespace.
 	Namespace = "default"
 

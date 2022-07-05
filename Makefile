@@ -118,6 +118,10 @@ go-test: cmd/cli/chart.tgz
 go-test-coverage: embed-files
 	./scripts/test-w-coverage.sh
 
+.PHONY: go-benchmark
+go-benchmark: embed-files
+	./scripts/go-benchmark.sh
+
 .PHONY: kind-up
 kind-up:
 	./scripts/kind-with-registry.sh
