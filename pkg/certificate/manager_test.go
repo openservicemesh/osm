@@ -7,9 +7,12 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 	trequire "github.com/stretchr/testify/require"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
@@ -312,4 +315,53 @@ func TestIssueCertificate(t *testing.T) {
 		assert.EqualError(err, "id1 failed")
 		assert.Nil(cert)
 	})
+}
+
+func TestHandleMRCEvent(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		mrcClient            MRCClient
+		mrcEvent             MRCEvent
+		wantErr              bool
+		wantSigningIssuer    issuer
+		wantValidatingIssuer issuer
+	}{
+		{
+			name:      "success",
+			mrcClient: &fakeMRCClient{},
+			mrcEvent: MRCEvent{
+				Type: MRCEventAdded,
+				MRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: v1.ObjectMeta{
+						Name: "my-mrc",
+					},
+					Spec: v1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "foo.bar.com",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateActive,
+					},
+				},
+			},
+			wantSigningIssuer:    issuer{Issuer: &fakeIssuer{}, ID: "my-mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			wantValidatingIssuer: issuer{Issuer: &fakeIssuer{}, ID: "my-mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			m := &Manager{}
+
+			err := m.handleMRCEvent(tt.mrcClient, tt.mrcEvent)
+			if !tt.wantErr {
+				assert.NoError(err)
+			} else {
+				assert.Error(err)
+			}
+
+			assert.Equal(tt.wantSigningIssuer, *m.signingIssuer)
+			assert.Equal(tt.wantValidatingIssuer, *m.validatingIssuer)
+		})
+	}
 }

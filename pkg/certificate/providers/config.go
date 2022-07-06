@@ -44,7 +44,7 @@ var getCA func(certificate.Issuer) (pem.RootCertificate, error) = func(i certifi
 // NewCertificateManager returns a new certificate manager with a MRC compat client.
 // TODO(4713): Remove and use NewCertificateManagerFromMRC
 func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
-	providerNamespace string, option Options, msgBroker *messaging.Broker, checkInterval time.Duration) (*certificate.Manager, error) {
+	providerNamespace string, option Options, msgBroker *messaging.Broker, checkInterval time.Duration, trustDomain string) (*certificate.Manager, error) {
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 			},
 			Spec: v1alpha2.MeshRootCertificateSpec{
 				Provider:    option.AsProviderSpec(),
-				TrustDomain: "cluster.local",
+				TrustDomain: trustDomain,
 			},
 			Status: v1alpha2.MeshRootCertificateStatus{
 				State: constants.MRCStateActive,

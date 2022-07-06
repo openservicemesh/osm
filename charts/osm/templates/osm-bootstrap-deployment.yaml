@@ -61,6 +61,7 @@ spec:
             "--osm-version", "{{ .Chart.AppVersion }}",
             "--ca-bundle-secret-name", "{{.Values.osm.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.osm.certificateProvider.kind}}",
+            "--trustDomain", "{{.Values.osm.trustDomain}}",
             "--enable-mesh-root-certificate={{.Values.osm.featureFlags.enableMeshRootCertificate}}",
             {{ if eq .Values.osm.certificateProvider.kind "vault" }}
             "--vault-host", "{{.Values.osm.vault.host}}",

@@ -57,6 +57,7 @@ var (
 	osmMeshConfigName  string
 	webhookTimeout     int32
 	osmVersion         string
+	trustDomain        string
 
 	certProviderKind          string
 	enableMeshRootCertificate bool
@@ -91,6 +92,9 @@ func init() {
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
 	flags.BoolVar(&enableMeshRootCertificate, "enable-mesh-root-certificate", false, "Enable unsupported MeshRootCertificate to create the OSM Certificate Manager")
 	flags.StringVar(&caBundleSecretName, "ca-bundle-secret-name", "", "Name of the Kubernetes Secret for the OSM CA bundle")
+
+	// TODO: Remove when we add full MRC support
+	flags.StringVar(&trustDomain, "trust-domain", "cluster.local", "The trust domain to use as part of the common name when requesting new certificates.")
 
 	// Vault certificate manager/provider options
 	flags.StringVar(&vaultOptions.VaultProtocol, "vault-protocol", "http", "Host name of the Hashi Vault")
@@ -216,7 +220,7 @@ func main() {
 		}
 	} else {
 		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
-			certOpts, msgBroker, 5*time.Second)
+			certOpts, msgBroker, 5*time.Second, trustDomain)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s", certProviderKind)

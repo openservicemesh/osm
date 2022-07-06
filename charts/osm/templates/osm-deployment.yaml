@@ -61,6 +61,7 @@ spec:
             "--validator-webhook-config", "{{ include "osm.validatorWebhookConfigName" . }}",
             "--ca-bundle-secret-name", "{{.Values.osm.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.osm.certificateProvider.kind}}",
+            "--trustDomain", "{{.Values.osm.trustDomain}}",
             "--enable-mesh-root-certificate={{.Values.osm.featureFlags.enableMeshRootCertificate}}",
             {{ if eq .Values.osm.certificateProvider.kind "vault" }}
             "--vault-host", "{{ required "osm.vault.host is required when osm.certificateProvider.kind==vault" .Values.osm.vault.host }}",

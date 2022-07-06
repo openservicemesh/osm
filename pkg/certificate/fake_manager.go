@@ -45,6 +45,7 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "fake.domain.com",
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
