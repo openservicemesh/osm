@@ -14,7 +14,7 @@ jobs:
           secret: ${{ github.TOKEN }}
           prefix: size
           addLabel: true
-          defaultLabe: "size/needed"
+          defaultLabel: "size/needed"
           onlyMilestone: true
       - name: Require kind
         uses: trstringer/require-label-prefix@v1
@@ -22,5 +22,5 @@ jobs:
           secret: ${{ github.TOKEN }}
           prefix: kind
           addLabel: true
-          defaultLabe: "kind/needed"
+          defaultLabel: "kind/needed"
           onlyMilestone: true
