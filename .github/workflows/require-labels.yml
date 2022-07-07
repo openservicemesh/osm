@@ -1,0 +1,26 @@
+name: Require labels
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  labels:
+    name: Require labels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require size
+        uses: trstringer/require-label-prefix@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          prefix: size
+          addLabel: true
+          defaultLabel: "size/needed"
+          onlyMilestone: true
+      - name: Require kind
+        uses: trstringer/require-label-prefix@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          prefix: kind
+          addLabel: true
+          defaultLabel: "kind/needed"
+          onlyMilestone: true
