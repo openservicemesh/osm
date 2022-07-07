@@ -119,10 +119,12 @@ func (d *uninstallMeshCmd) run() error {
 			return nil
 		}
 
-		// Searches for the mesh specified by the mesh-name flag if specified
-		specifiedMeshFound := d.findSpecifiedMesh(meshInfoList)
-		if !specifiedMeshFound {
-			return nil
+		if d.meshSpecified() {
+			// Searches for the mesh specified by the mesh-name flag if specified
+			specifiedMeshFound := d.findSpecifiedMesh(meshInfoList)
+			if !specifiedMeshFound {
+				return nil
+			}
 		}
 
 		// Adds the mesh to be force uninstalled
@@ -193,10 +195,6 @@ func (d *uninstallMeshCmd) meshSpecified() bool {
 }
 
 func (d *uninstallMeshCmd) findSpecifiedMesh(meshInfoList []meshInfo) bool {
-	if !d.meshSpecified() {
-		return false
-	}
-
 	specifiedMeshFound := d.findMesh(meshInfoList)
 	if !specifiedMeshFound {
 		fmt.Fprintf(d.out, "Did not find mesh [%s] in namespace [%s]\n", d.meshName, d.meshNamespace)
