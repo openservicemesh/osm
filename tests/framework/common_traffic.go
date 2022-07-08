@@ -29,6 +29,9 @@ type HTTPRequestDef struct {
 	// The entire destination URL processed by curl, including host name and
 	// optionally protocol, port, and path
 	Destination string
+
+	// Extra arguments to apply to the curl command
+	ExtraArgs []string
 }
 
 // TCPRequestDef defines a remote TCP request intent
@@ -93,9 +96,9 @@ func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 	// -L follow redirects
 	var commandStr string
 	if td.ClusterOS == constants.OSWindows {
-		commandStr = fmt.Sprintf("curl.exe -s -o NUL -D - -I -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
+		commandStr = fmt.Sprintf("curl.exe -s -o NUL -D - -I -w %s:%%{http_code} -L %s %s", StatusCodeWord, strings.Join(ht.ExtraArgs, ""), ht.Destination)
 	} else {
-		commandStr = fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
+		commandStr = fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} -L %s %s", StatusCodeWord, strings.Join(ht.ExtraArgs, ""), ht.Destination)
 	}
 	command := strings.Fields(commandStr)
 	stdout, stderr, err := td.RunRemote(ht.SourceNs, ht.SourcePod, ht.SourceContainer, command)
