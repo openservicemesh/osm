@@ -335,6 +335,7 @@ type HTTPGlobalRateLimitDescriptorEntry struct {
 
 	// HeaderValueMatch defines a descriptor entry that is generated when the
 	// request header matches the given HTTP header match criteria.
+	// +optional
 	HeaderValueMatch *HeaderValueMatchDescriptorEntry `json:"headerValueMatch,omitempty"`
 }
 
