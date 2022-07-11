@@ -316,6 +316,7 @@ type HTTPGlobalRateLimitDescriptor struct {
 
 // HTTPGlobalRateLimitDescriptorEntry defines the rate limit descriptor entry
 // to use in the rate limit service request for HTTP requests.
+// Only one of GenericKey, RemoteAddress, RequestHeader, HeaderValueMatch may be set.
 type HTTPGlobalRateLimitDescriptorEntry struct {
 	// GenericKey defines a descriptor entry with a static key-value pair.
 	// +optional
