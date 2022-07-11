@@ -91,10 +91,10 @@ var _ = OSMDescribe("Test proxy resource setting",
 					ServiceName:        ingressApp,
 					ContainerName:      ingressApp,
 					ReplicaCount:       1,
-					Image:              "simonkowallik/httpbin",
+					Image:              "curlimages/curl",
 					Ports:              []int{DefaultUpstreamServicePort},
 					AppProtocol:        constants.ProtocolHTTP,
-					Command:            HttpbinCmd,
+					Command:            []string{"sleep", "365d"},
 					OS:                 Td.ClusterOS,
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -135,7 +135,7 @@ var _ = OSMDescribe("Test proxy resource setting",
 							{
 								Name: serverApp,
 								Port: policyv1alpha1.PortSpec{
-									Number:   serverPort,
+									Number:   DefaultUpstreamServicePort,
 									Protocol: "https",
 								},
 							},
@@ -145,6 +145,10 @@ var _ = OSMDescribe("Test proxy resource setting",
 								Kind:      "Service",
 								Name:      ingressApp,
 								Namespace: ingressNS,
+							},
+							{
+								Kind: "AuthenticatedPrincipal",
+								Name: fmt.Sprintf("%s.%s.cluster.local", ingressApp, ingressNS),
 							},
 						},
 					},
@@ -159,6 +163,9 @@ var _ = OSMDescribe("Test proxy resource setting",
 				ingressPods, err := Td.Client.CoreV1().Pods(ingressNS).List(context.Background(), metav1.ListOptions{})
 				Expect(err).To(BeNil())
 
+				svc, err := Td.Client.CoreV1().Services(serverNS).Get(context.Background(), serverApp, metav1.GetOptions{})
+				Expect(err).To(BeNil())
+
 				By("connecting to ingress backend via mTLS")
 				success := Td.WaitForRepeatedSuccess(func() bool {
 					// Get results
@@ -167,10 +174,13 @@ var _ = OSMDescribe("Test proxy resource setting",
 						SourcePod:       ingressPods.Items[0].Name,
 						SourceContainer: ingressApp,
 
-						// Targeting the trafficsplit FQDN
-						Destination: fmt.Sprintf("https://%s.%s:%d", serverApp, serverNS, DefaultUpstreamServicePort),
-
-						// ExtraArgs: []string{"--cert /etc/ingress-certs/tls.crt --key /etc/ingress-certs/tls.key --cacert /etc/ingress-certs/ca.crt"},
+						// Note this service doesn't resolve to anything so we add a resolve line below.
+						Destination: fmt.Sprintf("https://%s.%s.cluster.local:%d", serverApp, serverNS, DefaultUpstreamServicePort),
+						ExtraArgs: []string{
+							"--cert /etc/ingress-certs/tls.crt --key /etc/ingress-certs/tls.key --cacert /etc/ingress-certs/ca.crt",
+							// Because the SAN doesn't match the svc, we need to change the service but tell curl how to resolve it.
+							fmt.Sprintf("--resolve https://%s.%s.cluster.local:%d:%s", serverApp, serverNS, DefaultUpstreamServicePort, svc.Spec.ClusterIP),
+						},
 					})
 
 					if result.Err != nil || result.StatusCode != 200 {
