@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
@@ -123,8 +124,37 @@ var _ = OSMDescribe("Test proxy resource setting",
 				_, err = Td.CreateService(ingressNS, ingressSvc)
 				Expect(err).NotTo(HaveOccurred())
 
+				// create an ingress backend
+				ingressBackend := &policyv1alpha1.IngressBackend{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "httpbin-http",
+						Namespace: serverNS,
+					},
+					Spec: policyv1alpha1.IngressBackendSpec{
+						Backends: []policyv1alpha1.BackendSpec{
+							{
+								Name: serverApp,
+								Port: policyv1alpha1.PortSpec{
+									Number:   serverPort,
+									Protocol: "https",
+								},
+							},
+						},
+						Sources: []policyv1alpha1.IngressSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      ingressApp,
+								Namespace: ingressNS,
+							},
+						},
+					},
+				}
+
 				Expect(Td.WaitForPodsRunningReady(serverNS, 200*time.Second, 1, nil)).To(Succeed())
 				Expect(Td.WaitForPodsRunningReady(ingressNS, 200*time.Second, 1, nil)).To(Succeed())
+
+				_, err = Td.PolicyClient.PolicyV1alpha1().IngressBackends(ingressBackend.Namespace).Create(context.TODO(), ingressBackend, metav1.CreateOptions{})
+				Expect(err).ToNot((HaveOccurred()))
 
 				ingressPods, err := Td.Client.CoreV1().Pods(ingressNS).List(context.Background(), metav1.ListOptions{})
 				Expect(err).To(BeNil())
@@ -140,11 +170,11 @@ var _ = OSMDescribe("Test proxy resource setting",
 						// Targeting the trafficsplit FQDN
 						Destination: fmt.Sprintf("https://%s.%s:%d", serverApp, serverNS, DefaultUpstreamServicePort),
 
-						ExtraArgs: []string{"--cert /etc/ingress-certs/tls.crt --key /etc/ingress-certs/tls.key --cacert /etc/ingress-certs/ca.crt"},
+						// ExtraArgs: []string{"--cert /etc/ingress-certs/tls.crt --key /etc/ingress-certs/tls.key --cacert /etc/ingress-certs/ca.crt"},
 					})
 
 					if result.Err != nil || result.StatusCode != 200 {
-						Td.T.Logf("Failed to connect to ingress backend: %v; received status %d", result.Err, result.StatusCode)
+						Td.T.Logf("Failed to connect to ingress backend on pod %s: %v; received status %d", ingressPods.Items[0].Name, result.Err, result.StatusCode)
 						return false
 					}
 
