@@ -21,9 +21,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	httpServerConstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -40,7 +40,7 @@ type fakeKubeClientSet struct {
 	smiTrafficTargetClientSet *testTrafficTargetClient.Clientset
 }
 
-func bootstrapClient(stop chan struct{}) (*client, *fakeKubeClientSet, error) {
+func bootstrapClient(stop chan struct{}, t *testing.T) (*Client, *fakeKubeClientSet, error) {
 	osmNamespace := "osm-system"
 	meshName := "osm"
 	kubeClient := testclient.NewSimpleClientset()
@@ -48,10 +48,16 @@ func bootstrapClient(stop chan struct{}) (*client, *fakeKubeClientSet, error) {
 	smiTrafficSpecClientSet := testTrafficSpecClient.NewSimpleClientset()
 	smiTrafficTargetClientSet := testTrafficTargetClient.NewSimpleClientset()
 	msgBroker := messaging.NewBroker(stop)
-	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, nil, meshName, stop, msgBroker)
+	informerCollection, err := informers.NewInformerCollection(meshName, stop,
+		informers.WithKubeClient(kubeClient),
+		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+	)
+
 	if err != nil {
 		return nil, nil, err
 	}
+
+	kubernetesClient := k8s.NewKubernetesController(informerCollection, nil, msgBroker)
 
 	fakeClientSet := &fakeKubeClientSet{
 		kubeClient:                kubeClient,
@@ -61,24 +67,28 @@ func bootstrapClient(stop chan struct{}) (*client, *fakeKubeClientSet, error) {
 	}
 
 	// Create a test namespace that is monitored
+	// Label selectors don't work with fake clients, only here to signify its importance
+	// https://github.com/kubernetes/client-go/issues/352#issuecomment-614740790
 	testNamespace := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   testNamespaceName,
-			Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: meshName}, // Label selectors don't work with fake clients, only here to signify its importance
+			Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: meshName},
 		},
 	}
 	if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
 		return nil, nil, err
 	}
 
-	meshSpec, err := newSMIClient(
-		smiTrafficSplitClientSet,
-		smiTrafficSpecClientSet,
-		smiTrafficTargetClientSet,
+	// Manually add namespace to test store (since the label selector won't work)
+	err = informerCollection.Add(informers.InformerKeyNamespace, &testNamespace, t)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	meshSpec := NewSMIClient(
+		informerCollection,
 		osmNamespace,
 		kubernetesClient,
-		kubernetesClientName,
-		stop,
 		msgBroker,
 	)
 
@@ -90,7 +100,7 @@ func TestListTrafficSplits(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	c, _, err := bootstrapClient(stop)
+	c, _, err := bootstrapClient(stop, t)
 	a.Nil(err)
 
 	obj := &smiSplit.TrafficSplit{
@@ -112,7 +122,7 @@ func TestListTrafficSplits(t *testing.T) {
 			},
 		},
 	}
-	err = c.caches.TrafficSplit.Add(obj)
+	err = c.informers.Add(informers.InformerKeyTrafficSplit, obj, t)
 	a.Nil(err)
 
 	// Verify
@@ -142,7 +152,7 @@ func TestListTrafficTargets(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	c, _, err := bootstrapClient(stop)
+	c, _, err := bootstrapClient(stop, t)
 	a.Nil(err)
 
 	obj := &smiAccess.TrafficTarget{
@@ -172,7 +182,7 @@ func TestListTrafficTargets(t *testing.T) {
 			}},
 		},
 	}
-	err = c.caches.TrafficTarget.Add(obj)
+	err = c.informers.Add(informers.InformerKeyTrafficTarget, obj, t)
 	a.Nil(err)
 
 	// Verify
@@ -192,7 +202,7 @@ func TestListHTTPTrafficSpecs(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	c, _, err := bootstrapClient(stop)
+	c, _, err := bootstrapClient(stop, t)
 	a.Nil(err)
 
 	obj := &smiSpecs.HTTPRouteGroup{
@@ -228,7 +238,7 @@ func TestListHTTPTrafficSpecs(t *testing.T) {
 			},
 		},
 	}
-	err = c.caches.HTTPRouteGroup.Add(obj)
+	err = c.informers.Add(informers.InformerKeyHTTPRouteGroup, obj, t)
 	a.Nil(err)
 
 	// Verify
@@ -242,7 +252,7 @@ func TestGetHTTPRouteGroup(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	c, _, err := bootstrapClient(stop)
+	c, _, err := bootstrapClient(stop, t)
 	a.Nil(err)
 
 	obj := &smiSpecs.HTTPRouteGroup{
@@ -278,7 +288,7 @@ func TestGetHTTPRouteGroup(t *testing.T) {
 			},
 		},
 	}
-	err = c.caches.HTTPRouteGroup.Add(obj)
+	err = c.informers.Add(informers.InformerKeyHTTPRouteGroup, obj, t)
 	a.Nil(err)
 
 	// Verify
@@ -295,7 +305,7 @@ func TestListTCPTrafficSpecs(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	c, _, err := bootstrapClient(stop)
+	c, _, err := bootstrapClient(stop, t)
 	a.Nil(err)
 
 	obj := &smiSpecs.TCPRoute{
@@ -309,7 +319,7 @@ func TestListTCPTrafficSpecs(t *testing.T) {
 		},
 		Spec: smiSpecs.TCPRouteSpec{},
 	}
-	err = c.caches.TCPRoute.Add(obj)
+	err = c.informers.Add(informers.InformerKeyTCPRoute, obj, t)
 	a.Nil(err)
 
 	// Verify
@@ -323,7 +333,7 @@ func TestGetTCPRoute(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 
-	c, _, err := bootstrapClient(stop)
+	c, _, err := bootstrapClient(stop, t)
 	a.Nil(err)
 
 	obj := &smiSpecs.TCPRoute{
@@ -337,7 +347,7 @@ func TestGetTCPRoute(t *testing.T) {
 		},
 		Spec: smiSpecs.TCPRouteSpec{},
 	}
-	err = c.caches.TCPRoute.Add(obj)
+	err = c.informers.Add(informers.InformerKeyTCPRoute, obj, t)
 	a.Nil(err)
 
 	// Verify
@@ -354,7 +364,7 @@ func TestGetSmiClientVersionHTTPHandler(t *testing.T) {
 
 	url := "http://localhost"
 	testHTTPServerPort := 8888
-	smiVerionPath := httpServerConstants.SmiVersionPath
+	smiVerionPath := constants.OSMControllerSMIVersionPath
 	recordCall := func(ts *httptest.Server, path string) *http.Response {
 		req := httptest.NewRequest("GET", path, nil)
 		w := httptest.NewRecorder()

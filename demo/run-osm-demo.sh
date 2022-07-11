@@ -21,6 +21,7 @@ BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
 BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
 BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
 BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
+PERMISSIVE_MODE="${PERMISSIVE_MODE:-true}"
 CERT_MANAGER="${CERT_MANAGER:-tresor}"
 CTR_REGISTRY="${CTR_REGISTRY:-localhost:5000}"
 CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
@@ -37,9 +38,10 @@ ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
 DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
+LOCAL_PROXY_MODE="${LOCAL_PROXY_MODE:-Localhost}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 TIMEOUT="${TIMEOUT:-90s}"
-USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-true}"
+USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
 PUBLISH_IMAGES="${PUBLISH_IMAGES:-true}"
 
 # For any additional installation arguments. Used heavily in CI.
@@ -101,6 +103,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --osm-namespace "$K8S_NAMESPACE" \
       --verbose \
       --mesh-name "$MESH_NAME" \
+      --set=osm.enablePermissiveTrafficPolicy="$PERMISSIVE_MODE" \
       --set=osm.certificateProvider.kind="$CERT_MANAGER" \
       --set=osm.vault.host="$VAULT_HOST" \
       --set=osm.vault.token="$VAULT_TOKEN" \
@@ -120,6 +123,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=osm.controllerLogLevel="trace" \
+      --set=osm.localProxyMode="$LOCAL_PROXY_MODE" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 else
@@ -128,6 +132,7 @@ else
       --osm-namespace "$K8S_NAMESPACE" \
       --verbose \
       --mesh-name "$MESH_NAME" \
+      --set=osm.enablePermissiveTrafficPolicy="$PERMISSIVE_MODE" \
       --set=osm.certificateProvider.kind="$CERT_MANAGER" \
       --set=osm.image.registry="$CTR_REGISTRY" \
       --set=osm.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
@@ -144,6 +149,7 @@ else
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=osm.controllerLogLevel="trace" \
+      --set=osm.localProxyMode="$LOCAL_PROXY_MODE" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 fi

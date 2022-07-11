@@ -2,7 +2,6 @@ package injector
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -15,9 +14,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
@@ -25,12 +26,12 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	namespace := req.Namespace
 
 	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)
-	cn := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, pod.Spec.ServiceAccountName, namespace)
-	log.Debug().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+	cnPrefix := envoy.NewXDSCertCNPrefix(proxyUUID, envoy.KindSidecar, identity.New(pod.Spec.ServiceAccountName, namespace))
+	log.Debug().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
 	startTime := time.Now()
-	bootstrapCertificate, err := wh.certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
+	bootstrapCertificate, err := wh.certManager.IssueCertificate(cnPrefix, certificate.Internal)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN=%s", cn)
+		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN prefix=%s", cnPrefix)
 		return nil, err
 	}
 	elapsed := time.Since(startTime)
@@ -41,61 +42,33 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	originalHealthProbes := rewriteHealthProbes(pod)
 
 	// Create the bootstrap configuration for the Envoy proxy for the given pod
-	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", proxyUUID)
+	envoyBootstrapConfigName := bootstrapSecretPrefix + proxyUUID.String()
 
-	// The webhook has a side effect (making out-of-band changes) of creating k8s secret
-	// corresponding to the Envoy bootstrap config. Such a side effect needs to be skipped
-	// when the request is a DryRun.
-	// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
-	if req.DryRun != nil && *req.DryRun {
+	// This needs to occur before replacing the label below.
+	originalUUID, alreadyInjected := getProxyUUID(pod)
+	switch {
+	case req.DryRun != nil && *req.DryRun:
+		// The webhook has a side effect (making out-of-band changes) of creating k8s secret
+		// corresponding to the Envoy bootstrap config. Such a side effect needs to be skipped
+		// when the request is a DryRun.
+		// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
 		log.Debug().Msgf("Skipping envoy bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
-	} else if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
-		log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
-		return nil, err
-	}
-
-	// Create volume for envoy TLS secret
-	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName)...)
-
-	// On Windows we cannot use init containers to program HNS because it requires elevated privileges
-	// As a result we assume that the HNS redirection policies are already programmed via a CNI plugin.
-	// Skip adding the init container and only patch the pod spec with sidecar container.
-	podOS := pod.Spec.NodeSelector["kubernetes.io/os"]
-	if err := wh.verifyPrerequisites(podOS); err != nil {
-		return nil, err
-	}
-
-	err = wh.configurePodInit(podOS, pod, namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	if (originalHealthProbes.liveness != nil && originalHealthProbes.liveness.isTCPSocket) ||
-		(originalHealthProbes.readiness != nil && originalHealthProbes.readiness.isTCPSocket) ||
-		(originalHealthProbes.startup != nil && originalHealthProbes.startup.isTCPSocket) {
-		healthcheckContainer := corev1.Container{
-			Name:            "osm-healthcheck",
-			Image:           os.Getenv("OSM_DEFAULT_HEALTHCHECK_CONTAINER_IMAGE"),
-			ImagePullPolicy: wh.osmContainerPullPolicy,
-			Args: []string{
-				"--verbosity", log.GetLevel().String(),
-			},
-			Command: []string{
-				"/osm-healthcheck",
-			},
-			Ports: []corev1.ContainerPort{
-				{
-					ContainerPort: healthcheckPort,
-				},
-			},
+	case alreadyInjected:
+		// Pod definitions can be copied via the `kubectl debug` command, which can lead to a pod being created that
+		// has already had injection occur. We could simply do nothing and return early, but that would leave 2 pods
+		// with the same UUID, so instead we change the UUID, and create a new bootstrap config, copied from the original,
+		// with the proxy UUID changed.
+		oldConfigName := bootstrapSecretPrefix + originalUUID
+		if _, err := wh.createEnvoyBootstrapFromExisting(envoyBootstrapConfigName, oldConfigName, namespace, bootstrapCertificate); err != nil {
+			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for already-injected pod: service-account=%s, namespace=%s, certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
+			return nil, err
 		}
-		pod.Spec.Containers = append(pod.Spec.Containers, healthcheckContainer)
+	default:
+		if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
+			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
+			return nil, err
+		}
 	}
-
-	// Add the Envoy sidecar
-	sidecar := getEnvoySidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS)
-	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
-
 	enableMetrics, err := wh.isMetricsEnabled(namespace)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error checking if namespace %s is enabled for metrics", namespace)
@@ -117,6 +90,58 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		pod.Labels = make(map[string]string)
 	}
 	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
+
+	if alreadyInjected {
+		// replace the volume and we're done.
+		for i, volume := range pod.Spec.Volumes {
+			// It should be the last, but we check all for posterity.
+			if volume.Name == envoyBootstrapConfigVolume {
+				pod.Spec.Volumes[i] = getVolumeSpec(envoyBootstrapConfigName)
+				break
+			}
+		}
+		return json.Marshal(makePatches(req, pod))
+	}
+
+	// Create volume for the envoy bootstrap config Secret
+	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName))
+
+	// On Windows we cannot use init containers to program HNS because it requires elevated privileges
+	// As a result we assume that the HNS redirection policies are already programmed via a CNI plugin.
+	// Skip adding the init container and only patch the pod spec with sidecar container.
+	podOS := pod.Spec.NodeSelector["kubernetes.io/os"]
+	if err := wh.verifyPrerequisites(podOS); err != nil {
+		return nil, err
+	}
+
+	err = wh.configurePodInit(podOS, pod, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	if originalHealthProbes.UsesTCP() {
+		healthcheckContainer := corev1.Container{
+			Name:            "osm-healthcheck",
+			Image:           os.Getenv("OSM_DEFAULT_HEALTHCHECK_CONTAINER_IMAGE"),
+			ImagePullPolicy: wh.osmContainerPullPolicy,
+			Args: []string{
+				"--verbosity", log.GetLevel().String(),
+			},
+			Command: []string{
+				"/osm-healthcheck",
+			},
+			Ports: []corev1.ContainerPort{
+				{
+					ContainerPort: constants.HealthcheckPort,
+				},
+			},
+		}
+		pod.Spec.Containers = append(pod.Spec.Containers, healthcheckContainer)
+	}
+
+	// Add the Envoy sidecar
+	sidecar := getEnvoySidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS)
+	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
 	return json.Marshal(makePatches(req, pod))
 }
@@ -180,8 +205,10 @@ func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, names
 	globalOutboundIPRangeInclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundIPRangeInclusionList
 	outboundIPRangeInclusionList := mergeIPRangeLists(podOutboundIPRangeInclusionList, globalOutboundIPRangeInclusionList)
 
+	networkInterfaceExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.NetworkInterfaceExclusionList
+
 	// Add the init container to the pod spec
-	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer(), wh.osmContainerPullPolicy)
+	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer(), wh.osmContainerPullPolicy, networkInterfaceExclusionList)
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 
 	return nil
@@ -196,4 +223,14 @@ func makePatches(req *admissionv1.AdmissionRequest, pod *corev1.Pod) []jsonpatch
 	}
 	admissionResponse := admission.PatchResponseFromRaw(original, current)
 	return admissionResponse.Patches
+}
+
+func getProxyUUID(pod *corev1.Pod) (string, bool) {
+	// kubectl debug does not recreate the object with the same metadata
+	for _, volume := range pod.Spec.Volumes {
+		if volume.Name == envoyBootstrapConfigVolume {
+			return strings.TrimPrefix(volume.Secret.SecretName, bootstrapSecretPrefix), true
+		}
+	}
+	return "", false
 }

@@ -26,6 +26,15 @@ import (
 var ErrDecodingPEMBlock = errors.New("failed to decode PEM block containing certificate")
 
 const (
+	// MeshName is the name of the OSM mesh
+	MeshName = "osm"
+
+	// OsmNamespace is the namespace of OSM control plane
+	OsmNamespace = "osm-system"
+
+	// OsmMeshConfigName is the name of OSM MeshConfig resource
+	OsmMeshConfigName = "osm-mesh-config"
+
 	// Namespace is the commonly used namespace.
 	Namespace = "default"
 
@@ -566,13 +575,13 @@ var (
 )
 
 // NewPodFixture creates a new Pod struct for testing.
-func NewPodFixture(namespace string, podName string, serviceAccountName string, labels map[string]string) corev1.Pod {
+func NewPodFixture(namespace string, podName string, serviceAccountName string, labels map[string]string) *corev1.Pod {
 	return NewOsSpecificPodFixture(namespace, podName, serviceAccountName, labels, constants.OSLinux)
 }
 
 // NewOsSpecificPodFixture creates a new Pod struct for testing.
-func NewOsSpecificPodFixture(namespace string, podName string, serviceAccountName string, labels map[string]string, podOS string) corev1.Pod {
-	return corev1.Pod{
+func NewOsSpecificPodFixture(namespace string, podName string, serviceAccountName string, labels map[string]string, podOS string) *corev1.Pod {
+	return &corev1.Pod{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      podName,
 			Namespace: namespace,
@@ -587,14 +596,22 @@ func NewOsSpecificPodFixture(namespace string, podName string, serviceAccountNam
 	}
 }
 
+// HeadlessSvc converts a service into a headless service
+func HeadlessSvc(svc *corev1.Service) *corev1.Service {
+	svc.Spec.ClusterIP = corev1.ClusterIPNone
+
+	return svc
+}
+
 // NewServiceFixture creates a new Kubernetes service
 func NewServiceFixture(serviceName, namespace string, selectors map[string]string) *corev1.Service {
-	return &corev1.Service{
+	svc := &corev1.Service{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      serviceName,
 			Namespace: namespace,
 		},
 		Spec: corev1.ServiceSpec{
+			ClusterIP: "10.0.0.1",
 			Ports: []corev1.ServicePort{{
 				Name: "servicePort",
 				TargetPort: intstr.IntOrString{
@@ -607,6 +624,8 @@ func NewServiceFixture(serviceName, namespace string, selectors map[string]strin
 			Selector: selectors,
 		},
 	}
+
+	return svc
 }
 
 // NewServiceAccountFixture creates a new Kubernetes service account

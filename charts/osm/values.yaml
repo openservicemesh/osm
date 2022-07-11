@@ -50,9 +50,9 @@ osm:
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
   # -- Envoy sidecar image for Linux workloads
-  sidecarImage: envoyproxy/envoy-alpine:v1.19.3@sha256:874e699857e023d9234b10ffc5af39ccfc9011feab89638e56ac4042ecd4b0f3
+  sidecarImage: envoyproxy/envoy-distroless:v1.22.2@sha256:541d31419b95e3c62d8cc0967db9cdb4ad2782cc08faa6f15f04c081200e324a
   # -- Envoy sidecar image for Windows workloads
-  sidecarWindowsImage: envoyproxy/envoy-windows:v1.19.3@sha256:f990f024e7e95f07b6c0d416684734607761e382c35d1ba9414c7e3fbf23969c
+  sidecarWindowsImage: envoyproxy/envoy-windows:v1.22.1@sha256:92733f8e5beae5c45df204a0e13edbd29e99adf962d1b1c7869b197d85c64bd0
   # -- Curl image for control plane init container
   curlImage: curlimages/curl
 
@@ -88,6 +88,38 @@ osm:
         # -- Average target memory utilization (%)
         targetAverageUtilization: 80
 
+    ## Affinity settings for pod assignment
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/os
+              operator: In
+              values:
+              - linux
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+              - arm64
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - osm-controller
+            topologyKey: kubernetes.io/hostname
+          weight: 100
+
+    # -- Node tolerations applied to control plane pods.
+    # The specified tolerations allow pods to schedule onto nodes with matching taints.
+    tolerations: []
+
   #
   # -- Prometheus parameters
   prometheus:
@@ -107,6 +139,36 @@ osm:
       time: 15d
     # -- Image used for Prometheus
     image: prom/prometheus:v2.34.0
+    ## Node labels for pod assignment
+    ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+    nodeSelector: {}
+
+    ## Affinity settings for pod assignment
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/os
+              operator: In
+              values:
+              - linux
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+              - arm64
+              - arm
+              - ppc64le
+              - s390x
+
+    # -- Node tolerations applied to control plane pods.
+    # The specified tolerations allow pods to schedule onto nodes with matching taints.
+    tolerations: []
+
+  # -- The trust domain to use as part of the common name when requesting new certificates.
+  trustDomain: cluster.local
 
   certificateProvider:
     # -- The Certificate manager type: `tresor`, `vault` or `cert-manager`
@@ -121,12 +183,20 @@ osm:
   vault:
     # --  Hashicorp Vault host/service - where Vault is installed
     host: ""
+    # -- port to use to connect to Vault
+    port: 8200
     # -- protocol to use to connect to Vault
     protocol: http
     # -- token that should be used to connect to Vault
     token: ""
     # -- Vault role to be used by Open Service Mesh
     role: openservicemesh
+    # -- The Kubernetes secret storing the Vault token used in OSM. The secret must be located in the namespace of the OSM installation
+    secret:
+      # -- The Kubernetes secret name storing the Vault token used in OSM
+      name: ""
+      # -- The Kubernetes secret key with the value bring the Vault token
+      key: ""
 
   #
   # -- cert-manager.io configuration
@@ -153,14 +223,42 @@ osm:
     # -- Image used for Grafana Renderer
     rendererImage: grafana/grafana-image-renderer:3.2.1
 
+    ## Node labels for pod assignment
+    ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+    nodeSelector: {}
+
+    ## Affinity settings for pod assignment
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/os
+              operator: In
+              values:
+              - linux
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+              - arm64
+              - arm
+              - ppc64le
+              - s390x
+
+    # -- Node tolerations applied to control plane pods.
+    # The specified tolerations allow pods to schedule onto nodes with matching taints.
+    tolerations: []
+
   # -- Enable the debug HTTP server on OSM controller
   enableDebugServer: false
 
   # -- Enable permissive traffic policy mode
-  enablePermissiveTrafficPolicy: false
+  enablePermissiveTrafficPolicy: true
 
   # -- Enable egress in the mesh
-  enableEgress: false
+  enableEgress: true
 
   # -- Enable reconciler for OSM's CRDs and mutating webhook
   enableReconciler: false
@@ -170,6 +268,9 @@ osm:
 
   # -- Deploy Grafana with OSM installation
   deployGrafana: false
+
+  # -- Deploy Jaeger during OSM installation
+  deployJaeger: false
 
   # -- Enable Fluent Bit sidecar deployment on OSM controller's pod
   enableFluentbit: false
@@ -204,6 +305,9 @@ osm:
   # -- Log level for the Envoy proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error`
   envoyLogLevel: error
 
+  # -- Proxy mode for the Envoy proxy sidecar. Acceptable values are ['Localhost', 'PodIP']
+  localProxyMode: Localhost
+
   # -- Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits
   maxDataPlaneConnections: 0
 
@@ -221,9 +325,6 @@ osm:
 
   # -- Namespace to deploy OSM in. If not specified, the Helm release namespace is used.
   osmNamespace: ""
-
-  # -- Deploy Jaeger during OSM installation
-  deployJaeger: false
 
   #
   # -- Tracing parameters
@@ -243,6 +344,33 @@ osm:
     # -- Image used for tracing
     image: jaegertracing/all-in-one
 
+    ## Node labels for pod assignment
+    ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+    nodeSelector: {}
+
+    ## Affinity settings for pod assignment
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/os
+              operator: In
+              values:
+              - linux
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+              - arm64
+              - ppc64le
+              - s390x
+
+    # -- Node tolerations applied to control plane pods.
+    # The specified tolerations allow pods to schedule onto nodes with matching taints.
+    tolerations: []
+
   # -- Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.
   outboundIPRangeExclusionList: []
@@ -258,6 +386,9 @@ osm:
   # -- Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy.
   # If specified, must be a list of positive integers.
   inboundPortExclusionList: []
+
+  # -- Specifies a global list of network interface names to exclude for inbound and outbound traffic interception by the sidecar proxy.
+  networkInterfaceExclusionList: []
 
   #
   # -- OSM's sidecar injector parameters
@@ -293,6 +424,42 @@ osm:
     # -- Mutating webhook timeout
     webhookTimeoutSeconds: 20
 
+    ## Node labels for pod assignment
+    ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+    nodeSelector: {}
+
+    ## Affinity settings for pod assignment
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/os
+              operator: In
+              values:
+              - linux
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+              - arm64
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - osm-injector
+            topologyKey: kubernetes.io/hostname
+          weight: 100
+
+    # -- Node tolerations applied to control plane pods.
+    # The specified tolerations allow pods to schedule onto nodes with matching taints.
+    tolerations: []
+
   # -- Run init container in privileged mode
   enablePrivilegedInitContainer: false
 
@@ -304,9 +471,6 @@ osm:
     # -- Enable OSM's Egress policy API.
     # When enabled, fine grained control over Egress (external) traffic is enforced
     enableEgressPolicy: true
-    # -- Enable Multicluster mode.
-    # When enabled, multicluster mode will be enabled in OSM
-    enableMulticlusterMode: false
     # -- Enable async proxy-service mapping
     enableAsyncProxyServiceMapping: false
     # -- Enables OSM's IngressBackend policy API.
@@ -318,11 +482,8 @@ osm:
     enableSnapshotCacheMode: false
     # -- Enable Retry Policy for automatic request retries
     enableRetryPolicy: false
-
-  # -- OSM multicluster feature configuration
-  multicluster:
-    # -- Log level for the multicluster gateway
-    gatewayLogLevel: error
+    # -- Enable the MeshRootCertificate to configure the OSM certificate provider
+    enableMeshRootCertificate: false
 
   # -- Node tolerations applied to control plane pods.
   # The specified tolerations allow pods to schedule onto nodes with matching taints.
@@ -344,11 +505,103 @@ osm:
     # -- OSM bootstrap's pod labels
     podLabels: {}
 
+    ## Affinity settings for pod assignment
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/os
+              operator: In
+              values:
+              - linux
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+              - arm64
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - osm-bootstrap
+            topologyKey: kubernetes.io/hostname
+          weight: 100
+
+    ## Node labels for pod assignment
+    ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+    nodeSelector: {}
+
+    # -- Node tolerations applied to control plane pods.
+    # The specified tolerations allow pods to schedule onto nodes with matching taints.
+    tolerations: []
+
   #
   # -- OSM resource validator webhook configuration
   validatorWebhook:
     # -- Name of the ValidatingWebhookConfiguration
     webhookConfigurationName: ""
+
+  #
+  # -- OSM's preinstall hook parameters
+
+  preinstall:
+    ## Affinity settings for pod assignment
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                  - linux
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+                  - arm64
+    ## Node labels for pod assignment
+    ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+    nodeSelector: {}
+
+    # -- Node tolerations applied to control plane pods.
+    # The specified tolerations allow pods to schedule onto nodes with matching taints.
+    tolerations: []
+
+  cleanup:
+    ## Node labels for pod assignment
+    ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+    nodeSelector: {}
+
+    ## Affinity settings for pod assignment
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                  - linux
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+                  - arm64
+
+    # -- Node tolerations applied to control plane pods.
+    # The specified tolerations allow pods to schedule onto nodes with matching taints.
+    tolerations: []
+
+
 
 #
 # -- Contour configuration
@@ -360,13 +613,13 @@ contour:
     image:
       registry: docker.io
       repository: projectcontour/contour
-      tag: v1.18.0
+      tag: v1.21.1
   # -- Contour envoy edge proxy configuration
   envoy:
     image:
       registry: docker.io
-      repository: envoyproxy/envoy-alpine
-      tag: v1.19.3
+      repository: envoyproxy/envoy-distroless
+      tag: v1.22.2
 
 #
 # -- SMI configuration

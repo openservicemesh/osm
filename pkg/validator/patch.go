@@ -76,7 +76,7 @@ func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert *certi
 						Path:      &webhookPath,
 						Port:      &webhookPort,
 					},
-					CABundle: cert.GetIssuingCA()},
+					CABundle: cert.GetTrustedCAs()},
 				FailurePolicy: &failurePolicy,
 				MatchPolicy:   &matchPolicy,
 				NamespaceSelector: &metav1.LabelSelector{
@@ -110,16 +110,15 @@ func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert *certi
 	if _, err := clientSet.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.Background(), &vwhc, metav1.CreateOptions{}); err != nil {
 		// Webhook already exists, update the webhook in this scenario
 		if apierrors.IsAlreadyExists(err) {
-			existingVwhc, err := clientSet.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.Background(), vwhc.Name, metav1.GetOptions{})
+			existing, err := clientSet.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.Background(), vwhc.Name, metav1.GetOptions{})
 			if err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMutatingWebhook)).
 					Msgf("Error getting ValidatingWebhookConfiguration %s", webhookName)
 				return err
 			}
 
-			existingVwhc.Webhooks = vwhc.Webhooks
-			existingVwhc.Labels = vwhc.Labels
-			if _, err = clientSet.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.Background(), existingVwhc, metav1.UpdateOptions{}); err != nil {
+			vwhc.ObjectMeta = existing.ObjectMeta // copy the object meta which includes resource version, required for updates.
+			if _, err = clientSet.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.Background(), &vwhc, metav1.UpdateOptions{}); err != nil {
 				// There might be conflicts when multiple controllers try to update the same resource
 				// One of the controllers will successfully update the resource, hence conflicts shoud be ignored and not treated as an error
 				if !apierrors.IsConflict(err) {

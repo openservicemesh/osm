@@ -5,10 +5,10 @@ import (
 	"time"
 
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/auth"
+	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
 func TestHTTPConnbuild(t *testing.T) {
@@ -22,6 +22,14 @@ func TestHTTPConnbuild(t *testing.T) {
 	}
 	contains := func(filters []*xds_hcm.HttpFilter, filterName string) bool {
 		return !notContains(filters, filterName)
+	}
+	containsUpgradeType := func(upgradeConfigs []*xds_hcm.HttpConnectionManager_UpgradeConfig, upgradeType string) bool {
+		for _, u := range upgradeConfigs {
+			if u.UpgradeType == upgradeType {
+				return true
+			}
+		}
+		return false
 	}
 
 	testCases := []struct {
@@ -66,7 +74,7 @@ func TestHTTPConnbuild(t *testing.T) {
 			},
 			assertFunc: func(a *assert.Assertions, connManager *xds_hcm.HttpConnectionManager) {
 				a.Nil(connManager.LocalReplyConfig)
-				a.True(notContains(connManager.HttpFilters, wellknown.Lua))
+				a.True(notContains(connManager.HttpFilters, envoy.HTTPLuaFilterName))
 				a.True(notContains(connManager.HttpFilters, "envoy.filters.http.wasm"))
 			},
 		},
@@ -78,7 +86,7 @@ func TestHTTPConnbuild(t *testing.T) {
 			assertFunc: func(a *assert.Assertions, connManager *xds_hcm.HttpConnectionManager) {
 				a.NotNil(connManager.LocalReplyConfig)
 				a.Equal("unknown", connManager.GetLocalReplyConfig().GetMappers()[0].HeadersToAdd[0].Header.Value)
-				a.True(contains(connManager.HttpFilters, wellknown.Lua))
+				a.True(contains(connManager.HttpFilters, envoy.HTTPLuaFilterName))
 				a.True(contains(connManager.HttpFilters, "envoy.filters.http.wasm"))
 			},
 		},
@@ -96,7 +104,7 @@ func TestHTTPConnbuild(t *testing.T) {
 				},
 			},
 			assertFunc: func(a *assert.Assertions, connManager *xds_hcm.HttpConnectionManager) {
-				a.True(contains(connManager.HttpFilters, wellknown.HTTPExternalAuthorization))
+				a.True(contains(connManager.HttpFilters, envoy.HTTPExtAuthzFilterName))
 			},
 		},
 		{
@@ -108,7 +116,7 @@ func TestHTTPConnbuild(t *testing.T) {
 				},
 			},
 			assertFunc: func(a *assert.Assertions, connManager *xds_hcm.HttpConnectionManager) {
-				a.True(notContains(connManager.HttpFilters, wellknown.HTTPExternalAuthorization))
+				a.True(notContains(connManager.HttpFilters, envoy.HTTPExtAuthzFilterName))
 			},
 		},
 		{
@@ -117,7 +125,7 @@ func TestHTTPConnbuild(t *testing.T) {
 				enableActiveHealthChecks: true,
 			},
 			assertFunc: func(a *assert.Assertions, connManager *xds_hcm.HttpConnectionManager) {
-				a.True(contains(connManager.HttpFilters, wellknown.HealthCheck))
+				a.True(contains(connManager.HttpFilters, envoy.HTTPHealthCheckFilterName))
 			},
 		},
 		{
@@ -126,7 +134,14 @@ func TestHTTPConnbuild(t *testing.T) {
 				enableActiveHealthChecks: false,
 			},
 			assertFunc: func(a *assert.Assertions, connManager *xds_hcm.HttpConnectionManager) {
-				a.True(notContains(connManager.HttpFilters, wellknown.HealthCheck))
+				a.True(notContains(connManager.HttpFilters, envoy.HTTPHealthCheckFilterName))
+			},
+		},
+		{
+			name:   "websocket upgrade config present",
+			option: httpConnManagerOptions{},
+			assertFunc: func(a *assert.Assertions, connManager *xds_hcm.HttpConnectionManager) {
+				a.True(containsUpgradeType(connManager.UpgradeConfigs, websocketUpgradeType))
 			},
 		},
 	}
@@ -137,7 +152,7 @@ func TestHTTPConnbuild(t *testing.T) {
 			a := assert.New(t)
 			a.Nil(err)
 			tc.assertFunc(a, actual)
-			a.Equal(wellknown.Router, actual.HttpFilters[len(actual.HttpFilters)-1].Name) // Router must be last
+			a.Equal(envoy.HTTPRouterFilterName, actual.HttpFilters[len(actual.HttpFilters)-1].Name) // Router must be last
 		})
 	}
 }

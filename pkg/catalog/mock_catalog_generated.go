@@ -181,20 +181,6 @@ func (mr *MockMeshCatalogerMockRecorder) ListOutboundServicesForIdentity(arg0 in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOutboundServicesForIdentity", reflect.TypeOf((*MockMeshCataloger)(nil).ListOutboundServicesForIdentity), arg0)
 }
 
-// ListOutboundServicesForMulticlusterGateway mocks base method.
-func (m *MockMeshCataloger) ListOutboundServicesForMulticlusterGateway() []service.MeshService {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListOutboundServicesForMulticlusterGateway")
-	ret0, _ := ret[0].([]service.MeshService)
-	return ret0
-}
-
-// ListOutboundServicesForMulticlusterGateway indicates an expected call of ListOutboundServicesForMulticlusterGateway.
-func (mr *MockMeshCatalogerMockRecorder) ListOutboundServicesForMulticlusterGateway() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOutboundServicesForMulticlusterGateway", reflect.TypeOf((*MockMeshCataloger)(nil).ListOutboundServicesForMulticlusterGateway))
-}
-
 // ListServiceIdentitiesForService mocks base method.
 func (m *MockMeshCataloger) ListServiceIdentitiesForService(arg0 service.MeshService) []identity.ServiceIdentity {
 	m.ctrl.T.Helper()

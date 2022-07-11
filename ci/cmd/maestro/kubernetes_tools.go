@@ -165,6 +165,7 @@ func SearchLogsForSuccess(kubeClient kubernetes.Interface, namespace string, pod
 		for {
 			select {
 			case <-timeout:
+				log.Error().Err(err).Msgf("Timed out trying to read from pod %s/%s", namespace, podName)
 				result <- TestsTimedOut
 			case readres := <-readRes:
 				line := readres.line

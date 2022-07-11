@@ -3,20 +3,25 @@ package k8s
 import (
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
 	testclient "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/utils/pointer"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/tests"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -55,10 +60,12 @@ func TestIsMonitoredNamespace(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := assert.New(t)
-			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a := tassert.New(t)
+
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			_ = c.informers[Namespaces].GetStore().Add(tc.namespace)
+			c := newClient(ic, nil, nil)
+			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			actual := c.IsMonitoredNamespace(tc.ns)
 			a.Equal(tc.expected, actual)
@@ -97,10 +104,11 @@ func TestGetNamespace(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := assert.New(t)
-			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a := tassert.New(t)
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			_ = c.informers[Namespaces].GetStore().Add(tc.namespace)
+			c := newClient(ic, nil, nil)
+			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			actual := c.GetNamespace(tc.ns)
 			if tc.expected {
@@ -143,11 +151,12 @@ func TestListMonitoredNamespaces(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := assert.New(t)
-			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a := tassert.New(t)
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
+			c := newClient(ic, nil, nil)
 			for _, ns := range tc.namespaces {
-				_ = c.informers[Namespaces].GetStore().Add(ns)
+				_ = ic.Add(informers.InformerKeyNamespace, ns, t)
 			}
 
 			actual, err := c.ListMonitoredNamespaces()
@@ -186,14 +195,26 @@ func TestGetService(t *testing.T) {
 			svc:      service.MeshService{Name: "invalid", Namespace: "ns1"},
 			expected: false,
 		},
+		{
+			name: "gets the headless service from the cache from a subdomained MeshService",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo-headless",
+					Namespace: "ns1",
+				},
+			},
+			svc:      service.MeshService{Name: "foo-0.foo-headless", Namespace: "ns1"},
+			expected: true,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := assert.New(t)
-			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a := tassert.New(t)
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			_ = c.informers[Services].GetStore().Add(tc.service)
+			c := newClient(ic, nil, nil)
+			_ = ic.Add(informers.InformerKeyService, tc.service, t)
 
 			actual := c.GetService(tc.svc)
 			if tc.expected {
@@ -246,13 +267,14 @@ func TestListServices(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := assert.New(t)
-			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a := tassert.New(t)
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			_ = c.informers[Namespaces].GetStore().Add(tc.namespace)
+			c := newClient(ic, nil, nil)
+			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, s := range tc.services {
-				_ = c.informers[Services].GetStore().Add(s)
+				_ = ic.Add(informers.InformerKeyService, s, t)
 			}
 
 			actual := c.ListServices()
@@ -302,13 +324,14 @@ func TestListServiceAccounts(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := assert.New(t)
-			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a := tassert.New(t)
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			_ = c.informers[Namespaces].GetStore().Add(tc.namespace)
+			c := newClient(ic, nil, nil)
+			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, s := range tc.sa {
-				_ = c.informers[ServiceAccounts].GetStore().Add(s)
+				_ = ic.Add(informers.InformerKeyServiceAccount, s, t)
 			}
 
 			actual := c.ListServiceAccounts()
@@ -358,13 +381,14 @@ func TestListPods(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := assert.New(t)
-			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a := tassert.New(t)
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			_ = c.informers[Namespaces].GetStore().Add(tc.namespace)
+			c := newClient(ic, nil, nil)
+			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
-			for _, s := range tc.pods {
-				_ = c.informers[Pods].GetStore().Add(s)
+			for _, p := range tc.pods {
+				_ = ic.Add(informers.InformerKeyPod, p, t)
 			}
 
 			actual := c.ListPods()
@@ -411,10 +435,11 @@ func TestGetEndpoints(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := assert.New(t)
-			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a := tassert.New(t)
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			_ = c.informers[Endpoints].GetStore().Add(tc.endpoints)
+			c := newClient(ic, nil, nil)
+			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
 
 			actual, err := c.GetEndpoints(tc.svc)
 			a.Nil(err)
@@ -509,14 +534,16 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := assert.New(t)
-			c, err := newClient(testclient.NewSimpleClientset(), nil, testMeshName, nil, nil)
+			a := tassert.New(t)
+
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			_ = c.informers[Namespaces].GetStore().Add(tc.namespace)
+			c := newClient(ic, nil, nil)
+			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 			for _, p := range tc.pods {
-				_ = c.informers[Pods].GetStore().Add(p)
+				_ = ic.Add(informers.InformerKeyPod, p, t)
 			}
-			_ = c.informers[Services].GetStore().Add(tc.service)
+			_ = ic.Add(informers.InformerKeyService, tc.service, t)
 
 			actual, err := c.ListServiceIdentitiesForService(tc.svc)
 			a.Equal(tc.expectErr, err != nil)
@@ -683,10 +710,9 @@ func TestUpdateStatus(t *testing.T) {
 			a := tassert.New(t)
 			kubeClient := testclient.NewSimpleClientset()
 			policyClient := fakePolicyClient.NewSimpleClientset(tc.existingResource.(runtime.Object))
-
-			c, err := NewKubernetesController(kubeClient, policyClient, testMeshName, make(chan struct{}), nil)
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(kubeClient), informers.WithPolicyClient(policyClient))
 			a.Nil(err)
-
+			c := NewKubernetesController(ic, policyClient, nil)
 			_, err = c.UpdateStatus(tc.updatedResource)
 			a.Equal(tc.expectErr, err != nil)
 		})
@@ -717,6 +743,7 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 							Port: 80,
 						},
 					},
+					ClusterIP: "10.0.0.1",
 				},
 			},
 			svcEndpoints: []runtime.Object{
@@ -749,6 +776,110 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 			},
 		},
 		{
+			name: "k8s service with single port and endpoint, no appProtocol set, protocol in port name",
+			// Single port on the service maps to a single MeshService.
+			// Since no appProtocol is specified, MeshService.Protocol should match
+			// the protocol specified in the port name
+			svc: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{
+							Name: "tcp-p1",
+							Port: 80,
+						},
+					},
+					ClusterIP: "10.0.0.1",
+				},
+			},
+			svcEndpoints: []runtime.Object{
+				&corev1.Endpoints{
+					ObjectMeta: metav1.ObjectMeta{
+						// Should match svc.Name and svc.Namespace
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Ports: []corev1.EndpointPort{
+								{
+									// Must match the port of 'svc.Spec.Ports[0]'
+									Port: 8080, // TargetPort
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{
+					Namespace:  "ns1",
+					Name:       "s1",
+					Port:       80,
+					TargetPort: 8080,
+					Protocol:   "tcp",
+				},
+			},
+		},
+		{
+			name: "k8s headless service with single port and endpoint, no appProtocol set",
+			// Single port on the service maps to a single MeshService.
+			// Since no appProtocol is specified, MeshService.Protocol should default
+			// to http.
+			svc: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{
+							Name: "p1",
+							Port: 80,
+						},
+					},
+					ClusterIP: corev1.ClusterIPNone,
+				},
+			},
+			svcEndpoints: []runtime.Object{
+				&corev1.Endpoints{
+					ObjectMeta: metav1.ObjectMeta{
+						// Should match svc.Name and svc.Namespace
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Addresses: []corev1.EndpointAddress{
+								{
+									IP:       "10.1.0.1",
+									Hostname: "pod-0",
+								},
+							},
+							Ports: []corev1.EndpointPort{
+								{
+									// Must match the port of 'svc.Spec.Ports[0]'
+									Port: 8080, // TargetPort
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{
+					Namespace:  "ns1",
+					Name:       "pod-0.s1",
+					Port:       80,
+					TargetPort: 8080,
+					Protocol:   "http",
+				},
+			},
+		},
+		{
 			name: "multiple ports on k8s service with appProtocol specified",
 			svc: corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
@@ -756,6 +887,7 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 					Name:      "s1",
 				},
 				Spec: corev1.ServiceSpec{
+					ClusterIP: "10.0.0.1",
 					Ports: []corev1.ServicePort{
 						{
 							Name:        "p1",
@@ -814,22 +946,180 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "multiple ports on k8s headless service with appProtocol specified",
+			svc: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+				Spec: corev1.ServiceSpec{
+					ClusterIP: corev1.ClusterIPNone,
+					Ports: []corev1.ServicePort{
+						{
+							Name:        "p1",
+							Port:        80,
+							AppProtocol: pointer.StringPtr("http"),
+						},
+						{
+							Name:        "p2",
+							Port:        90,
+							AppProtocol: pointer.StringPtr("tcp"),
+						},
+					},
+				},
+			},
+			svcEndpoints: []runtime.Object{
+				&corev1.Endpoints{
+					ObjectMeta: metav1.ObjectMeta{
+						// Should match svc.Name and svc.Namespace
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Addresses: []corev1.EndpointAddress{
+								{
+									IP:       "10.1.0.1",
+									Hostname: "pod-0",
+								},
+							},
+							Ports: []corev1.EndpointPort{
+								{
+									// Must match the port of 'svc.Spec.Ports[0]'
+									Name:        "p1",
+									Port:        8080, // TargetPort
+									AppProtocol: pointer.StringPtr("http"),
+								},
+								{
+									// Must match the port of 'svc.Spec.Ports[1]'
+									Name:        "p2",
+									Port:        9090, // TargetPort
+									AppProtocol: pointer.StringPtr("tcp"),
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{
+					Namespace:  "ns1",
+					Name:       "pod-0.s1",
+					Port:       80,
+					TargetPort: 8080,
+					Protocol:   "http",
+				},
+				{
+					Namespace:  "ns1",
+					Name:       "pod-0.s1",
+					Port:       90,
+					TargetPort: 9090,
+					Protocol:   "tcp",
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
 
 			fakeClient := testclient.NewSimpleClientset(tc.svcEndpoints...)
-			stop := make(chan struct{})
-			kubeController, err := NewKubernetesController(fakeClient, nil, testMeshName, stop, nil)
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(fakeClient))
 			assert.Nil(err)
+
+			kubeController := NewKubernetesController(ic, nil, nil)
 			assert.NotNil(kubeController)
 
 			actual := ServiceToMeshServices(kubeController, tc.svc)
 			assert.ElementsMatch(tc.expected, actual)
 		})
+	}
+}
+
+func TestGetPodForProxy(t *testing.T) {
+	assert := tassert.New(t)
+	stop := make(chan struct{})
+	defer close(stop)
+
+	proxyUUID := uuid.New()
+	someOtherEnvoyUID := uuid.New()
+	namespace := tests.BookstoreServiceAccount.Namespace
+
+	podlabels := map[string]string{
+		constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+	}
+	someOthePodLabels := map[string]string{
+		constants.AppLabel:               tests.SelectorValue,
+		constants.EnvoyUniqueIDLabelName: someOtherEnvoyUID.String(),
+	}
+
+	pod := tests.NewPodFixture(namespace, "pod-1", tests.BookstoreServiceAccountName, podlabels)
+	kubeClient := fake.NewSimpleClientset(
+		monitoredNS(namespace),
+		monitoredNS("bad-namespace"),
+		tests.NewPodFixture(namespace, "pod-0", tests.BookstoreServiceAccountName, someOthePodLabels),
+		pod,
+		tests.NewPodFixture(namespace, "pod-2", tests.BookstoreServiceAccountName, someOthePodLabels),
+	)
+
+	ic, err := informers.NewInformerCollection(testMeshName, stop, informers.WithKubeClient(kubeClient))
+	assert.Nil(err)
+
+	kubeController := NewKubernetesController(ic, nil, messaging.NewBroker(nil))
+
+	testCases := []struct {
+		name  string
+		pod   *corev1.Pod
+		proxy *envoy.Proxy
+		err   error
+	}{
+		{
+			name:  "fails when UUID does not match",
+			proxy: envoy.NewProxy(envoy.KindSidecar, uuid.New(), tests.BookstoreServiceIdentity, nil),
+			err:   errDidNotFindPodForUUID,
+		},
+		{
+			name:  "fails when service account does not match certificate",
+			proxy: &envoy.Proxy{UUID: proxyUUID, Identity: identity.New("bad-name", namespace)},
+			err:   errServiceAccountDoesNotMatchProxy,
+		},
+		{
+			name:  "2 pods with same uuid",
+			proxy: envoy.NewProxy(envoy.KindSidecar, someOtherEnvoyUID, tests.BookstoreServiceIdentity, nil),
+			err:   errMoreThanOnePodForUUID,
+		},
+		{
+			name:  "fails when namespace does not match certificate",
+			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, "bad-namespace"), nil),
+			err:   errNamespaceDoesNotMatchProxy,
+		},
+		{
+			name:  "works as expected",
+			pod:   pod,
+			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, tests.BookstoreServiceIdentity, nil),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			pod, err := kubeController.GetPodForProxy(tc.proxy)
+
+			assert.Equal(tc.pod, pod)
+			assert.Equal(tc.err, err)
+		})
+	}
+}
+
+func monitoredNS(name string) *v1.Namespace {
+	return &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
+		},
 	}
 }

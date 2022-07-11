@@ -95,11 +95,12 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
-
+						Name:                "egress-http.80",
 						DestinationPort:     80, // Used by foo.com and bar.com
 						DestinationProtocol: "http",
 					},
 					{
+						Name:                "egress-http.90",
 						DestinationPort:     90, // Used by baz.com
 						DestinationProtocol: "http",
 					},
@@ -222,10 +223,12 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
+						Name:                "egress-http.80",
 						DestinationPort:     80, // Used by foo.com and bar.com
 						DestinationProtocol: "http",
 					},
 					{
+						Name:                "egress-tcp.100",
 						DestinationPort:     100, // Used by foo.com
 						DestinationProtocol: "tcp",
 						Cluster:             "100",
@@ -321,12 +324,14 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
+						Name:                "egress-https.100",
 						DestinationPort:     100,
 						DestinationProtocol: "https",
 						ServerNames:         []string{"foo.com"},
 						Cluster:             "100",
 					},
 					{
+						Name:                "egress-tcp.100",
 						DestinationPort:     100,
 						DestinationProtocol: "tcp",
 						Cluster:             "100",
@@ -375,6 +380,7 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
+						Name:                "egress-https.100",
 						DestinationPort:     100,
 						DestinationProtocol: "https",
 						ServerNames:         []string{"foo.com"},
@@ -427,7 +433,7 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 		},
 	}
 
-	testSourceIdentity := identity.ServiceIdentity("foo.bar.cluster.local")
+	testSourceIdentity := identity.ServiceIdentity("foo.bar")
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {

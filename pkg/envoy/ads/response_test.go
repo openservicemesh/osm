@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
@@ -41,13 +40,12 @@ var _ = Describe("Test ADS response functions", func() {
 	var (
 		mockCtrl         *gomock.Controller
 		mockConfigurator *configurator.MockConfigurator
-		mockCertManager  *certificate.MockManager
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-	mockCertManager = certificate.NewMockManager(mockCtrl)
-
+	fakeCertManager, err := certificate.FakeCertManager()
+	Expect(err).ToNot(HaveOccurred())
 	// --- setup
 	kubeClient := testclient.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
@@ -71,7 +69,7 @@ var _ = Describe("Test ADS response functions", func() {
 	// Create a Pod
 	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()), tests.BookstoreServiceAccountName, tests.PodLabels)
 	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
-	_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
+	_, err = kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	It("should have created a pod", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -89,45 +87,16 @@ var _ = Describe("Test ADS response functions", func() {
 		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
 	}
 
-	certCommonName := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace)
-	certSerialNumber := certificate.SerialNumber("123456")
-	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil)
 
 	Context("Proxy is valid", func() {
 		Expect(proxy).ToNot((BeNil()))
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	Context("Test makeRequestForAllSecrets()", func() {
-		It("returns service cert", func() {
-
-			actual := makeRequestForAllSecrets(proxy, mc)
-			expected := &xds_discovery.DiscoveryRequest{
-				TypeUrl: string(envoy.TypeSDS),
-				ResourceNames: []string{
-					secrets.SDSCert{
-						// Proxy's own cert to present to peer during mTLS/TLS handshake
-						Name:     proxySvcAccount.String(),
-						CertType: secrets.ServiceCertType,
-					}.String(),
-					secrets.SDSCert{
-						// Validation certificate for mTLS when this proxy is an upstream
-						Name:     proxySvcAccount.String(),
-						CertType: secrets.RootCertTypeForMTLSInbound,
-					}.String(),
-				},
-			}
-			Expect(actual).ToNot(BeNil())
-			Expect(actual).To(Equal(expected))
-		})
 	})
 
 	Context("Test sendAllResponses()", func() {
 
-		certManager := tresorFake.NewFake(nil)
-		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.cluster.local", proxySvcAccount.Name, proxySvcAccount.Namespace))
-		certDuration := 1 * time.Hour
-		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
+		certManager := tresorFake.NewFake(nil, 1*time.Hour)
+		certPEM, _ := certManager.IssueCertificate(proxySvcAccount.ToServiceIdentity().String(), certificate.Service)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		kubectrlMock := k8s.NewMockController(mockCtrl)
@@ -135,8 +104,6 @@ var _ = Describe("Test ADS response functions", func() {
 		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
-		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
 		mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
 			EnableWASMStats:    false,
@@ -144,14 +111,14 @@ var _ = Describe("Test ADS response functions", func() {
 		}).AnyTimes()
 		mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
+		mc.GetKubeController().(*k8s.MockController).EXPECT().GetPodForProxy(proxy).Return(pod, nil).AnyTimes()
+
 		metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock, nil)
+			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, fakeCertManager, kubectrlMock, nil)
 
 			Expect(s).ToNot(BeNil())
-
-			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
 
 			// Set subscribed resources for SDS
 			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))
@@ -202,16 +169,16 @@ var _ = Describe("Test ADS response functions", func() {
 				CertType: secrets.ServiceCertType,
 			}.String()))
 
-			Expect(metricsstore.DefaultMetricsStore.Contains(fmt.Sprintf("osm_proxy_response_send_success_count{common_name=%q,type=%q} 1\n", proxy.GetCertificateCommonName(), envoy.TypeCDS))).To(BeTrue())
+			Expect(metricsstore.DefaultMetricsStore.Contains(fmt.Sprintf("osm_proxy_response_send_success_count{identity=%q,proxy_uuid=%q,type=%q} 1\n", proxy.Identity, proxy.UUID, envoy.TypeCDS))).To(BeTrue())
 		})
 	})
 
 	Context("Test sendSDSResponse()", func() {
 
-		certManager := tresorFake.NewFake(nil)
-		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
+		certManager := tresorFake.NewFake(nil, 1*time.Hour)
+		certCNPrefix := fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace)
 		certDuration := 1 * time.Hour
-		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
+		certPEM, _ := certManager.IssueCertificate(certCNPrefix, certificate.Service)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		kubectrlMock := k8s.NewMockController(mockCtrl)
@@ -226,11 +193,9 @@ var _ = Describe("Test ADS response functions", func() {
 		}).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock, nil)
+			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, fakeCertManager, kubectrlMock, nil)
 
 			Expect(s).ToNot(BeNil())
-
-			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
 
 			// Set subscribed resources
 			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))

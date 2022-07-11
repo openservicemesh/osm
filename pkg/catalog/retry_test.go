@@ -2,9 +2,11 @@ package catalog
 
 import (
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -17,6 +19,10 @@ import (
 )
 
 func TestGetRetryPolicy(t *testing.T) {
+	var thresholdUintVal uint32 = 3
+	thresholdTimeoutDuration := metav1.Duration{Duration: time.Duration(5 * time.Second)}
+	thresholdBackoffDuration := metav1.Duration{Duration: time.Duration(1 * time.Second)}
+
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -32,7 +38,7 @@ func TestGetRetryPolicy(t *testing.T) {
 		policyController:   mockPolicyController,
 		kubeController:     mockKubeController,
 	}
-	retrySrc := identity.ServiceIdentity("sa1.ns.cluster.local")
+	retrySrc := identity.ServiceIdentity("sa1.ns")
 
 	testcases := []struct {
 		name                string
@@ -67,9 +73,9 @@ func TestGetRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "5xx",
-							PerTryTimeout:            "2ns",
-							NumRetries:               3,
-							RetryBackoffBaseInterval: "4s",
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							NumRetries:               &thresholdUintVal,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -77,9 +83,9 @@ func TestGetRetryPolicy(t *testing.T) {
 			destSvc: service.MeshService{Name: "s1", Namespace: "b"},
 			expectedRetryPolicy: &policyV1alpha1.RetryPolicySpec{
 				RetryOn:                  "5xx",
-				PerTryTimeout:            "2ns",
-				NumRetries:               3,
-				RetryBackoffBaseInterval: "4s",
+				PerTryTimeout:            &thresholdTimeoutDuration,
+				NumRetries:               &thresholdUintVal,
+				RetryBackoffBaseInterval: &thresholdBackoffDuration,
 			},
 		},
 		{
@@ -112,9 +118,9 @@ func TestGetRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "5xx",
-							PerTryTimeout:            "2ns",
-							NumRetries:               3,
-							RetryBackoffBaseInterval: "4s",
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							NumRetries:               &thresholdUintVal,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -122,9 +128,9 @@ func TestGetRetryPolicy(t *testing.T) {
 			destSvc: service.MeshService{Name: "s1", Namespace: "b"},
 			expectedRetryPolicy: &policyV1alpha1.RetryPolicySpec{
 				RetryOn:                  "5xx",
-				PerTryTimeout:            "2ns",
-				NumRetries:               3,
-				RetryBackoffBaseInterval: "4s",
+				PerTryTimeout:            &thresholdTimeoutDuration,
+				NumRetries:               &thresholdUintVal,
+				RetryBackoffBaseInterval: &thresholdBackoffDuration,
 			},
 		},
 		{
@@ -147,9 +153,9 @@ func TestGetRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "5xx",
-							PerTryTimeout:            "2ns",
-							NumRetries:               3,
-							RetryBackoffBaseInterval: "4s",
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							NumRetries:               &thresholdUintVal,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -169,9 +175,9 @@ func TestGetRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "4xx",
-							PerTryTimeout:            "4s",
-							NumRetries:               6,
-							RetryBackoffBaseInterval: "7us",
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							NumRetries:               &thresholdUintVal,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -179,9 +185,9 @@ func TestGetRetryPolicy(t *testing.T) {
 			destSvc: service.MeshService{Name: "s1", Namespace: "b"},
 			expectedRetryPolicy: &policyV1alpha1.RetryPolicySpec{
 				RetryOn:                  "5xx",
-				PerTryTimeout:            "2ns",
-				NumRetries:               3,
-				RetryBackoffBaseInterval: "4s",
+				PerTryTimeout:            &thresholdTimeoutDuration,
+				NumRetries:               &thresholdUintVal,
+				RetryBackoffBaseInterval: &thresholdBackoffDuration,
 			},
 		},
 		{
@@ -214,9 +220,9 @@ func TestGetRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "5xx",
-							PerTryTimeout:            "2ns",
-							NumRetries:               3,
-							RetryBackoffBaseInterval: "4s",
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							NumRetries:               &thresholdUintVal,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},

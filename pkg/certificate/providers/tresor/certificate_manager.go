@@ -81,6 +81,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMCert)).
 			Msg("Error decoding Root Certificate's PEM")
+		return nil, errors.Wrap(err, errCreateCert.Error())
 	}
 
 	rsaKeyRoot, err := certificate.DecodePEMPrivateKey(cm.ca.GetPrivateKey())
@@ -88,6 +89,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMPrivateKey)).
 			Msg("Error decoding Root Certificate's Private Key PEM ")
+		return nil, errors.Wrap(err, errCreateCert.Error())
 	}
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, x509Root, &certPrivKey.PublicKey, rsaKeyRoot)
@@ -120,6 +122,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		CertChain:    certPEM,
 		PrivateKey:   privKeyPEM,
 		IssuingCA:    pem.RootCertificate(cm.ca.GetCertificateChain()),
+		TrustedCAs:   pem.RootCertificate(cm.ca.GetCertificateChain()),
 		Expiration:   template.NotAfter,
 	}
 

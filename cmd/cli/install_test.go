@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -26,12 +27,34 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-var (
-	testRegistrySecret = "test-registry-secret"
-	testVaultHost      = "vault.osm.svc.cluster.local"
-	testVaultToken     = "token"
-	testChartPath      = "testdata/test-chart"
+const (
+	testRegistrySecret  = "test-registry-secret"
+	testVaultHost       = "vault.osm.svc.cluster.local"
+	testVaultToken      = "token"
+	testVaultSecretName = "secret"
+	testVaultSecretKey  = "key"
+	testChartPath       = "testdata/test-chart"
+	kubeVersionMajor    = 1
+	kubeVersionMinor    = 22
+	kubeVersionPatch    = 9
 )
+
+func helmCapabilities() *chartutil.Capabilities {
+	defaultCapabilities := chartutil.DefaultCapabilities.Copy()
+	// Intentionally avoiding charutil.ParseKubeVersion so we don't have to
+	// deal with error handling when generating the capabilities.
+	defaultCapabilities.KubeVersion = chartutil.KubeVersion{
+		Version: fmt.Sprintf(
+			"v%d.%d.%d",
+			kubeVersionMajor,
+			kubeVersionMinor,
+			kubeVersionPatch,
+		),
+		Major: strconv.Itoa(kubeVersionMajor),
+		Minor: strconv.Itoa(kubeVersionMinor),
+	}
+	return defaultCapabilities
+}
 
 var _ = Describe("Running the install command", func() {
 
@@ -55,7 +78,7 @@ var _ = Describe("Running the install command", func() {
 				KubeClient: &kubefake.PrintingKubeClient{
 					Out: ioutil.Discard,
 				},
-				Capabilities: chartutil.DefaultCapabilities,
+				Capabilities: helmCapabilities(),
 				Log:          func(format string, v ...interface{}) {},
 			}
 
@@ -117,7 +140,7 @@ var _ = Describe("Running the install command", func() {
 				KubeClient: &kubefake.PrintingKubeClient{
 					Out: ioutil.Discard,
 				},
-				Capabilities: chartutil.DefaultCapabilities,
+				Capabilities: helmCapabilities(),
 				Log:          func(format string, v ...interface{}) {},
 			}
 
@@ -160,7 +183,7 @@ var _ = Describe("Running the install command", func() {
 		})
 	})
 
-	Describe("with the vault cert manager", func() {
+	Describe("with the vault cert manager using vault token", func() {
 		var (
 			out    *bytes.Buffer
 			store  *storage.Storage
@@ -179,7 +202,7 @@ var _ = Describe("Running the install command", func() {
 				Releases: store,
 				KubeClient: &kubefake.PrintingKubeClient{
 					Out: ioutil.Discard},
-				Capabilities: chartutil.DefaultCapabilities,
+				Capabilities: helmCapabilities(),
 				Log:          func(format string, v ...interface{}) {},
 			}
 
@@ -237,6 +260,87 @@ var _ = Describe("Running the install command", func() {
 		})
 	})
 
+	Describe("with the vault cert manager using token secret ref", func() {
+		var (
+			out    *bytes.Buffer
+			store  *storage.Storage
+			config *helm.Configuration
+			err    error
+		)
+
+		BeforeEach(func() {
+			out = new(bytes.Buffer)
+			store = storage.Init(driver.NewMemory())
+			if mem, ok := store.Driver.(*driver.Memory); ok {
+				mem.SetNamespace(settings.Namespace())
+			}
+
+			config = &helm.Configuration{
+				Releases: store,
+				KubeClient: &kubefake.PrintingKubeClient{
+					Out: ioutil.Discard},
+				Capabilities: helmCapabilities(),
+				Log:          func(format string, v ...interface{}) {},
+			}
+
+			installCmd := getDefaultInstallCmd(out)
+
+			installCmd.setOptions = []string{
+				"osm.certificateProvider.kind=vault",
+				fmt.Sprintf("osm.vault.host=%s", testVaultHost),
+				"osm.vault.token=",
+				fmt.Sprintf("osm.vault.secret.name=%s", testVaultSecretName),
+				fmt.Sprintf("osm.vault.secret.key=%s", testVaultSecretKey),
+			}
+			err = installCmd.run(config)
+		})
+
+		It("should not error", func() {
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should give a message confirming the successful install", func() {
+			Expect(out.String()).To(Equal("OSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
+		})
+
+		Context("the Helm release", func() {
+			var (
+				rel *release.Release
+				err error
+			)
+
+			BeforeEach(func() {
+				rel, err = config.Releases.Get(defaultMeshName, 1)
+			})
+
+			It("should not error when retrieved", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should have the correct values", func() {
+				expectedValues := getDefaultValues()
+				valuesConfig := []string{
+					fmt.Sprintf("osm.certificateProvider.kind=%s", "vault"),
+					fmt.Sprintf("osm.vault.host=%s", testVaultHost),
+					"osm.vault.token=",
+					fmt.Sprintf("osm.vault.secret.name=%s", testVaultSecretName),
+					fmt.Sprintf("osm.vault.secret.key=%s", testVaultSecretKey),
+				}
+				for _, val := range valuesConfig {
+					// parses Helm strvals line and merges into a map
+					err := strvals.ParseInto(val, expectedValues)
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+				Expect(rel.Config).To(BeEquivalentTo(expectedValues))
+			})
+
+			It("should be installed in the correct namespace", func() {
+				Expect(rel.Namespace).To(Equal(settings.Namespace()))
+			})
+		})
+	})
+
 	Describe("without required vault parameters", func() {
 		var (
 			installCmd installCmd
@@ -254,7 +358,7 @@ var _ = Describe("Running the install command", func() {
 				Releases: store,
 				KubeClient: &kubefake.PrintingKubeClient{
 					Out: ioutil.Discard},
-				Capabilities: chartutil.DefaultCapabilities,
+				Capabilities: helmCapabilities(),
 				Log:          func(format string, v ...interface{}) {},
 			}
 
@@ -270,11 +374,32 @@ var _ = Describe("Running the install command", func() {
 			Expect(err.Error()).To(ContainSubstring("osm.vault.host is required"))
 		})
 
-		It("should error when token isn't set", func() {
+		It("should error when token and token secret key are not set", func() {
+			installCmd.setOptions = append(installCmd.setOptions,
+				"osm.vault.host=my-host",
+				"osm.vault.secret.name=secret",
+			)
+			err := installCmd.run(config)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("osm.vault.secret.key is required"))
+		})
+
+		It("should error when token and token secret name are not set", func() {
+			installCmd.setOptions = append(installCmd.setOptions,
+				"osm.vault.host=my-host",
+				"osm.vault.secret.key=key",
+			)
+			err := installCmd.run(config)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("osm.vault.secret.name is required"))
+		})
+
+		It("should error when token and token secret name and key are not set", func() {
 			installCmd.setOptions = append(installCmd.setOptions,
 				"osm.vault.host=my-host",
 			)
 			err := installCmd.run(config)
+			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("osm.vault.token is required"))
 		})
 	})
@@ -298,7 +423,7 @@ var _ = Describe("Running the install command", func() {
 				Releases: store,
 				KubeClient: &kubefake.PrintingKubeClient{
 					Out: ioutil.Discard},
-				Capabilities: chartutil.DefaultCapabilities,
+				Capabilities: helmCapabilities(),
 				Log:          func(format string, v ...interface{}) {},
 			}
 
@@ -371,7 +496,7 @@ var _ = Describe("deployPrometheus is true", func() {
 			Releases: store,
 			KubeClient: &kubefake.PrintingKubeClient{
 				Out: ioutil.Discard},
-			Capabilities: chartutil.DefaultCapabilities,
+			Capabilities: helmCapabilities(),
 			Log:          func(format string, v ...interface{}) {},
 		}
 

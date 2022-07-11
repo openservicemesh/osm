@@ -17,30 +17,25 @@ import (
 )
 
 // NewResponse creates a new Route Discovery Response.
-func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryReq *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
-	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
-			Msgf("Error looking up Service Account for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
-		return nil, err
-	}
-
+func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryReq *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, cm *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
 	proxyServices, err := proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
-			Msgf("Error looking up services for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
+			Msgf("Error looking up services for Envoy with name=%s", proxy.GetName())
 		return nil, err
 	}
 
 	var rdsResources []types.Resource
 
+	trustDomain := cm.GetTrustDomain()
+
 	// ---
 	// Build inbound mesh route configurations. These route configurations allow
 	// the services associated with this proxy to accept traffic from downstream
 	// clients on allowed routes.
-	inboundMeshTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(proxyIdentity, proxyServices)
+	inboundMeshTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(proxy.Identity, proxyServices)
 	if inboundMeshTrafficPolicy != nil {
-		inboundMeshRouteConfig := route.BuildInboundMeshRouteConfiguration(inboundMeshTrafficPolicy.HTTPRouteConfigsPerPort, proxy, cfg)
+		inboundMeshRouteConfig := route.BuildInboundMeshRouteConfiguration(inboundMeshTrafficPolicy.HTTPRouteConfigsPerPort, proxy, cfg, trustDomain)
 		for _, config := range inboundMeshRouteConfig {
 			rdsResources = append(rdsResources, config)
 		}
@@ -50,7 +45,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 	// Build outbound mesh route configurations. These route configurations allow this proxy
 	// to direct traffic to upstream services that it is authorized to connect to on allowed
 	// routes.
-	outboundMeshTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(proxyIdentity)
+	outboundMeshTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(proxy.Identity)
 
 	if outboundMeshTrafficPolicy != nil {
 		outboundMeshRouteConfig := route.BuildOutboundMeshRouteConfiguration(outboundMeshTrafficPolicy.HTTPRouteConfigsPerPort)
@@ -74,19 +69,19 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 			log.Trace().Msgf("No ingress policy configured for service %s", svc)
 			continue
 		}
-		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(catalog.AllowPartialHostnamesMatch, ingressTrafficPolicies, ingressPolicy.HTTPRoutePolicies...)
+		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(ingressTrafficPolicies, ingressPolicy.HTTPRoutePolicies...)
 	}
 	if len(ingressTrafficPolicies) > 0 {
-		ingressRouteConfig := route.BuildIngressConfiguration(ingressTrafficPolicies)
+		ingressRouteConfig := route.BuildIngressConfiguration(ingressTrafficPolicies, trustDomain)
 		rdsResources = append(rdsResources, ingressRouteConfig)
 	}
 
 	// ---
 	// Build egress route configurations. These route configurations allow this
 	// proxy to direct traffic to external non-mesh destinations on allowed routes.
-	egressTrafficPolicy, err := cataloger.GetEgressTrafficPolicy(proxyIdentity)
+	egressTrafficPolicy, err := cataloger.GetEgressTrafficPolicy(proxy.Identity)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving egress traffic policies for proxy with identity %s, skipping egress route configuration", proxyIdentity)
+		log.Error().Err(err).Msgf("Error retrieving egress traffic policies for proxy with identity %s, skipping egress route configuration", proxy.Identity)
 	}
 	if egressTrafficPolicy != nil {
 		egressRouteConfigs := route.BuildEgressRouteConfiguration(egressTrafficPolicy.HTTPRouteConfigsPerPort)

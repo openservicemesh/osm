@@ -23,10 +23,10 @@ type MeshConfigListerExpansion interface{}
 // MeshConfigNamespaceLister.
 type MeshConfigNamespaceListerExpansion interface{}
 
-// MultiClusterServiceListerExpansion allows custom methods to be added to
-// MultiClusterServiceLister.
-type MultiClusterServiceListerExpansion interface{}
+// MeshRootCertificateListerExpansion allows custom methods to be added to
+// MeshRootCertificateLister.
+type MeshRootCertificateListerExpansion interface{}
 
-// MultiClusterServiceNamespaceListerExpansion allows custom methods to be added to
-// MultiClusterServiceNamespaceLister.
-type MultiClusterServiceNamespaceListerExpansion interface{}
+// MeshRootCertificateNamespaceListerExpansion allows custom methods to be added to
+// MeshRootCertificateNamespaceLister.
+type MeshRootCertificateNamespaceListerExpansion interface{}

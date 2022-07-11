@@ -9,7 +9,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
@@ -29,15 +28,15 @@ func xdsPathTimeTrack(startedAt time.Time, typeURI envoy.TypeURI, proxy *envoy.P
 		Observe(elapsed.Seconds())
 }
 
-func (s *Server) trackXDSLog(cn certificate.CommonName, typeURL envoy.TypeURI) {
+func (s *Server) trackXDSLog(proxyUUID string, typeURL envoy.TypeURI) {
 	s.withXdsLogMutex(func() {
-		if _, ok := s.xdsLog[cn]; !ok {
-			s.xdsLog[cn] = make(map[envoy.TypeURI][]time.Time)
+		if _, ok := s.xdsLog[proxyUUID]; !ok {
+			s.xdsLog[proxyUUID] = make(map[envoy.TypeURI][]time.Time)
 		}
 
-		timeSlice, ok := s.xdsLog[cn][typeURL]
+		timeSlice, ok := s.xdsLog[proxyUUID][typeURL]
 		if !ok {
-			s.xdsLog[cn][typeURL] = []time.Time{time.Now()}
+			s.xdsLog[proxyUUID][typeURL] = []time.Time{time.Now()}
 			return
 		}
 
@@ -45,7 +44,7 @@ func (s *Server) trackXDSLog(cn certificate.CommonName, typeURL envoy.TypeURI) {
 		if len(timeSlice) > MaxXdsLogsPerProxy {
 			timeSlice = timeSlice[1:]
 		}
-		s.xdsLog[cn][typeURL] = timeSlice
+		s.xdsLog[proxyUUID][typeURL] = timeSlice
 	})
 }
 

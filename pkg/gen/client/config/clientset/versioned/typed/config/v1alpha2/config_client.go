@@ -16,6 +16,8 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"net/http"
+
 	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
@@ -24,7 +26,7 @@ import (
 type ConfigV1alpha2Interface interface {
 	RESTClient() rest.Interface
 	MeshConfigsGetter
-	MultiClusterServicesGetter
+	MeshRootCertificatesGetter
 }
 
 // ConfigV1alpha2Client is used to interact with features provided by the config.openservicemesh.io group.
@@ -36,17 +38,33 @@ func (c *ConfigV1alpha2Client) MeshConfigs(namespace string) MeshConfigInterface
 	return newMeshConfigs(c, namespace)
 }
 
-func (c *ConfigV1alpha2Client) MultiClusterServices(namespace string) MultiClusterServiceInterface {
-	return newMultiClusterServices(c, namespace)
+func (c *ConfigV1alpha2Client) MeshRootCertificates(namespace string) MeshRootCertificateInterface {
+	return newMeshRootCertificates(c, namespace)
 }
 
 // NewForConfig creates a new ConfigV1alpha2Client for the given config.
+// NewForConfig is equivalent to NewForConfigAndClient(c, httpClient),
+// where httpClient was generated with rest.HTTPClientFor(c).
 func NewForConfig(c *rest.Config) (*ConfigV1alpha2Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
 	}
-	client, err := rest.RESTClientFor(&config)
+	httpClient, err := rest.HTTPClientFor(&config)
+	if err != nil {
+		return nil, err
+	}
+	return NewForConfigAndClient(&config, httpClient)
+}
+
+// NewForConfigAndClient creates a new ConfigV1alpha2Client for the given config and http client.
+// Note the http client provided takes precedence over the configured transport values.
+func NewForConfigAndClient(c *rest.Config, h *http.Client) (*ConfigV1alpha2Client, error) {
+	config := *c
+	if err := setConfigDefaults(&config); err != nil {
+		return nil, err
+	}
+	client, err := rest.RESTClientForConfigAndClient(&config, h)
 	if err != nil {
 		return nil, err
 	}

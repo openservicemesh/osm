@@ -1,20 +1,22 @@
 package scenarios
 
 import (
-	"fmt"
 	"testing"
+	"time"
 
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/identity"
 
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
-	"github.com/openservicemesh/osm/pkg/certificate"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
@@ -33,9 +35,7 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	meshCatalog := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
-	proxyCertCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace))
-	proxyCertSerialNumber := certificate.SerialNumber("123456")
-	proxy, err := getProxy(kubeClient, proxyCertCommonName, proxyCertSerialNumber)
+	proxy, err := getSidecarProxy(kubeClient, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace))
 	a.Nil(err)
 	a.NotNil(proxy)
 
@@ -51,7 +51,10 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 		EnableEgressPolicy: false,
 	}).AnyTimes()
 
-	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+	mc := tresorFake.NewFake(nil, 1*time.Hour)
+	a.NotNil(a)
+
+	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, mc, proxyRegistry)
 	a.Nil(err)
 	a.Len(resources, 1) // only outbound routes configured for this test
 

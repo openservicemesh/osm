@@ -14,6 +14,8 @@ const (
 
 	// How many bits in the certificate serial number
 	certSerialNumberBits = 128
+
+	testCertOrgName = "Open Service Mesh Tresor"
 )
 
 var (

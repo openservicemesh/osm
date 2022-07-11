@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"reflect"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
-	configInformers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -20,67 +17,43 @@ import (
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
-func NewConfigurator(meshConfigClientSet configClientset.Interface, stop <-chan struct{}, osmNamespace, meshConfigName string,
-	msgBroker *messaging.Broker) Configurator {
-	return newConfigurator(meshConfigClientSet, stop, osmNamespace, meshConfigName, msgBroker)
-}
-
-func newConfigurator(meshConfigClientSet configClientset.Interface, stop <-chan struct{}, osmNamespace string, meshConfigName string,
-	msgBroker *messaging.Broker) *client {
-	listOption := configInformers.WithTweakListOptions(func(opt *metav1.ListOptions) {
-		opt.FieldSelector = fields.OneTermEqualSelector(metav1.ObjectNameField, meshConfigName).String()
-	})
-	informerFactory := configInformers.NewSharedInformerFactoryWithOptions(
-		meshConfigClientSet,
-		k8s.DefaultKubeEventResyncInterval,
-		configInformers.WithNamespace(osmNamespace),
-		listOption,
-	)
-	informer := informerFactory.Config().V1alpha2().MeshConfigs().Informer()
-	c := &client{
-		informer:       informer,
-		cache:          informer.GetStore(),
+func NewConfigurator(informerCollection *informers.InformerCollection, osmNamespace, meshConfigName string, msgBroker *messaging.Broker) *Client {
+	c := &Client{
+		informers:      informerCollection,
 		osmNamespace:   osmNamespace,
 		meshConfigName: meshConfigName,
 	}
 
 	// configure listener
-	eventTypes := k8s.EventTypes{
+	meshConfigEventTypes := k8s.EventTypes{
 		Add:    announcements.MeshConfigAdded,
 		Update: announcements.MeshConfigUpdated,
 		Delete: announcements.MeshConfigDeleted,
 	}
-	informer.AddEventHandler(k8s.GetEventHandlerFuncs(nil, eventTypes, msgBroker))
-	informer.AddEventHandler(c.metricsHandler())
 
-	c.run(stop)
+	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, k8s.GetEventHandlerFuncs(nil, meshConfigEventTypes, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, c.metricsHandler())
+
+	meshRootCertificateEventTypes := k8s.EventTypes{
+		Add:    announcements.MeshRootCertificateAdded,
+		Update: announcements.MeshRootCertificateUpdated,
+		Delete: announcements.MeshRootCertificateDeleted,
+	}
+	informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, k8s.GetEventHandlerFuncs(nil, meshRootCertificateEventTypes, msgBroker))
 
 	return c
 }
 
-func (c *client) run(stop <-chan struct{}) {
-	go c.informer.Run(stop) // run the informer synchronization
-	log.Debug().Msgf("Started OSM MeshConfig informer")
-	log.Debug().Msg("[MeshConfig client] Waiting for MeshConfig informer's cache to sync")
-	if !cache.WaitForCacheSync(stop, c.informer.HasSynced) {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMeshConfigInformerInitCache)).Msg("Failed initial cache sync for MeshConfig informer")
-		return
-	}
-
-	log.Debug().Msg("[MeshConfig client] Cache sync for MeshConfig informer finished")
-}
-
-func (c *client) getMeshConfigCacheKey() string {
+func (c *Client) getMeshConfigCacheKey() string {
 	return fmt.Sprintf("%s/%s", c.osmNamespace, c.meshConfigName)
 }
 
 // Returns the current MeshConfig
-func (c *client) getMeshConfig() configv1alpha2.MeshConfig {
+func (c *Client) getMeshConfig() configv1alpha2.MeshConfig {
 	var meshConfig configv1alpha2.MeshConfig
 
 	meshConfigCacheKey := c.getMeshConfigCacheKey()
-	item, exists, err := c.cache.GetByKey(meshConfigCacheKey)
+	item, exists, err := c.informers.GetByKey(informers.InformerKeyMeshConfig, meshConfigCacheKey)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMeshConfigFetchFromCache)).Msgf("Error getting MeshConfig from cache with key %s", meshConfigCacheKey)
 		return meshConfig
@@ -95,7 +68,7 @@ func (c *client) getMeshConfig() configv1alpha2.MeshConfig {
 	return meshConfig
 }
 
-func (c *client) metricsHandler() cache.ResourceEventHandlerFuncs {
+func (c *Client) metricsHandler() cache.ResourceEventHandlerFuncs {
 	handleMetrics := func(obj interface{}) {
 		config := obj.(*configv1alpha2.MeshConfig)
 

@@ -12,6 +12,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 // mutatingWebhookEventHandler creates mutating webhook events handlers.
@@ -48,6 +49,7 @@ func (c client) reconcileMutatingWebhook(oldMwhc, newMwhc *admissionv1.MutatingW
 				Msgf("Error updating mutating webhook: %s", newMwhc.Name)
 		}
 	}
+	metricsstore.DefaultMetricsStore.ReconciliationTotal.WithLabelValues("MutatingWebhookConfiguration").Inc()
 	log.Debug().Msgf("Successfully reconciled mutating webhook %s", newMwhc.Name)
 }
 
@@ -57,6 +59,7 @@ func (c client) addMutatingWebhook(oldMwhc *admissionv1.MutatingWebhookConfigura
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrReconcilingDeletedMutatingWebhook)).
 			Msgf("Error adding back deleted mutating webhook: %s", oldMwhc.Name)
 	}
+	metricsstore.DefaultMetricsStore.ReconciliationTotal.WithLabelValues("MutatingWebhookConfiguration").Inc()
 	log.Debug().Msgf("Successfully added back mutating webhook %s", oldMwhc.Name)
 }
 

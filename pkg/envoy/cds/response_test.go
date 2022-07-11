@@ -10,7 +10,6 @@ import (
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -21,14 +20,12 @@ import (
 	trequire "github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -52,11 +49,7 @@ func TestNewResponse(t *testing.T) {
 	mockKubeController := k8s.NewMockController(mockCtrl)
 
 	proxyUUID := uuid.New()
-	// The format of the CN matters
-	xdsCertificate := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace)
-	certSerialNumber := certificate.SerialNumber("123456")
-	proxy, err := envoy.NewProxy(xdsCertificate, certSerialNumber, nil)
-	assert.Nil(err)
+	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil)
 
 	testMeshSvc := service.MeshService{
 		Namespace:  tests.BookbuyerService.Namespace,
@@ -122,10 +115,10 @@ func TestNewResponse(t *testing.T) {
 	newPod1.Annotations = map[string]string{
 		constants.PrometheusScrapeAnnotation: "true",
 	}
-	_, err = kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &newPod1, metav1.CreateOptions{})
+	_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), newPod1, metav1.CreateOptions{})
 	assert.Nil(err)
 
-	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&newPod1})
+	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(newPod1, nil)
 
 	resp, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
 	assert.Nil(err)
@@ -209,7 +202,7 @@ func TestNewResponse(t *testing.T) {
 			ServiceName: "",
 		},
 		TransportSocket: &xds_core.TransportSocket{
-			Name: wellknown.TransportSocketTls,
+			Name: "default/bookstore-v1|80",
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: string(envoy.TypeUpstreamTLSContext),
@@ -240,7 +233,7 @@ func TestNewResponse(t *testing.T) {
 			ServiceName: "",
 		},
 		TransportSocket: &xds_core.TransportSocket{
-			Name: wellknown.TransportSocketTls,
+			Name: "default/bookstore-v2|80",
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: string(envoy.TypeUpstreamTLSContext),
@@ -422,18 +415,12 @@ func TestNewResponseListServicesError(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, errors.New("some error")
 	}), nil)
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace))
-	proxy, err := envoy.NewProxy(cn, "", nil)
-	tassert.Nil(t, err)
-
-	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(cn)
-	tassert.NoError(t, err)
+	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	cfg := configurator.NewMockConfigurator(ctrl)
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
-	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxyIdentity).Return(nil).AnyTimes()
+	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxy.Identity).Return(nil).AnyTimes()
 	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
@@ -446,9 +433,9 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}), nil)
-	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
-	proxy, err := envoy.NewProxy(cn, "", nil)
-	tassert.Nil(t, err)
+
+	proxyUUID := uuid.New()
+	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
@@ -459,11 +446,14 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxyIdentity).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetEgressTrafficPolicy(proxyIdentity).Return(nil, errors.New("some error")).Times(1)
 	meshCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
-	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
 	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
 	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+
+	pod := tests.NewPodFixture("ns", "pod-1", "svcacc", map[string]string{
+		constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+	})
+	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(pod, nil)
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
 	tassert.NoError(t, err)
@@ -475,9 +465,9 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}), nil)
-	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindSidecar, "svcacc", "ns")
-	proxy, err := envoy.NewProxy(cn, "", nil)
-	tassert.Nil(t, err)
+
+	proxyUUID := uuid.New()
+	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
@@ -486,7 +476,6 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	meshCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxyIdentity).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetKubeController().Return(mockKubeController).AnyTimes()
-	mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{})
 	meshCatalog.EXPECT().GetEgressTrafficPolicy(proxyIdentity).Return(&trafficpolicy.EgressTrafficPolicy{
 		ClustersConfigs: []*trafficpolicy.EgressClusterConfig{
 			{Name: "my-cluster"},
@@ -495,39 +484,17 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	}, nil).Times(1)
 	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
 	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: false}).AnyTimes()
 	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+
+	pod := tests.NewPodFixture("ns", "pod-1", "svcacc", map[string]string{
+		constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+	})
+	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(pod, nil)
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
 	tassert.NoError(t, err)
 	tassert.Len(t, resp, 1)
 	tassert.Equal(t, resp[0].(*xds_cluster.Cluster).Name, "my-cluster")
-}
-
-func TestNewResponseForMulticlusterGateway(t *testing.T) {
-	assert := tassert.New(t)
-
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}), nil)
-	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, "osm", "osm-system")
-	proxy, err := envoy.NewProxy(cn, "", nil)
-	assert.Nil(err)
-
-	ctrl := gomock.NewController(t)
-	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	cfg := configurator.NewMockConfigurator(ctrl)
-
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
-	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-	meshCatalog.EXPECT().ListOutboundServicesForMulticlusterGateway().Return([]service.MeshService{
-		tests.BookstoreV1Service,
-	}).AnyTimes()
-
-	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
-	assert.NoError(err)
-	assert.Len(resp, 1)
-	assert.Equal(tests.BookstoreV1Service.ServerName(), resp[0].(*xds_cluster.Cluster).Name)
 }
 
 func TestRemoveDups(t *testing.T) {

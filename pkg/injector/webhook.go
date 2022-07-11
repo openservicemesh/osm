@@ -2,7 +2,6 @@ package injector
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -24,7 +23,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
@@ -35,108 +33,46 @@ const (
 	// webhookCreatePod is the HTTP path at which the webhook expects to receive pod creation events
 	webhookCreatePod = "/mutate-pod-creation"
 
-	// WebhookHealthPath is the HTTP path at which the health of the webhook can be queried
-	WebhookHealthPath = "/healthz"
+	bootstrapSecretPrefix = "envoy-bootstrap-config-"
 )
 
 // NewMutatingWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName, osmVersion string, webhookTimeout int32, enableReconciler bool, stop <-chan struct{}, cfg configurator.Configurator, osmContainerPullPolicy corev1.PullPolicy) error {
-	// This is a certificate issued for the webhook handler
-	// This cert does not have to be related to the Envoy certs, but it does have to match
-	// the cert provisioned with the MutatingWebhookConfiguration
-	webhookHandlerCert, err := certManager.IssueCertificate(
-		certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMInjectorName, osmNamespace)),
-		constants.XDSCertificateValidityPeriod)
-	if err != nil {
-		return errors.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
-	}
-
+func NewMutatingWebhook(ctx context.Context, kubeClient kubernetes.Interface, certManager *certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName, osmVersion string, webhookTimeout int32, enableReconciler bool, cfg configurator.Configurator, osmContainerPullPolicy corev1.PullPolicy) error {
 	wh := mutatingWebhook{
-		config:                 config,
 		kubeClient:             kubeClient,
 		certManager:            certManager,
 		kubeController:         kubeController,
 		osmNamespace:           osmNamespace,
 		meshName:               meshName,
-		cert:                   webhookHandlerCert,
 		configurator:           cfg,
 		osmContainerPullPolicy: osmContainerPullPolicy,
 
 		// Envoy sidecars should never be injected in these namespaces
-		nonInjectNamespaces: mapset.NewSetFromSlice([]interface{}{
+		nonInjectNamespaces: mapset.NewSet(
 			metav1.NamespaceSystem,
 			metav1.NamespacePublic,
 			osmNamespace,
-		}),
+		),
 	}
-
-	// Start the MutatingWebhook web server
-	go wh.run(stop)
-
-	if err = createOrUpdateMutatingWebhook(wh.kubeClient, webhookHandlerCert, webhookTimeout, webhookConfigName, meshName, osmNamespace, osmVersion, enableReconciler); err != nil {
-		return errors.Errorf("Error creating MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
-	}
-	return nil
-}
-
-func (wh *mutatingWebhook) run(stop <-chan struct{}) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	mux := http.NewServeMux()
-
-	mux.Handle(WebhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
 
 	// We know that the events arriving at this handler are CREATE POD only
 	// because of the specifics of MutatingWebhookConfiguration template in this repository.
-	mux.Handle(webhookCreatePod, metricsstore.AddHTTPMetrics(http.HandlerFunc(wh.podCreationHandler)))
 
-	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", wh.config.ListenPort),
-		Handler: mux,
+	// Start the MutatingWebhook web server
+	srv, err := webhook.NewServer(constants.OSMInjectorName, osmNamespace, constants.InjectorWebhookPort, certManager, map[string]http.HandlerFunc{
+		webhookCreatePod: http.HandlerFunc(wh.podCreationHandler),
+	},
+		func(cert *certificate.Certificate) error {
+			if err := createOrUpdateMutatingWebhook(kubeClient, cert, webhookTimeout, webhookConfigName, meshName, osmNamespace, osmVersion, enableReconciler); err != nil {
+				return err
+			}
+			return nil
+		})
+	if err != nil {
+		return err
 	}
-
-	log.Info().Msgf("Starting sidecar-injection webhook server on port: %v", wh.config.ListenPort)
-	go func() {
-		// Generate a key pair from your pem-encoded cert and key ([]byte).
-		cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
-		if err != nil {
-			// TODO(#3962): metric might not be scraped before process restart resulting from this error
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingMutatingWebhookCert)).
-				Msg("Error parsing webhook certificate")
-			return
-		}
-
-		// #nosec G402
-		server.TLSConfig = &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			MinVersion:   tls.VersionTLS13,
-		}
-
-		if err := server.ListenAndServeTLS("", ""); err != nil {
-			// TODO(#3962): metric might not be scraped before process restart resulting from this error
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrStartingInjectionWebhookHTTPServer)).
-				Msg("Sidecar injection webhook HTTP server failed to start")
-			return
-		}
-	}()
-
-	// Wait on exit signals
-	<-stop
-
-	// Stop the server
-	if err := server.Shutdown(ctx); err != nil {
-		log.Error().Err(err).Msg("Error shutting down sidecar-injection webhook HTTP server")
-	} else {
-		log.Info().Msg("Done shutting down sidecar-injection webhook HTTP server")
-	}
-}
-
-func healthHandler(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write([]byte("Health OK")); err != nil {
-		log.Error().Err(err).Msg("Error writing bytes for mutating webhook health check handler")
-	}
+	go srv.Run(ctx)
+	return nil
 }
 
 func (wh *mutatingWebhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionRequestBody []byte) (requestForNamespace string, admissionResp admissionv1.AdmissionReview) {
@@ -182,7 +118,6 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 	// We use req.Namespace because pod.Namespace is "" at this point
 	// This string uniquely identifies the pod. Ideally this would be the pod.UID, but this is not available at this point.
 	proxyUUID := uuid.New()
-
 	requestForNamespace, admissionResp := wh.getAdmissionReqResp(proxyUUID, admissionRequestBody)
 
 	resp, err := json.Marshal(&admissionResp)
@@ -408,16 +343,15 @@ func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert *certifi
 	if _, err := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.Background(), &mwhc, metav1.CreateOptions{}); err != nil {
 		// Webhook already exists, update the webhook in this scenario
 		if apierrors.IsAlreadyExists(err) {
-			existingMwhc, err := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), mwhc.Name, metav1.GetOptions{})
+			existing, err := clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), mwhc.Name, metav1.GetOptions{})
 			if err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMutatingWebhook)).
 					Msgf("Error getting MutatingWebhookConfiguration %s", webhookName)
 				return err
 			}
 
-			existingMwhc.Webhooks = mwhc.Webhooks
-			existingMwhc.Labels = mwhc.Labels
-			if _, err = clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.Background(), existingMwhc, metav1.UpdateOptions{}); err != nil {
+			mwhc.ObjectMeta = existing.ObjectMeta // copy the object meta which includes resource version, required for updates.
+			if _, err = clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.Background(), &mwhc, metav1.UpdateOptions{}); err != nil {
 				// There might be conflicts when multiple injectors try to update the same resource
 				// One of the injectors will successfully update the resource, hence conflicts shoud be ignored and not treated as an error
 				if !apierrors.IsConflict(err) {

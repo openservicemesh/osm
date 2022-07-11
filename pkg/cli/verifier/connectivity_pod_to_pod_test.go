@@ -42,6 +42,7 @@ func TestRun(t *testing.T) {
 								Name: constants.EnvoyContainerName,
 							},
 						},
+						ServiceAccountName: "curl",
 					},
 				},
 				&corev1.Pod{
@@ -55,6 +56,7 @@ func TestRun(t *testing.T) {
 								Name: constants.EnvoyContainerName,
 							},
 						},
+						ServiceAccountName: "httpbin",
 					},
 				},
 				&corev1.Namespace{
@@ -87,6 +89,21 @@ func TestRun(t *testing.T) {
 						},
 						// Must match service IP in outbound filter chain match in testdata/curl_permissive.json
 						ClusterIP: "10.96.15.1",
+					},
+				},
+				&corev1.Endpoints{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "httpbin",
+						Namespace: "httpbin",
+					},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Ports: []corev1.EndpointPort{
+								{
+									Port: 14001,
+								},
+							},
+						},
 					},
 				},
 			},

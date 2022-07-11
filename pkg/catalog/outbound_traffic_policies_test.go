@@ -76,12 +76,12 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 	}
 
 	svcIdentityToSvcMapping := map[string][]service.MeshService{
-		"sa1.ns1.cluster.local": {meshSvc1P1, meshSvc1P2},
-		"sa2.ns2.cluster.local": {meshSvc2}, // Client `downstreamIdentity` cannot access this upstream
-		"sa3.ns3.cluster.local": {meshSvc3, meshSvc3V1, meshSvc3V2, meshSvc4, meshSvc5},
+		"sa1.ns1": {meshSvc1P1, meshSvc1P2},
+		"sa2.ns2": {meshSvc2}, // Client `downstreamIdentity` cannot access this upstream
+		"sa3.ns3": {meshSvc3, meshSvc3V1, meshSvc3V2, meshSvc4, meshSvc5},
 	}
 
-	downstreamIdentity := identity.ServiceIdentity("sa-x.ns1.cluster.local")
+	downstreamIdentity := identity.ServiceIdentity("sa-x.ns1")
 
 	// TrafficTargets that allow: sa-x.ns1 -> sa1.ns1, sa3.ns3
 	// No TrafficTarget that allows sa-x.ns1 -> sa2.ns2 (this should be allowed in permissive mode)
@@ -141,7 +141,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			Namespace: "ns3",
 		},
 		Spec: split.TrafficSplitSpec{
-			Service: "s3.ns3.cluster.local",
+			Service: "s3.ns3.svc.cluster.local",
 			Backends: []split.TrafficSplitBackend{
 				{
 					Service: "s3-v1",
@@ -691,7 +691,7 @@ func TestListOutboundServicesForIdentity(t *testing.T) {
 		},
 		{
 			name:           "gateway",
-			svcIdentity:    "gateway.osm-system.cluster.local",
+			svcIdentity:    "gateway.osm-system",
 			expectedList:   []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService, tests.BookbuyerService},
 			permissiveMode: true,
 		},
@@ -708,88 +708,14 @@ func TestListOutboundServicesForIdentity(t *testing.T) {
 	}
 }
 
-func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
-	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockKubeController := k8s.NewMockController(mockCtrl)
-	mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-	mockServiceProvider := service.NewMockProvider(mockCtrl)
-
-	mc := MeshCatalog{
-		kubeController:     mockKubeController,
-		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-		serviceProviders:   []service.Provider{mockServiceProvider},
-	}
-
-	destSA := identity.K8sServiceAccount{
-		Name:      "bookstore",
-		Namespace: "bookstore-ns",
-	}
-
-	destMeshService := service.MeshService{
-		Name:      "bookstore",
-		Namespace: "bookstore-ns",
-	}
-
-	destK8sService := tests.NewServiceFixture(destMeshService.Name, destMeshService.Namespace, map[string]string{})
-	mockServiceProvider.EXPECT().GetServicesForServiceIdentity(destSA.ToServiceIdentity()).Return([]service.MeshService{destMeshService}).AnyTimes()
-	mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-	mockServiceProvider.EXPECT().GetID().Return("fake").AnyTimes()
-	mockKubeController.EXPECT().GetService(destMeshService).Return(destK8sService).AnyTimes()
-
-	trafficTarget := &access.TrafficTarget{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "access.smi-spec.io/v1alpha3",
-			Kind:       "TrafficTarget",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "target",
-			Namespace: "bookstore-ns",
-		},
-		Spec: access.TrafficTargetSpec{
-			Destination: access.IdentityBindingSubject{
-				Kind:      "Name",
-				Name:      "bookstore",
-				Namespace: "bookstore-ns",
-			},
-			Sources: []access.IdentityBindingSubject{{
-				Kind:      "Name",
-				Name:      "bookbuyer",
-				Namespace: "default",
-			}},
-		},
-	}
-
-	actual := mc.getDestinationServicesFromTrafficTarget(trafficTarget)
-	assert.Equal([]service.MeshService{destMeshService}, actual)
-}
-
 func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	mockController := k8s.NewMockController(mockCtrl)
-	mockServiceProvider := service.NewMockProvider(mockCtrl)
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
-	mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
-
-	mc := MeshCatalog{
-		meshSpec:         mockMeshSpec,
-		kubeController:   mockController,
-		configurator:     mockConfigurator,
-		serviceProviders: []service.Provider{mockServiceProvider},
-	}
-
 	testCases := []struct {
-		name          string
-		id            identity.ServiceIdentity
-		services      []*corev1.Service
-		trafficSplits []*split.TrafficSplit
-		expected      []service.MeshService
+		name           string
+		id             identity.ServiceIdentity
+		services       []*corev1.Service
+		trafficSplits  []*split.TrafficSplit
+		expected       []service.MeshService
+		foundNamespace bool
 	}{
 		{
 			name:     "no allowed outbound services",
@@ -857,6 +783,7 @@ func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
 					},
 				},
 			},
+			foundNamespace: true,
 			expected: []service.MeshService{
 				{
 					Name:       "split-svc",
@@ -882,8 +809,9 @@ func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
 			},
 		},
 		{
-			name: "TrafficSplit apex service should not have duplicate when it does not have endpoints",
-			id:   "my-src-ns.my-src-name",
+			name:           "TrafficSplit apex service should not have duplicate when it does not have endpoints",
+			id:             "my-src-ns.my-src-name",
+			foundNamespace: true,
 			services: []*corev1.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -981,6 +909,21 @@ func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+			mockController := k8s.NewMockController(mockCtrl)
+			mockServiceProvider := service.NewMockProvider(mockCtrl)
+			mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
+
+			mc := MeshCatalog{
+				meshSpec:         mockMeshSpec,
+				kubeController:   mockController,
+				configurator:     mockConfigurator,
+				serviceProviders: []service.Provider{mockServiceProvider},
+			}
 			var meshServices []service.MeshService
 
 			for _, k8sSvc := range tc.services {
@@ -992,6 +935,13 @@ func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
 			if len(tc.trafficSplits) > 0 {
 				mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficSplits).Times(1)
 			}
+
+			var ns *corev1.Namespace
+			if tc.foundNamespace {
+				ns = &corev1.Namespace{}
+			}
+
+			mockController.EXPECT().GetNamespace(gomock.Any()).Return(ns).AnyTimes()
 
 			tassert.ElementsMatch(t, tc.expected, mc.listAllowedUpstreamServicesIncludeApex(tc.id))
 		})

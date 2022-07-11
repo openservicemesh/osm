@@ -7,14 +7,20 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	xds_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -57,10 +63,12 @@ const (
 
 	// authorityHeaderKey is the key corresponding to the HTTP Host/Authority header programmed as a header matcher in an Envoy route
 	authorityHeaderKey = ":authority"
+
+	httpLocalRateLimiterStatsPrefix = "http_local_rate_limiter"
 )
 
 // BuildInboundMeshRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
-func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy, cfg configurator.Configurator) []*xds_route.RouteConfiguration {
+func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy, cfg configurator.Configurator, trustDomain string) []*xds_route.RouteConfiguration {
 	var routeConfigs []*xds_route.RouteConfiguration
 
 	// An Envoy RouteConfiguration will exist for each HTTP upstream port.
@@ -70,7 +78,8 @@ func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*traf
 		routeConfig := NewRouteConfigurationStub(GetInboundMeshRouteConfigNameForPort(port))
 		for _, config := range configs {
 			virtualHost := buildVirtualHostStub(inboundVirtualHost, config.Name, config.Hostnames)
-			virtualHost.Routes = buildInboundRoutes(config.Rules)
+			virtualHost.Routes = buildInboundRoutes(config.Rules, trustDomain)
+			applyInboundVirtualHostConfig(virtualHost, config)
 			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
 		}
 		if featureFlags := cfg.GetFeatureFlags(); featureFlags.EnableWASMStats {
@@ -89,8 +98,102 @@ func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*traf
 	return routeConfigs
 }
 
+// applyInboundVirtualHostConfig updates the VirtualHost configuration based on the given policy
+func applyInboundVirtualHostConfig(vhost *xds_route.VirtualHost, policy *trafficpolicy.InboundTrafficPolicy) {
+	if vhost == nil || policy == nil {
+		return
+	}
+
+	config := make(map[string]*any.Any)
+
+	// Apply VirtualHost level rate limiting config
+	if policy.RateLimit != nil && policy.RateLimit.Local != nil && policy.RateLimit.Local.HTTP != nil {
+		if filter, err := getLocalRateLimitFilterConfig(policy.RateLimit.Local.HTTP); err != nil {
+			log.Error().Err(err).Msgf("Error applying local rate limiting config for vhost %s, ignoring it", vhost.Name)
+		} else {
+			config[envoy.HTTPLocalRateLimitFilterName] = filter
+		}
+	}
+	// Add other typed filter configs below when necessary
+
+	vhost.TypedPerFilterConfig = config
+}
+
+// getLocalRateLimitFilterConfig returns the marshalled HTTP local rate limiting config for the given policy
+func getLocalRateLimitFilterConfig(config *policyv1alpha1.HTTPLocalRateLimitSpec) (*any.Any, error) {
+	if config == nil {
+		return nil, nil
+	}
+
+	var fillInterval time.Duration
+	switch config.Unit {
+	case "second":
+		fillInterval = time.Second
+	case "minute":
+		fillInterval = time.Minute
+	case "hour":
+		fillInterval = time.Hour
+	default:
+		return nil, errors.Errorf("invalid unit %q for HTTP request rate limiting", config.Unit)
+	}
+
+	rl := &xds_local_ratelimit.LocalRateLimit{
+		StatPrefix: httpLocalRateLimiterStatsPrefix,
+		TokenBucket: &xds_type.TokenBucket{
+			MaxTokens:     config.Requests + config.Burst,
+			TokensPerFill: wrapperspb.UInt32(config.Requests),
+			FillInterval:  durationpb.New(fillInterval),
+		},
+		ResponseHeadersToAdd: getRateLimitHeaderValueOptions(config.ResponseHeadersToAdd),
+		FilterEnabled: &xds_core.RuntimeFractionalPercent{
+			DefaultValue: &xds_type.FractionalPercent{
+				Numerator:   100,
+				Denominator: xds_type.FractionalPercent_HUNDRED,
+			},
+		},
+		FilterEnforced: &xds_core.RuntimeFractionalPercent{
+			DefaultValue: &xds_type.FractionalPercent{
+				Numerator:   100,
+				Denominator: xds_type.FractionalPercent_HUNDRED,
+			},
+		},
+	}
+
+	// Set the response status code if not specified. Envoy defaults to 429 (Too Many Requests).
+	if config.ResponseStatusCode > 0 {
+		rl.Status = &xds_type.HttpStatus{Code: xds_type.StatusCode(config.ResponseStatusCode)}
+	}
+
+	marshalled, err := anypb.New(rl)
+	if err != nil {
+		return nil, err
+	}
+
+	return marshalled, nil
+}
+
+// getRateLimitHeaderValueOptions returns a list of HeaderValueOption objects corresponding
+// to the given list of rate limiting HTTPHeaderValue objects
+func getRateLimitHeaderValueOptions(headerValues []policyv1alpha1.HTTPHeaderValue) []*xds_core.HeaderValueOption {
+	var hvOptions []*xds_core.HeaderValueOption
+
+	for _, hv := range headerValues {
+		hvOptions = append(hvOptions, &xds_core.HeaderValueOption{
+			Header: &xds_core.HeaderValue{
+				Key:   hv.Name,
+				Value: hv.Value,
+			},
+			Append: &wrappers.BoolValue{
+				Value: false,
+			},
+		})
+	}
+
+	return hvOptions
+}
+
 // BuildIngressConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing ingress routes
-func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy) *xds_route.RouteConfiguration {
+func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy, trustDomain string) *xds_route.RouteConfiguration {
 	if len(ingress) == 0 {
 		return nil
 	}
@@ -98,7 +201,7 @@ func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy) *x
 	ingressRouteConfig := NewRouteConfigurationStub(IngressRouteConfigName)
 	for _, in := range ingress {
 		virtualHost := buildVirtualHostStub(ingressVirtualHost, in.Name, in.Hostnames)
-		virtualHost.Routes = buildInboundRoutes(in.Rules)
+		virtualHost.Routes = buildInboundRoutes(in.Rules, trustDomain)
 		ingressRouteConfig.VirtualHosts = append(ingressRouteConfig.VirtualHosts, virtualHost)
 	}
 
@@ -168,7 +271,7 @@ func buildVirtualHostStub(namePrefix string, host string, domains []string) *xds
 }
 
 // buildInboundRoutes takes a route information from the given inbound traffic policy and returns a list of xds routes
-func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
+func buildInboundRoutes(rules []*trafficpolicy.Rule, trustDomain string) []*xds_route.Route {
 	var routes []*xds_route.Route
 	for _, rule := range rules {
 		// For a given route path, sanitize the methods in case there
@@ -177,7 +280,7 @@ func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
 
 		// Create an RBAC policy derived from 'trafficpolicy.Rule'
 		// Each route is associated with an RBAC policy
-		rbacPolicyForRoute, err := buildInboundRBACFilterForRule(rule)
+		rbacConfig, err := buildInboundRBACFilterForRule(rule, trustDomain)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrBuildingRBACPolicyForRoute)).
 				Msgf("Error building RBAC policy for rule [%v], skipping route addition", rule)
@@ -187,11 +290,33 @@ func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
 		// Each HTTP method corresponds to a separate route
 		for _, method := range allowedMethods {
 			route := buildRoute(rule.Route, method)
-			route.TypedPerFilterConfig = rbacPolicyForRoute
+			applyInboundRouteConfig(route, rbacConfig, rule.Route.RateLimit)
 			routes = append(routes, route)
 		}
 	}
 	return routes
+}
+
+func applyInboundRouteConfig(route *xds_route.Route, rbacConfig *any.Any, rateLimit *policyv1alpha1.HTTPPerRouteRateLimitSpec) {
+	if route == nil {
+		return
+	}
+
+	perFilterConfig := make(map[string]*any.Any)
+
+	// Apply rate limiting config
+	perFilterConfig[envoy.HTTPRBACFilterName] = rbacConfig
+
+	// Apply rate limiting config
+	if rateLimit != nil && rateLimit.Local != nil {
+		if filter, err := getLocalRateLimitFilterConfig(rateLimit.Local); err != nil {
+			log.Error().Err(err).Msgf("Error applying local rate limiting config for route path %s, ignoring it", route.GetMatch().GetPath())
+		} else {
+			perFilterConfig[envoy.HTTPLocalRateLimitFilterName] = filter
+		}
+	}
+
+	route.TypedPerFilterConfig = perFilterConfig
 }
 
 func buildOutboundRoutes(outRoutes []*trafficpolicy.RouteWeightedClusters) []*xds_route.Route {
@@ -289,7 +414,8 @@ func buildWeightedCluster(weightedClusters mapset.Set) *xds_route.WeightedCluste
 }
 
 // TODO: Add validation webhook for retry policy
-func buildRetryPolicy(retry *v1alpha1.RetryPolicySpec) *xds_route.RetryPolicy {
+// Remove checks when validation webhook is implemented
+func buildRetryPolicy(retry *policyv1alpha1.RetryPolicySpec) *xds_route.RetryPolicy {
 	if retry == nil {
 		return nil
 	}
@@ -297,43 +423,39 @@ func buildRetryPolicy(retry *v1alpha1.RetryPolicySpec) *xds_route.RetryPolicy {
 	rp := &xds_route.RetryPolicy{}
 
 	rp.RetryOn = retry.RetryOn
-	rp.NumRetries = &wrapperspb.UInt32Value{
-		Value: uint32(retry.NumRetries),
+	// NumRetries default is set to 1
+	if retry.NumRetries != nil {
+		rp.NumRetries = wrapperspb.UInt32(*retry.NumRetries)
 	}
-	rp.PerTryTimeout = timeToDuration(retry.PerTryTimeout)
-	rp.RetryBackOff = &xds_route.RetryPolicy_RetryBackOff{
-		BaseInterval: timeToDuration(retry.RetryBackoffBaseInterval),
+
+	// PerTryTimeout default uses the global route timeout
+	// Disabling route config timeout does not affect perTryTimeout
+	if retry.PerTryTimeout != nil {
+		rp.PerTryTimeout = durationpb.New(retry.PerTryTimeout.Duration)
+	}
+
+	// RetryBackOff default base interval is 25 ms
+	if retry.RetryBackoffBaseInterval != nil {
+		rp.RetryBackOff = &xds_route.RetryPolicy_RetryBackOff{
+			BaseInterval: durationpb.New(retry.RetryBackoffBaseInterval.Duration),
+		}
 	}
 
 	return rp
-}
-
-func timeToDuration(timeStr string) *durationpb.Duration {
-	if timeStr == "" {
-		return nil
-	}
-
-	duration, err := time.ParseDuration(timeStr)
-	if err != nil {
-		log.Error().Msgf("Error parsing time: %s", timeStr)
-		return nil
-	}
-	return durationpb.New(duration)
 }
 
 // sanitizeHTTPMethods takes in a list of HTTP methods including a wildcard (*) and returns a wildcard if any of
 // the methods is a wildcard or sanitizes the input list to avoid duplicates.
 func sanitizeHTTPMethods(allowedMethods []string) []string {
 	var newAllowedMethods []string
-	keys := make(map[string]interface{})
+	keys := make(map[string]struct{})
 	for _, method := range allowedMethods {
 		if method != "" {
 			if method == constants.WildcardHTTPMethod {
-				newAllowedMethods = []string{constants.WildcardHTTPMethod}
-				return newAllowedMethods
+				return []string{constants.WildcardHTTPMethod}
 			}
-			if _, value := keys[method]; !value {
-				keys[method] = nil
+			if _, exists := keys[method]; !exists {
+				keys[method] = struct{}{}
 				newAllowedMethods = append(newAllowedMethods, method)
 			}
 		}

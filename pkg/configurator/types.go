@@ -5,9 +5,9 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/cache"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -17,11 +17,10 @@ var (
 	log = logger.New("configurator")
 )
 
-// client is the type used to represent the Kubernetes client for the config.openservicemesh.io API group
-type client struct {
+// Client is the type used to represent the Kubernetes Client for the config.openservicemesh.io API group
+type Client struct {
 	osmNamespace   string
-	informer       cache.SharedIndexInformer
-	cache          cache.Store
+	informers      *informers.InformerCollection
 	meshConfigName string
 }
 
@@ -77,6 +76,10 @@ type Configurator interface {
 
 	// GetServiceCertValidityPeriod returns the validity duration for service certificates
 	GetServiceCertValidityPeriod() time.Duration
+
+	// GetIngressGatewayCertValidityPeriod returns the validity duration for the Ingress
+	// Gateway certificate, default value if not specified
+	GetIngressGatewayCertValidityPeriod() time.Duration
 
 	// GetCertKeyBitSize returns the certificate key bit size
 	GetCertKeyBitSize() int

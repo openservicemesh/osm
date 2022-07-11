@@ -1,8 +1,8 @@
 package rds
 
 import (
-	"fmt"
 	"testing"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -19,10 +19,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -296,7 +297,9 @@ func TestNewResponse(t *testing.T) {
 				ResourceNames: []string{},
 			}
 
-			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mockConfigurator, nil, proxyRegistry)
+			mc := tresorFake.NewFake(nil, 1*time.Hour)
+
+			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mockConfigurator, mc, proxyRegistry)
 			assert.Nil(err)
 			assert.NotNil(resources)
 
@@ -423,9 +426,7 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 		}
 	}
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceIdentity, tests.Namespace))
-	certSerialNumber := certificate.SerialNumber("123456")
-	return envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookstoreServiceIdentity, nil), nil
 }
 
 func TestResponseRequestCompletion(t *testing.T) {
@@ -436,15 +437,14 @@ func TestResponseRequestCompletion(t *testing.T) {
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
-	uuid := uuid.New().String()
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.one.two.three.co.uk", uuid, "some-service", "some-namespace"))
-	certSerialNumber := certificate.SerialNumber("123456")
-	testProxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
-	assert.Nil(err)
+	uuid := uuid.New()
+	testProxy := envoy.NewProxy(envoy.KindSidecar, uuid, identity.New("some-service", "some-namespace"), nil)
 
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{tests.BookstoreV1Service}, nil
 	}), nil)
+
+	mc := tresorFake.NewFake(nil, 1*time.Hour)
 
 	mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(nil).AnyTimes()
@@ -479,7 +479,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		resources, err := NewResponse(mockCatalog, testProxy, tc.request, mockConfigurator, nil, proxyRegistry)
+		resources, err := NewResponse(mockCatalog, testProxy, tc.request, mockConfigurator, mc, proxyRegistry)
 		assert.Nil(err)
 
 		if tc.request != nil {

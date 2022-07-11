@@ -4,14 +4,16 @@ import (
 	"fmt"
 
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	xds_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/protobuf"
 )
 
 // connectionDirection defines, for filter terms, the direction of a connection from
@@ -23,6 +25,7 @@ const (
 	meshHTTPConnManagerStatPrefix       = "mesh-http-conn-manager"
 	prometheusHTTPConnManagerStatPrefix = "prometheus-http-conn-manager"
 	prometheusInboundVirtualHostName    = "prometheus-inbound-virtual-host"
+	websocketUpgradeType                = "websocket"
 
 	// inbound defines in-mesh inbound or ingress traffic driections
 	inbound connectionDirection = "inbound"
@@ -51,11 +54,29 @@ func (options httpConnManagerOptions) build() (*xds_hcm.HttpConnectionManager, e
 		CodecType:  xds_hcm.HttpConnectionManager_AUTO,
 		HttpFilters: []*xds_hcm.HttpFilter{
 			// *IMPORTANT NOTE*: The order of filters specified is important.
-			// The wellknown.Router filter should be the last filter in the chain.
-			// 1. HTTP RBAC
+			// The http_router filter should be the last filter in the chain.
 			{
-				// HTTP RBAC filter - required to perform HTTP based RBAC on routes
-				Name: wellknown.HTTPRoleBasedAccessControl,
+				// HTTP RBAC filter - required to perform HTTP based RBAC per route
+				Name: envoy.HTTPRBACFilterName,
+				ConfigType: &xds_hcm.HttpFilter_TypedConfig{
+					TypedConfig: &any.Any{
+						TypeUrl: envoy.HTTPRBACFilterTypeURL,
+					},
+				},
+			},
+			{
+				Name: envoy.HTTPLocalRateLimitFilterName,
+				ConfigType: &xds_hcm.HttpFilter_TypedConfig{
+					TypedConfig: protobuf.MustMarshalAny(
+						&xds_local_ratelimit.LocalRateLimit{
+							StatPrefix: fmt.Sprintf("%s.%s", meshHTTPConnManagerStatPrefix, options.rdsRoutConfigName),
+							// Since no token bucket is defined here, the filter is disabled
+							// at the listener level. For HTTP traffic, the rate limiting
+							// config is applied at the VirtualHost/Route level.
+							// Ref: https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/local_rate_limit_filter#using-rate-limit-descriptors-for-local-rate-limiting
+						},
+					),
+				},
 			},
 		},
 		RouteSpecifier: &xds_hcm.HttpConnectionManager_Rds{
@@ -65,6 +86,11 @@ func (options httpConnManagerOptions) build() (*xds_hcm.HttpConnectionManager, e
 			},
 		},
 		AccessLog: envoy.GetAccessLog(),
+		UpgradeConfigs: []*xds_hcm.HttpConnectionManager_UpgradeConfig{
+			{
+				UpgradeType: websocketUpgradeType,
+			},
+		},
 	}
 
 	// For inbound connections, add the Authz filter
@@ -104,7 +130,14 @@ func (options httpConnManagerOptions) build() (*xds_hcm.HttpConnectionManager, e
 	}
 
 	// *IMPORTANT NOTE*: The Router filter must always be the last filter
-	connManager.HttpFilters = append(connManager.HttpFilters, &xds_hcm.HttpFilter{Name: wellknown.Router})
+	connManager.HttpFilters = append(connManager.HttpFilters, &xds_hcm.HttpFilter{
+		Name: envoy.HTTPRouterFilterName,
+		ConfigType: &xds_hcm.HttpFilter_TypedConfig{
+			TypedConfig: &any.Any{
+				TypeUrl: envoy.HTTPRouterFilterTypeURL,
+			},
+		},
+	})
 
 	return connManager, nil
 }
@@ -113,9 +146,16 @@ func getPrometheusConnectionManager() *xds_hcm.HttpConnectionManager {
 	return &xds_hcm.HttpConnectionManager{
 		StatPrefix: prometheusHTTPConnManagerStatPrefix,
 		CodecType:  xds_hcm.HttpConnectionManager_AUTO,
-		HttpFilters: []*xds_hcm.HttpFilter{{
-			Name: wellknown.Router,
-		}},
+		HttpFilters: []*xds_hcm.HttpFilter{
+			{
+				Name: envoy.HTTPRouterFilterName,
+				ConfigType: &xds_hcm.HttpFilter_TypedConfig{
+					TypedConfig: &any.Any{
+						TypeUrl: envoy.HTTPRouterFilterTypeURL,
+					},
+				},
+			},
+		},
 		RouteSpecifier: &xds_hcm.HttpConnectionManager_RouteConfig{
 			RouteConfig: &xds_route.RouteConfiguration{
 				VirtualHosts: []*xds_route.VirtualHost{{

@@ -38,7 +38,7 @@ ROOT_PACKAGE="github.com/openservicemesh/osm"
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 
 # get code-generator version from go.sum
-CODEGEN_VERSION="v0.22.1" # Must match k8s.io/client-go version defined in go.mod
+CODEGEN_VERSION="v0.23.5" # Must match k8s.io/client-go version defined in go.mod
 CODEGEN_PKG="$(echo `go env GOPATH`/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION})"
 
 echo ">>> using codegen: ${CODEGEN_PKG}"
@@ -72,7 +72,7 @@ function generate_client() {
 }
 
 echo "##### Generating config.openservicemesh.io client ######"
-generate_client "config" "v1alpha1,v1alpha2,v1alpha3"
+generate_client "config" "v1alpha1,v1alpha2"
 
 echo "##### Generating policy.openservicemesh.io client ######"
 generate_client "policy" "v1alpha1"

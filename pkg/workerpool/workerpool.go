@@ -3,45 +3,27 @@ package workerpool
 import (
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/logger"
-)
-
-const (
-	// Size of the job queue per worker
-	maxJobPerWorker = 4096
 )
 
 var (
 	log = logger.New("workerpool")
 )
 
-// worker context for a worker routine
-type worker struct {
-	id            int
-	jobs          chan Job        // Job queue
-	stop          chan struct{}   // Stop channel
-	wg            *sync.WaitGroup // Pointer to WorkerPool wg
-	jobsProcessed uint64          // Jobs processed by this worker
-}
-
 // WorkerPool object representation
 type WorkerPool struct {
-	wg            sync.WaitGroup // Sync group, to stop workers if needed
-	workerContext []*worker      // Worker contexts
-	nWorkers      uint64         // Number of workers. Uint64 for easier mod hash later
-	rRobinCounter uint64         // Used only by the round robin api. Modified atomically on API.
+	wg       sync.WaitGroup // Sync group, to stop workers if needed
+	nWorkers uint64         // Number of workers. Uint64 for easier mod hash later
+	jobs     chan Job
+	stop     chan struct{} // Stop channel
 }
 
 // Job is a runnable interface to queue jobs on a WorkerPool
 type Job interface {
 	// JobName returns the name of the job.
 	JobName() string
-
-	// Hash returns a uint64 hash for a job.
-	Hash() uint64
 
 	// Run executes the job.
 	Run()
@@ -62,39 +44,25 @@ func NewWorkerPool(nWorkers int) *WorkerPool {
 
 	log.Info().Msgf("New worker pool setting up %d workers", nWorkers)
 
-	var workPool WorkerPool
+	workPool := &WorkerPool{
+		nWorkers: uint64(nWorkers),
+		jobs:     make(chan Job, nWorkers),
+		stop:     make(chan struct{}),
+	}
 	for i := 0; i < nWorkers; i++ {
-		workPool.workerContext = append(workPool.workerContext,
-			&worker{
-				id:            i,
-				jobs:          make(chan Job, maxJobPerWorker),
-				stop:          make(chan struct{}, 1),
-				wg:            &workPool.wg,
-				jobsProcessed: 0,
-			},
-		)
+		i := i
 		workPool.wg.Add(1)
-		workPool.nWorkers++
-
-		go (workPool.workerContext[i]).work()
+		go workPool.work(i)
 	}
 
-	return &workPool
+	return workPool
 }
 
 // AddJob posts the job on a worker queue
 // Uses Hash underneath to choose worker to post the job to
 func (wp *WorkerPool) AddJob(job Job) <-chan struct{} {
-	wp.workerContext[job.Hash()%wp.nWorkers].jobs <- job
+	wp.jobs <- job
 	return job.GetDoneCh()
-}
-
-// AddJobRoundRobin adds a job in round robin to the queues
-// Concurrent calls to AddJobRoundRobin are thread safe and fair
-// between each other
-func (wp *WorkerPool) AddJobRoundRobin(jobs Job) {
-	added := atomic.AddUint64(&wp.rRobinCounter, 1)
-	wp.workerContext[added%wp.nWorkers].jobs <- jobs
 }
 
 // GetWorkerNumber get number of queues/workers
@@ -104,30 +72,27 @@ func (wp *WorkerPool) GetWorkerNumber() int {
 
 // Stop stops the workerpool
 func (wp *WorkerPool) Stop() {
-	for _, worker := range wp.workerContext {
-		worker.stop <- struct{}{}
-	}
+	close(wp.stop)
 	wp.wg.Wait()
 }
 
-func (workContext *worker) work() {
-	defer workContext.wg.Done()
+func (wp *WorkerPool) work(id int) {
+	defer wp.wg.Done()
 
-	log.Info().Msgf("Worker %d running", workContext.id)
+	log.Info().Msgf("Worker %d running", id)
+
 	for {
 		select {
-		case j := <-workContext.jobs:
+		case j := <-wp.jobs:
 			t := time.Now()
-			log.Debug().Msgf("work[%d]: Starting %v", workContext.id, j.JobName())
+			log.Debug().Msgf("work[%d]: Starting %v", id, j.JobName())
 
 			// Run current job
 			j.Run()
 
-			log.Debug().Msgf("work[%d][%s] : took %v", workContext.id, j.JobName(), time.Since(t))
-			workContext.jobsProcessed++
-
-		case <-workContext.stop:
-			log.Debug().Msgf("work[%d]: Stopped", workContext.id)
+			log.Debug().Msgf("work[%d][%s] : took %v", id, j.JobName(), time.Since(t))
+		case <-wp.stop:
+			log.Debug().Msgf("work[%d]: Stopped", id)
 			return
 		}
 	}

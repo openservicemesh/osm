@@ -2,7 +2,6 @@ package catalog
 
 import (
 	mapset "github.com/deckarep/golang-set"
-	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -134,12 +133,6 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 	}
 }
 
-// ListOutboundServicesForMulticlusterGateway lists the upstream services for the multicluster gateway
-// TODO: improve code by combining with ListOutboundServicesForIdentity
-func (mc *MeshCatalog) ListOutboundServicesForMulticlusterGateway() []service.MeshService {
-	return mc.listMeshServices()
-}
-
 // ListOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
@@ -174,17 +167,9 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	return allowedServices
 }
 
-func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.TrafficTarget) []service.MeshService {
-	sa := identity.K8sServiceAccount{
-		Name:      t.Spec.Destination.Name,
-		Namespace: t.Spec.Destination.Namespace,
-	}
-	return mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
-}
-
 // listAllowedUpstreamServicesIncludeApex returns a list of services the given downstream service identity
 // is authorized to communicate with, including traffic split apex services that are not backed by
-// pods.
+// pods as well as other sibling pods from the same headless service.
 func (mc *MeshCatalog) listAllowedUpstreamServicesIncludeApex(downstreamIdentity identity.ServiceIdentity) []service.MeshService {
 	upstreamServices := mc.ListOutboundServicesForIdentity(downstreamIdentity)
 	if len(upstreamServices) == 0 {
@@ -218,7 +203,7 @@ func (mc *MeshCatalog) listAllowedUpstreamServicesIncludeApex(downstreamIdentity
 			}
 			for _, backend := range split.Spec.Backends {
 				if backend.Service == upstreamSvc.Name {
-					rootServiceName := k8s.GetServiceFromHostname(split.Spec.Service)
+					rootServiceName := k8s.GetServiceFromHostname(mc.kubeController, split.Spec.Service)
 					rootMeshService := service.MeshService{
 						Namespace:  split.Namespace,
 						Name:       rootServiceName,

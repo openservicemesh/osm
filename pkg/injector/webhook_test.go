@@ -42,6 +42,7 @@ func TestCreateMutatingWebhook(t *testing.T) {
 		CertChain:    pem.Certificate("chain"),
 		PrivateKey:   pem.PrivateKey("key"),
 		IssuingCA:    pem.RootCertificate("ca"),
+		TrustedCAs:   pem.RootCertificate("ca"),
 		Expiration:   time.Now(),
 		SerialNumber: "serial_number",
 	}
@@ -562,13 +563,13 @@ var _ = Describe("Testing Injector Functions", func() {
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
-		certManager := tresorFake.NewFake(nil)
+		certManager := tresorFake.NewFake(nil, 1*time.Hour)
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
 		_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
-		actualErr := NewMutatingWebhook(Config{}, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, stop, cfg, "")
+		actualErr := NewMutatingWebhook(context.Background(), kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, cfg, "")
 		Expect(actualErr).NotTo(HaveOccurred())
 		close(stop)
 	})
@@ -580,11 +581,11 @@ var _ = Describe("Testing Injector Functions", func() {
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
-		certManager := tresorFake.NewFake(nil)
+		certManager := tresorFake.NewFake(nil, 1*time.Hour)
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
-		actualErr := NewMutatingWebhook(Config{}, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, stop, cfg, "")
+		actualErr := NewMutatingWebhook(context.Background(), kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, cfg, "")
 		Expect(actualErr).NotTo(HaveOccurred())
 		_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
@@ -679,23 +680,6 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		expectedAdmissionResponse := webhook.AdmissionError(errors.New("yaml: did not find expected node content"))
 		Expect(admissionResp.Response).To(Equal(expectedAdmissionResponse))
-	})
-
-	It("handles health requests", func() {
-		mockNsController := k8s.NewMockController(gomock.NewController(GinkgoT()))
-		mockNsController.EXPECT().GetNamespace("default").Return(&corev1.Namespace{})
-		w := httptest.NewRecorder()
-		body := strings.NewReader(``)
-		req := httptest.NewRequest("GET", "/a/b/c", body)
-
-		// Action !!
-		healthHandler(w, req)
-
-		resp := w.Result()
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		expected := "Health OK"
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		Expect(string(bodyBytes)).To(Equal(expected))
 	})
 
 	It("mutate() handles nil admission request", func() {
@@ -845,17 +829,14 @@ func TestWebhookMutate(t *testing.T) {
 
 		cfg := configurator.NewMockConfigurator(mockCtrl)
 		cfg.EXPECT().GetMeshConfig().AnyTimes()
-		cfg.EXPECT().IsPrivilegedInitContainer()
 		cfg.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
 		cfg.EXPECT().GetEnvoyImage().Return("envoy-linux-image").AnyTimes()
 		cfg.EXPECT().GetEnvoyWindowsImage().Return("envoy-windows-image").AnyTimes()
-		cfg.EXPECT().GetProxyResources()
-		cfg.EXPECT().GetEnvoyLogLevel()
 
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
 			kubeController:      kubeController,
-			certManager:         tresorFake.NewFake(nil),
+			certManager:         tresorFake.NewFake(nil, 1*time.Hour),
 			kubeClient:          fake.NewSimpleClientset(),
 			configurator:        cfg,
 		}
@@ -901,7 +882,7 @@ func TestWebhookMutate(t *testing.T) {
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
 			kubeController:      kubeController,
-			certManager:         tresorFake.NewFake(nil),
+			certManager:         tresorFake.NewFake(nil, 1*time.Hour),
 			kubeClient:          fake.NewSimpleClientset(),
 			configurator:        cfg,
 		}

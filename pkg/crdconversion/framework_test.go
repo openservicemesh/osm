@@ -133,7 +133,7 @@ func TestDoConversionBadObjectJSON(t *testing.T) {
 	a := assert.New(t)
 
 	a.Equal(metav1.StatusFailure, res.Result.Status)
-	a.Contains(res.Result.Message, "unexpected EOF")
+	a.Contains(res.Result.Message, "unexpected end of JSON input")
 	// Remaining objects still get parsed
 	a.NotNil(req.Objects[1].Object)
 }

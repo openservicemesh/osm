@@ -19,4 +19,5 @@ type listenerBuilder struct {
 	meshCatalog     catalog.MeshCataloger
 	cfg             configurator.Configurator
 	statsHeaders    map[string]string
+	trustDomain     string
 }

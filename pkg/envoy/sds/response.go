@@ -18,22 +18,15 @@ import (
 )
 
 // NewResponse creates a new Secrets Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, certManager *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	log.Info().Str("proxy", proxy.String()).Msg("Composing SDS Discovery Response")
 
 	// OSM currently relies on kubernetes ServiceAccount for service identity
-	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
-			Str("proxy", proxy.String()).Msg("Error retrieving ServiceAccount for proxy")
-		return nil, err
-	}
-
 	s := &sdsImpl{
 		meshCatalog:     meshCatalog,
 		certManager:     certManager,
-		cfg:             cfg,
-		serviceIdentity: proxyIdentity,
+		serviceIdentity: proxy.Identity,
+		TrustDomain:     certManager.GetTrustDomain(),
 	}
 
 	var sdsResources []types.Resource
@@ -44,7 +37,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	log.Info().Str("proxy", proxy.String()).Msgf("Creating SDS response for request for resources %v", requestedCerts)
 
 	// 1. Issue a service certificate for this proxy
-	cert, err := certManager.IssueCertificate(certificate.CommonName(s.serviceIdentity), cfg.GetServiceCertValidityPeriod())
+	cert, err := certManager.IssueCertificate(s.serviceIdentity.String(), certificate.Service)
 	if err != nil {
 		log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error issuing a certificate for proxy")
 		return nil, err
@@ -63,7 +56,7 @@ func (s *sdsImpl) getSDSSecrets(cert *certificate.Certificate, requestedCerts []
 	// requestedCerts is expected to be a list of either of the following:
 	// - "service-cert:namespace/service-account"
 	// - "root-cert-for-mtls-outbound:namespace/service"
-	// - "root-cert-for-mtls-inbound:namespace/service-service-account"
+	// - "root-cert-for-mtls-inbound:namespace/service-account"
 
 	// The Envoy makes a request for a list of resources (aka certificates), which we will send as a response to the SDS request.
 	for _, requestedCertificate := range requestedCerts {
@@ -136,7 +129,7 @@ func (s *sdsImpl) getRootCert(cert *certificate.Certificate, sdscert secrets.SDS
 			ValidationContext: &xds_auth.CertificateValidationContext{
 				TrustedCa: &xds_core.DataSource{
 					Specifier: &xds_core.DataSource_InlineBytes{
-						InlineBytes: cert.GetIssuingCA(),
+						InlineBytes: cert.GetTrustedCAs(),
 					},
 				},
 			},
@@ -155,68 +148,29 @@ func (s *sdsImpl) getRootCert(cert *certificate.Certificate, sdscert secrets.SDS
 		return secret, nil
 	}
 
-	svcIdentitiesInCertRequest, err := getServiceIdentitiesFromCert(sdscert, s.serviceIdentity, s.meshCatalog)
+	// For the outbound certificate validation context, the SANs needs to match the list of service identities
+	// corresponding to the upstream service. This means, if the sdscert.Name points to service 'X',
+	// the SANs for this certificate should correspond to the service identities of 'X'.
+	meshSvc, err := sdscert.GetMeshService()
 	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingMeshService)).
+			Msgf("Error unmarshalling upstream service for outbound cert %s", sdscert)
 		return nil, err
 	}
+	svcIdentitiesInCertRequest := s.meshCatalog.ListServiceIdentitiesForService(*meshSvc)
 
-	secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcIdentities(svcIdentitiesInCertRequest)
+	secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcIdentities(svcIdentitiesInCertRequest, s.TrustDomain)
 	return secret, nil
 }
 
-// Given a requested SDS Cert, this function returns the Service Identities, which match that SDS Cert
-// Example: given "service-cert:namespace/service-account", this will return ServiceIdentity("namespace.service-account.cluster.local")
-func getServiceIdentitiesFromCert(sdscert secrets.SDSCert, serviceIdentity identity.ServiceIdentity, meshCatalog catalog.MeshCataloger) ([]identity.ServiceIdentity, error) {
-	switch sdscert.CertType {
-	case secrets.RootCertTypeForMTLSOutbound:
-		// For the outbound certificate validation context, the SANs needs to match the list of service identities
-		// corresponding to the upstream service. This means, if the sdscert.Name points to service 'X',
-		// the SANs for this certificate should correspond to the service identities of 'X'.
-		meshSvc, err := sdscert.GetMeshService()
-		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingMeshService)).
-				Msgf("Error unmarshalling upstream service for outbound cert %s", sdscert)
-			return nil, err
-		}
-		return meshCatalog.ListServiceIdentitiesForService(*meshSvc), nil
-
-	case secrets.RootCertTypeForMTLSInbound:
-		// Verify that the SDS cert request corresponding to the mTLS root validation cert matches the identity
-		// of this proxy. If it doesn't, then something is wrong in the system.
-		svcAccountInRequest, err := sdscert.GetK8sServiceAccount()
-		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingK8sServiceAccount)).
-				Msgf("Error unmarshalling service account for inbound mTLS validation cert %s", sdscert)
-			return nil, err
-		}
-
-		if svcAccountInRequest.ToServiceIdentity() != serviceIdentity {
-			log.Error().Err(errCertMismatch).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrSDSCertMismatch)).
-				Msgf("Request for SDS cert %s does not belong to proxy with identity %s", sdscert.Name, serviceIdentity)
-			return nil, errCertMismatch
-		}
-
-		// For the inbound certificate validation context, the SAN needs to match the list of all downstream
-		// service identities that are allowed to connect to this upstream identity. This means, if the upstream proxy
-		// identity is 'X', the SANs for this certificate should correspond to all the downstream identities
-		// allowed to access 'X'.
-		return meshCatalog.ListInboundServiceIdentities(serviceIdentity), nil
-
-	default:
-		log.Debug().Msgf("SAN matching not needed for cert %s", sdscert)
-	}
-
-	return nil, nil
-}
-
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func getSubjectAltNamesFromSvcIdentities(serviceIdentities []identity.ServiceIdentity) []*xds_matcher.StringMatcher {
+func getSubjectAltNamesFromSvcIdentities(serviceIdentities []identity.ServiceIdentity, trustDomain string) []*xds_matcher.StringMatcher {
 	var matchSANs []*xds_matcher.StringMatcher
 
 	for _, si := range serviceIdentities {
 		match := xds_matcher.StringMatcher{
 			MatchPattern: &xds_matcher.StringMatcher_Exact{
-				Exact: si.String(),
+				Exact: si.AsPrincipal(trustDomain),
 			},
 		}
 		matchSANs = append(matchSANs, &match)

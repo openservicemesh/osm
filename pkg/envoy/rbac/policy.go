@@ -1,136 +1,97 @@
 package rbac
 
 import (
-	"strconv"
-
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-	"github.com/pkg/errors"
+
+	"github.com/openservicemesh/osm/pkg/identity"
 )
 
-// Generate constructs an RBAC policy for the policy object on which this method is called
-func (p *Policy) Generate() (*xds_rbac.Policy, error) {
+// PolicyBuilder is a utility for constructing *xds_rbac.Policy's
+type PolicyBuilder struct {
+	allowedPorts       []uint32
+	allowedIdentities  []identity.ServiceIdentity
+	allowAllPrincipals bool
+
+	// All permissions are applied using OR semantics by default. If applyPermissionsAsAnd is set to true, then
+	// permissions are applied using AND semantics.
+	applyPermissionsAsAnd bool
+	trustDomain           string
+}
+
+// Build constructs an RBAC policy for the policy object on which this method is called
+func (p *PolicyBuilder) Build() *xds_rbac.Policy {
 	policy := &xds_rbac.Policy{}
 
-	// Construct the Principals ------------------------
-	var finalPrincipals []*xds_rbac.Principal
-
 	// Each RuleList follows OR semantics with other RuleList in the list of RuleList
-	for _, principalRuleList := range p.Principals {
-		// 'principalRuleList' corresponds to a single Principal in an RBAC policy.
-		// This Principal can be defined in terms of one of AND or OR rules.
-		// When AND/OR semantics are not required to define multiple rules corresponding
-		// to this principal, a single Rule in either the AndRules or OrRules will suffice.
-
-		if len(principalRuleList.AndRules) != 0 && len(principalRuleList.OrRules) != 0 {
-			return nil, errors.New("Principal rule cannot have both AND & OR rules at the same time")
-		}
-
-		var currentPrincipal *xds_rbac.Principal
-
-		switch {
-		case len(principalRuleList.AndRules) != 0:
-			// Combine all the AND rules for this Principal rule with AND semantics
-			var andPrincipalRules []*xds_rbac.Principal
-			for _, andPrincipalRule := range principalRuleList.AndRules {
-				// Fill in the authenticated principal types
-				if andPrincipalRule.Attribute == DownstreamAuthPrincipal {
-					authPrincipal := GetAuthenticatedPrincipal(andPrincipalRule.Value)
-					andPrincipalRules = append(andPrincipalRules, authPrincipal)
-				}
-			}
-			currentPrincipal = andPrincipals(andPrincipalRules)
-
-		case len(principalRuleList.OrRules) != 0:
-			// Combine all the OR rules for this Principal rule with OR semantics
-			var orPrincipalRules []*xds_rbac.Principal
-			for _, orPrincipalRule := range principalRuleList.OrRules {
-				// Fill in the authenticated principal types
-				if orPrincipalRule.Attribute == DownstreamAuthPrincipal {
-					authPrincipal := GetAuthenticatedPrincipal(orPrincipalRule.Value)
-					orPrincipalRules = append(orPrincipalRules, authPrincipal)
-				}
-			}
-			currentPrincipal = orPrincipals(orPrincipalRules)
-
-		default:
-			// Neither AND/OR rules set, set principal to Any
-			currentPrincipal = getAnyPrincipal()
-		}
-
-		finalPrincipals = append(finalPrincipals, currentPrincipal)
+	prinicipals := make([]*xds_rbac.Principal, 0, len(p.allowedIdentities))
+	for _, svcIdentity := range p.allowedIdentities {
+		prinicipals = append(prinicipals, GetAuthenticatedPrincipal(svcIdentity.AsPrincipal(p.trustDomain)))
 	}
-	if len(p.Principals) == 0 {
+	if len(prinicipals) == 0 {
 		// No principals specified for this policy, allow ANY
-		finalPrincipals = append(finalPrincipals, getAnyPrincipal())
+		prinicipals = []*xds_rbac.Principal{getAnyPrincipal()}
 	}
 
-	policy.Principals = finalPrincipals
+	// Policies are applied with OR semantics.
+	// See comments on the xds_rbac.Policy.Permissions field for more details.
+	policy.Principals = prinicipals
 
 	// Construct the Permissions ---------------------------
-	var finalPermissions []*xds_rbac.Permission
-
-	// Each RuleList follows OR semantics with other RuleList in the list of RuleList
-	for _, permissionRuleList := range p.Permissions {
-		// 'principalRuleList' corresponds to a single Principal in an RBAC policy.
-		// This Principal can be defined in terms of one of AND or OR rules.
-		// When AND/OR semantics are not required to define multiple rules corresponding
-		// to this principal, a single Rule in either the AndRules or OrRules will suffice.
-
-		if len(permissionRuleList.AndRules) != 0 && len(permissionRuleList.OrRules) != 0 {
-			return nil, errors.New("Permission rule cannot have both AND & OR rules at the same time")
-		}
-
-		var currentPermission *xds_rbac.Permission
-
-		switch {
-		case len(permissionRuleList.AndRules) != 0:
-			// Combine all the AND rules for this Permission rule with AND semantics
-			var andPermissionRules []*xds_rbac.Permission
-			for _, andPermissionRule := range permissionRuleList.AndRules {
-				// Fill in the destination port permission
-				if andPermissionRule.Attribute == DestinationPort {
-					port, err := strconv.ParseUint(andPermissionRule.Value, 10, 32)
-					if err != nil {
-						return nil, errors.Errorf("Error parsing destination port value %s", andPermissionRule.Value)
-					}
-					portPermission := GetDestinationPortPermission(uint32(port))
-					andPermissionRules = append(andPermissionRules, portPermission)
-				}
-			}
-			currentPermission = andPermissions(andPermissionRules)
-
-		case len(permissionRuleList.OrRules) != 0:
-			// Combine all the OR rules for this Permission rule with OR semantics
-			var orPermissionRules []*xds_rbac.Permission
-			for _, orPermissionRule := range permissionRuleList.OrRules {
-				// Fill in the destination port permission
-				if orPermissionRule.Attribute == DestinationPort {
-					port, err := strconv.ParseUint(orPermissionRule.Value, 10, 32)
-					if err != nil {
-						return nil, errors.Errorf("Error parsing destination port value %s", orPermissionRule.Value)
-					}
-					portPermission := GetDestinationPortPermission(uint32(port))
-					orPermissionRules = append(orPermissionRules, portPermission)
-				}
-			}
-			currentPermission = orPermissions(orPermissionRules)
-
-		default:
-			// Neither AND/OR rules set, set permission to Any
-			currentPermission = getAnyPermission()
-		}
-
-		finalPermissions = append(finalPermissions, currentPermission)
+	// By default, permissions are applied with OR semantics.
+	permissions := make([]*xds_rbac.Permission, 0, len(p.allowedPorts))
+	for _, port := range p.allowedPorts {
+		perm := GetDestinationPortPermission(port)
+		permissions = append(permissions, perm)
 	}
-	if len(p.Permissions) == 0 {
-		// No permissions specified for this policy, allow ANY
-		finalPermissions = append(finalPermissions, getAnyPermission())
+	if len(permissions) == 0 {
+		// No principals specified for this policy, allow ANY
+		permissions = []*xds_rbac.Permission{getAnyPermission()}
 	}
 
-	policy.Permissions = finalPermissions
+	if p.applyPermissionsAsAnd {
+		// Permissions are applied with OR semantics by default
+		// See comments on the xds_rbac.Policy.Permissions field for more details.
+		policy.Permissions = []*xds_rbac.Permission{andPermission(permissions)}
+	} else {
+		policy.Permissions = permissions
+	}
 
-	return policy, nil
+	return policy
+}
+
+// UseANDForPermissions will apply all permissions with AND semantics.
+func (p *PolicyBuilder) UseANDForPermissions(val bool) {
+	p.applyPermissionsAsAnd = val
+}
+
+// AddIdentity adds an identity, later to be converted to a principal, to the list of allowed identities.
+func (p *PolicyBuilder) AddIdentity(svcIdentity identity.ServiceIdentity) {
+	// We need this extra defense in depth because it is currently possible to configure a wildcard principal
+	// in addition to specific principals. Future changes may look to avoid this.
+	if svcIdentity.IsWildcard() {
+		p.AllowAnyIdentity()
+	}
+	if !p.allowAllPrincipals {
+		p.allowedIdentities = append(p.allowedIdentities, svcIdentity)
+	}
+}
+
+// AllowAnyIdentity allows any principal to access the permissions.
+func (p *PolicyBuilder) AllowAnyIdentity() {
+	p.allowedIdentities = nil
+	p.allowAllPrincipals = true
+}
+
+// AddAllowedDestinationPort adds the allowed destination port to the list of allowed ports.
+func (p *PolicyBuilder) AddAllowedDestinationPort(port uint16) {
+	// envoy uses uint32 for ports.
+	p.allowedPorts = append(p.allowedPorts, uint32(port))
+}
+
+// SetTrustDomain sets the trust domain for the policy, which is used when converting a ServiceIdentity to a Principal.
+func (p *PolicyBuilder) SetTrustDomain(td string) {
+	p.trustDomain = td
 }
 
 // GetAuthenticatedPrincipal returns an authenticated RBAC principal object for the given principal
@@ -148,26 +109,6 @@ func GetAuthenticatedPrincipal(principalName string) *xds_rbac.Principal {
 	}
 }
 
-func orPrincipals(principals []*xds_rbac.Principal) *xds_rbac.Principal {
-	return &xds_rbac.Principal{
-		Identifier: &xds_rbac.Principal_OrIds{
-			OrIds: &xds_rbac.Principal_Set{
-				Ids: principals,
-			},
-		},
-	}
-}
-
-func andPrincipals(principals []*xds_rbac.Principal) *xds_rbac.Principal {
-	return &xds_rbac.Principal{
-		Identifier: &xds_rbac.Principal_AndIds{
-			AndIds: &xds_rbac.Principal_Set{
-				Ids: principals,
-			},
-		},
-	}
-}
-
 func getAnyPrincipal() *xds_rbac.Principal {
 	return &xds_rbac.Principal{
 		Identifier: &xds_rbac.Principal_Any{Any: true},
@@ -180,17 +121,7 @@ func getAnyPermission() *xds_rbac.Permission {
 	}
 }
 
-func orPermissions(permissions []*xds_rbac.Permission) *xds_rbac.Permission {
-	return &xds_rbac.Permission{
-		Rule: &xds_rbac.Permission_OrRules{
-			OrRules: &xds_rbac.Permission_Set{
-				Rules: permissions,
-			},
-		},
-	}
-}
-
-func andPermissions(permissions []*xds_rbac.Permission) *xds_rbac.Permission {
+func andPermission(permissions []*xds_rbac.Permission) *xds_rbac.Permission {
 	return &xds_rbac.Permission{
 		Rule: &xds_rbac.Permission_AndRules{
 			AndRules: &xds_rbac.Permission_Set{

@@ -7,7 +7,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
-	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -20,10 +19,9 @@ var _ endpoint.Provider = (*client)(nil)
 var _ service.Provider = (*client)(nil)
 
 // NewClient returns a client that has all components necessary to connect to and maintain state of a Kubernetes cluster.
-func NewClient(kubeController k8s.Controller, configClient config.Controller, cfg configurator.Configurator) *client { //nolint: revive // unexported-return
+func NewClient(kubeController k8s.Controller, cfg configurator.Configurator) *client { //nolint: revive // unexported-return
 	return &client{
 		kubeController:   kubeController,
-		configClient:     configClient,
 		meshConfigurator: cfg,
 	}
 }
@@ -55,6 +53,10 @@ func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 				continue
 			}
 			for _, address := range kubernetesEndpoint.Addresses {
+				if svc.Subdomain() != "" && svc.Subdomain() != address.Hostname {
+					// if there's a subdomain on this meshservice, make sure it matches the endpoint's hostname
+					continue
+				}
 				ip := net.ParseIP(address.IP)
 				if ip == nil {
 					log.Error().Msgf("Error parsing endpoint IP address %s for MeshService %s", address.IP, svc)
@@ -67,11 +69,6 @@ func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 				endpoints = append(endpoints, ept)
 			}
 		}
-	}
-
-	// Add multicluster service endpoints
-	if c.meshConfigurator.GetFeatureFlags().EnableMulticlusterMode {
-		endpoints = append(endpoints, c.getMulticlusterEndpoints(svc)...)
 	}
 
 	log.Trace().Msgf("Endpoints for MeshService %s: %v", svc, endpoints)
@@ -103,11 +100,6 @@ func (c *client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 			ept := endpoint.Endpoint{IP: ip}
 			endpoints = append(endpoints, ept)
 		}
-	}
-
-	// Add multicluster service endpoints
-	if c.meshConfigurator.GetFeatureFlags().EnableMulticlusterMode {
-		endpoints = append(endpoints, c.getMultiClusterServiceEndpointsForServiceAccount(sa.Name, sa.Namespace)...)
 	}
 
 	log.Trace().Msgf("[%s][ListEndpointsForIdentity] Endpoints for service identity (serviceAccount=%s) %s: %+v", c.GetID(), serviceIdentity, sa, endpoints)

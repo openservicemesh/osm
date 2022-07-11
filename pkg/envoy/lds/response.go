@@ -19,14 +19,7 @@ import (
 // 1. Inbound listener to handle incoming traffic
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
-	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
-			Str("proxy", proxy.String()).Msgf("Error retrieving ServiceAccount for proxy")
-		return nil, err
-	}
-
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, cm *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
 	var ldsResources []types.Resource
 
 	var statsHeaders map[string]string
@@ -34,18 +27,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		statsHeaders = proxy.StatsHeaders()
 	}
 
-	lb := newListenerBuilder(meshCatalog, proxyIdentity, cfg, statsHeaders)
-
-	if proxy.Kind() == envoy.KindGateway && cfg.GetFeatureFlags().EnableMulticlusterMode {
-		gatewayListener, err := lb.buildMulticlusterGatewayListener()
-
-		if err != nil {
-			log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error building multicluster gateway listener")
-			return ldsResources, err
-		}
-		ldsResources = append(ldsResources, gatewayListener)
-		return ldsResources, nil
-	}
+	lb := newListenerBuilder(meshCatalog, proxy.Identity, cfg, statsHeaders, cm.GetTrustDomain())
 
 	// --- OUTBOUND -------------------
 	outboundListener, err := lb.newOutboundListener()
@@ -70,12 +52,14 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 			Str("proxy", proxy.String()).Msgf("Error looking up MeshServices associated with proxy")
 		return nil, err
 	}
-	// Create inbound filter chains per service behind proxy
-	for _, proxyService := range svcList {
-		// Add in-mesh filter chains
-		inboundSvcFilterChains := lb.getInboundMeshFilterChains(proxyService)
-		inboundListener.FilterChains = append(inboundListener.FilterChains, inboundSvcFilterChains...)
 
+	// Create inbound mesh filter chains based on mesh traffic policies
+	inboundMeshTrafficPolicy := meshCatalog.GetInboundMeshTrafficPolicy(lb.serviceIdentity, svcList)
+	if inboundMeshTrafficPolicy != nil {
+		inboundListener.FilterChains = append(inboundListener.FilterChains, lb.getInboundMeshFilterChains(inboundMeshTrafficPolicy.TrafficMatches)...)
+	}
+	// Create ingress filter chains per service behind proxy
+	for _, proxyService := range svcList {
 		// Add ingress filter chains
 		ingressFilterChains := lb.getIngressFilterChains(proxyService)
 		inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChains...)
@@ -87,7 +71,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		ldsResources = append(ldsResources, inboundListener)
 	}
 
-	if pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), meshCatalog.GetKubeController()); err != nil {
+	if pod, err := meshCatalog.GetKubeController().GetPodForProxy(proxy); err != nil {
 		log.Warn().Str("proxy", proxy.String()).Msgf("Could not find pod for connecting proxy, no metadata was recorded")
 	} else if k8s.IsMetricsEnabled(pod) {
 		// Build Prometheus listener config
@@ -103,11 +87,12 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 }
 
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcIdentity identity.ServiceIdentity, cfg configurator.Configurator, statsHeaders map[string]string) *listenerBuilder {
+func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcIdentity identity.ServiceIdentity, cfg configurator.Configurator, statsHeaders map[string]string, trustDomain string) *listenerBuilder {
 	return &listenerBuilder{
 		meshCatalog:     meshCatalog,
 		serviceIdentity: svcIdentity,
 		cfg:             cfg,
 		statsHeaders:    statsHeaders,
+		trustDomain:     trustDomain,
 	}
 }

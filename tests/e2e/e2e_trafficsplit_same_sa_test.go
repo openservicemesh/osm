@@ -111,6 +111,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				}
 				wg.Add(1)
 				go func() {
+					defer GinkgoRecover()
 					defer wg.Done()
 					Expect(Td.WaitForPodsRunningReady(serverNamespace, 200*time.Second, numberOfServerServices*serverReplicaSet, nil)).To(Succeed())
 				}()
@@ -141,6 +142,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 
 					wg.Add(1)
 					go func(app string) {
+						defer GinkgoRecover()
 						defer wg.Done()
 						Expect(Td.WaitForPodsRunningReady(app, 200*time.Second, clientReplicaSet, nil)).To(Succeed())
 					}(clientApp)

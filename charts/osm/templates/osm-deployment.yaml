@@ -27,30 +27,10 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '9091'
     spec:
+      {{- if .Values.osm.osmController.affinity }}
       affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/os
-                operator: In
-                values:
-                - linux
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                - amd64
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - osm-controller
-              topologyKey: kubernetes.io/hostname
-            weight: 100
+      {{- toYaml .Values.osm.osmController.affinity | nindent 8 }}
+      {{- end }}
       priorityClassName: system-node-critical
       serviceAccountName: {{ .Release.Name }}
       {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
@@ -59,7 +39,7 @@ spec:
       initContainers:
         - name: init-osm-controller
           image: {{ .Values.osm.curlImage }}
-          command: ["curl", "http://osm-bootstrap.{{ include "osm.namespace" . }}.svc.cluster.local:9095/healthz", "--connect-timeout", "2", "--retry", "50", "--retry-connrefused", "--retry-delay", "5"]
+          command: ["curl", "http://osm-bootstrap.{{ include "osm.namespace" . }}.svc.cluster.local:9091/healthz", "--connect-timeout", "2", "--retry", "50", "--retry-connrefused", "--retry-delay", "5"]
       containers:
         - name: osm-controller
           image: "{{ include "osmController.image" . }}"
@@ -81,10 +61,19 @@ spec:
             "--validator-webhook-config", "{{ include "osm.validatorWebhookConfigName" . }}",
             "--ca-bundle-secret-name", "{{.Values.osm.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.osm.certificateProvider.kind}}",
+            "--trust-domain", "{{.Values.osm.trustDomain}}",
+            "--enable-mesh-root-certificate={{.Values.osm.featureFlags.enableMeshRootCertificate}}",
             {{ if eq .Values.osm.certificateProvider.kind "vault" }}
             "--vault-host", "{{ required "osm.vault.host is required when osm.certificateProvider.kind==vault" .Values.osm.vault.host }}",
+            "--vault-port", "{{.Values.osm.vault.port}}",
             "--vault-protocol", "{{.Values.osm.vault.protocol}}",
-            "--vault-token", "{{ required "osm.vault.token is required when osm.certificateProvider.kind==vault" .Values.osm.vault.token }}",
+            {{ if and (empty .Values.osm.vault.secret.name) (empty .Values.osm.vault.secret.key) }}
+            "--vault-token", "{{ required "osm.vault.token is required when osm.certificateProvider.kind==vault and osm.vault.secret.name and osm.vault.secret.key are empty" .Values.osm.vault.token }}",
+            {{- end }}
+            {{ if empty .Values.osm.vault.token }}
+            "--vault-token-secret-name",  "{{ required "osm.vault.secret.name is required when osm.certificateProvider.kind==vault and osm.vault.token is empty" .Values.osm.vault.secret.name }}",
+            "--vault-token-secret-key",  "{{ required "osm.vault.secret.key is required when osm.certificateProvider.kind==vault and osm.vault.token is empty" .Values.osm.vault.secret.key }}",
+            {{- end }}
             {{- end }}
             "--cert-manager-issuer-name", "{{.Values.osm.certmanager.issuerName}}",
             "--cert-manager-issuer-kind", "{{.Values.osm.certmanager.issuerKind}}",
@@ -177,7 +166,11 @@ spec:
       imagePullSecrets:
 {{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
     {{- end }}
-    {{- if .Values.osm.controlPlaneTolerations }}
+      {{- if .Values.osm.osmController.nodeSelector }}
+      nodeSelector:
+      {{- toYaml .Values.osm.osmController.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.osmController.tolerations }}
       tolerations:
-{{ toYaml .Values.osm.controlPlaneTolerations | indent 8 }}
-    {{- end }}
+      {{- toYaml .Values.osm.osmController.tolerations | nindent 8 }}
+      {{- end }}

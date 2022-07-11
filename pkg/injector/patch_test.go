@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
@@ -25,6 +26,7 @@ import (
 
 func TestCreatePatch(t *testing.T) {
 	// Setup all variables and constants needed for the tests
+	ctx := context.Background()
 	proxyUUID := uuid.New()
 	const (
 		namespace = "-namespace-"
@@ -128,14 +130,14 @@ func TestCreatePatch(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockNsController := k8s.NewMockController(mockCtrl)
-			mockNsController.EXPECT().GetNamespace(namespace).Return(tc.namespace)
+			mockNsController.EXPECT().GetNamespace(namespace).Return(tc.namespace).AnyTimes()
 			_, err := client.CoreV1().Namespaces().Create(context.TODO(), tc.namespace, metav1.CreateOptions{})
 			assert.NoError(err)
 
 			wh := &mutatingWebhook{
 				kubeClient:          client,
 				kubeController:      mockNsController,
-				certManager:         tresorFake.NewFake(nil),
+				certManager:         tresorFake.NewFake(nil, 1*time.Hour),
 				configurator:        mockConfigurator,
 				nonInjectNamespaces: mapset.NewSet(),
 			}
@@ -163,14 +165,63 @@ func TestCreatePatch(t *testing.T) {
 				Object:    runtime.RawExtension{Raw: raw},
 				DryRun:    &tc.dryRun,
 			}
-			rawPatches, err := wh.createPatch(&pod, req, proxyUUID)
-
+			rawPatches, err := wh.createPatch(pod, req, proxyUUID)
 			assert.NoError(err)
-
 			patches := string(rawPatches)
 
 			for _, expectedPatch := range tc.expectedPatches {
 				assert.Contains(patches, expectedPatch)
+			}
+
+			// Ensure the bootstrap config was created if not in dry run
+			conf, err := client.CoreV1().Secrets(namespace).Get(ctx, "envoy-bootstrap-config-"+proxyUUID.String(), metav1.GetOptions{})
+			if tc.dryRun {
+				assert.Error(err)
+				assert.Nil(conf)
+			} else {
+				assert.NoError(err)
+				assert.NotNil(conf)
+			}
+
+			// Now we try to reinject, and ensure the only patch is the updated UUID. We also verify the config was
+			// properly created.
+
+			// Assert that the pod has been injected.
+			assert.Contains(pod.Labels, constants.EnvoyUniqueIDLabelName)
+			// We remove the object meta to mimic kubectl debug.
+			pod.ObjectMeta = metav1.ObjectMeta{Name: "debug", Namespace: namespace}
+
+			raw, err = json.Marshal(pod)
+			assert.NoError(err)
+
+			req = &admissionv1.AdmissionRequest{
+				Namespace: namespace,
+				Object:    runtime.RawExtension{Raw: raw},
+				DryRun:    &tc.dryRun,
+			}
+
+			newUUID := uuid.New()
+			rawPatches, err = wh.createPatch(pod, req, newUUID)
+			assert.NoError(err)
+
+			patches = string(rawPatches)
+
+			expectedPatches := []string{
+				fmt.Sprintf(`{"op":"add","path":"/metadata/labels","value":{"osm-proxy-uuid":"%s"}}`, newUUID.String()),
+				fmt.Sprintf(`{"op":"replace","path":"/spec/volumes/0/secret/secretName","value":"envoy-bootstrap-config-%s"}`, newUUID.String()),
+			}
+
+			for _, expectedPatch := range expectedPatches {
+				assert.Contains(patches, expectedPatch)
+			}
+
+			conf, err = client.CoreV1().Secrets(namespace).Get(ctx, "envoy-bootstrap-config-"+newUUID.String(), metav1.GetOptions{})
+			if tc.dryRun {
+				assert.Error(err)
+				assert.Nil(conf)
+			} else {
+				assert.NoError(err)
+				assert.NotNil(conf)
 			}
 		})
 	}
@@ -185,12 +236,19 @@ func TestCreatePatch(t *testing.T) {
 		wh := &mutatingWebhook{
 			kubeClient:          client,
 			kubeController:      mockNsController,
-			certManager:         tresorFake.NewFake(nil),
+			certManager:         tresorFake.NewFake(nil, 1*time.Hour),
 			configurator:        mockConfigurator,
 			nonInjectNamespaces: mapset.NewSet(),
 		}
 
-		mockConfigurator.EXPECT().GetEnvoyImage().Return("")
+		namespace := "not-" + namespace
+
+		mockNsController.EXPECT().GetNamespace(namespace).Return(&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+			},
+		}).AnyTimes()
+		mockConfigurator.EXPECT().GetEnvoyImage().Return("").AnyTimes()
 		mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 		pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, constants.OSLinux)
@@ -199,10 +257,10 @@ func TestCreatePatch(t *testing.T) {
 		assert.NoError(err)
 
 		req := &admissionv1.AdmissionRequest{
-			Namespace: "not-" + namespace,
+			Namespace: namespace,
 			Object:    runtime.RawExtension{Raw: raw},
 		}
-		_, err = wh.createPatch(&pod, req, proxyUUID)
+		_, err = wh.createPatch(pod, req, proxyUUID)
 		assert.Error(err)
 	})
 }

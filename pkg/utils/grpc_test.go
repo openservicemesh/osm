@@ -7,18 +7,19 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 )
 
 func TestNewGrpc(t *testing.T) {
 	assert := tassert.New(t)
-	certManager := tresorFake.NewFake(nil)
-	adsCert, err := certManager.GetRootCertificate()
-	assert.Nil(err)
+	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.Internal)
+	assert.NoError(err)
 
 	certPem := adsCert.GetCertificateChain()
 	keyPem := adsCert.GetPrivateKey()
-	rootPem := adsCert.GetIssuingCA()
+	rootPem := adsCert.GetTrustedCAs()
 	var emptyByteArray []byte
 
 	type newGrpcTest struct {
@@ -51,13 +52,14 @@ func TestNewGrpc(t *testing.T) {
 func TestGrpcServe(t *testing.T) {
 	assert := tassert.New(t)
 
-	certManager := tresorFake.NewFake(nil)
-	adsCert, err := certManager.GetRootCertificate()
-	assert.Nil(err)
+	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.Internal)
+
+	assert.NoError(err)
 
 	serverType := "ADS"
 	port := 9999
-	grpcServer, lis, err := NewGrpc(serverType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
+	grpcServer, lis, err := NewGrpc(serverType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetTrustedCAs())
 	assert.Nil(err)
 
 	ctx, cancel := context.WithCancel(context.Background())

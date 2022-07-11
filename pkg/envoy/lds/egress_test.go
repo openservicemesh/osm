@@ -5,12 +5,12 @@ import (
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/envoy"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -60,12 +60,15 @@ func TestGetEgressHTTPFilterChain(t *testing.T) {
 			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
 				EnableEgressPolicy: true,
 				EnableWASMStats:    false}).AnyTimes()
-			actual, err := lb.getEgressHTTPFilterChain(tc.destinationPort)
+			match := trafficpolicy.TrafficMatch{
+				DestinationPort: tc.destinationPort,
+			}
+			actual, err := lb.getEgressHTTPFilterChain(match)
 
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedFilterChainMatch, actual.FilterChainMatch)
 			assert.Len(actual.Filters, 1) // Single HTTPConnectionManager filter
-			assert.Equal(wellknown.HTTPConnectionManager, actual.Filters[0].Name)
+			assert.Equal(envoy.HTTPConnectionManagerFilterName, actual.Filters[0].Name)
 		})
 	}
 }
@@ -165,7 +168,7 @@ func TestGetEgressTCPFilterChain(t *testing.T) {
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedFilterChainMatch, actual.FilterChainMatch)
 			assert.Len(actual.Filters, 1) // Single TCPProxy filter
-			assert.Equal(wellknown.TCPProxy, actual.Filters[0].Name)
+			assert.Equal(envoy.TCPProxyFilterName, actual.Filters[0].Name)
 		})
 	}
 }

@@ -10,7 +10,8 @@ data:
         "enablePrivilegedInitContainer": {{.Values.osm.enablePrivilegedInitContainer | mustToJson}},
         "logLevel": {{.Values.osm.envoyLogLevel | mustToJson}},
         "maxDataPlaneConnections": {{.Values.osm.maxDataPlaneConnections | mustToJson}},
-        "configResyncInterval": {{.Values.osm.configResyncInterval | mustToJson}}
+        "configResyncInterval": {{.Values.osm.configResyncInterval | mustToJson}},
+        "localProxyMode": {{.Values.osm.localProxyMode | mustToJson}}
       },
       "traffic": {
         "enableEgress": {{.Values.osm.enableEgress | mustToJson}},
@@ -18,7 +19,8 @@ data:
         "outboundPortExclusionList": {{.Values.osm.outboundPortExclusionList | mustToJson}},
         "inboundPortExclusionList": {{.Values.osm.inboundPortExclusionList | mustToJson}},
         "outboundIPRangeExclusionList": {{.Values.osm.outboundIPRangeExclusionList | mustToJson}},
-        "outboundIPRangeInclusionList": {{.Values.osm.outboundIPRangeInclusionList | mustToJson}}
+        "outboundIPRangeInclusionList": {{.Values.osm.outboundIPRangeInclusionList | mustToJson}},
+        "networkInterfaceExclusionList": {{.Values.osm.networkInterfaceExclusionList | mustToJson}}
       },
       "observability": {
         "enableDebugServer": {{.Values.osm.enableDebugServer | mustToJson}},
@@ -49,7 +51,6 @@ data:
       "featureFlags": {
         "enableWASMStats": {{.Values.osm.featureFlags.enableWASMStats | mustToJson}},
         "enableEgressPolicy": {{.Values.osm.featureFlags.enableEgressPolicy | mustToJson}},
-        "enableMulticlusterMode": {{.Values.osm.featureFlags.enableMulticlusterMode | mustToJson}},
         "enableSnapshotCacheMode": {{.Values.osm.featureFlags.enableSnapshotCacheMode | mustToJson}},
         "enableAsyncProxyServiceMapping": {{.Values.osm.featureFlags.enableAsyncProxyServiceMapping | mustToJson}},
         "enableIngressBackendPolicy": {{.Values.osm.featureFlags.enableIngressBackendPolicy | mustToJson}},

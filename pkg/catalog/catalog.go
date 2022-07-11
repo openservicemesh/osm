@@ -15,7 +15,7 @@ import (
 )
 
 // NewMeshCatalog creates a new service catalog
-func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certManager certificate.Manager,
+func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certManager *certificate.Manager,
 	policyController policy.Controller, stop <-chan struct{},
 	cfg configurator.Configurator, serviceProviders []service.Provider, endpointsProviders []endpoint.Provider,
 	msgBroker *messaging.Broker) *MeshCatalog {

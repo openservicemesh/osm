@@ -60,10 +60,12 @@ func (sdsc *SDSCert) GetMeshService() (*service.MeshService, error) {
 		return nil, errInvalidMeshServiceFormat
 	}
 
-	return &service.MeshService{
+	ms := service.MeshService{
 		Namespace: slices[0],
 		Name:      slices[1],
-	}, nil
+	}
+
+	return &ms, nil
 }
 
 // GetK8sServiceAccount unmarshals a K8sServiceAccount type from a SDSCert name

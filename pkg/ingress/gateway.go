@@ -45,8 +45,7 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCer
 	}
 
 	// Validate the validity duration
-	certValidityDuration, err := time.ParseDuration(spec.ValidityDuration)
-	if err != nil {
+	if _, err := time.ParseDuration(spec.ValidityDuration); err != nil {
 		return errors.Wrapf(err, "Invalid cert duration '%s' specified", spec.ValidityDuration)
 	}
 
@@ -57,11 +56,11 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCer
 
 	// Issue a certificate
 	// OSM only support configuring a single SAN per cert, so pick the first one
-	certCN := certificate.CommonName(spec.SubjectAltNames[0])
+	certCN := spec.SubjectAltNames[0]
 
 	// A certificate for this CN may be cached already. Delete it before issuing a new certificate.
 	c.certProvider.ReleaseCertificate(certCN)
-	issuedCert, err := c.certProvider.IssueCertificate(certCN, certValidityDuration)
+	issuedCert, err := c.certProvider.IssueCertificate(certCN, certificate.IngressGateway, certificate.FullCNProvided())
 	if err != nil {
 		return errors.Wrapf(err, "Error issuing a certificate for ingress gateway")
 	}
@@ -77,7 +76,7 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCer
 // storeCertInSecret stores the certificate in the specified k8s TLS secret
 func (c *client) storeCertInSecret(cert *certificate.Certificate, secret corev1.SecretReference) error {
 	secretData := map[string][]byte{
-		"ca.crt":  cert.GetIssuingCA(),
+		"ca.crt":  cert.GetTrustedCAs(),
 		"tls.crt": cert.GetCertificateChain(),
 		"tls.key": cert.GetPrivateKey(),
 	}
@@ -197,8 +196,7 @@ func (c *client) removeGatewayCertAndSecret(storedCertSpec configv1alpha2.Ingres
 		return err
 	}
 
-	certCN := certificate.CommonName(storedCertSpec.SubjectAltNames[0]) // Only single SAN is supported in certs
-	c.certProvider.ReleaseCertificate(certCN)
+	c.certProvider.ReleaseCertificate(storedCertSpec.SubjectAltNames[0]) // Only single SAN is supported in certs
 
 	return nil
 }

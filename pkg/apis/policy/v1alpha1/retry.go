@@ -53,13 +53,16 @@ type RetryPolicySpec struct {
 	RetryOn string `json:"retryOn"`
 
 	// PerTryTimeout defines the time allowed for a retry before it's considered a failed attempt.
-	PerTryTimeout string `json:"perTryTimeout"`
+	// +optional
+	PerTryTimeout *metav1.Duration `json:"perTryTimeout"`
 
 	// NumRetries defines the max number of retries to attempt.
-	NumRetries int `json:"numRetries"`
+	// +optional
+	NumRetries *uint32 `json:"numRetries"`
 
 	// RetryBackoffBaseInterval defines the base interval for exponential retry backoff.
-	RetryBackoffBaseInterval string `json:"retryBackoffInterval"`
+	// +optional
+	RetryBackoffBaseInterval *metav1.Duration `json:"retryBackoffBaseInterval"`
 }
 
 // RetryList defines the list of Retry objects.

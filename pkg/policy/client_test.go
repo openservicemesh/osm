@@ -3,6 +3,7 @@ package policy
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -11,6 +12,7 @@ import (
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -132,13 +134,16 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			a := assert.New(t)
 
-			c, err := newClient(mockKubeController, fakePolicyClient.NewSimpleClientset(), nil, nil)
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+			c := NewPolicyController(informerCollection, mockKubeController, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
 			// Create fake egress policies
 			for _, egressPolicy := range tc.allEgresses {
-				_ = c.caches.egress.Add(egressPolicy)
+				_ = c.informers.Add(informers.InformerKeyEgress, egressPolicy, t)
 			}
 
 			actual := c.ListEgressPoliciesForSourceIdentity(tc.source)
@@ -320,13 +325,16 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			c, err := newClient(nil, fakePolicyClient.NewSimpleClientset(), nil, nil)
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+			c := NewPolicyController(informerCollection, nil, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
 			// Create fake egress policies
 			for _, ingressBackend := range tc.allResources {
-				_ = c.caches.ingressBackend.Add(ingressBackend)
+				_ = c.informers.Add(informers.InformerKeyIngressBackend, ingressBackend, t)
 			}
 
 			actual := c.GetIngressBackendPolicy(tc.backend)
@@ -336,6 +344,10 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 }
 
 func TestListRetryPolicy(t *testing.T) {
+	var thresholdUintVal uint32 = 3
+	thresholdTimeoutDuration := metav1.Duration{Duration: time.Duration(5 * time.Second)}
+	thresholdBackoffDuration := metav1.Duration{Duration: time.Duration(1 * time.Second)}
+
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -376,9 +388,9 @@ func TestListRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "",
-							NumRetries:               1,
-							PerTryTimeout:            "2s",
-							RetryBackoffBaseInterval: "3ms",
+							NumRetries:               &thresholdUintVal,
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -414,9 +426,9 @@ func TestListRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "",
-							NumRetries:               1,
-							PerTryTimeout:            "2s",
-							RetryBackoffBaseInterval: "3ms",
+							NumRetries:               &thresholdUintVal,
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -448,9 +460,9 @@ func TestListRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "",
-							NumRetries:               1,
-							PerTryTimeout:            "2s",
-							RetryBackoffBaseInterval: "3ms",
+							NumRetries:               &thresholdUintVal,
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -462,13 +474,16 @@ func TestListRetryPolicy(t *testing.T) {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			a := assert.New(t)
 
-			c, err := newClient(mockKubeController, fakePolicyClient.NewSimpleClientset(), nil, nil)
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+			c := NewPolicyController(informerCollection, mockKubeController, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
 			// Create fake retry policies
 			for _, retryPolicy := range tc.allRetries {
-				err := c.caches.retry.Add(retryPolicy)
+				err := c.informers.Add(informers.InformerKeyRetry, retryPolicy, t)
 				a.Nil(err)
 			}
 
@@ -605,13 +620,16 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			c, err := newClient(nil, fakePolicyClient.NewSimpleClientset(), nil, nil)
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+			c := NewPolicyController(informerCollection, nil, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
 			// Create fake egress policies
 			for _, resource := range tc.allResources {
-				_ = c.caches.upstreamTrafficSetting.Add(resource)
+				_ = c.informers.Add(informers.InformerKeyUpstreamTrafficSetting, resource, t)
 			}
 
 			actual := c.GetUpstreamTrafficSetting(tc.opt)

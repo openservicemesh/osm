@@ -154,10 +154,10 @@ const (
 	ErrPubSubMessageFormat ErrCode = iota + 4100
 )
 
-// Range 4150-4200 reserved for MeshConfig related errors
+// Range 4150-4200 reserved for errors related to config.openservicemesh.io resources
 const (
-	// ErrMeshConfigInformerInitCache indicates failed to init cache sync for MeshConfig informer
-	ErrMeshConfigInformerInitCache ErrCode = iota + 4150
+	// ErrConfigInformerInitCache indicates failed to init cache sync for config.openservicemesh.io informers
+	ErrConfigInformerInitCache ErrCode = iota + 4150
 
 	// ErrMeshConfigStructParsing indicates failed to cast object to MeshConfig
 	ErrMeshConfigStructCasting
@@ -200,16 +200,8 @@ const (
 	// ErrRecordingSnapshot indicates the aggregated resources generate for a discovery response could not be created
 	ErrRecordingSnapshot
 
-	// ErrGettingServiceIdentity indicates the ServiceIdentity name encoded in the XDS certificate CN could not be
-	// obtained
-	ErrGettingServiceIdentity
-
 	// ErrStartingADSServer indicates the gPRC service failed to start
 	ErrStartingADSServer
-
-	// ERRInitializingProxy indicates an instance of the Envoy proxy that connected to the XDS server could not be
-	// initialized
-	ErrInitializingProxy
 
 	// ErrMismatchedServiceAccount inicates the ServiceAccount referenced in the NodeID does not match the
 	// ServiceAccount specified in the proxy certificate
@@ -245,9 +237,6 @@ const (
 
 	// ErrUnsupportedProtocolForService indicates a port's corresponding application protocol is not supported
 	ErrUnsupportedProtocolForService
-
-	// ErrBuildingRBACPolicy indicates the XDS RBAC policy could not be created from a given traffic target policy
-	ErrBuildingRBACPolicy
 
 	// ErrIngressFilterChain indicates there an error related to an ingress filter chain
 	ErrIngressFilterChain
@@ -589,8 +578,8 @@ Failed parsing object into PubSub message.
 	//
 	// Range 4150-4200
 	//
-	ErrMeshConfigInformerInitCache: `
-Failed initial cache sync for MeshConfig informer.
+	ErrConfigInformerInitCache: `
+Failed initial cache sync for config.openservicemesh.io informer.
 `,
 	ErrMeshConfigStructCasting: `
 Failed to cast object to MeshConfig.
@@ -650,19 +639,8 @@ The aggregated resources generated for a DiscoveryResponse failed to be configur
 a new snapshot in the Envoy xDS Aggregate Discovery Services cache.
 `,
 
-	ErrGettingServiceIdentity: `
-The ServiceIdentity specified in the XDS certificate CN could not be obtained when
-creating SDS DiscoveryRequests corresponding to all types of secrets associated with
-the proxy.
-`,
-
 	ErrStartingADSServer: `
 The Aggregate Discovery Server (ADS) created by the OSM controller failed to start.
-`,
-
-	ErrInitializingProxy: `
-An Envoy proxy data structure representing a newly connected envoy proxy to the XDS
-server could not be initialized.
 `,
 
 	ErrMismatchedServiceAccount: `
@@ -719,11 +697,6 @@ will not be sent to the Envoy proxy in a ClusterDiscovery response.
 	ErrUnsupportedProtocolForService: `
 The application protocol specified for a port is not supported for ingress
 traffic. The XDS filter chain for ingress traffic to the port was not created.
-`,
-
-	ErrBuildingRBACPolicy: `
-An XDS RBAC policy could not be generated from the specified traffic target
-policy.
 `,
 
 	ErrIngressFilterChain: `

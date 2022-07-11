@@ -4,13 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -36,20 +32,12 @@ type KubeProxyServiceMapper struct {
 
 // ListProxyServices maps an Envoy instance to a number of Kubernetes services.
 func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.MeshService, error) {
-	cn := p.GetCertificateCommonName()
-
-	pod, err := envoy.GetPodFromCertificate(cn, k.KubeController)
+	pod, err := k.KubeController.GetPodForProxy(p)
 	if err != nil {
 		return nil, err
 	}
 
-	services := listServicesForPod(pod, k.KubeController)
-
-	if len(services) == 0 {
-		return nil, nil
-	}
-
-	meshServices := kubernetesServicesToMeshServices(k.KubeController, services)
+	meshServices := listServicesForPod(pod, k.KubeController)
 
 	servicesForPod := strings.Join(listServiceNames(meshServices), ",")
 	log.Trace().Msgf("Services associated with Pod with UID=%s Name=%s/%s: %+v",
@@ -58,9 +46,13 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.Me
 	return meshServices, nil
 }
 
-func kubernetesServicesToMeshServices(kubeController k8s.Controller, kubernetesServices []v1.Service) (meshServices []service.MeshService) {
+func kubernetesServicesToMeshServices(kubeController k8s.Controller, kubernetesServices []v1.Service, subdomainFilter string) (meshServices []service.MeshService) {
 	for _, svc := range kubernetesServices {
-		meshServices = append(meshServices, k8s.ServiceToMeshServices(kubeController, svc)...)
+		for _, meshSvc := range k8s.ServiceToMeshServices(kubeController, svc) {
+			if meshSvc.Subdomain() == subdomainFilter || meshSvc.Subdomain() == "" {
+				meshServices = append(meshServices, meshSvc)
+			}
+		}
 	}
 	return meshServices
 }
@@ -73,7 +65,7 @@ func listServiceNames(meshServices []service.MeshService) (serviceNames []string
 }
 
 // listServicesForPod lists Kubernetes services whose selectors match pod labels
-func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []v1.Service {
+func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []service.MeshService {
 	var serviceList []v1.Service
 	svcList := kubeController.ListServices()
 
@@ -92,41 +84,11 @@ func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []v1.Service
 		}
 	}
 
-	return serviceList
-}
-
-func listPodsForService(service *v1.Service, kubeController k8s.Controller) []v1.Pod {
-	svcRawSelector := service.Spec.Selector
-	// service has no selectors, we do not need to match against the pod label
-	if len(svcRawSelector) == 0 {
+	if len(serviceList) == 0 {
 		return nil
 	}
-	selector := labels.Set(svcRawSelector).AsSelector()
 
-	allPods := kubeController.ListPods()
+	meshServices := kubernetesServicesToMeshServices(kubeController, serviceList, pod.GetName())
 
-	var matchedPods []v1.Pod
-	for _, pod := range allPods {
-		if service.Namespace != pod.Namespace {
-			continue
-		}
-		if selector.Matches(labels.Set(pod.Labels)) {
-			matchedPods = append(matchedPods, *pod)
-		}
-	}
-
-	return matchedPods
-}
-
-func getCertCommonNameForPod(pod v1.Pod) (certificate.CommonName, error) {
-	proxyUIDStr, exists := pod.Labels[constants.EnvoyUniqueIDLabelName]
-	if !exists {
-		return "", errors.Errorf("no %s label", constants.EnvoyUniqueIDLabelName)
-	}
-	proxyUID, err := uuid.Parse(proxyUIDStr)
-	if err != nil {
-		return "", errors.Wrapf(err, "invalid UID value for %s label", constants.EnvoyUniqueIDLabelName)
-	}
-	cn := envoy.NewXDSCertCommonName(proxyUID, envoy.KindSidecar, pod.Spec.ServiceAccountName, pod.Namespace)
-	return cn, nil
+	return meshServices
 }
