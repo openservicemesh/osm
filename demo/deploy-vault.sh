@@ -27,6 +27,24 @@ spec:
       labels:
         app: vault
     spec:
+      ## Affinity settings for pod assignment
+      ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - arm64
+                - arm 
+                - 386
       terminationGracePeriodSeconds: 10
       containers:
       - name: vault
