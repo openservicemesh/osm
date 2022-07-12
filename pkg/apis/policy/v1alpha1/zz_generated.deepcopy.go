@@ -363,8 +363,8 @@ func (in *HTTPGlobalRateLimitSpec) DeepCopyInto(out *HTTPGlobalRateLimitSpec) {
 		*out = new(metav1.Duration)
 		**out = **in
 	}
-	if in.FailureModeDeny != nil {
-		in, out := &in.FailureModeDeny, &out.FailureModeDeny
+	if in.FailOpen != nil {
+		in, out := &in.FailOpen, &out.FailOpen
 		*out = new(bool)
 		**out = **in
 	}
@@ -935,8 +935,8 @@ func (in *TCPGlobalRateLimitSpec) DeepCopyInto(out *TCPGlobalRateLimitSpec) {
 		*out = new(metav1.Duration)
 		**out = **in
 	}
-	if in.FailureModeDeny != nil {
-		in, out := &in.FailureModeDeny, &out.FailureModeDeny
+	if in.FailOpen != nil {
+		in, out := &in.FailOpen, &out.FailOpen
 		*out = new(bool)
 		**out = **in
 	}

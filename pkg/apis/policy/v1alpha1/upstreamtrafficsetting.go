@@ -238,11 +238,11 @@ type TCPGlobalRateLimitSpec struct {
 	// +optional
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
-	// FailureModeDeny defines whether to allow traffic in case of
+	// FailOpen defines whether to allow traffic in case of
 	// communication failure between rate limiting service and the proxy.
-	// Defaults to false.
+	// Defaults to true.
 	// +optional
-	FailureModeDeny *bool `json:"failureModeDeny,omitempty"`
+	FailOpen *bool `json:"failOpen,omitempty"`
 }
 
 // RateLimitServiceSpec defines the Rate Limit Service specification.
@@ -293,11 +293,11 @@ type HTTPGlobalRateLimitSpec struct {
 	// +optional
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
-	// FailureModeDeny defines whether to allow traffic in case of
+	// FailOpen defines whether to allow traffic in case of
 	// communication failure between rate limiting service and the proxy.
-	// Defaults to false.
+	// Defaults to true.
 	// +optional
-	FailureModeDeny *bool `json:"failureModeDeny,omitempty"`
+	FailOpen *bool `json:"failOpen,omitempty"`
 
 	// EnableXRateLimitHeaders defines whether to include the headers
 	// X-RateLimit-Limit, X-RateLimit-Remaining, and X-RateLimit-Reset on
