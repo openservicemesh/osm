@@ -1,6 +1,6 @@
 # Open Service Mesh Helm Chart
 
-![Version: 1.1.1](https://img.shields.io/badge/Version-1.1.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: latest-main](https://img.shields.io/badge/AppVersion-latest--main-informational?style=flat-square)
+![Version: 1.2.0](https://img.shields.io/badge/Version-1.2.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: latest-main](https://img.shields.io/badge/AppVersion-latest--main-informational?style=flat-square)
 
 A Helm chart to install the [OSM](https://github.com/openservicemesh/osm) control plane on Kubernetes.
 
@@ -127,14 +127,14 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.grafana.port | int | `3000` | Grafana service's port |
 | osm.grafana.rendererImage | string | `"grafana/grafana-image-renderer:3.2.1"` | Image used for Grafana Renderer |
 | osm.grafana.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
-| osm.image.digest | object | `{"osmBootstrap":"","osmCRDs":"","osmController":"","osmHealthcheck":"","osmInjector":"","osmPreinstall":"","osmSidecarInit":""}` | Image digest (defaults to latest compatible tag) |
-| osm.image.digest.osmBootstrap | string | `""` | osm-boostrap's image digest |
-| osm.image.digest.osmCRDs | string | `""` | osm-crds' image digest |
-| osm.image.digest.osmController | string | `""` | osm-controller's image digest |
-| osm.image.digest.osmHealthcheck | string | `""` | osm-healthcheck's image digest |
-| osm.image.digest.osmInjector | string | `""` | osm-injector's image digest |
-| osm.image.digest.osmPreinstall | string | `""` | osm-preinstall's image digest |
-| osm.image.digest.osmSidecarInit | string | `""` | Sidecar init container's image digest |
+| osm.image.digest | object | `{"osmBootstrap":"sha256:21bb2db4a02f05abf5f8c5a6a3fa6b3deb71b0a87ec0d5d31a11522dcff6131a","osmCRDs":"sha256:27582980e1fc9d70c49d827ed4eded4b3b38109f737e4acd9c3f91af60cd0f99","osmController":"sha256:7ed241c53a71fd82fabcd2be261b76c0e371e75b2a2e523ee33092adad4c8247","osmHealthcheck":"sha256:4f3e1581cfec36d7d1f56c67a5b5433dab78b2e4bb01f72bba8814d8c1e1577c","osmInjector":"sha256:6edd18238335ebfab9e3984d9a0ae0b202542e996b600a9b502d963a319bec2b","osmPreinstall":"sha256:d5cd6b1f9960690f80825418e046bb3b3ae4770454d28b13ea0cfebeab551925","osmSidecarInit":"sha256:38825f27c183d166872bf0fbf3b9f0952d76d0190be28ebe04a2b0c58dcafd48"}` | Image digest (defaults to latest compatible tag) |
+| osm.image.digest.osmBootstrap | string | `"sha256:21bb2db4a02f05abf5f8c5a6a3fa6b3deb71b0a87ec0d5d31a11522dcff6131a"` | osm-boostrap's image digest |
+| osm.image.digest.osmCRDs | string | `"sha256:27582980e1fc9d70c49d827ed4eded4b3b38109f737e4acd9c3f91af60cd0f99"` | osm-crds' image digest |
+| osm.image.digest.osmController | string | `"sha256:7ed241c53a71fd82fabcd2be261b76c0e371e75b2a2e523ee33092adad4c8247"` | osm-controller's image digest |
+| osm.image.digest.osmHealthcheck | string | `"sha256:4f3e1581cfec36d7d1f56c67a5b5433dab78b2e4bb01f72bba8814d8c1e1577c"` | osm-healthcheck's image digest |
+| osm.image.digest.osmInjector | string | `"sha256:6edd18238335ebfab9e3984d9a0ae0b202542e996b600a9b502d963a319bec2b"` | osm-injector's image digest |
+| osm.image.digest.osmPreinstall | string | `"sha256:d5cd6b1f9960690f80825418e046bb3b3ae4770454d28b13ea0cfebeab551925"` | osm-preinstall's image digest |
+| osm.image.digest.osmSidecarInit | string | `"sha256:38825f27c183d166872bf0fbf3b9f0952d76d0190be28ebe04a2b0c58dcafd48"` | Sidecar init container's image digest |
 | osm.image.name | object | `{"osmBootstrap":"osm-bootstrap","osmCRDs":"osm-crds","osmController":"osm-controller","osmHealthcheck":"osm-healthcheck","osmInjector":"osm-injector","osmPreinstall":"osm-preinstall","osmSidecarInit":"init"}` | Image name defaults |
 | osm.image.name.osmBootstrap | string | `"osm-bootstrap"` | osm-boostrap's image name |
 | osm.image.name.osmCRDs | string | `"osm-crds"` | osm-crds' image name |
@@ -145,7 +145,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.image.name.osmSidecarInit | string | `"init"` | Sidecar init container's image name |
 | osm.image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy for control plane containers |
 | osm.image.registry | string | `"openservicemesh"` | Container image registry for control plane images |
-| osm.image.tag | string | `"latest-main"` | Container image tag for control plane images |
+| osm.image.tag | string | `""` | Container image tag for control plane images |
 | osm.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
 | osm.inboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
 | osm.injector.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key | string | `"kubernetes.io/os"` |  |
