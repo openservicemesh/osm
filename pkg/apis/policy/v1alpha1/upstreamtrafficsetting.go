@@ -419,6 +419,7 @@ type HTTPHeaderMatcher struct {
 	// Present defines whether the request matches the criteria
 	// when the header is present. If set to false, header match
 	// will be performed based on whether the header is absent.
+	// +optional
 	Present *bool `json:"present,omitempty"`
 }
 
