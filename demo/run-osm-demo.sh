@@ -150,7 +150,6 @@ else
       --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=osm.controllerLogLevel="trace" \
       --set=osm.localProxyMode="$LOCAL_PROXY_MODE" \
-      --set=contour.enabled="true" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 fi
