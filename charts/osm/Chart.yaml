@@ -25,6 +25,6 @@ kubeVersion: ">= 1.22.9-0"
 
 dependencies:
 - name: contour
-  version: 5.1.0
+  version: 8.0.4
   repository: https://charts.bitnami.com/bitnami
   condition: contour.enabled
