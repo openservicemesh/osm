@@ -134,15 +134,19 @@ type MRCEventType string
 // MRCEvent describes a change event on a given MRC
 type MRCEvent struct {
 	Type MRCEventType
+
+	// The previous observed version of the MRC as of the time of this event
+	OldMRC *v1alpha2.MeshRootCertificate
+
 	// The last observed version of the MRC as of the time of this event
-	MRC *v1alpha2.MeshRootCertificate
+	NewMRC *v1alpha2.MeshRootCertificate
 }
 
 var (
 	// MRCEventAdded is the type of announcement emitted when we observe an addition of a Kubernetes MeshRootCertificate
 	MRCEventAdded MRCEventType = "meshrootcertificate-added"
 
-	// MRCEventUpdated is the type of announcement emitted when we observe an update to a Kubernetes MeshRootCertificate
+	// MRCEventUpdated is the type of announcement emitted when we observe a non status update to a Kubernetes MeshRootCertificate
 	MRCEventUpdated MRCEventType = "meshrootcertificate-updated"
 )
 

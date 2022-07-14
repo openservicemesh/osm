@@ -3,6 +3,7 @@ package certificate
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -117,9 +118,16 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
 	switch event.Type {
 	case MRCEventAdded:
-		mrc := event.MRC
+		mrc := event.NewMRC
+
+		// ignore add event if MRC has no state
+		if mrc.Status.State == "" {
+			log.Debug().Msgf("received MRC add event for MRC %s. Ignoring because MRC has no state", mrc.GetName())
+			return nil
+		}
+		// ignore add event if MRC state is error
 		if mrc.Status.State == constants.MRCStateError {
-			log.Debug().Msgf("skipping MRC with error state %s", mrc.GetName())
+			log.Debug().Msgf("received MRC add event for MRC %s. Skipping MRC with error state", mrc.GetName())
 			return nil
 		}
 
@@ -129,20 +137,22 @@ func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
 		}
 
 		c := &issuer{Issuer: client, ID: mrc.Name, CertificateAuthority: ca, TrustDomain: mrc.Spec.TrustDomain}
-		switch {
-		case mrc.Status.State == constants.MRCStateActive:
+		switch mrc.Status.State {
+		case constants.MRCStateActive:
 			m.mu.Lock()
 			m.signingIssuer = c
 			m.validatingIssuer = c
 			m.mu.Unlock()
-		case mrc.Status.State == constants.MRCStateIssuingRollback || mrc.Status.State == constants.MRCStateIssuingRollout:
+		case constants.MRCStateIssuingRollout:
 			m.mu.Lock()
 			m.signingIssuer = c
 			m.mu.Unlock()
-		case mrc.Status.State == constants.MRCStateValidatingRollback || mrc.Status.State == constants.MRCStateValidatingRollout:
+		case constants.MRCStateIssuingRollback, constants.MRCStateValidatingRollout:
 			m.mu.Lock()
 			m.validatingIssuer = c
 			m.mu.Unlock()
+		case constants.MRCStateValidatingRollback:
+			// do nothing, the issuer of active MRC should be used
 		default:
 			m.mu.Lock()
 			m.signingIssuer = c
@@ -150,13 +160,90 @@ func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
 			m.mu.Unlock()
 		}
 	case MRCEventUpdated:
-		// TODO
+		newMRC := event.NewMRC
+		oldMRC := event.OldMRC
+		if newMRC.Status.State != oldMRC.Status.State {
+			// TODO(jaellio): Do I need to validate status updates here to determine if they are allowed?
+			return m.handleMRCStatusUpdate(mrcClient, event)
+		}
+		log.Debug().Msgf("Did not receive an MRC %s update requiring a rotation", newMRC.GetName())
+		return nil
 	}
 
 	return nil
 }
 
-// GetTrustDomain returns the trust domain from the configured signingkey issuer.
+func (m *Manager) handleMRCStatusUpdate(mrcClient MRCClient, event MRCEvent) error {
+	newMRC := event.NewMRC
+	oldMRC := event.OldMRC
+	log.Debug().Msgf("handling MRC status update for MRC %s/%s from %s state to %s state",
+		newMRC.GetNamespace(), newMRC.GetName(), oldMRC.Status.State, newMRC.Status.State)
+
+	switch newMRC.Status.State {
+	case constants.MRCStateValidatingRollout:
+		client, ca, err := mrcClient.GetCertIssuerForMRC(newMRC)
+		if err != nil {
+			return err
+		}
+
+		c := &issuer{Issuer: client, ID: newMRC.Name, CertificateAuthority: ca, TrustDomain: newMRC.Spec.TrustDomain}
+
+		m.mu.Lock()
+		m.validatingIssuer = c
+		m.mu.Unlock()
+		log.Debug().Msgf("successfully updated validating issuer to the provider specified in MRC %s/%s",
+			newMRC.GetNamespace(), newMRC.GetName())
+	case constants.MRCStateIssuingRollout:
+		// TODO(jaellio): Does accessing the ID need to be locked? Should this lock be help for the entire time we process the event?
+		m.mu.Lock()
+		validatingIssuerID := m.validatingIssuer.ID
+		signingIssuerID := m.signingIssuer.ID
+		m.mu.Unlock()
+
+		if newMRC.GetName() != validatingIssuerID {
+			msg := fmt.Sprintf("expected MRC %s/%s with updated status %s to be the current validatingIssuer %s",
+				newMRC.GetNamespace(), newMRC.GetName(), constants.MRCStateIssuingRollout, validatingIssuerID)
+			// TODO(jaellio): set the MRC error state?
+			log.Error().Msg(msg)
+			return errors.New(msg)
+		}
+
+		m.mu.Lock()
+		tempIssuer := m.signingIssuer
+		m.signingIssuer = m.validatingIssuer
+		m.validatingIssuer = tempIssuer
+		m.mu.Unlock()
+		log.Debug().Msgf("successfully updated signing issuer to the provider specified in MRC %s/%s. The validating issuer was updated to be signing issuer specified in MRC %s",
+			newMRC.GetNamespace(), newMRC.GetName(), signingIssuerID)
+	case constants.MRCStateActive:
+		// TODO(jaellio): Does accessing the ID need to be locked? Should this lock be help for the entire time we process the event?
+		m.mu.Lock()
+		signingIssuerID := m.signingIssuer.ID
+		m.mu.Unlock()
+
+		if newMRC.GetName() != signingIssuerID {
+			msg := fmt.Sprintf("expected MRC %s/%s with updated status %s to be the current signingIssuer %s",
+				newMRC.GetNamespace(), newMRC.GetName(), constants.MRCStateActive, signingIssuerID)
+			log.Error().Msg(msg)
+			return errors.New(msg)
+		}
+
+		m.mu.Lock()
+		m.validatingIssuer = m.signingIssuer
+		m.mu.Unlock()
+		log.Debug().Msgf("successfully updated validating issuer to the provider specified in MRC %s/%s",
+			newMRC.GetNamespace(), newMRC.GetName())
+	case constants.MRCStateIssuingRollback, constants.MRCStateValidatingRollback:
+		log.Info().Msgf("no operation required on %s status update to MRC %s", newMRC.Status.State, newMRC.Name)
+	case constants.MRCStateInactive:
+		// TODO(#4896): clean up inactive MRCs
+	case constants.MRCStateError:
+		// TODO(#4893): handle MRC error state and potentially perform a rollback
+	}
+	return nil
+}
+
+// GetTrustDomain returns the trust domain from the configured signing key issuer.
 // Note that the CRD uses a default, so this value will always be set.
 func (m *Manager) GetTrustDomain() string {
 	m.mu.Lock()

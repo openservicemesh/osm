@@ -43,7 +43,7 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent,
 	go func() {
 		ch <- certificate.MRCEvent{
 			Type: certificate.MRCEventAdded,
-			MRC: &v1alpha2.MeshRootCertificate{
+			NewMRC: &v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "osm-mesh-root-certificate",
 					Namespace: "osm-system",

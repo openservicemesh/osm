@@ -48,18 +48,19 @@ func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, e
 			mrc := obj.(*v1alpha2.MeshRootCertificate)
 			log.Debug().Msgf("received MRC add event for MRC %s/%s", mrc.GetNamespace(), mrc.GetName())
 			eventChan <- certificate.MRCEvent{
-				Type: certificate.MRCEventAdded,
-				MRC:  mrc,
+				Type:   certificate.MRCEventAdded,
+				NewMRC: mrc,
 			}
 		},
-		// We don't really care about the previous version
-		// since the "state machine" of the MRC is well defined
-		UpdateFunc: func(_, newObj interface{}) {
-			mrc := newObj.(*v1alpha2.MeshRootCertificate)
-			log.Debug().Msgf("received MRC update event for MRC %s/%s", mrc.GetNamespace(), mrc.GetName())
+		// We check if the status was updated to determine if it was a status update or not
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			newMRC := newObj.(*v1alpha2.MeshRootCertificate)
+			oldMRC := oldObj.(*v1alpha2.MeshRootCertificate)
+			log.Debug().Msgf("received MRC update event for MRC %s/%s", newMRC.GetNamespace(), newMRC.GetName())
 			eventChan <- certificate.MRCEvent{
-				Type: certificate.MRCEventUpdated,
-				MRC:  mrc,
+				Type:   certificate.MRCEventUpdated,
+				OldMRC: oldMRC,
+				NewMRC: newMRC,
 			}
 		},
 		// We don't care about deletes because the only deletes that should

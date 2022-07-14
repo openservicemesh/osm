@@ -318,21 +318,19 @@ func TestIssueCertificate(t *testing.T) {
 
 func TestHandleMRCEvent(t *testing.T) {
 	testCases := []struct {
-		name                 string
-		mrcClient            MRCClient
-		mrcEvent             MRCEvent
-		wantErr              bool
-		wantSigningIssuer    issuer
-		wantValidatingIssuer issuer
+		name                     string
+		mrcEvent                 MRCEvent
+		expectedSigningIssuer    *issuer
+		expectedValidatingIssuer *issuer
+		expectedError            bool
 	}{
 		{
-			name:      "success",
-			mrcClient: &fakeMRCClient{},
+			name: "add valid MRC in active state",
 			mrcEvent: MRCEvent{
 				Type: MRCEventAdded,
-				MRC: &v1alpha2.MeshRootCertificate{
+				NewMRC: &v1alpha2.MeshRootCertificate{
 					ObjectMeta: v1.ObjectMeta{
-						Name: "my-mrc",
+						Name: "mrc",
 					},
 					Spec: v1alpha2.MeshRootCertificateSpec{
 						TrustDomain: "foo.bar.com",
@@ -342,25 +340,244 @@ func TestHandleMRCEvent(t *testing.T) {
 					},
 				},
 			},
-			wantSigningIssuer:    issuer{Issuer: &fakeIssuer{}, ID: "my-mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
-			wantValidatingIssuer: issuer{Issuer: &fakeIssuer{}, ID: "my-mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			expectedSigningIssuer:    &issuer{Issuer: &fakeIssuer{}, ID: "mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			expectedValidatingIssuer: &issuer{Issuer: &fakeIssuer{}, ID: "mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			expectedError:            false,
+		},
+		{
+			name: "add valid MRC in issuingRollout state",
+			mrcEvent: MRCEvent{
+				Type: MRCEventAdded,
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: v1.ObjectMeta{
+						Name: "mrc",
+					},
+					Spec: v1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "foo.bar.com",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateIssuingRollout,
+					},
+				},
+			},
+			expectedSigningIssuer: &issuer{Issuer: &fakeIssuer{}, ID: "mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			expectedError:         false,
+		},
+		{
+			name: "add valid MRC in issuingRollback state",
+			mrcEvent: MRCEvent{
+				Type: MRCEventAdded,
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: v1.ObjectMeta{
+						Name: "mrc",
+					},
+					Spec: v1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "foo.bar.com",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateIssuingRollback,
+					},
+				},
+			},
+			expectedValidatingIssuer: &issuer{Issuer: &fakeIssuer{}, ID: "mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			expectedError:            false,
+		},
+		{
+			name: "add MRC with unknown status",
+			mrcEvent: MRCEvent{
+				Type: MRCEventAdded,
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: v1.ObjectMeta{
+						Name: "mrc",
+					},
+					Spec: v1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "foo.bar.com",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: "unknown",
+					},
+				},
+			},
+			expectedSigningIssuer:    &issuer{Issuer: &fakeIssuer{}, ID: "mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			expectedValidatingIssuer: &issuer{Issuer: &fakeIssuer{}, ID: "mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			expectedError:            false,
+		},
+		{
+			name: "add MRC with no status",
+			mrcEvent: MRCEvent{
+				Type: MRCEventAdded,
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: v1.ObjectMeta{
+						Name: "mrc",
+					},
+					Spec: v1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "foo.bar.com",
+					},
+				},
+			},
+			expectedError: false,
 		},
 	}
 
-	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			m := &Manager{}
 
-			err := m.handleMRCEvent(tt.mrcClient, tt.mrcEvent)
-			if !tt.wantErr {
-				assert.NoError(err)
-			} else {
+			cm := &Manager{}
+
+			err := cm.handleMRCEvent(&fakeMRCClient{}, tc.mrcEvent)
+			if tc.expectedError {
 				assert.Error(err)
+			} else {
+				assert.NoError(err)
 			}
 
-			assert.Equal(tt.wantSigningIssuer, *m.signingIssuer)
-			assert.Equal(tt.wantValidatingIssuer, *m.validatingIssuer)
+			if tc.expectedSigningIssuer != nil {
+				assert.NotNil(cm.signingIssuer)
+				assert.Equal(tc.expectedSigningIssuer, cm.signingIssuer)
+			} else {
+				assert.Nil(cm.signingIssuer)
+			}
+
+			if tc.expectedValidatingIssuer != nil {
+				assert.NotNil(cm.validatingIssuer)
+				assert.Equal(tc.expectedValidatingIssuer, cm.validatingIssuer)
+			} else {
+				assert.Nil(cm.validatingIssuer)
+			}
+		})
+	}
+}
+
+func TestHandleMRCStatusUpdate(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		signingIssuer            issuer
+		validatingIssuer         issuer
+		mrcEvent                 MRCEvent
+		expectedSigningIssuer    issuer
+		expectedValidatingIssuer issuer
+		expectedError            bool
+	}{
+		{
+			name:             "update to validatingRollout status",
+			signingIssuer:    issuer{Issuer: &fakeIssuer{}, ID: "oldmrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			validatingIssuer: issuer{Issuer: &fakeIssuer{}, ID: "oldmrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			mrcEvent: MRCEvent{
+				Type: MRCEventUpdated,
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "newmrc",
+						Namespace: "ns",
+					},
+					Spec: v1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "foo.bar.com",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateValidatingRollout,
+					},
+				},
+				OldMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "newmrc",
+						Namespace: "ns",
+					},
+					Spec: v1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "foo.bar.com",
+					},
+				},
+			},
+			expectedSigningIssuer:    issuer{Issuer: &fakeIssuer{}, ID: "oldmrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			expectedValidatingIssuer: issuer{Issuer: &fakeIssuer{}, ID: "newmrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			expectedError:            false,
+		},
+		{
+			name:             "update to issuingRollout status",
+			signingIssuer:    issuer{Issuer: &fakeIssuer{}, ID: "oldmrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			validatingIssuer: issuer{Issuer: &fakeIssuer{}, ID: "newmrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			mrcEvent: MRCEvent{
+				Type: MRCEventUpdated,
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "newmrc",
+						Namespace: "ns",
+					},
+					Spec: v1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "foo.bar.com",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateIssuingRollout,
+					},
+				},
+				OldMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "newmrc",
+						Namespace: "ns",
+					},
+					Spec: v1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "foo.bar.com",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateValidatingRollout,
+					},
+				},
+			},
+			expectedSigningIssuer:    issuer{Issuer: &fakeIssuer{}, ID: "newmrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			expectedValidatingIssuer: issuer{Issuer: &fakeIssuer{}, ID: "oldmrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			expectedError:            false,
+		},
+		{
+			name:             "update to active status",
+			signingIssuer:    issuer{Issuer: &fakeIssuer{}, ID: "newmrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			validatingIssuer: issuer{Issuer: &fakeIssuer{}, ID: "oldmrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			mrcEvent: MRCEvent{
+				Type: MRCEventUpdated,
+				NewMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "newmrc",
+						Namespace: "ns",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateActive,
+					},
+					Spec: v1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "foo.bar.com",
+					},
+				},
+				OldMRC: &v1alpha2.MeshRootCertificate{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "newmrc",
+						Namespace: "ns",
+					},
+					Status: v1alpha2.MeshRootCertificateStatus{
+						State: constants.MRCStateIssuingRollout,
+					},
+					Spec: v1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "foo.bar.com",
+					},
+				},
+			},
+			expectedSigningIssuer:    issuer{Issuer: &fakeIssuer{}, ID: "newmrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			expectedValidatingIssuer: issuer{Issuer: &fakeIssuer{}, ID: "newmrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			expectedError:            false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			cm := &Manager{signingIssuer: &tc.signingIssuer, validatingIssuer: &tc.validatingIssuer}
+
+			err := cm.handleMRCStatusUpdate(&fakeMRCClient{}, tc.mrcEvent)
+			if tc.expectedError {
+				assert.Error(err)
+			} else {
+				assert.NoError(err)
+			}
+
+			assert.Equal(&tc.expectedSigningIssuer, cm.signingIssuer)
+			assert.Equal(&tc.expectedValidatingIssuer, cm.validatingIssuer)
 		})
 	}
 }
