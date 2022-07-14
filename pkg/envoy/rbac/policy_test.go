@@ -16,6 +16,7 @@ func TestBuild(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		identities            []identity.ServiceIdentity
+		principals            []string
 		ports                 []uint16
 		applyPermissionsAsAND bool
 		trustDomain           string
@@ -140,6 +141,7 @@ func TestBuild(t *testing.T) {
 		{
 			name:       "testing rule for ANY principal when no ports specified",
 			identities: []identity.ServiceIdentity{identity.New("foo", "domain"), identity.WildcardServiceIdentity},
+			principals: []string{"foo.domain.cluster.local", "bar.domain.cluster.local"},
 			expectedPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
 					{
@@ -164,6 +166,25 @@ func TestBuild(t *testing.T) {
 				Permissions: []*xds_rbac.Permission{
 					{
 						Rule: &xds_rbac.Permission_Any{Any: true},
+					},
+				},
+			},
+		},
+		{
+			name:       "testing rule for pincipals with trust domain",
+			principals: []string{"bar.domain.example.com"},
+			expectedPolicy: &xds_rbac.Policy{
+				Principals: []*xds_rbac.Principal{
+					{
+						Identifier: &xds_rbac.Principal_Authenticated_{
+							Authenticated: &xds_rbac.Principal_Authenticated{
+								PrincipalName: &xds_matcher.StringMatcher{
+									MatchPattern: &xds_matcher.StringMatcher_Exact{
+										Exact: "bar.domain.example.com",
+									},
+								},
+							},
+						},
 					},
 				},
 			},

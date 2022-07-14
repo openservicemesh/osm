@@ -44,8 +44,8 @@ func testIngressBackend() {
 
 	It("allows ingress traffic", func() {
 		// Install OSM
-		installOpts := Td.GetOSMInstallOpts()
-		Expect(Td.InstallOSM(installOpts)).To(Succeed())
+		// installOpts := Td.GetOSMInstallOpts()
+		// Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 		Expect(Td.CreateNs(destNs, nil)).To(Succeed())
 		Expect(Td.AddNsToMesh(true, destNs)).To(Succeed())
@@ -118,7 +118,7 @@ func testIngressBackend() {
 				},
 			},
 		}
-		ing, err = Td.Client.NetworkingV1().Ingresses(destNs).Create(context.Background(), ing, metav1.CreateOptions{})
+		_, err = Td.Client.NetworkingV1().Ingresses(destNs).Create(context.Background(), ing, metav1.CreateOptions{})
 		Expect(err).NotTo(HaveOccurred())
 
 		// Requests should fail when no IngressBackend resource exists
@@ -195,7 +195,7 @@ func testIngressBackend() {
 
 		// Create a gateway cert.
 		meshConfig.Spec.Certificate.IngressGateway = &configv1alpha2.IngressGatewayCertSpec{
-			SubjectAltNames:  []string{fmt.Sprintf("%s.%s.cluster.local", "nginx", destNs)},
+			SubjectAltNames:  []string{"ingress-nginx.ingress-ns.cluster.local"},
 			ValidityDuration: "24h",
 			Secret: corev1.SecretReference{
 				Name:      secretName,
@@ -206,11 +206,14 @@ func testIngressBackend() {
 		_, err = Td.UpdateOSMConfig(meshConfig)
 		Expect(err).NotTo(HaveOccurred())
 
+		ing, err = Td.Client.NetworkingV1().Ingresses(destNs).Get(context.Background(), ing.Name, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+
 		// Update the ingress annotations
 		ing.ObjectMeta.Annotations = map[string]string{
 			"nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
 			// # proxy_ssl_name for a service is of the form <service-account>.<namespace>.cluster.local
-			"nginx.ingress.kubernetes.io/configuration-snippet": `proxy_ssl_name "httpbin.httpbin.cluster.local";`,
+			"nginx.ingress.kubernetes.io/configuration-snippet": fmt.Sprintf(`proxy_ssl_name "%s.%s.cluster.local";`, svcAccDef.Name, destNs),
 			"nginx.ingress.kubernetes.io/proxy-ssl-secret":      fmt.Sprintf("%s/%s", destNs, secretName),
 			"nginx.ingress.kubernetes.io/proxy-ssl-verify":      "on",
 		}
@@ -225,12 +228,11 @@ func testIngressBackend() {
 		// Update the ingress backend for TLS
 		ingressBackend.Spec.Backends[0].TLS = policyv1alpha1.TLSSpec{
 			SkipClientCertValidation: false,
-			SNIHosts:                 []string{fmt.Sprintf("%s.%s.cluster.local", "nginx", destNs)},
 		}
 		ingressBackend.Spec.Backends[0].Port.Protocol = "https"
 		ingressBackend.Spec.Sources = append(ingressBackend.Spec.Sources, policyv1alpha1.IngressSourceSpec{
 			Kind: "AuthenticatedPrincipal",
-			Name: fmt.Sprintf("%s.%s.cluster.local", "nginx", destNs),
+			Name: "ingress-nginx.ingress-ns.cluster.local",
 		})
 
 		_, err = Td.PolicyClient.PolicyV1alpha1().IngressBackends(ingressBackend.Namespace).Update(context.TODO(), ingressBackend, metav1.UpdateOptions{})

@@ -90,13 +90,11 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 				sourceIPRanges = append(sourceIPRanges, source.Name)
 
 			case policyV1alpha1.KindAuthenticatedPrincipal:
-				var sourceIdentity identity.ServiceIdentity
 				if backend.TLS.SkipClientCertValidation {
-					sourceIdentity = identity.WildcardServiceIdentity
+					sourceServiceIdentities.Add(identity.WildcardServiceIdentity)
 				} else {
-					sourceIdentity = identity.ServiceIdentity(source.Name)
+					sourceServiceIdentities.Add(source.Name)
 				}
-				sourceServiceIdentities.Add(sourceIdentity)
 			}
 		}
 

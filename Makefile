@@ -3,7 +3,7 @@
 TARGETS      := darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64
 BINNAME      ?= osm
 DIST_DIRS    := find * -type d -exec
-CTR_REGISTRY ?= localhost:5000
+CTR_REGISTRY ?= openservicemesh
 CTR_TAG      ?= latest
 VERIFY_TAGS  ?= false
 

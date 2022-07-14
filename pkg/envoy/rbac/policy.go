@@ -9,8 +9,12 @@ import (
 
 // PolicyBuilder is a utility for constructing *xds_rbac.Policy's
 type PolicyBuilder struct {
-	allowedPorts       []uint32
-	allowedIdentities  []identity.ServiceIdentity
+	allowedPorts []uint32
+	// A service identity is of the form <name>.<namespace>
+	// It does not contain the trust domain, which will get appended at build time.
+	allowedIdentities []identity.ServiceIdentity
+	// In contrast, a principal already has the trust domain appended, and will not receive it.
+	allowedPrincipals  []string
 	allowAllPrincipals bool
 
 	// All permissions are applied using OR semantics by default. If applyPermissionsAsAnd is set to true, then
@@ -28,6 +32,10 @@ func (p *PolicyBuilder) Build() *xds_rbac.Policy {
 	for _, svcIdentity := range p.allowedIdentities {
 		prinicipals = append(prinicipals, GetAuthenticatedPrincipal(svcIdentity.AsPrincipal(p.trustDomain)))
 	}
+	for _, principal := range p.allowedPrincipals {
+		prinicipals = append(prinicipals, GetAuthenticatedPrincipal(principal))
+	}
+
 	if len(prinicipals) == 0 {
 		// No principals specified for this policy, allow ANY
 		prinicipals = []*xds_rbac.Principal{getAnyPrincipal()}
@@ -77,9 +85,17 @@ func (p *PolicyBuilder) AddIdentity(svcIdentity identity.ServiceIdentity) {
 	}
 }
 
+// AddPrincipal adds a principal, which already has its own trust domain, to the list of allowed principals.
+func (p *PolicyBuilder) AddPrincipal(principal string) {
+	if !p.allowAllPrincipals {
+		p.allowedPrincipals = append(p.allowedPrincipals, principal)
+	}
+}
+
 // AllowAnyIdentity allows any principal to access the permissions.
 func (p *PolicyBuilder) AllowAnyIdentity() {
 	p.allowedIdentities = nil
+	p.allowedPrincipals = nil
 	p.allowAllPrincipals = true
 }
 
