@@ -59,7 +59,7 @@ The following table lists the configurable parameters of the osm chart and their
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| contour.contour | object | `{"image":{"registry":"docker.io","repository":"projectcontour/contour","tag":"v1.21.1"}}` | Contour controller configuration |
+| contour.contour | object | `{"image":{"registry":"ghcr.io","repository":"projectcontour/contour","tag":"v1.21.1"}}` | Contour controller configuration |
 | contour.enabled | bool | `false` | Enables deployment of Contour control plane and gateway |
 | contour.envoy | object | `{"image":{"registry":"docker.io","repository":"envoyproxy/envoy-distroless","tag":"v1.22.2"}}` | Contour envoy edge proxy configuration |
 | osm.caBundleSecretName | string | `"osm-ca-bundle"` | The Kubernetes secret name to store CA bundle for the root CA used in OSM |
