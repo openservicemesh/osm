@@ -12,7 +12,7 @@ KUBE_CONTEXT=$(kubectl config current-context)
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  --ignore-not-found
 
-echo -e "Deploy bookstore Service"
+echo -e "Deploy root bookstore Service"
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Service
@@ -53,14 +53,15 @@ metadata:
   name: $SVC
   namespace: $BOOKSTORE_NAMESPACE
   labels:
-    app: $SVC
+    app: bookstore
+    version: $VERSION
 spec:
   ports:
   - port: 14001
     name: bookstore-port
-
   selector:
-    app: $SVC
+    app: bookstore
+    version: $VERSION
 EOF
 
 echo -e "Deploy $SVC Deployment"
@@ -74,12 +75,12 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: $SVC
+      app: bookstore
       version: $VERSION
   template:
     metadata:
       labels:
-        app: $SVC
+        app: bookstore
         version: $VERSION
     spec:
       serviceAccountName: "$SVC"

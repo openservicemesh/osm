@@ -9,6 +9,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 	testclient "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/utils/pointer"
@@ -1121,5 +1122,174 @@ func monitoredNS(name string) *v1.Namespace {
 				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
 			},
 		},
+	}
+}
+
+func TestGetTargetPortForServicePort(t *testing.T) {
+	testCases := []struct {
+		name               string
+		svc                *corev1.Service
+		endpoints          *corev1.Endpoints
+		namespacedSvc      types.NamespacedName
+		port               uint16
+		expectedTargetPort uint16
+		expectErr          bool
+	}{
+		{
+			name: "TargetPort found",
+			svc: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "s1",
+					Namespace: "ns1",
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{{
+						Name: "p1",
+						Port: 80,
+					}},
+				},
+			},
+			endpoints: &corev1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "s1",
+					Namespace: "ns1",
+				},
+				Subsets: []corev1.EndpointSubset{
+					{
+						Ports: []corev1.EndpointPort{
+							{
+								Name: "p1",
+								Port: 8080,
+							},
+						},
+					},
+				},
+			},
+			namespacedSvc:      types.NamespacedName{Namespace: "ns1", Name: "s1"}, // matches svc
+			port:               80,                                                 // matches svc
+			expectedTargetPort: 8080,                                               // matches endpoint's 'p1' port
+			expectErr:          false,
+		},
+		{
+			name: "TargetPort not found as given service name does not exist",
+			svc: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "s1",
+					Namespace: "ns1",
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{{
+						Name: "p1",
+						Port: 80,
+					}},
+				},
+			},
+			endpoints: &corev1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "s1",
+					Namespace: "ns1",
+				},
+				Subsets: []corev1.EndpointSubset{
+					{
+						Ports: []corev1.EndpointPort{
+							{
+								Name: "p1",
+								Port: 8080,
+							},
+						},
+					},
+				},
+			},
+			namespacedSvc:      types.NamespacedName{Namespace: "ns1", Name: "invalid"}, // does not match svc
+			port:               80,                                                      // matches svc
+			expectedTargetPort: 0,                                                       // matches endpoint's 'p1' port
+			expectErr:          true,
+		},
+		{
+			name: "TargetPort not found as Endpoint does not exist",
+			svc: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "s1",
+					Namespace: "ns1",
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{{
+						Name: "p1",
+						Port: 80,
+					}},
+				},
+			},
+			endpoints: &corev1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "s1",
+					Namespace: "ns1",
+				},
+				Subsets: []corev1.EndpointSubset{
+					{
+						Ports: []corev1.EndpointPort{
+							{
+								Name: "invalid", // does not match svc port
+								Port: 8080,
+							},
+						},
+					},
+				},
+			},
+			namespacedSvc:      types.NamespacedName{Namespace: "ns1", Name: "s1"}, // matches svc
+			port:               80,                                                 // matches svc
+			expectedTargetPort: 0,                                                  // matches endpoint's 'p1' port
+			expectErr:          true,
+		},
+		{
+			name: "TargetPort not found as Endpoint matching given service does not exist",
+			svc: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "s1",
+					Namespace: "ns1",
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{{
+						Name: "p1",
+						Port: 80,
+					}},
+				},
+			},
+			endpoints: &corev1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "invalid", // does not match svc
+					Namespace: "ns1",
+				},
+				Subsets: []corev1.EndpointSubset{
+					{
+						Ports: []corev1.EndpointPort{
+							{
+								Name: "p1",
+								Port: 8080,
+							},
+						},
+					},
+				},
+			},
+			namespacedSvc:      types.NamespacedName{Namespace: "ns1", Name: "s1"}, // matches svc
+			port:               80,                                                 // matches svc
+			expectedTargetPort: 0,                                                  // matches endpoint's 'p1' port
+			expectErr:          true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+			a.Nil(err)
+			c := newClient(ic, nil, nil)
+			_ = ic.Add(informers.InformerKeyService, tc.svc, t)
+			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
+
+			actual, err := c.GetTargetPortForServicePort(tc.namespacedSvc, tc.port)
+			a.Equal(tc.expectedTargetPort, actual)
+			a.Equal(tc.expectErr, err != nil)
+		})
 	}
 }

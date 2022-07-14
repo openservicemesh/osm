@@ -16,7 +16,7 @@ import (
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-var _ = OSMDescribe("Test traffic split where root service is same as backend service",
+var _ = OSMDescribe("Traffic split where root service is same as backend service",
 	OSMDescribeInfo{
 		Tier:   1,
 		Bucket: 9,
@@ -51,6 +51,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 		clientServices = []string{}
 		serverServices = []string{trafficSplitName}
 		allNamespaces  = []string{}
+		serverAppName  = "test"
 	)
 
 	for i := 0; i < numberOfClientServices; i++ {
@@ -84,6 +85,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 				AppProtocol:        appProtocol,
 				Command:            HttpbinCmd,
 				OS:                 Td.ClusterOS,
+				Labels:             map[string]string{constants.AppLabel: serverAppName},
 			})
 		Expect(err).NotTo(HaveOccurred())
 

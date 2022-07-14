@@ -218,6 +218,7 @@ type SimplePodAppDef struct {
 	Ports              []int
 	AppProtocol        string
 	OS                 string
+	Labels             map[string]string
 }
 
 // SimplePodApp returns a set of k8s typed definitions for a pod-based k8s definition.
@@ -229,6 +230,10 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 
 	if len(def.PodName) == 0 {
 		return corev1.ServiceAccount{}, corev1.Pod{}, corev1.Service{}, errors.Errorf("PodName must be explicitly specified")
+	}
+
+	if def.Labels == nil {
+		def.Labels = map[string]string{constants.AppLabel: def.PodName}
 	}
 
 	serviceAccountName := def.ServiceAccountName
@@ -252,9 +257,7 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      def.PodName,
 			Namespace: def.Namespace,
-			Labels: map[string]string{
-				constants.AppLabel: def.PodName,
-			},
+			Labels:    def.Labels,
 		},
 		Spec: corev1.PodSpec{
 			TerminationGracePeriodSeconds: new(int64), // 0
@@ -305,15 +308,11 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 
 	serviceDefinition := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: serviceName,
-			Labels: map[string]string{
-				constants.AppLabel: def.PodName,
-			},
+			Name:   serviceName,
+			Labels: def.Labels,
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{
-				constants.AppLabel: def.PodName,
-			},
+			Selector: def.Labels,
 		},
 	}
 
@@ -415,6 +414,7 @@ type SimpleDeploymentAppDef struct {
 	Ports              []int
 	AppProtocol        string
 	OS                 string
+	Labels             map[string]string
 }
 
 // PodCommand describes a command for a pod
@@ -428,6 +428,10 @@ var PodCommandDefault = []string{}
 func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.ServiceAccount, appsv1.Deployment, corev1.Service, error) {
 	if len(def.OS) == 0 {
 		return corev1.ServiceAccount{}, appsv1.Deployment{}, corev1.Service{}, errors.Errorf("ClusterOS must be explicitly specified")
+	}
+
+	if def.Labels == nil {
+		def.Labels = map[string]string{constants.AppLabel: def.DeploymentName}
 	}
 
 	serviceAccountName := def.ServiceAccountName
@@ -462,15 +466,11 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicaCountExplicitDeclaration,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					constants.AppLabel: def.DeploymentName,
-				},
+				MatchLabels: def.Labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						constants.AppLabel: def.DeploymentName,
-					},
+					Labels: def.Labels,
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: new(int64), // 0
@@ -509,14 +509,10 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
 			Namespace: def.Namespace,
-			Labels: map[string]string{
-				constants.AppLabel: def.DeploymentName,
-			},
+			Labels:    def.Labels,
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{
-				constants.AppLabel: def.DeploymentName,
-			},
+			Selector: def.Labels,
 		},
 	}
 

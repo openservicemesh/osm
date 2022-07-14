@@ -12,18 +12,19 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+
+	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
-	"github.com/openservicemesh/osm/pkg/messaging"
-
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	osminformers "github.com/openservicemesh/osm/pkg/k8s/informers"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -426,4 +427,48 @@ func (c client) GetPodForProxy(proxy *envoy.Proxy) (*v1.Pod, error) {
 	}
 
 	return &pod, nil
+}
+
+// GetTargetPortForServicePort returns the TargetPort corresponding to the Port used by clients
+// to communicate with it.
+func (c client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, port uint16) (uint16, error) {
+	// Lookup the k8s service corresponding to the given service name.
+	// The k8s service is necessary to lookup the TargetPort from the Endpoint whose name
+	// matches the name of the port on the k8s Service object.
+	svcIf, exists, err := c.informers.GetByKey(osminformers.InformerKeyService, namespacedSvc.String())
+	if err != nil {
+		return 0, err
+	}
+	if !exists {
+		return 0, errors.Errorf("service %s not found in cache", namespacedSvc)
+	}
+
+	svc := svcIf.(*corev1.Service)
+	var portName string
+	for _, portSpec := range svc.Spec.Ports {
+		if uint16(portSpec.Port) == port {
+			portName = portSpec.Name
+			break
+		}
+	}
+
+	// Lookup the endpoint port (TargetPort) that matches the given service and 'portName'
+	ep, exists, err := c.informers.GetByKey(osminformers.InformerKeyEndpoints, namespacedSvc.String())
+	if err != nil {
+		return 0, err
+	}
+	if !exists {
+		return 0, errors.Errorf("endpoint for service %s not found in cache", namespacedSvc)
+	}
+	endpoint := ep.(*corev1.Endpoints)
+
+	for _, subset := range endpoint.Subsets {
+		for _, portSpec := range subset.Ports {
+			if portSpec.Name == portName {
+				return uint16(portSpec.Port), nil
+			}
+		}
+	}
+
+	return 0, errors.Errorf("error finding port name %s for endpoint %s", portName, namespacedSvc)
 }
