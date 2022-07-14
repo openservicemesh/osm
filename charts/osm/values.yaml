@@ -611,7 +611,7 @@ contour:
   # -- Contour controller configuration
   contour:
     image:
-      registry: docker.io
+      registry: ghcr.io
       repository: projectcontour/contour
       tag: v1.21.1
   # -- Contour envoy edge proxy configuration
