@@ -5,7 +5,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/pkg/errors"
+
 
 	"github.com/openservicemesh/osm/pkg/constants"
 )

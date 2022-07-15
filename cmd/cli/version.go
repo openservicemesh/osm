@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/pkg/errors"
+
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -157,7 +157,7 @@ func (r *remoteVersion) proxyGetMeshVersion(pod string, namespace string, client
 		return nil, errors.Wrapf(err, "Error retrieving mesh version from pod [%s] in namespace [%s]", pod, namespace)
 	}
 	if len(resp) == 0 {
-		return nil, errors.Errorf("Empty response received from pod [%s] in namespace [%s]", pod, namespace)
+		return nil, fmt.Errorf("Empty response received from pod [%s] in namespace [%s]", pod, namespace)
 	}
 
 	versionInfo := &version.Info{}

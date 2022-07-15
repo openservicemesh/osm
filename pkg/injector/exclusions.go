@@ -1,12 +1,12 @@
 package injector
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -48,7 +48,7 @@ func getPortExclusionListForPod(pod *corev1.Pod, namespace string, annotation st
 		portStr := strings.TrimSpace(portStr)
 		portVal, err := strconv.Atoi(portStr)
 		if err != nil || portVal <= 0 {
-			return nil, errors.Errorf("Invalid port value '%s' specified for annotation '%s'", portStr, annotation)
+			return nil, fmt.Errorf("Invalid port value '%s' specified for annotation '%s'", portStr, annotation)
 		}
 		ports = append(ports, portVal)
 	}
@@ -100,7 +100,7 @@ func getOutboundIPRangeListForPod(pod *corev1.Pod, namespace string, annotation 
 	for _, ip := range strings.Split(ipRangeExclusionsStr, ",") {
 		ip := strings.TrimSpace(ip)
 		if _, _, err := net.ParseCIDR(ip); err != nil {
-			return nil, errors.Errorf("Invalid IP range '%s' specified for annotation '%s'", ip, annotation)
+			return nil, fmt.Errorf("Invalid IP range '%s' specified for annotation '%s'", ip, annotation)
 		}
 		ipRanges = append(ipRanges, ip)
 	}

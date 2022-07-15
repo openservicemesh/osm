@@ -3,7 +3,7 @@ package utils
 import (
 	"encoding/json"
 
-	"github.com/pkg/errors"
+
 )
 
 // PrettyJSON Unmarshals and Marshall again with Indent so it is human readable

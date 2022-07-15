@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/pkg/errors"
+
 	"github.com/spf13/cobra"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"

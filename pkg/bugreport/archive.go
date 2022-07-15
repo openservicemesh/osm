@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/mholt/archiver/v3"
-	"github.com/pkg/errors"
+
 )
 
 func (c *Config) archive(sourcePath string, destinationPath string) error {

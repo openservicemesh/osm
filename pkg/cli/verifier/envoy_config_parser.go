@@ -1,8 +1,9 @@
 package verifier
 
 import (
+	"fmt"
+
 	adminv3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
-	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -81,7 +82,7 @@ func parseEnvoyConfig(jsonBytes []byte) (*Config, error) {
 		DiscardUnknown: true,
 	}
 	if err := unmarshal.Unmarshal(jsonBytes, &configDump); err != nil {
-		return nil, errors.Errorf("config parse error: %s", err)
+		return nil, fmt.Errorf("config parse error: %w", err)
 	}
 
 	var cfg Config
@@ -90,40 +91,40 @@ func parseEnvoyConfig(jsonBytes []byte) (*Config, error) {
 		switch config.TypeUrl {
 		case "type.googleapis.com/envoy.admin.v3.BootstrapConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.Boostrap); err != nil {
-				return nil, errors.Errorf("error parsing Bootstrap: %s", err)
+				return nil, fmt.Errorf("error parsing Bootstrap: %", err)
 			}
 
 		case "type.googleapis.com/envoy.admin.v3.ClustersConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.Clusters); err != nil {
-				return nil, errors.Errorf("error parsing Clusters: %s", err)
+				return nil, fmt.Errorf("error parsing Clusters: %", err)
 			}
 
 		case "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.Endpoints); err != nil {
-				return nil, errors.Errorf("error parsing Endpoints: %s", err)
+				return nil, fmt.Errorf("error parsing Endpoints: %", err)
 			}
 
 		case "type.googleapis.com/envoy.admin.v3.ListenersConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.Listeners); err != nil {
-				return nil, errors.Errorf("error parsing Listeners: %s", err)
+				return nil, fmt.Errorf("error parsing Listeners: %", err)
 			}
 
 		case "type.googleapis.com/envoy.admin.v3.RoutesConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.Routes); err != nil {
-				return nil, errors.Errorf("error parsing Listeners: %s", err)
+				return nil, fmt.Errorf("error parsing Listeners: %", err)
 			}
 		case "type.googleapis.com/envoy.admin.v3.ScopedRoutesConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.ScopedRoutesConfigDump); err != nil {
-				return nil, errors.Errorf("error parsing ScopedRoutesConfigDump: %s", err)
+				return nil, fmt.Errorf("error parsing ScopedRoutesConfigDump: %", err)
 			}
 
 		case "type.googleapis.com/envoy.admin.v3.SecretsConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.Secrets); err != nil {
-				return nil, errors.Errorf("error parsing SecretsConfigDump: %s", err)
+				return nil, fmt.Errorf("error parsing SecretsConfigDump: %", err)
 			}
 
 		default:
-			return nil, errors.Errorf("unrecognized TypeUrl %s", config.TypeUrl)
+			return nil, fmt.Errorf("unrecognized TypeUrl %s", config.TypeUrl)
 		}
 	}
 

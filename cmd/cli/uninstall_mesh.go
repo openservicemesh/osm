@@ -74,18 +74,30 @@ func newUninstallMeshCmd(config *action.Configuration, in io.Reader, out io.Writ
 			// get kubeconfig and initialize k8s client
 			kubeconfig, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
+<<<<<<< HEAD
 				return fmt.Errorf("Error fetching kubeconfig: %s", err)
+=======
+				return fmt.Errorf("Error fetching kubeconfig: %w", err)
+>>>>>>> bd9c435a (ref: wrapping Golang errors)
 			}
 			uninstall.config = kubeconfig
 
 			uninstall.clientSet, err = kubernetes.NewForConfig(kubeconfig)
 			if err != nil {
+<<<<<<< HEAD
 				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
+=======
+				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %w", err)
+>>>>>>> bd9c435a (ref: wrapping Golang errors)
 			}
 
 			uninstall.extensionsClientset, err = extensionsClientset.NewForConfig(kubeconfig)
 			if err != nil {
+<<<<<<< HEAD
 				return fmt.Errorf("Could not access extension client set: %s", err)
+=======
+				return fmt.Errorf("Could not access extension client set: %w", err)
+>>>>>>> bd9c435a (ref: wrapping Golang errors)
 			}
 
 			uninstall.meshNamespace = settings.Namespace()

@@ -1,10 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
 	corev1 "k8s.io/api/core/v1"
@@ -59,13 +59,13 @@ func newProxyGetCmd(config *action.Configuration, out io.Writer) *cobra.Command 
 			getCmd.pod = args[1]
 			conf, err := config.RESTClientGetter.ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return fmt.Errorf("Error fetching kubeconfig: %w", err)
 			}
 			getCmd.config = conf
 
 			clientset, err := kubernetes.NewForConfig(conf)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
+				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %w", err)
 			}
 			getCmd.clientSet = clientset
 			return getCmd.run()
@@ -92,7 +92,7 @@ func (cmd *proxyGetCmd) run() error {
 	if cmd.outFile != "" {
 		fd, err := os.Create(cmd.outFile)
 		if err != nil {
-			return errors.Errorf("Error opening file %s: %s", cmd.outFile, err)
+			return fmt.Errorf("Error opening file %s: %w", cmd.outFile, err)
 		}
 		//nolint: errcheck
 		//#nosec G307

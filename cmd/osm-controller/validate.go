@@ -1,7 +1,9 @@
 package main
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
+
+
 )
 
 // validateCLIParams contains all checks necessary that various permutations of the CLI flags are consistent
@@ -15,7 +17,7 @@ func validateCLIParams() error {
 	}
 
 	if validatorWebhookConfigName == "" {
-		return errors.Errorf("Please specify the webhook configuration name using --validator-webhook-config")
+		return fmt.Errorf("Please specify the webhook configuration name using --validator-webhook-config")
 	}
 
 	return nil

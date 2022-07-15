@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/pkg/errors"
+
 )
 
 const (
@@ -98,7 +98,7 @@ func checkPrereq() error {
 	requiredTools := []string{"osm", "kubectl"}
 	for _, tool := range requiredTools {
 		if !pathExists(tool) {
-			return errors.Errorf("Prerequisite not met: %s not found", tool)
+			return fmt.Errorf("Prerequisite not met: %s not found", tool)
 		}
 	}
 	return nil

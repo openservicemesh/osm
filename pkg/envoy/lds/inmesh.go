@@ -11,7 +11,7 @@ import (
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/pkg/errors"
+
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -285,7 +285,7 @@ func buildTCPLocalRateLimitFilter(config *policyv1alpha1.TCPLocalRateLimitSpec, 
 	case "hour":
 		fillInterval = time.Hour
 	default:
-		return nil, errors.Errorf("invalid unit %q for TCP connection rate limiting", config.Unit)
+		return nil, fmt.Errorf("invalid unit %q for TCP connection rate limiting", config.Unit)
 	}
 
 	rateLimit := &xds_local_ratelimit.LocalRateLimit{
@@ -355,7 +355,7 @@ func (lb *listenerBuilder) getOutboundFilterChainMatchForService(trafficMatch tr
 	}
 
 	if len(trafficMatch.DestinationIPRanges) == 0 {
-		return nil, errors.Errorf("Destination IP ranges not specified for mesh upstream traffic match %s", trafficMatch.Name)
+		return nil, fmt.Errorf("Destination IP ranges not specified for mesh upstream traffic match %s", trafficMatch.Name)
 	}
 	for _, ipRange := range trafficMatch.DestinationIPRanges {
 		cidr, err := envoy.GetCIDRRangeFromStr(ipRange)
@@ -420,7 +420,7 @@ func (lb *listenerBuilder) getOutboundTCPFilter(trafficMatch trafficpolicy.Traff
 	}
 
 	if len(trafficMatch.WeightedClusters) == 0 {
-		return nil, errors.Errorf("At least 1 cluster must be configured for an upstream TCP service. None set for traffic match %s", trafficMatch.Name)
+		return nil, fmt.Errorf("At least 1 cluster must be configured for an upstream TCP service. None set for traffic match %s", trafficMatch.Name)
 		// No weighted clusters implies a traffic split does not exist for this upstream, proxy it as is
 	} else if len(trafficMatch.WeightedClusters) == 1 {
 		tcpProxy.ClusterSpecifier = &xds_tcp_proxy.TcpProxy_Cluster{Cluster: trafficMatch.WeightedClusters[0].ClusterName.String()}

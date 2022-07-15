@@ -1,6 +1,6 @@
 package webhook
 
-import "github.com/pkg/errors"
+import
 
 var (
 	errEmptyAdmissionRequestBody = errors.New("empty request admission request body")

@@ -9,7 +9,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-	"github.com/pkg/errors"
+
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -77,7 +77,7 @@ func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Adm
 	}
 
 	if trafficTarget.Spec.Destination.Namespace != trafficTarget.Namespace {
-		return nil, errors.Errorf("The traffic target namespace (%s) must match spec.Destination.Namespace (%s)",
+		return nil, fmt.Errorf("The traffic target namespace (%s) must match spec.Destination.Namespace (%s)",
 			trafficTarget.Namespace, trafficTarget.Spec.Destination.Namespace)
 	}
 
@@ -102,7 +102,7 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 	conflictingIngressBackends := mapset.NewSet()
 	for _, backend := range ingressBackend.Spec.Backends {
 		if unique := backends.Add(setEntry{backend.Name, backend.Port.Number}); !unique {
-			return nil, errors.Errorf("Duplicate backends detected with service name: %s and port: %d", backend.Name, backend.Port.Number)
+			return nil, fmt.Errorf("Duplicate backends detected with service name: %s and port: %d", backend.Name, backend.Port.Number)
 		}
 
 		fakeMeshSvc := service.MeshService{
@@ -142,11 +142,11 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 			}
 
 			if backend.TLS.SkipClientCertValidation && !authenticatedSourceFound {
-				return nil, errors.Errorf("HTTPS ingress with client certificate validation enabled must specify at least one 'AuthenticatedPrincipal` source")
+				return nil, fmt.Errorf("HTTPS ingress with client certificate validation enabled must specify at least one 'AuthenticatedPrincipal` source")
 			}
 
 		default:
-			return nil, errors.Errorf("Expected 'port.protocol' to be 'http' or 'https', got: %s", backend.Port.Protocol)
+			return nil, fmt.Errorf("Expected 'port.protocol' to be 'http' or 'https', got: %s", backend.Port.Protocol)
 		}
 	}
 
@@ -160,24 +160,24 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 		// Add validation for source kinds here
 		case policyv1alpha1.KindService:
 			if source.Name == "" {
-				return nil, errors.Errorf("'source.name' not specified for source kind %s", policyv1alpha1.KindService)
+				return nil, fmt.Errorf("'source.name' not specified for source kind %s", policyv1alpha1.KindService)
 			}
 			if source.Namespace == "" {
-				return nil, errors.Errorf("'source.namespace' not specified for source kind %s", policyv1alpha1.KindService)
+				return nil, fmt.Errorf("'source.namespace' not specified for source kind %s", policyv1alpha1.KindService)
 			}
 
 		case policyv1alpha1.KindAuthenticatedPrincipal:
 			if source.Name == "" {
-				return nil, errors.Errorf("'source.name' not specified for source kind %s", policyv1alpha1.KindAuthenticatedPrincipal)
+				return nil, fmt.Errorf("'source.name' not specified for source kind %s", policyv1alpha1.KindAuthenticatedPrincipal)
 			}
 
 		case policyv1alpha1.KindIPRange:
 			if _, _, err := net.ParseCIDR(source.Name); err != nil {
-				return nil, errors.Errorf("Invalid 'source.name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got '%s'", source.Name)
+				return nil, fmt.Errorf("Invalid 'source.name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got '%s'", source.Name)
 			}
 
 		default:
-			return nil, errors.Errorf("Invalid 'source.kind' value specified. Must be one of: %s, %s, %s",
+			return nil, fmt.Errorf("Invalid 'source.kind' value specified. Must be one of: %s, %s, %s",
 				policyv1alpha1.KindService, policyv1alpha1.KindAuthenticatedPrincipal, policyv1alpha1.KindIPRange)
 		}
 	}
@@ -203,7 +203,7 @@ func egressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 				// no additional validation
 
 			default:
-				return nil, errors.Errorf("Expected 'matches.kind' for match '%s' to be 'HTTPRouteGroup', got: %s", m.Name, m.Kind)
+				return nil, fmt.Errorf("Expected 'matches.kind' for match '%s' to be 'HTTPRouteGroup', got: %s", m.Name, m.Kind)
 			}
 
 		case policyv1alpha1.SchemeGroupVersion.String():
@@ -212,11 +212,11 @@ func egressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 				upstreamTrafficSettingMatchCount++
 
 			default:
-				return nil, errors.Errorf("Expected 'matches.kind' for match '%s' to be 'UpstreamTrafficSetting', got: %s", m.Name, m.Kind)
+				return nil, fmt.Errorf("Expected 'matches.kind' for match '%s' to be 'UpstreamTrafficSetting', got: %s", m.Name, m.Kind)
 			}
 
 		default:
-			return nil, errors.Errorf("Expected 'matches.apiGroup' to be one of %v, got: %s", allowedAPIGroups, *m.APIGroup)
+			return nil, fmt.Errorf("Expected 'matches.apiGroup' to be one of %v, got: %s", allowedAPIGroups, *m.APIGroup)
 		}
 	}
 
@@ -244,21 +244,21 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 	opt := policy.UpstreamTrafficSettingGetOpt{Host: upstreamTrafficSetting.Spec.Host}
 	if matchingUpstreamTrafficSetting := kc.policyClient.GetUpstreamTrafficSetting(opt); matchingUpstreamTrafficSetting != nil && matchingUpstreamTrafficSetting.Name != upstreamTrafficSetting.Name {
 		// duplicate detected
-		return nil, errors.Errorf("UpstreamTrafficSetting %s/%s conflicts with %s/%s since they have the same host %s", ns, upstreamTrafficSetting.ObjectMeta.GetName(), ns, matchingUpstreamTrafficSetting.ObjectMeta.GetName(), matchingUpstreamTrafficSetting.Spec.Host)
+		return nil, fmt.Errorf("UpstreamTrafficSetting %s/%s conflicts with %s/%s since they have the same host %s", ns, upstreamTrafficSetting.ObjectMeta.GetName(), ns, matchingUpstreamTrafficSetting.ObjectMeta.GetName(), matchingUpstreamTrafficSetting.Spec.Host)
 	}
 
 	// Validate rate limiting config
 	rl := upstreamTrafficSetting.Spec.RateLimit
 	if rl != nil && rl.Local != nil && rl.Local.HTTP != nil {
 		if _, ok := xds_type.StatusCode_name[int32(rl.Local.HTTP.ResponseStatusCode)]; !ok {
-			return nil, errors.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+			return nil, fmt.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
 				rl.Local.HTTP.ResponseStatusCode)
 		}
 	}
 	for _, route := range upstreamTrafficSetting.Spec.HTTPRoutes {
 		if route.RateLimit != nil && route.RateLimit.Local != nil {
 			if _, ok := xds_type.StatusCode_name[int32(route.RateLimit.Local.ResponseStatusCode)]; !ok {
-				return nil, errors.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+				return nil, fmt.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
 					route.RateLimit.Local.ResponseStatusCode)
 			}
 		}

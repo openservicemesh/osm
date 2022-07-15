@@ -15,7 +15,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
+
 	tassert "github.com/stretchr/testify/assert"
 	trequire "github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"

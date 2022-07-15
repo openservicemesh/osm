@@ -1,6 +1,6 @@
 package injector
 
-import "github.com/pkg/errors"
+import
 
 var (
 	errNamespaceNotFound   = errors.New("namespace not found")

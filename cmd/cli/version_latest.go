@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/pkg/errors"
+
 	"k8s.io/apimachinery/pkg/util/version"
 )
 
@@ -34,7 +34,7 @@ func getLatestReleaseVersion() (string, error) {
 
 	latestVersion, ok := latestReleaseVersionInfo["tag_name"]
 	if !ok {
-		return "", errors.Errorf("tag_name key not found in latest release version information from %s", url)
+		return "", fmt.Errorf("tag_name key not found in latest release version information from %s", url)
 	}
 	return fmt.Sprint(latestVersion), nil
 }

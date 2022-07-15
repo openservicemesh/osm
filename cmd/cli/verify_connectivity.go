@@ -73,13 +73,13 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 		RunE: func(_ *cobra.Command, _ []string) error {
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return fmt.Errorf("Error fetching kubeconfig: %w", err)
 			}
 			verifyCmd.restConfig = config
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
+				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %w", err)
 			}
 			verifyCmd.kubeClient = clientset
 
@@ -95,7 +95,7 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 
 			srcName, err := k8s.NamespacedNameFrom(fromPod)
 			if err != nil {
-				return errors.Errorf("--from-pod must be a namespaced name of the form <namespace>/<name>, got %s", fromPod)
+				return fmt.Errorf("--from-pod must be a namespaced name of the form <namespace>/<name>, got %s", fromPod)
 			}
 			verifyCmd.trafficAttr.SrcPod = &srcName
 
@@ -109,7 +109,7 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 			if toPod != "" {
 				dstName, err := k8s.NamespacedNameFrom(toPod)
 				if err != nil {
-					return errors.Errorf("--to-pod must be a namespaced name of the form <namespace>/<name>, got %s", toPod)
+					return fmt.Errorf("--to-pod must be a namespaced name of the form <namespace>/<name>, got %s", toPod)
 				}
 				verifyCmd.trafficAttr.DstPod = &dstName
 

@@ -1,7 +1,7 @@
 package ingress
 
 import (
-	"github.com/pkg/errors"
+
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"

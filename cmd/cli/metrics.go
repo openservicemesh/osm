@@ -1,10 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"io"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 
@@ -37,11 +37,11 @@ func isMonitoredNamespace(ns corev1.Namespace, meshList mapset.Set) (bool, error
 		return false, nil
 	}
 	if meshName == "" {
-		return false, errors.Errorf("Label %q on namespace %q cannot be empty",
+		return false, fmt.Errorf("Label %q on namespace %q cannot be empty",
 			constants.OSMKubeResourceMonitorAnnotation, ns.Name)
 	}
 	if !meshList.Contains(meshName) {
-		return false, errors.Errorf("Invalid mesh name %q used with label %q on namespace %q, must be one of %v",
+		return false, fmt.Errorf("Invalid mesh name %q used with label %q on namespace %q, must be one of %v",
 			meshName, constants.OSMKubeResourceMonitorAnnotation, ns.Name, meshList.ToSlice())
 	}
 

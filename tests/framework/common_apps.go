@@ -9,9 +9,10 @@ import (
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	"github.com/pkg/errors"
 
 	goversion "github.com/hashicorp/go-version"
-	"github.com/pkg/errors"
+
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"helm.sh/helm/v3/pkg/action"
@@ -75,7 +76,7 @@ var (
 func (td *OsmTestData) CreateServiceAccount(ns string, svcAccount *corev1.ServiceAccount) (*corev1.ServiceAccount, error) {
 	svcAc, err := td.Client.CoreV1().ServiceAccounts(ns).Create(context.Background(), svcAccount, metav1.CreateOptions{})
 	if err != nil {
-		err := fmt.Errorf("Could not create Service Account: %v", err)
+		err := fmt.Errorf("Could not create Service Account: %w", err)
 		return nil, err
 	}
 	if Td.DeployOnOpenShift {
@@ -89,7 +90,7 @@ func (td *OsmTestData) CreateServiceAccount(ns string, svcAccount *corev1.Servic
 func (td *OsmTestData) createRole(ns string, role *rbacv1.Role) (*rbacv1.Role, error) {
 	r, err := td.Client.RbacV1().Roles(ns).Create(context.Background(), role, metav1.CreateOptions{})
 	if err != nil {
-		err := fmt.Errorf("Could not create Role: %v", err)
+		err := fmt.Errorf("Could not create Role: %w", err)
 		return nil, err
 	}
 
@@ -100,7 +101,7 @@ func (td *OsmTestData) createRole(ns string, role *rbacv1.Role) (*rbacv1.Role, e
 func (td *OsmTestData) createRoleBinding(ns string, roleBinding *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error) {
 	rb, err := td.Client.RbacV1().RoleBindings(ns).Create(context.Background(), roleBinding, metav1.CreateOptions{})
 	if err != nil {
-		err := fmt.Errorf("Could not create RoleBinding: %v", err)
+		err := fmt.Errorf("Could not create RoleBinding: %w", err)
 		return nil, err
 	}
 
@@ -125,12 +126,12 @@ func (td *OsmTestData) CreatePod(ns string, pod corev1.Pod) (*corev1.Pod, error)
 		}
 		podRet, err := td.Client.CoreV1().Pods(ns).Create(context.Background(), &pod, metav1.CreateOptions{})
 		if err != nil {
-			td.T.Logf("Could not create Pod in attempt %d due to error: %v", i, err)
+			td.T.Logf("Could not create Pod in attempt %d due to error: %w", i, err)
 			continue
 		}
 		return podRet, nil
 	}
-	return nil, errors.Errorf("Error creating pod in namespace %s after %d attempts", ns, maxRetries)
+	return nil, fmt.Errorf("Error creating pod in namespace %s after %d attempts", ns, maxRetries)
 }
 
 // CreateDeployment is a wrapper to create a deployment
@@ -149,14 +150,14 @@ func (td *OsmTestData) CreateDeployment(ns string, deployment appsv1.Deployment)
 		}
 		return deploymentRet, nil
 	}
-	return nil, errors.Errorf("Error creating Deployment in namespace %s after %d attempts", ns, maxRetries)
+	return nil, fmt.Errorf("Error creating Deployment in namespace %s after %d attempts", ns, maxRetries)
 }
 
 // CreateService is a wrapper to create a service
 func (td *OsmTestData) CreateService(ns string, svc corev1.Service) (*corev1.Service, error) {
 	sv, err := td.Client.CoreV1().Services(ns).Create(context.Background(), &svc, metav1.CreateOptions{})
 	if err != nil {
-		err := fmt.Errorf("Could not create Service: %v", err)
+		err := fmt.Errorf("Could not create Service: %w", err)
 		return nil, err
 	}
 	return sv, nil
@@ -166,7 +167,7 @@ func (td *OsmTestData) CreateService(ns string, svc corev1.Service) (*corev1.Ser
 func (td *OsmTestData) CreateMutatingWebhook(mwhc *admissionregv1.MutatingWebhookConfiguration) (*admissionregv1.MutatingWebhookConfiguration, error) {
 	mw, err := td.Client.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.Background(), mwhc, metav1.CreateOptions{})
 	if err != nil {
-		err := fmt.Errorf("Could not create MutatingWebhook: %v", err)
+		err := fmt.Errorf("Could not create MutatingWebhook: %w", err)
 		return nil, err
 	}
 	return mw, nil
@@ -176,7 +177,7 @@ func (td *OsmTestData) CreateMutatingWebhook(mwhc *admissionregv1.MutatingWebhoo
 func (td *OsmTestData) GetMutatingWebhook(mwhcName string) (*admissionregv1.MutatingWebhookConfiguration, error) {
 	mwhc, err := td.Client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), mwhcName, metav1.GetOptions{})
 	if err != nil {
-		err := fmt.Errorf("Could not get MutatingWebhook: %v", err)
+		err := fmt.Errorf("Could not get MutatingWebhook: %w", err)
 		return nil, err
 	}
 	return mwhc, nil
@@ -225,11 +226,11 @@ type SimplePodAppDef struct {
 // Includes Pod, Service and ServiceAccount types
 func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount, corev1.Pod, corev1.Service, error) {
 	if len(def.OS) == 0 {
-		return corev1.ServiceAccount{}, corev1.Pod{}, corev1.Service{}, errors.Errorf("ClusterOS must be explicitly specified")
+		return corev1.ServiceAccount{}, corev1.Pod{}, corev1.Service{}, fmt.Errorf("ClusterOS must be explicitly specified")
 	}
 
 	if len(def.PodName) == 0 {
-		return corev1.ServiceAccount{}, corev1.Pod{}, corev1.Service{}, errors.Errorf("PodName must be explicitly specified")
+		return corev1.ServiceAccount{}, corev1.Pod{}, corev1.Service{}, fmt.Errorf("PodName must be explicitly specified")
 	}
 
 	if def.Labels == nil {
@@ -389,12 +390,12 @@ func (td *OsmTestData) simpleRoleBinding(name string, namespace string) rbacv1.R
 func (td *OsmTestData) getKubernetesServerVersionNumber() ([]int, error) {
 	version, err := td.Client.Discovery().ServerVersion()
 	if err != nil {
-		return nil, errors.Errorf("Error getting K8s server version: %s", err)
+		return nil, fmt.Errorf("Error getting K8s server version: %w", err)
 	}
 
 	ver, err := goversion.NewVersion(version.String())
 	if err != nil {
-		return nil, errors.Errorf("Error parsing k8s server version %s: %s", version, err)
+		return nil, fmt.Errorf("Error parsing k8s server version %s: %w", version, err)
 	}
 
 	return ver.Segments(), nil
@@ -427,7 +428,7 @@ var PodCommandDefault = []string{}
 // Includes Deployment, Service and ServiceAccount types
 func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.ServiceAccount, appsv1.Deployment, corev1.Service, error) {
 	if len(def.OS) == 0 {
-		return corev1.ServiceAccount{}, appsv1.Deployment{}, corev1.Service{}, errors.Errorf("ClusterOS must be explicitly specified")
+		return corev1.ServiceAccount{}, appsv1.Deployment{}, corev1.Service{}, fmt.Errorf("ClusterOS must be explicitly specified")
 	}
 
 	if def.Labels == nil {
@@ -638,14 +639,14 @@ func (td *OsmTestData) GetGrafanaPodHandle(ns string, grafanaPodName string, por
 	}
 	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", port, port))
 	if err != nil {
-		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
+		return nil, fmt.Errorf("Error setting up port forwarding: %w", err)
 	}
 
 	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Errorf("Could not start forwarding: %s", err)
+		return nil, fmt.Errorf("Could not start forwarding: %w", err)
 	}
 
 	return &Grafana{
@@ -666,14 +667,14 @@ func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName strin
 	}
 	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", port, port))
 	if err != nil {
-		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
+		return nil, fmt.Errorf("Error setting up port forwarding: %w", err)
 	}
 
 	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Errorf("Could not start forwarding: %s", err)
+		return nil, fmt.Errorf("Could not start forwarding: %w", err)
 	}
 
 	client, err := api.NewClient(api.Config{
@@ -745,7 +746,7 @@ func (td *OsmTestData) GetOSMPrometheusHandle() (*Prometheus, error) {
 		},
 	})
 	if err != nil || len(prometheusPod) == 0 {
-		return nil, errors.Errorf("Error getting Prometheus pods: %v (prom pods len: %d)", err, len(prometheusPod))
+		return nil, fmt.Errorf("Error getting Prometheus pods: %w (prom pods len: %d)", err, len(prometheusPod))
 	}
 	pHandle, err := Td.GetPrometheusPodHandle(prometheusPod[0].Namespace, prometheusPod[0].Name, DefaultOsmPrometheusPort)
 	if err != nil {
@@ -764,7 +765,7 @@ func (td *OsmTestData) GetOSMGrafanaHandle() (*Grafana, error) {
 		},
 	})
 	if err != nil || len(grafanaPod) == 0 {
-		return nil, errors.Errorf("Error getting Grafana pods: %v (graf pods len: %d)", err, len(grafanaPod))
+		return nil, fmt.Errorf("Error getting Grafana pods: %w (graf pods len: %d)", err, len(grafanaPod))
 	}
 	gHandle, err := Td.GetGrafanaPodHandle(grafanaPod[0].Namespace, grafanaPod[0].Name, DefaultOsmGrafanaPort)
 	if err != nil {

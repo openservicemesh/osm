@@ -1,6 +1,6 @@
 package catalog
 
-import "github.com/pkg/errors"
+import
 
 var (
 	// errNoTrafficSpecFoundForTrafficPolicy is an error for when OSM cannot find a traffic spec for the given traffic policy.

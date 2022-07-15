@@ -89,7 +89,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGeneratingPrivateKey)).
 			Msgf("Error generating private key for certificate with CN=%s", cn)
-		return nil, fmt.Errorf("failed to generate private key for certificate with CN=%s: %s", cn, err)
+		return nil, fmt.Errorf("failed to generate private key for certificate with CN=%s: %w", cn, err)
 	}
 
 	privKeyPEM, err := certificate.EncodeKeyDERtoPEM(certPrivKey)
@@ -115,7 +115,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingCertReq)).
 			Msg("error creating certificate request")
-		return nil, fmt.Errorf("error creating x509 certificate request: %s", err)
+		return nil, fmt.Errorf("error creating x509 certificate request: %w", err)
 	}
 
 	csrPEM, err := certificate.EncodeCertReqDERtoPEM(csrDER)
@@ -123,7 +123,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEncodingCertDERtoPEM)).
 			Msg("error encoding cert request DER to PEM")
-		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %s", cn, err)
+		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %w", cn, err)
 	}
 
 	cr := &cmapi.CertificateRequest{

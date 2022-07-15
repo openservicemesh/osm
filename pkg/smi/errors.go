@@ -1,6 +1,6 @@
 package smi
 
-import "github.com/pkg/errors"
+import
 
 var (
 	errSMICrds = errors.New("missing SMI CRDs")

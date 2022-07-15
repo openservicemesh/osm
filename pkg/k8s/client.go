@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -226,7 +225,7 @@ func (c client) ListServiceIdentitiesForService(svc service.MeshService) ([]iden
 
 	k8sSvc := c.GetService(svc)
 	if k8sSvc == nil {
-		return nil, errors.Errorf("Error fetching service %q: %s", svc, errServiceNotFound)
+		return nil, fmt.Errorf("Error fetching service %q: %s", svc, errServiceNotFound)
 	}
 
 	svcAccountsSet := mapset.NewSet()
@@ -278,7 +277,7 @@ func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 		return c.policyClient.PolicyV1alpha1().UpstreamTrafficSettings(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
 
 	default:
-		return nil, errors.Errorf("Unsupported type: %T", t)
+		return nil, fmt.Errorf("Unsupported type: %T", t)
 	}
 }
 

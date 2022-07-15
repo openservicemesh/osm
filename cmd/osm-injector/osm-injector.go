@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/pkg/errors"
+
 	smiAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
@@ -303,11 +303,11 @@ func validateCLIParams() error {
 	}
 
 	if webhookConfigName == "" {
-		return errors.Errorf("Please specify the mutatingwebhookconfiguration name using --webhook-config-name value")
+		return fmt.Errorf("Please specify the mutatingwebhookconfiguration name using --webhook-config-name value")
 	}
 
 	if caBundleSecretName == "" {
-		return errors.Errorf("Please specify the CA bundle secret name using --ca-bundle-secret-name")
+		return fmt.Errorf("Please specify the CA bundle secret name using --ca-bundle-secret-name")
 	}
 
 	return nil

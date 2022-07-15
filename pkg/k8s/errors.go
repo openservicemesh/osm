@@ -1,6 +1,6 @@
 package k8s
 
-import "github.com/pkg/errors"
+import
 
 var (
 	errListingNamespaces = errors.New("Failed to list monitored namespaces")

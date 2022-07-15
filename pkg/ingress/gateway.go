@@ -2,10 +2,11 @@ package ingress
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
-	"github.com/pkg/errors"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,7 +52,7 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCer
 
 	// Validate the secret ref
 	if spec.Secret.Name == "" || spec.Secret.Namespace == "" {
-		return errors.Errorf("Ingress gateway cert secret's name and namespace cannot be nil, got %s/%s", spec.Secret.Namespace, spec.Secret.Name)
+		return fmt.Errorf("Ingress gateway cert secret's name and namespace cannot be nil, got %s/%s", spec.Secret.Namespace, spec.Secret.Name)
 	}
 
 	// Issue a certificate

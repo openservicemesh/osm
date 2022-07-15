@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/pkg/errors"
+
 	tassert "github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"

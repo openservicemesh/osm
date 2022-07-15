@@ -6,7 +6,7 @@ import (
 	"crypto/x509"
 	pemEnc "encoding/pem"
 
-	"github.com/pkg/errors"
+
 
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 )

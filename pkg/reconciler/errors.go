@@ -1,6 +1,6 @@
 package reconciler
 
-import "github.com/pkg/errors"
+import
 
 var (
 	errSyncingCaches = errors.New("Failed initial cache sync for reconciler informers")

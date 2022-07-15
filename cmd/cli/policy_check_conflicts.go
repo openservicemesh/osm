@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
+
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -76,7 +76,7 @@ func (cmd *policyCheckConflictsCmd) run() error {
 		err = cmd.checkIngressBackendConflict()
 
 	default:
-		return errors.Errorf("Invalid resource kind %s", cmd.resourceKind)
+		return fmt.Errorf("Invalid resource kind %s", cmd.resourceKind)
 	}
 
 	return err
@@ -85,7 +85,7 @@ func (cmd *policyCheckConflictsCmd) run() error {
 func (cmd *policyCheckConflictsCmd) checkIngressBackendConflict() error {
 	givenNsCount := len(cmd.namespaces)
 	if givenNsCount != 1 {
-		return errors.Errorf("Requires single namespace specified by '-n|--namespace' to check for conflicts, got %d", givenNsCount)
+		return fmt.Errorf("Requires single namespace specified by '-n|--namespace' to check for conflicts, got %d", givenNsCount)
 	}
 
 	ns := cmd.namespaces[0]

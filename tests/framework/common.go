@@ -20,13 +20,14 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
 	"github.com/docker/docker/client"
 	"github.com/fatih/color"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	certman "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
-	"github.com/pkg/errors"
+
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	helmcli "helm.sh/helm/v3/pkg/cli"
@@ -105,7 +106,7 @@ func verifyValidInstallType(t InstallType) error {
 	case SelfInstall, KindCluster, NoInstall:
 		return nil
 	default:
-		return errors.Errorf("%s is not a valid InstallType (%s, %s, %s) ",
+		return fmt.Errorf("%s is not a valid InstallType (%s, %s, %s) ",
 			t, SelfInstall, KindCluster, NoInstall)
 	}
 }
@@ -116,7 +117,7 @@ func verifyValidCollectLogs(t CollectLogsType) error {
 	case CollectLogs, CollectLogsIfErrorOnly, NoCollectLogs, ControlPlaneOnly:
 		return nil
 	default:
-		return errors.Errorf("%s is not a valid CollectLogsType (%s, %s, %s)",
+		return fmt.Errorf("%s is not a valid CollectLogsType (%s, %s, %s)",
 			t, CollectLogs, CollectLogsIfErrorOnly, NoCollectLogs)
 	}
 }
@@ -619,7 +620,7 @@ func (td *OsmTestData) RestartOSMController(instOpts InstallOSMOpts) error {
 
 	expectedReplicaCount := int(*(controllerDeployment.Spec.Replicas))
 	if len(controllerPods.Items) != expectedReplicaCount {
-		return errors.Errorf("expected %d osm-controller pod(s), got %d", expectedReplicaCount, len(controllerPods.Items))
+		return fmt.Errorf("expected %d osm-controller pod(s), got %d", expectedReplicaCount, len(controllerPods.Items))
 	}
 
 	pod := controllerPods.Items[0]
@@ -947,7 +948,7 @@ func (td *OsmTestData) UpdateOSMConfig(meshConfig *configv1alpha2.MeshConfig) (*
 
 	if err != nil {
 		td.T.Logf("UpdateOSMConfig(): %s", err)
-		return nil, fmt.Errorf("UpdateOSMConfig(): %s", err)
+		return nil, fmt.Errorf("UpdateOSMConfig(): %w", err)
 	}
 	return updated, nil
 }
@@ -1557,7 +1558,7 @@ func (td *OsmTestData) GrabLogs() error {
 // AddOpenShiftSCC adds the specified SecurityContextConstraint to the given service account
 func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) error {
 	if !td.DeployOnOpenShift {
-		return errors.Errorf("Tests are not configured for OpenShift. Try again with -deployOnOpenShift=true")
+		return fmt.Errorf("Tests are not configured for OpenShift. Try again with -deployOnOpenShift=true")
 	}
 
 	roleName := serviceAccount + "-scc"
@@ -1572,7 +1573,7 @@ func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) er
 
 	_, err := td.createRole(namespace, &roleDefinition)
 	if err != nil {
-		return errors.Errorf("Failed to create Role %s: %s", roleName, err)
+		return fmt.Errorf("Failed to create Role %s: %w", roleName, err)
 	}
 
 	roleBindingName := serviceAccount + "-scc"
@@ -1592,7 +1593,7 @@ func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) er
 
 	_, err = td.createRoleBinding(namespace, &roleBindingDefinition)
 	if err != nil {
-		return errors.Errorf("Failed to create RoleBinding %s: %s", roleBindingName, err)
+		return fmt.Errorf("Failed to create RoleBinding %s: %w", roleBindingName, err)
 	}
 
 	return nil

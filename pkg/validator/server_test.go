@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
+
 	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"

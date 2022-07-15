@@ -10,7 +10,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"github.com/pkg/errors"
+
 )
 
 // AddNsToMesh Adds monitored namespaces to the OSM mesh

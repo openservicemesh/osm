@@ -40,24 +40,24 @@ func getBookData(dest interface{}, port int, wg *sync.WaitGroup, errc chan<- err
 
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/raw", port))
 	if err != nil {
-		errc <- fmt.Errorf("error fetching data (port %d): %v", port, err)
+		errc <- fmt.Errorf("error fetching data (port %d): %w", port, err)
 		return
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			errc <- fmt.Errorf("error closing response (port %d): %v", port, err)
+			errc <- fmt.Errorf("error closing response (port %d): %w", port, err)
 		}
 	}()
 
 	output, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		errc <- fmt.Errorf("error reading data (port %d): %v", port, err)
+		errc <- fmt.Errorf("error reading data (port %d): %w", port, err)
 		return
 	}
 
 	err = json.Unmarshal(output, dest)
 	if err != nil {
-		errc <- fmt.Errorf("error unmarshalling data (port %d): %v", port, err)
+		errc <- fmt.Errorf("error unmarshalling data (port %d): %w", port, err)
 	}
 }
 

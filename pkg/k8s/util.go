@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	goversion "github.com/hashicorp/go-version"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -143,17 +142,17 @@ func GetSubdomainFromHostname(c Controller, host string) string {
 // GetKubernetesServerVersionNumber returns the Kubernetes server version number in chunks, ex. v1.19.3 => [1, 19, 3]
 func GetKubernetesServerVersionNumber(kubeClient kubernetes.Interface) ([]int, error) {
 	if kubeClient == nil {
-		return nil, errors.Errorf("Kubernetes client is not initialized")
+		return nil, fmt.Errorf("Kubernetes client is not initialized")
 	}
 
 	version, err := kubeClient.Discovery().ServerVersion()
 	if err != nil {
-		return nil, errors.Errorf("Error getting K8s server version: %s", err)
+		return nil, fmt.Errorf("Error getting K8s server version: %w", err)
 	}
 
 	ver, err := goversion.NewVersion(version.String())
 	if err != nil {
-		return nil, errors.Errorf("Error parsing k8s server version %s: %s", version, err)
+		return nil, fmt.Errorf("Error parsing k8s server version %s: %w", version, err)
 	}
 
 	return ver.Segments(), nil
@@ -165,7 +164,7 @@ func NamespacedNameFrom(name string) (types.NamespacedName, error) {
 
 	chunks := strings.Split(name, "/")
 	if len(chunks) != 2 {
-		return nsName, errors.Errorf("%s is not a namespaced name", name)
+		return nsName, fmt.Errorf("%s is not a namespaced name", name)
 	}
 
 	nsName.Namespace = chunks[0]

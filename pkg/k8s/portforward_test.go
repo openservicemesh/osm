@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
+
 	"k8s.io/apimachinery/pkg/util/httpstream"
 )
 
