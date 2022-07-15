@@ -8,10 +8,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/openservicemesh/osm/pkg/envoy"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -90,7 +91,7 @@ type Controller interface {
 	ListMonitoredNamespaces() ([]string, error)
 
 	// GetNamespace returns k8s namespace present in cache
-	GetNamespace(ns string) *corev1.Namespace
+	GetNamespace(string) *corev1.Namespace
 
 	// ListPods returns a list of pods part of the mesh
 	ListPods() []*corev1.Pod
@@ -106,5 +107,7 @@ type Controller interface {
 	UpdateStatus(interface{}) (metav1.Object, error)
 
 	// GetPodForProxy returns the pod for the given proxy
-	GetPodForProxy(proxy *envoy.Proxy) (*v1.Pod, error)
+	GetPodForProxy(*envoy.Proxy) (*v1.Pod, error)
+
+	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
 }
