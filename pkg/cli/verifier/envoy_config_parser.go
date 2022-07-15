@@ -91,36 +91,36 @@ func parseEnvoyConfig(jsonBytes []byte) (*Config, error) {
 		switch config.TypeUrl {
 		case "type.googleapis.com/envoy.admin.v3.BootstrapConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.Boostrap); err != nil {
-				return nil, fmt.Errorf("error parsing Bootstrap: %", err)
+				return nil, fmt.Errorf("error parsing Bootstrap: %w", err)
 			}
 
 		case "type.googleapis.com/envoy.admin.v3.ClustersConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.Clusters); err != nil {
-				return nil, fmt.Errorf("error parsing Clusters: %", err)
+				return nil, fmt.Errorf("error parsing Clusters: %w", err)
 			}
 
 		case "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.Endpoints); err != nil {
-				return nil, fmt.Errorf("error parsing Endpoints: %", err)
+				return nil, fmt.Errorf("error parsing Endpoints: %w", err)
 			}
 
 		case "type.googleapis.com/envoy.admin.v3.ListenersConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.Listeners); err != nil {
-				return nil, fmt.Errorf("error parsing Listeners: %", err)
+				return nil, fmt.Errorf("error parsing Listeners: %w", err)
 			}
 
 		case "type.googleapis.com/envoy.admin.v3.RoutesConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.Routes); err != nil {
-				return nil, fmt.Errorf("error parsing Listeners: %", err)
+				return nil, fmt.Errorf("error parsing Listeners: %w", err)
 			}
 		case "type.googleapis.com/envoy.admin.v3.ScopedRoutesConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.ScopedRoutesConfigDump); err != nil {
-				return nil, fmt.Errorf("error parsing ScopedRoutesConfigDump: %", err)
+				return nil, fmt.Errorf("error parsing ScopedRoutesConfigDump: %w", err)
 			}
 
 		case "type.googleapis.com/envoy.admin.v3.SecretsConfigDump":
 			if err := configDump.Configs[idx].UnmarshalTo(&cfg.Secrets); err != nil {
-				return nil, fmt.Errorf("error parsing SecretsConfigDump: %", err)
+				return nil, fmt.Errorf("error parsing SecretsConfigDump: %w", err)
 			}
 
 		default:

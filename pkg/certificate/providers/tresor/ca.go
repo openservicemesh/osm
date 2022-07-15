@@ -5,9 +5,8 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"fmt"
 	"time"
-
-
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
@@ -18,7 +17,7 @@ import (
 func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCountry, rootCertLocality, rootCertOrganization string) (*certificate.Certificate, error) {
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		return nil, errors.Wrap(err, errGeneratingSerialNumber.Error())
+		return nil, fmt.Errorf("%s: %w", errGeneratingSerialNumber.Error(), err)
 	}
 
 	now := time.Now()
@@ -51,7 +50,7 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingRootCert)).
 			Msgf("Error issuing x509.CreateCertificate command for SerialNumber=%s", serialNumber)
-		return nil, errors.Wrap(err, errCreateCert.Error())
+		return nil, fmt.Errorf("%s: %w", errCreateCert.Error(), err)
 	}
 
 	pemCert, err := certificate.EncodeCertDERtoPEM(derBytes)

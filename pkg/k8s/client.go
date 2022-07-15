@@ -439,7 +439,7 @@ func (c client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, 
 		return 0, err
 	}
 	if !exists {
-		return 0, errors.Errorf("service %s not found in cache", namespacedSvc)
+		return 0, fmt.Errorf("service %s not found in cache", namespacedSvc)
 	}
 
 	svc := svcIf.(*corev1.Service)
@@ -457,7 +457,7 @@ func (c client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, 
 		return 0, err
 	}
 	if !exists {
-		return 0, errors.Errorf("endpoint for service %s not found in cache", namespacedSvc)
+		return 0, fmt.Errorf("endpoint for service %s not found in cache", namespacedSvc)
 	}
 	endpoint := ep.(*corev1.Endpoints)
 
@@ -469,5 +469,5 @@ func (c client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, 
 		}
 	}
 
-	return 0, errors.Errorf("error finding port name %s for endpoint %s", portName, namespacedSvc)
+	return 0, fmt.Errorf("error finding port name %s for endpoint %s", portName, namespacedSvc)
 }

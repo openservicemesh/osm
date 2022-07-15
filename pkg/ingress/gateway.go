@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"time"
 
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,7 +27,7 @@ func (c *client) provisionIngressGatewayCert(stop <-chan struct{}) error {
 	if defaultCertSpec != nil {
 		// Issue a certificate for the default certificate spec
 		if err := c.createAndStoreGatewayCert(*defaultCertSpec); err != nil {
-			return errors.Wrap(err, "Error provisioning default ingress gateway cert")
+			return fmt.Errorf("Error provisioning default ingress gateway cert: %w", err)
 		}
 	}
 
@@ -42,12 +41,12 @@ func (c *client) provisionIngressGatewayCert(stop <-chan struct{}) error {
 // it in the referenced k8s secret if the spec is valid.
 func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCertSpec) error {
 	if len(spec.SubjectAltNames) == 0 {
-		return errors.New("Ingress gateway certificate spec must specify at least 1 SAN")
+		return fmt.Errorf("Ingress gateway certificate spec must specify at least 1 SAN")
 	}
 
 	// Validate the validity duration
 	if _, err := time.ParseDuration(spec.ValidityDuration); err != nil {
-		return errors.Wrapf(err, "Invalid cert duration '%s' specified", spec.ValidityDuration)
+		return fmt.Errorf("Invalid cert duration '%s' specified: %w", spec.ValidityDuration, err)
 	}
 
 	// Validate the secret ref
@@ -63,12 +62,12 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCer
 	c.certProvider.ReleaseCertificate(certCN)
 	issuedCert, err := c.certProvider.IssueCertificate(certCN, certificate.IngressGateway, certificate.FullCNProvided())
 	if err != nil {
-		return errors.Wrapf(err, "Error issuing a certificate for ingress gateway")
+		return fmt.Errorf("Error issuing a certificate for ingress gateway: %w", err)
 	}
 
 	// Store the certificate in the referenced secret
 	if err := c.storeCertInSecret(issuedCert, spec.Secret); err != nil {
-		return errors.Wrapf(err, "Error storing ingress gateway cert in secret %s/%s", spec.Secret.Namespace, spec.Secret.Name)
+		return fmt.Errorf("Error storing ingress gateway cert in secret %s/%s: %w", spec.Secret.Namespace, spec.Secret.Name, err)
 	}
 
 	return nil

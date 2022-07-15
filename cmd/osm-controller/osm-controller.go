@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-
 	smiAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
@@ -365,7 +364,7 @@ func joinURL(baseURL string, paths ...string) string {
 func getOSMControllerPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
 	podName := os.Getenv("CONTROLLER_POD_NAME")
 	if podName == "" {
-		return nil, errors.New("CONTROLLER_POD_NAME env variable cannot be empty")
+		return nil, fmt.Errorf("CONTROLLER_POD_NAME env variable cannot be empty")
 	}
 
 	pod, err := kubeClient.CoreV1().Pods(osmNamespace).Get(context.TODO(), podName, metav1.GetOptions{})

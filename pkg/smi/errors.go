@@ -1,7 +1,7 @@
 package smi
 
-import
+import "fmt"
 
 var (
-	errSMICrds = errors.New("missing SMI CRDs")
+	errSMICrds = fmt.Errorf("missing SMI CRDs")
 )

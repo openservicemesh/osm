@@ -1,6 +1,7 @@
 package cds
 
 import (
+	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -210,16 +211,16 @@ func getEgressClusters(clusterConfigs []*trafficpolicy.EgressClusterConfig) []*x
 // If the egress cluster config is invalid, an error is returned.
 func getDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*xds_cluster.Cluster, error) {
 	if config == nil {
-		return nil, errors.New("Invalid egress cluster config: nil type")
+		return nil, fmt.Errorf("Invalid egress cluster config: nil type")
 	}
 	if config.Name == "" {
-		return nil, errors.New("Invalid egress cluster config: Name unspecified")
+		return nil, fmt.Errorf("Invalid egress cluster config: Name unspecified")
 	}
 	if config.Host == "" {
-		return nil, errors.New("Invalid egress cluster config: Host unspecified")
+		return nil, fmt.Errorf("Invalid egress cluster config: Host unspecified")
 	}
 	if config.Port == 0 {
-		return nil, errors.New("Invalid egress cluster config: Port unspecified")
+		return nil, fmt.Errorf("Invalid egress cluster config: Port unspecified")
 	}
 
 	httpProtocolOptions := getDefaultHTTPProtocolOptions()

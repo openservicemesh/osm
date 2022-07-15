@@ -6,8 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-
-
 )
 
 const (
@@ -26,7 +24,7 @@ func (c *Config) Run() error {
 	// Create staging directory
 	stagingDir, err := ioutil.TempDir("", "osm_bug_report_")
 	if err != nil {
-		return errors.Wrap(err, "Error creating temp directory needed for creating bug report. Aborting")
+		return fmt.Errorf("Error creating temp directory needed for creating bug report. Aborting: %w", err)
 	}
 	c.stagingDir = stagingDir
 	fmt.Fprintf(c.Stdout, "[+] Created staging dir %s to generate bug report\n", stagingDir)
@@ -74,7 +72,7 @@ func (c *Config) Run() error {
 		outFd, err := ioutil.TempFile("", "*_osm-bug-report.tar.gz")
 		if err != nil {
 			c.completionFailure("Error creating temp file for bug report")
-			return errors.Wrap(err, "Error creating bug report")
+			return fmt.Errorf("Error creating bug report: %w", err)
 		}
 		c.OutFile = outFd.Name()
 	}
@@ -83,7 +81,7 @@ func (c *Config) Run() error {
 	fmt.Fprintf(c.Stdout, "[+] Collecting information from individual app namespaces\n")
 	if err := c.archive(stagingDir, c.OutFile); err != nil {
 		c.completionFailure("Error archiving bug report")
-		return errors.Wrap(err, "Error creating bug report")
+		return fmt.Errorf("Error creating bug report: %w", err)
 	}
 	// Remove staging dir
 	if err := os.RemoveAll(c.stagingDir); err != nil {
@@ -123,12 +121,12 @@ func (c *Config) completionFailure(format string, a ...interface{}) {
 
 func runCmdAndWriteToFile(cmdList []string, outFile string) error {
 	if len(cmdList) == 0 {
-		return errors.New("Atleast 1 command must be provided, none provided")
+		return fmt.Errorf("Atleast 1 command must be provided, none provided")
 	}
 
 	// Create parent directory if it doesn't exist
 	if err := os.MkdirAll(filepath.Dir(outFile), 0700); err != nil {
-		return errors.Wrapf(err, "Error creating parent directory for path: %s", outFile)
+		return fmt.Errorf("Error creating parent directory for path: %s: %w", outFile, err)
 	}
 
 	cmd := exec.Command(cmdList[0], cmdList[1:]...) //#nosec G204

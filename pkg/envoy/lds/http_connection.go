@@ -9,7 +9,6 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -102,7 +101,7 @@ func (options httpConnManagerOptions) build() (*xds_hcm.HttpConnectionManager, e
 	if options.enableTracing {
 		tracing, err := getHTTPTracingConfig(options.tracingAPIEndpoint)
 		if err != nil {
-			return nil, errors.Wrap(err, "Error getting tracing config for HTTP connection manager")
+			return nil, fmt.Errorf("Error getting tracing config for HTTP connection manager: %w", err)
 		}
 
 		connManager.GenerateRequestId = &wrappers.BoolValue{
@@ -115,7 +114,7 @@ func (options httpConnManagerOptions) build() (*xds_hcm.HttpConnectionManager, e
 	if options.wasmStatsHeaders != nil {
 		wasmFilters, wasmLocalReplyConfig, err := getWASMStatsConfig(options.wasmStatsHeaders)
 		if err != nil {
-			return nil, errors.Wrap(err, "Error getting WASM filters for HTTP connection manager")
+			return nil, fmt.Errorf("Error getting WASM filters for HTTP connection manager: %w", err)
 		}
 		connManager.HttpFilters = append(connManager.HttpFilters, wasmFilters...)
 		connManager.LocalReplyConfig = wasmLocalReplyConfig
@@ -124,7 +123,7 @@ func (options httpConnManagerOptions) build() (*xds_hcm.HttpConnectionManager, e
 	if options.enableActiveHealthChecks {
 		hc, err := getHealthCheckFilter()
 		if err != nil {
-			return nil, errors.Wrap(err, "Error getting health check filter for HTTP connection manager")
+			return nil, fmt.Errorf("Error getting health check filter for HTTP connection manager: %w", err)
 		}
 		connManager.HttpFilters = append(connManager.HttpFilters, hc)
 	}

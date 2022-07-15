@@ -1,8 +1,8 @@
 package reconciler
 
-import
+import "fmt"
 
 var (
-	errSyncingCaches = errors.New("Failed initial cache sync for reconciler informers")
-	errInitInformers = errors.New("Informer not initialized")
+	errSyncingCaches = fmt.Errorf("Failed initial cache sync for reconciler informers")
+	errInitInformers = fmt.Errorf("Informer not initialized")
 )

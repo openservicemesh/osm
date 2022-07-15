@@ -104,12 +104,12 @@ func (lb *listenerBuilder) getInboundHTTPFilters(trafficMatch *trafficpolicy.Tra
 		tracingAPIEndpoint: lb.cfg.GetTracingEndpoint(),
 	}.build()
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error building inbound HTTP connection manager for proxy with identity %s and traffic match %s", lb.serviceIdentity, trafficMatch.Name)
+		return nil, fmt.Errorf("Error building inbound HTTP connection manager for proxy with identity %s and traffic match %s: %w", lb.serviceIdentity, trafficMatch.Name, err)
 	}
 
 	marshalledInboundConnManager, err := anypb.New(inboundConnManager)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error marshalling inbound HTTP connection manager for proxy with identity %s and traffic match %s", lb.serviceIdentity, trafficMatch.Name)
+		return nil, fmt.Errorf("Error marshalling inbound HTTP connection manager for proxy with identity %s and traffic match %s: %w", lb.serviceIdentity, trafficMatch.Name, err)
 	}
 	httpConnectionManagerFilter := &xds_listener.Filter{
 		Name: envoy.HTTPConnectionManagerFilterName,
@@ -329,12 +329,12 @@ func (lb *listenerBuilder) getOutboundHTTPFilter(routeConfigName string) (*xds_l
 		tracingAPIEndpoint: lb.cfg.GetTracingEndpoint(),
 	}.build()
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error building outbound HTTP connection manager for proxy identity %s", lb.serviceIdentity)
+		return nil, fmt.Errorf("Error building outbound HTTP connection manager for proxy identity %s", lb.serviceIdentity)
 	}
 
 	marshalledFilter, err = anypb.New(outboundConnManager)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error marshalling outbound HTTP connection manager for proxy identity %s", lb.serviceIdentity)
+		return nil, fmt.Errorf("Error marshalling outbound HTTP connection manager for proxy identity %s", lb.serviceIdentity)
 	}
 
 	return &xds_listener.Filter{

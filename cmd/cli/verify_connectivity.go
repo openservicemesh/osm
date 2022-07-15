@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -100,10 +99,10 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 			verifyCmd.trafficAttr.SrcPod = &srcName
 
 			if toPod == "" && toExtPort == 0 {
-				return errors.New("one of --to-pod|--to-ext-port must be set")
+				return fmt.Errorf("one of --to-pod|--to-ext-port must be set")
 			}
 			if toPod != "" && toExtPort != 0 {
-				return errors.New("--to-pod cannot be set with --to-ext-port")
+				return fmt.Errorf("--to-pod cannot be set with --to-ext-port")
 			}
 
 			if toPod != "" {
@@ -114,7 +113,7 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 				verifyCmd.trafficAttr.DstPod = &dstName
 
 				if dstService == "" {
-					return errors.New("--to-service must be set with --to-pod")
+					return fmt.Errorf("--to-service must be set with --to-pod")
 				}
 				verifyCmd.trafficAttr.DstService = &types.NamespacedName{Namespace: dstName.Namespace, Name: dstService}
 			}
@@ -155,7 +154,7 @@ func (cmd *verifyConnectCmd) run() error {
 			cmd.kubeClient, cmd.meshConfig, cmd.trafficAttr, cmd.meshName)
 
 	default:
-		return errors.New("one of --to-pod|to-ext-port must be set")
+		return fmt.Errorf("one of --to-pod|to-ext-port must be set")
 	}
 
 	result := verify.Run()

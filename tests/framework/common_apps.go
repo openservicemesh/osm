@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
-	"github.com/pkg/errors"
 
 	goversion "github.com/hashicorp/go-version"
 
@@ -780,7 +779,7 @@ func (td *OsmTestData) InstallNginxIngress() (string, error) {
 	// Check the node's provider so this works for preprovisioned kind clusters
 	nodes, err := td.Client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		return "", errors.Wrap(err, "Error listing nodes to install nginx ingress")
+		return "", fmt.Errorf("Error listing nodes to install nginx ingress: %w", err)
 	}
 
 	providerID := nodes.Items[0].Spec.ProviderID
@@ -803,12 +802,12 @@ func (td *OsmTestData) InstallNginxIngress() (string, error) {
 	}
 
 	if err := td.CreateNs(NginxIngressSvc.Namespace, nil); err != nil {
-		return "", errors.Wrap(err, "Error creating namespace for nginx ingress")
+		return "", fmt.Errorf("Error creating namespace for nginx ingress: %w", err)
 	}
 
 	helmConfig := &action.Configuration{}
 	if err := helmConfig.Init(Td.Env.RESTClientGetter(), NginxIngressSvc.Namespace, "secret", Td.T.Logf); err != nil {
-		return "", errors.Wrap(err, "Error initializing Helm config for nginx ingress")
+		return "", fmt.Errorf("Error initializing Helm config for nginx ingress: %w", err)
 	}
 
 	helmConfig.KubeClient.(*kube.Client).Namespace = NginxIngressSvc.Namespace
@@ -823,23 +822,23 @@ func (td *OsmTestData) InstallNginxIngress() (string, error) {
 
 	chartPath, err := install.LocateChart("ingress-nginx", helmcli.New())
 	if err != nil {
-		return "", errors.Wrap(err, "Error locating ingress-nginx Helm chart")
+		return "", fmt.Errorf("Error locating ingress-nginx Helm chart: %w", err)
 	}
 
 	chart, err := loader.Load(chartPath)
 	if err != nil {
-		return "", errors.Wrapf(err, "Error loading ingress-nginx chart %s", chartPath)
+		return "", fmt.Errorf("Error loading ingress-nginx chart %s: %w", chartPath, err)
 	}
 
 	if _, err = install.Run(chart, vals); err != nil {
-		return "", errors.Wrap(err, "Error installing ingress-nginx")
+		return "", fmt.Errorf("Error installing ingress-nginx: %w", err)
 	}
 
 	ingressAddr := "localhost"
 	if !isKind {
 		svc, err := Td.Client.CoreV1().Services(NginxIngressSvc.Namespace).Get(context.Background(), NginxIngressSvc.Name, metav1.GetOptions{})
 		if err != nil {
-			return "", errors.Wrapf(err, "Error getting service: %s/%s", NginxIngressSvc.Namespace, NginxIngressSvc.Name)
+			return "", fmt.Errorf("Error getting service: %s/%s: %w", NginxIngressSvc.Namespace, NginxIngressSvc.Name, err)
 		}
 
 		ingressAddr = svc.Status.LoadBalancer.Ingress[0].IP

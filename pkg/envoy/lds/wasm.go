@@ -31,12 +31,12 @@ func (lb *listenerBuilder) getWASMStatsHeaders() map[string]string {
 func getWASMStatsConfig(statsHeaders map[string]string) ([]*xds_hcm.HttpFilter, *xds_hcm.LocalReplyConfig, error) {
 	statsFilter, err := getStatsWASMFilter()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "Error gettings WASM Stats filter")
+		return nil, nil, fmt.Errorf("Error gettings WASM Stats filter: %w", err)
 	}
 
 	headerFilter, err := getAddHeadersFilter(statsHeaders)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "Error getting WASM stats Header filter")
+		return nil, nil, fmt.Errorf("Error getting WASM stats Header filter: %w", err)
 	}
 
 	var filters []*xds_hcm.HttpFilter
@@ -95,7 +95,7 @@ func getAddHeadersFilter(headers map[string]string) (*xds_hcm.HttpFilter, error)
 
 	luaAny, err := anypb.New(lua)
 	if err != nil {
-		return nil, errors.Wrap(err, "error marshaling Lua filter")
+		return nil, fmt.Errorf("error marshaling Lua filter: %w", err)
 	}
 
 	return &xds_hcm.HttpFilter{
@@ -133,7 +133,7 @@ func getStatsWASMFilter() (*xds_hcm.HttpFilter, error) {
 
 	wasmAny, err := anypb.New(wasmPlug)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error marshalling Wasm config")
+		return nil, fmt.Errorf("Error marshalling Wasm config: %w", err)
 	}
 
 	return &xds_hcm.HttpFilter{

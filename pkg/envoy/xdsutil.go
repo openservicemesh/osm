@@ -1,6 +1,7 @@
 package envoy
 
 import (
+	"fmt"
 	"net"
 	"strings"
 
@@ -253,7 +254,7 @@ func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
 	chunks := strings.Split(serviceNodeID, constants.EnvoyServiceNodeSeparator)
 
 	if len(chunks) < 5 {
-		return nil, errors.New("invalid envoy service node id format")
+		return nil, fmt.Errorf("invalid envoy service node id format")
 	}
 
 	meta := &PodMetadata{

@@ -11,7 +11,6 @@ import (
 	"os"
 	"time"
 
-
 	smiAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
@@ -278,7 +277,7 @@ func parseFlags() error {
 func getInjectorPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
 	podName := os.Getenv("INJECTOR_POD_NAME")
 	if podName == "" {
-		return nil, errors.New("INJECTOR_POD_NAME env variable cannot be empty")
+		return nil, fmt.Errorf("INJECTOR_POD_NAME env variable cannot be empty")
 	}
 
 	pod, err := kubeClient.CoreV1().Pods(osmNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
@@ -295,11 +294,11 @@ func getInjectorPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
 // validateCLIParams contains all checks necessary that various permutations of the CLI flags are consistent
 func validateCLIParams() error {
 	if meshName == "" {
-		return errors.New("Please specify the mesh name using --mesh-name")
+		return fmt.Errorf("Please specify the mesh name using --mesh-name")
 	}
 
 	if osmNamespace == "" {
-		return errors.New("Please specify the OSM namespace using --osm-namespace")
+		return fmt.Errorf("Please specify the OSM namespace using --osm-namespace")
 	}
 
 	if webhookConfigName == "" {

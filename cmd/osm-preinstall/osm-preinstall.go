@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -77,7 +76,7 @@ func singleMeshOK(clientset kubernetes.Interface, enforceSingleMesh bool) func()
 			}).String(),
 		})
 		if err != nil {
-			return errors.Wrap(err, "listing OSM deployments")
+			return fmt.Errorf("listing OSM deployments: %w", err)
 		}
 
 		var existingMeshes []string
@@ -110,7 +109,7 @@ func namespaceHasNoMesh(clientset kubernetes.Interface, namespace string) func()
 			}).String(),
 		})
 		if err != nil {
-			return errors.Wrapf(err, "listing osm-controller deployments in namespace %s", namespace)
+			return fmt.Errorf("listing osm-controller deployments in namespace %s: %w", namespace, err)
 		}
 		var meshNames []string
 		for _, dep := range deps.Items {

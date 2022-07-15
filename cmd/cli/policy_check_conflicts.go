@@ -48,12 +48,12 @@ func newPolicyCheckConflicts(stdout io.Writer) *cobra.Command {
 
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Wrap(err, "Error fetching kubeconfig")
+				return fmt.Errorf("Error fetching kubeconfig: %w", err)
 			}
 
 			policyClient, err := policyClientset.NewForConfig(config)
 			if err != nil {
-				return errors.Wrapf(err, "Error initializing %s client", policyv1alpha1.SchemeGroupVersion)
+				return fmt.Errorf("Error initializing %s client: %w", policyv1alpha1.SchemeGroupVersion, err)
 			}
 			policyCheckConflictsCmd.policyClient = policyClient
 
@@ -92,7 +92,7 @@ func (cmd *policyCheckConflictsCmd) checkIngressBackendConflict() error {
 
 	ingressBackends, err := cmd.policyClient.PolicyV1alpha1().IngressBackends(ns).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		return errors.Wrapf(err, "Error listing IngressBackend resources in namespace %s", ns)
+		return fmt.Errorf("Error listing IngressBackend resources in namespace %s: %w", ns, err)
 	}
 
 	conflictsExist := false

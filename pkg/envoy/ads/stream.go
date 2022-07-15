@@ -10,7 +10,6 @@ import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/google/uuid"
 
-
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -30,7 +29,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	// and the Subject CN is in the allowedCommonNames set.
 	certCommonName, certSerialNumber, err := utils.ValidateClient(server.Context())
 	if err != nil {
-		return errors.Wrap(err, "Could not start Aggregated Discovery Service gRPC stream for newly connected Envoy proxy")
+		return fmt.Errorf("Could not start Aggregated Discovery Service gRPC stream for newly connected Envoy proxy: %w", err)
 	}
 
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Envoy connections is less than maxDataPlaneConnections

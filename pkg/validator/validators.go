@@ -222,7 +222,7 @@ func egressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 
 	// Can't have more than 1 UpstreamTrafficSetting match for an Egress policy
 	if upstreamTrafficSettingMatchCount > 1 {
-		return nil, errors.New("Cannot have more than 1 UpstreamTrafficSetting match")
+		return nil, fmt.Errorf("Cannot have more than 1 UpstreamTrafficSetting match")
 	}
 
 	return nil, nil
