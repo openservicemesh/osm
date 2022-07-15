@@ -189,7 +189,6 @@ func (d *uninstallMeshCmd) run() error {
 					}
 
 					_ = removeCmd.run()
-
 				}
 				fmt.Fprintf(d.out, "OSM [mesh name: %s] in namespace [%s] uninstalled\n", m.name, m.namespace)
 			}
