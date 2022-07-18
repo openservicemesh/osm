@@ -4,24 +4,27 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/openservicemesh/osm/pkg/auth"
-	"github.com/openservicemesh/osm/pkg/catalog"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -30,7 +33,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
+func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, *v1.Pod, error) {
 	podLabels := map[string]string{
 		constants.AppLabel:               tests.BookbuyerService.Name,
 		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
@@ -40,15 +43,15 @@ func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
 	newPod1.Annotations = map[string]string{
 		constants.PrometheusScrapeAnnotation: "true",
 	}
-	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &newPod1, metav1.CreateOptions{}); err != nil {
-		return nil, err
+	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), newPod1, metav1.CreateOptions{}); err != nil {
+		return nil, nil, err
 	}
 
 	selectors := map[string]string{
 		constants.AppLabel: tests.BookbuyerServiceName,
 	}
 	if _, err := tests.MakeService(kubeClient, tests.BookbuyerServiceName, selectors); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for _, svcName := range []string{tests.BookstoreApexServiceName, tests.BookstoreV1ServiceName, tests.BookstoreV2ServiceName} {
@@ -56,13 +59,11 @@ func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
 			constants.AppLabel: "bookstore",
 		}
 		if _, err := tests.MakeService(kubeClient, svcName, selectors); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace))
-	certSerialNumber := certificate.SerialNumber("123456")
-	return envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil), newPod1, nil
 }
 
 func TestNewResponse(t *testing.T) {
@@ -83,20 +84,25 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableWASMStats:        false,
-		EnableEgressPolicy:     true,
-		EnableMulticlusterMode: false,
+		EnableWASMStats:    false,
+		EnableEgressPolicy: true,
 	}).AnyTimes()
 
-	proxy, err := getProxy(kubeClient)
+	proxy, pod, err := getProxy(kubeClient)
 	assert.Empty(err)
 	assert.NotNil(proxy)
+	assert.NotNil(pod)
+
+	mockController := meshCatalog.GetKubeController().(*k8s.MockController)
+	mockController.EXPECT().GetPodForProxy(proxy).Return(pod, nil)
 
 	// test scenario that listing proxy services returns an error
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, fmt.Errorf("dummy error")
 	}), nil)
-	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+
+	cm := tresorFake.NewFake(nil, 1*time.Hour)
+	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
 	assert.NotNil(err)
 	assert.Nil(resources)
 
@@ -104,7 +110,7 @@ func TestNewResponse(t *testing.T) {
 		return []service.MeshService{tests.BookbuyerService}, nil
 	}), nil)
 
-	resources, err = NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+	resources, err = NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
 	assert.Empty(err)
 	assert.NotNil(resources)
 	// There are 3 listeners configured based on the configuration:
@@ -119,7 +125,7 @@ func TestNewResponse(t *testing.T) {
 	assert.Equal(listener.Name, OutboundListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_OUTBOUND)
 	assert.Len(listener.ListenerFilters, 3) // Test has egress policy feature enabled, so 3 filters are expected: OriginalDst, TlsInspector, HttpInspector
-	assert.Equal(listener.ListenerFilters[0].Name, wellknown.OriginalDestination)
+	assert.Equal(envoy.OriginalDstFilterName, listener.ListenerFilters[0].Name)
 	assert.NotNil(listener.FilterChains)
 	// There are 3 filter chains configured on the outbound-listener based on the configuration:
 	// 1. Filter chain for bookstore-v1
@@ -134,7 +140,7 @@ func TestNewResponse(t *testing.T) {
 	assert.Len(listener.FilterChains, 3)
 	assert.NotNil(listener.DefaultFilterChain)
 	assert.Equal(listener.DefaultFilterChain.Name, outboundEgressFilterChainName)
-	assert.Equal(listener.DefaultFilterChain.Filters[0].Name, wellknown.TCPProxy)
+	assert.Equal(listener.DefaultFilterChain.Filters[0].Name, envoy.TCPProxyFilterName)
 
 	// validating inbound listener
 	listener, ok = resources[1].(*xds_listener.Listener)
@@ -142,8 +148,8 @@ func TestNewResponse(t *testing.T) {
 	assert.Equal(listener.Name, InboundListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_INBOUND)
 	assert.Len(listener.ListenerFilters, 2)
-	assert.Equal(listener.ListenerFilters[0].Name, wellknown.TlsInspector)
-	assert.Equal(listener.ListenerFilters[1].Name, wellknown.OriginalDestination)
+	assert.Equal(listener.ListenerFilters[0].Name, envoy.TLSInspectorFilterName)
+	assert.Equal(listener.ListenerFilters[1].Name, envoy.OriginalDstFilterName)
 	assert.NotNil(listener.FilterChains)
 	// There is 1 filter chains configured on the inbound-listner based on the configuration:
 	// 1. Filter chanin for bookbuyer
@@ -156,47 +162,4 @@ func TestNewResponse(t *testing.T) {
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_INBOUND)
 	assert.NotNil(listener.FilterChains)
 	assert.Len(listener.FilterChains, 1)
-}
-
-func TestNewResponseForMulticlusterGateway(t *testing.T) {
-	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	ctrl := gomock.NewController(t)
-	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableMulticlusterMode: true,
-	}).AnyTimes()
-
-	cn := envoy.NewXDSCertCommonName(uuid.New(), envoy.KindGateway, "osm", "osm-system")
-	proxy, err := envoy.NewProxy(cn, "", nil)
-	assert.Nil(err)
-
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}), nil)
-
-	meshCatalog.EXPECT().ListOutboundServicesForMulticlusterGateway().Return([]service.MeshService{
-		tests.BookstoreV1Service,
-	}).AnyTimes()
-
-	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
-	assert.Empty(err)
-	assert.NotNil(resources)
-	// There is only one listeners configured for the gateway proxy:
-	// 1. Multicluster listener (multicluster-listener)
-	assert.Len(resources, 1)
-
-	// validating outbound listener
-	listener, ok := resources[0].(*xds_listener.Listener)
-	assert.True(ok)
-	assert.Equal(listener.Name, multiclusterListenerName)
-	assert.Len(listener.ListenerFilters, 1) // 1 filter is expected: TlsInspector
-	assert.Equal(listener.ListenerFilters[0].Name, wellknown.TlsInspector)
-	assert.NotNil(listener.FilterChains)
-	// There is one filter chains configured on the multicluster-listner based on the configuration:
-	// 1. Filter chain for bookstore-v1
-	assert.Len(listener.FilterChains, 1)
-	assert.Equal(listener.FilterChains[0].Name, fmt.Sprintf("%s-%s", multiclusterGatewayFilterChainName, tests.BookstoreV1ServiceName))
 }

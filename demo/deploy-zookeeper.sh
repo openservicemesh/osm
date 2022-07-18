@@ -24,7 +24,31 @@ if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
     fi
 fi
 
-kubectl apply -nzookeeper -f - <<EOF
+kubectl apply -f - <<EOF
+apiVersion: specs.smi-spec.io/v1alpha4
+kind: TCPRoute
+metadata:
+  name: zookeeper
+  namespace: zookeeper
+spec:
+  matches:
+    ports:
+    - 2181
+    - 3181
+---
+apiVersion: specs.smi-spec.io/v1alpha4
+kind: TCPRoute
+metadata:
+  name: zookeeper-internal
+  namespace: zookeeper
+spec:
+  matches:
+    ports:
+    - 2181
+    - 3181
+    - 2888
+    - 3888
+---
 kind: TrafficTarget
 apiVersion: access.smi-spec.io/v1alpha3
 metadata:
@@ -40,21 +64,25 @@ spec:
     name: zookeeper
   sources:
   - kind: ServiceAccount
-    name: zookeeper
-    namespace: zookeeper
+    name: kafka
+    namespace: kafka
 ---
-apiVersion: specs.smi-spec.io/v1alpha4
-kind: TCPRoute
+kind: TrafficTarget
+apiVersion: access.smi-spec.io/v1alpha3
 metadata:
-  name: zookeeper
+  name: zookeeper-internal
   namespace: zookeeper
 spec:
-  matches:
-    ports:
-    - 2181
-    - 3181
-    - 2888
-    - 3888
-
+  destination:
+    kind: ServiceAccount
+    name: zookeeper
+    namespace: zookeeper
+  rules:
+  - kind: TCPRoute
+    name: zookeeper-internal
+  sources:
+  - kind: ServiceAccount
+    name: zookeeper
+    namespace: zookeeper
 EOF
 

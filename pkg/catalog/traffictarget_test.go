@@ -501,13 +501,13 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentity("sa-2.ns-2"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{
-							Ports: []int{8000, 9000},
+							Ports: []uint16{8000, 9000},
 						},
 					},
 				},
@@ -588,18 +588,18 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentity("sa-2.ns-2"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{
 							// route-1
-							Ports: []int{8000},
+							Ports: []uint16{8000},
 						},
 						{
 							// route-2
-							Ports: []int{9000},
+							Ports: []uint16{9000},
 						},
 					},
 				},
@@ -736,35 +736,35 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentity("sa-2.ns-2"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{
 							// route-1
-							Ports: []int{1000},
+							Ports: []uint16{1000},
 						},
 						{
 							// route-2
-							Ports: []int{2000},
+							Ports: []uint16{2000},
 						},
 					},
 				},
 				{
 					Name:        "ns-1/test-2",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentity("sa-3.ns-3"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{
 							// route-3
-							Ports: []int{3000},
+							Ports: []uint16{3000},
 						},
 						{
 							// route-4
-							Ports: []int{4000},
+							Ports: []uint16{4000},
 						},
 					},
 				},
@@ -823,9 +823,9 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentity("sa-2.ns-2"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 						{

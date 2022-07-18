@@ -216,8 +216,8 @@ func TestOutputPrettyVersionInfo(t *testing.T) {
 		},
 		{
 			name:                  "mesh versions with no remote version info",
-			remoteVersionInfoList: nil,
-			expected:              "\nMESH NAME\tMESH NAMESPACE\tVERSION\tGIT COMMIT\tBUILD DATE\n",
+			remoteVersionInfoList: []*remoteVersionInfo{},
+			expected:              "Unable to find OSM control plane in the cluster\n",
 		},
 	}
 

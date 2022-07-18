@@ -12,6 +12,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/validator"
 )
 
@@ -204,6 +205,10 @@ func TestValidatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 		},
 	}
 
+	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ReconciliationTotal)
+	defer metricsstore.DefaultMetricsStore.Stop(metricsstore.DefaultMetricsStore.ReconciliationTotal)
+	expectedMetric := 0
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
@@ -234,6 +239,13 @@ func TestValidatingWebhookEventHandlerUpdateFunc(t *testing.T) {
 				a.Equal(vwhc, &tc.updatedVwhc)
 			} else {
 				a.Equal(vwhc, &tc.originalVwhc)
+			}
+
+			if tc.vwhcUpdated {
+				expectedMetric++
+			}
+			if expectedMetric > 0 {
+				a.True(metricsstore.DefaultMetricsStore.Contains(`osm_reconciliation_total{kind="ValidatingWebhookConfiguration"} ` + strconv.Itoa(expectedMetric) + "\n"))
 			}
 		})
 	}

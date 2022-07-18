@@ -9,7 +9,7 @@ import (
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -25,7 +25,6 @@ const (
 	// OutboundListenerName is the name of the listener used for outbound traffic
 	OutboundListenerName = "outbound-listener"
 
-	multiclusterListenerName      = "multicluster-listener"
 	prometheusListenerName        = "inbound-prometheus-listener"
 	outboundEgressFilterChainName = "outbound-egress-filter-chain"
 	egressTCPProxyStatPrefix      = "egress-tcp-proxy"
@@ -43,7 +42,12 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 			{
 				// The OriginalDestination ListenerFilter is used to redirect traffic
 				// to its original destination.
-				Name: wellknown.OriginalDestination,
+				Name: envoy.OriginalDstFilterName,
+				ConfigType: &xds_listener.ListenerFilter_TypedConfig{
+					TypedConfig: &any.Any{
+						TypeUrl: envoy.OriginalDstFilterTypeURL,
+					},
+				},
 			},
 		},
 		AccessLog: envoy.GetAccessLog(),
@@ -83,12 +87,22 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 			// The 'FilterDisabled' field configures the match predicate.
 			{
 				// To inspect TLS metadata, such as the transport protocol and SNI
-				Name:           wellknown.TlsInspector,
+				Name: envoy.TLSInspectorFilterName,
+				ConfigType: &xds_listener.ListenerFilter_TypedConfig{
+					TypedConfig: &any.Any{
+						TypeUrl: envoy.TLSInspectorFilterTypeURL,
+					},
+				},
 				FilterDisabled: filterDisableMatchPredicate,
 			},
 			{
 				// To inspect if the application protocol is HTTP based
-				Name:           wellknown.HttpInspector,
+				Name: envoy.HTTPInspectorFilterName,
+				ConfigType: &xds_listener.ListenerFilter_TypedConfig{
+					TypedConfig: &any.Any{
+						TypeUrl: envoy.HTTPInspectorFilterTypeURL,
+					},
+				},
 				FilterDisabled: filterDisableMatchPredicate,
 			},
 		}
@@ -118,13 +132,23 @@ func newInboundListener() *xds_listener.Listener {
 		FilterChains:     []*xds_listener.FilterChain{},
 		ListenerFilters: []*xds_listener.ListenerFilter{
 			{
-				Name: wellknown.TlsInspector,
+				Name: envoy.TLSInspectorFilterName,
+				ConfigType: &xds_listener.ListenerFilter_TypedConfig{
+					TypedConfig: &any.Any{
+						TypeUrl: envoy.TLSInspectorFilterTypeURL,
+					},
+				},
 			},
 			{
 				// The OriginalDestination ListenerFilter is used to restore the original destination address
 				// as opposed to the listener's address upon iptables redirection.
 				// This enables inbound filter chain matching on the original destination address (ip, port).
-				Name: wellknown.OriginalDestination,
+				Name: envoy.OriginalDstFilterName,
+				ConfigType: &xds_listener.ListenerFilter_TypedConfig{
+					TypedConfig: &any.Any{
+						TypeUrl: envoy.OriginalDstFilterTypeURL,
+					},
+				},
 			},
 		},
 		AccessLog: envoy.GetAccessLog(),
@@ -147,7 +171,7 @@ func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_l
 			{
 				Filters: []*xds_listener.Filter{
 					{
-						Name: wellknown.HTTPConnectionManager,
+						Name: envoy.HTTPConnectionManagerFilterName,
 						ConfigType: &xds_listener.Filter_TypedConfig{
 							TypedConfig: marshalledConnManager,
 						},
@@ -176,7 +200,7 @@ func getDefaultPassthroughFilterChain() (*xds_listener.FilterChain, error) {
 		Name: outboundEgressFilterChainName,
 		Filters: []*xds_listener.Filter{
 			{
-				Name:       wellknown.TCPProxy,
+				Name:       envoy.TCPProxyFilterName,
 				ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledTCPProxy},
 			},
 		},

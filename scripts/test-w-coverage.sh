@@ -5,7 +5,6 @@ set -aueo pipefail
 modules=$(go list ./... | \
             grep -v tests/framework | \
             grep -v tests/e2e | \
-            grep -v tests/scenarios | \
             grep -v tests/scale | \
             grep -v ci/ | \
             grep -v demo/ | \

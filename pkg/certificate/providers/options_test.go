@@ -91,7 +91,19 @@ func TestValidateVaultOptions(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			testName: "Empty token",
+			testName: "Empty token, valid token secret",
+			options: VaultOptions{
+				VaultProtocol:        "https",
+				VaultHost:            "vault-host",
+				VaultToken:           "",
+				VaultRole:            "vault-role",
+				VaultTokenSecretName: "secret",
+				VaultTokenSecretKey:  "key",
+			},
+			expectErr: false,
+		},
+		{
+			testName: "Empty token, empty token secret",
 			options: VaultOptions{
 				VaultProtocol: "https",
 				VaultHost:     "vault-host",
@@ -101,12 +113,14 @@ func TestValidateVaultOptions(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			testName: "Empty role",
+			testName: "Empty token secret key",
 			options: VaultOptions{
-				VaultProtocol: "http",
-				VaultHost:     "vault-host",
-				VaultToken:    "vault-token",
-				VaultRole:     "",
+				VaultProtocol:        "https",
+				VaultHost:            "vault-host",
+				VaultToken:           "",
+				VaultRole:            "vault-role",
+				VaultTokenSecretName: "secret",
+				VaultTokenSecretKey:  "",
 			},
 			expectErr: true,
 		},

@@ -731,7 +731,7 @@
        "category": "envoy.filters.network"
       },
       {
-       "name": "envoy.filters.network.http_connection_manager",
+       "name": "http_connection_manager",
        "category": "envoy.filters.network"
       },
       {
@@ -1271,7 +1271,7 @@
          },
          "filters": [
           {
-           "name": "envoy.filters.network.http_connection_manager",
+           "name": "http_connection_manager",
            "typed_config": {
             "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
             "stat_prefix": "mesh-http-conn-manager.rds-outbound.14001",
@@ -1312,7 +1312,10 @@
               }
              },
              {
-              "name": "envoy.filters.http.router"
+              "name": "http_router",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+              }
              }
             ],
             "access_log": [
@@ -1397,7 +1400,7 @@
          },
          "filters": [
           {
-           "name": "envoy.filters.network.http_connection_manager",
+           "name": "http_connection_manager",
            "typed_config": {
             "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
             "stat_prefix": "mesh-http-conn-manager.rds-egress.80",
@@ -1438,7 +1441,10 @@
               }
              },
              {
-              "name": "envoy.filters.http.router"
+              "name": "http_router",
+              "typed_config": {
+               "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+              }
              }
             ],
             "access_log": [
@@ -1521,7 +1527,7 @@
          },
          "filters": [
           {
-           "name": "envoy.filters.network.tcp_proxy",
+           "name": "tcp_proxy",
            "typed_config": {
             "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
             "stat_prefix": "egress-tcp-proxy.443",

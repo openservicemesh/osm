@@ -88,9 +88,6 @@ func TestUnmarshalMeshService(t *testing.T) {
 		Name:      serviceName,
 	}
 
-	str := meshService.String()
-	fmt.Println(str)
-
 	testCases := []struct {
 		name        string
 		expectedErr bool
@@ -171,8 +168,6 @@ func TestUnmarshalK8sServiceAccount(t *testing.T) {
 		Namespace: namespace,
 		Name:      serviceName,
 	}
-	str := svcAccount.String()
-	fmt.Println(str)
 
 	testCases := []struct {
 		name        string
@@ -251,11 +246,11 @@ func TestGetSecretNameForIdentity(t *testing.T) {
 		expected string
 	}{
 		{
-			si:       identity.ServiceIdentity("foo.bar.cluster.local"),
+			si:       identity.ServiceIdentity("foo.bar"),
 			expected: "bar/foo",
 		},
 		{
-			si:       identity.ServiceIdentity("foo.baz.cluster.local"),
+			si:       identity.ServiceIdentity("foo.baz"),
 			expected: "baz/foo",
 		},
 	}

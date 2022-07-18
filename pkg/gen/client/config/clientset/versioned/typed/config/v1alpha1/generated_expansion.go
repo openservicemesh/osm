@@ -16,5 +16,3 @@ limitations under the License.
 package v1alpha1
 
 type MeshConfigExpansion interface{}
-
-type MultiClusterServiceExpansion interface{}

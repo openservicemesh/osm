@@ -14,19 +14,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 )
 
-func TestShouldRotate(t *testing.T) {
-	assert := tassert.New(t)
-	cert := &Certificate{
-		Expiration: time.Now().Add(-1 * time.Hour),
-	}
-	assert.True(cert.ShouldRotate())
-
-	cert = &Certificate{
-		Expiration: time.Now().Add(time.Hour),
-	}
-	assert.False(cert.ShouldRotate())
-}
-
 func TestNewFromPEM(t *testing.T) {
 	assert := tassert.New(t)
 	cn := CommonName("Test CA")

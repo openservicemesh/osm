@@ -22,10 +22,11 @@ jobs:
           method: kubeconfig
           kubeconfig: ${{ secrets.CI_WINDOWS_KUBECONFIG }}
         id: setcontext
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version-file: go.mod
+          cache: true
       - name: Run e2es
         run: |
           make build-osm

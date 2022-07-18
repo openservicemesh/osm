@@ -4,13 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -36,9 +32,7 @@ type KubeProxyServiceMapper struct {
 
 // ListProxyServices maps an Envoy instance to a number of Kubernetes services.
 func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.MeshService, error) {
-	cn := p.GetCertificateCommonName()
-
-	pod, err := envoy.GetPodFromCertificate(cn, k.KubeController)
+	pod, err := k.KubeController.GetPodForProxy(p)
 	if err != nil {
 		return nil, err
 	}
@@ -97,17 +91,4 @@ func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []service.Me
 	meshServices := kubernetesServicesToMeshServices(kubeController, serviceList, pod.GetName())
 
 	return meshServices
-}
-
-func getCertCommonNameForPod(pod v1.Pod) (certificate.CommonName, error) {
-	proxyUIDStr, exists := pod.Labels[constants.EnvoyUniqueIDLabelName]
-	if !exists {
-		return "", errors.Errorf("no %s label", constants.EnvoyUniqueIDLabelName)
-	}
-	proxyUID, err := uuid.Parse(proxyUIDStr)
-	if err != nil {
-		return "", errors.Wrapf(err, "invalid UID value for %s label", constants.EnvoyUniqueIDLabelName)
-	}
-	cn := envoy.NewXDSCertCommonName(proxyUID, envoy.KindSidecar, pod.Spec.ServiceAccountName, pod.Namespace)
-	return cn, nil
 }

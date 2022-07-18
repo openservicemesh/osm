@@ -232,6 +232,12 @@
                         },
                         "autoScale": {
                             "$ref": "#/definitions/autoScale"
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     },
                     "additionalProperties": false
@@ -411,7 +417,7 @@
                     "title": "The sidecarImage schema",
                     "description": "The proxy side car image to run.",
                     "examples": [
-                        "envoyproxy/envoy-alpine:v1.19.3@sha256:874e699857e023d9234b10ffc5af39ccfc9011feab89638e56ac4042ecd4b0f3"
+                        "envoyproxy/envoy-distroless:v1.22.2@sha256:541d31419b95e3c62d8cc0967db9cdb4ad2782cc08faa6f15f04c081200e324a"
                     ]
                 },
                 "curlImage": {
@@ -429,7 +435,17 @@
                     "title": "The sidecarWindowsImage schema",
                     "description": "The proxy side car image to run on Windows payloads.",
                     "examples": [
-                        "envoyproxy/envoy-windows:v1.19.3@sha256:f990f024e7e95f07b6c0d416684734607761e382c35d1ba9414c7e3fbf23969c"
+                        "envoyproxy/envoy-windows:v1.22.1@sha256:92733f8e5beae5c45df204a0e13edbd29e99adf962d1b1c7869b197d85c64bd0"
+                    ]
+                },
+                "trustDomain": {
+                    "$id": "#/properties/osm/properties/trustDomain",
+                    "type": "string",
+                    "title": "The certificate issuance Trust Domain",
+                    "description": "The trust domain to use as part of the common name when requesting new certificates.",
+                    "examples": [
+                        "cluster.local",
+                        "example.com"
                     ]
                 },
                 "certificateProvider": {
@@ -706,7 +722,10 @@
                     "type": "string",
                     "title": "The localProxyMode schema",
                     "description": "Proxy mode for the Envoy proxy sidecar. Acceptable values are ['Localhost', 'PodIP'].",
-                    "enum": ["Localhost","PodIP"],
+                    "enum": [
+                        "Localhost",
+                        "PodIP"
+                    ],
                     "examples": [
                         "Localhost"
                     ]
@@ -803,6 +822,15 @@
                             "examples": [
                                 "jaegertracing/all-in-one"
                             ]
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     },
                     "additionalProperties": false
@@ -883,6 +911,15 @@
                             "examples": [
                                 20
                             ]
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     },
                     "additionalProperties": false
@@ -915,30 +952,18 @@
                             "title": "The podLabels schema",
                             "description": "Labels for the OSM bootstrap pod.",
                             "default": {}
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     },
                     "additionalProperties": false
-                },
-                "multicluster": {
-                    "$id": "#/properties/osm/properties/multicluster",
-                    "type": "object",
-                    "title": "Multicluster",
-                    "description": "Configuration for multicluster features",
-                    "required": [
-                        "gatewayLogLevel"
-                    ],
-                    "properties": {
-                        "gatewayLogLevel": {
-                            "$id": "#/properties/osm/properties/multicluster/properties/gatewayLogLevel",
-                            "type": "string",
-                            "title": "the gatewayLogLevel port",
-                            "description": "Log level for the multicluster gateway",
-                            "pattern": "^(trace|debug|info|warning|warn|error|critical|off)$",
-                            "examples": [
-                                "error"
-                            ]
-                        }
-                    }
                 },
                 "featureFlags": {
                     "$id": "#/properties/osm/properties/featureFlags",
@@ -954,12 +979,12 @@
                     "required": [
                         "enableWASMStats",
                         "enableEgressPolicy",
-                        "enableMulticlusterMode",
                         "enableAsyncProxyServiceMapping",
                         "enableIngressBackendPolicy",
                         "enableEnvoyActiveHealthChecks",
                         "enableSnapshotCacheMode",
-                        "enableRetryPolicy"
+                        "enableRetryPolicy",
+                        "enableMeshRootCertificate"
                     ],
                     "properties": {
                         "enableWASMStats": {
@@ -976,15 +1001,6 @@
                             "type": "boolean",
                             "title": "Enable OSM's Egress policy",
                             "description": "Enable OSM's Egress policy for fine grained control over egress (external) traffic",
-                            "examples": [
-                                true
-                            ]
-                        },
-                        "enableMulticlusterMode": {
-                            "$id": "#/properties/osm/properties/featureFlags/properties/enableMulticluster",
-                            "type": "boolean",
-                            "title": "Enable Multicluster mode",
-                            "description": "Enable multicluster mode in OSM",
                             "examples": [
                                 true
                             ]
@@ -1032,6 +1048,15 @@
                             "description": "Enable automatic request retries.",
                             "examples": [
                                 true
+                            ]
+                        },
+                        "enableMeshRootCertificate": {
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enableMeshRootCertificate",
+                            "type": "boolean",
+                            "title": "Enable the MeshRootCertificate",
+                            "description": "Enable the MeshRootCertificate to configure the OSM certificate provider.",
+                            "examples": [
+                                false
                             ]
                         }
                     },
@@ -1195,6 +1220,15 @@
                             "examples": [
                                 "grafana/grafana-image-renderer:3.2.1"
                             ]
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     },
                     "examples": [
@@ -1378,6 +1412,15 @@
                             "examples": [
                                 "prom/prometheus:v2.18.1"
                             ]
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     },
                     "additionalProperties": false
@@ -1409,6 +1452,44 @@
                             "title": "Validator webhook configuration schema",
                             "description": "Validator's ValidatingWebhookConfigurationName",
                             "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "preinstall": {
+                    "$id": "#/properties/osm/properties/preinstall",
+                    "type": "object",
+                    "title": "The preinstall schema",
+                    "description": "Preinstall configurations",
+                    "required": [],
+                    "properties": {
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "cleanup": {
+                    "$id": "#/properties/osm/properties/preinstall",
+                    "type": "object",
+                    "title": "The preinstall schema",
+                    "description": "Preinstall configurations",
+                    "required": [],
+                    "properties": {
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
                         }
                     },
                     "additionalProperties": false

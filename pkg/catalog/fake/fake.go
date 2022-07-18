@@ -2,6 +2,7 @@ package fake
 
 import (
 	"context"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/onsi/ginkgo"
@@ -10,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
@@ -27,15 +29,9 @@ import (
 
 // NewFakeMeshCatalog creates a new struct implementing catalog.MeshCataloger interface used for testing.
 func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient configClientset.Interface) *catalog.MeshCatalog {
-	var (
-		mockCtrl             *gomock.Controller
-		mockKubeController   *k8s.MockController
-		mockPolicyController *policy.MockController
-	)
-
-	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
-	mockKubeController = k8s.NewMockController(mockCtrl)
-	mockPolicyController = policy.NewMockController(mockCtrl)
+	mockCtrl := gomock.NewController(ginkgo.GinkgoT())
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockPolicyController := policy.NewMockController(mockCtrl)
 
 	meshSpec := smiFake.NewFakeMeshSpecClient()
 
@@ -52,11 +48,14 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 
 	osmNamespace := "-test-osm-namespace-"
 	osmMeshConfigName := "-test-osm-mesh-config-"
-	cfg, err := configurator.NewConfigurator(meshConfigClient, stop, osmNamespace, osmMeshConfigName, nil)
+	ic, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kubeClient), informers.WithConfigClient(meshConfigClient, osmMeshConfigName, osmNamespace))
 	if err != nil {
 		return nil
 	}
-	certManager := tresorFake.NewFake(nil)
+
+	cfg := configurator.NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
+
+	certManager := tresorFake.NewFake(nil, 1*time.Hour)
 
 	// #1683 tracks potential improvements to the following dynamic mocks
 	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
@@ -112,6 +111,8 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 	mockKubeController.EXPECT().ListServiceIdentitiesForService(tests.BookstoreV1Service).Return([]identity.K8sServiceAccount{tests.BookstoreServiceAccount}, nil).AnyTimes()
 	mockKubeController.EXPECT().ListServiceIdentitiesForService(tests.BookstoreV2Service).Return([]identity.K8sServiceAccount{tests.BookstoreV2ServiceAccount}, nil).AnyTimes()
 	mockKubeController.EXPECT().ListServiceIdentitiesForService(tests.BookbuyerService).Return([]identity.K8sServiceAccount{tests.BookbuyerServiceAccount}, nil).AnyTimes()
+	mockKubeController.EXPECT().GetTargetPortForServicePort(
+		gomock.Any(), gomock.Any()).Return(uint16(tests.ServicePort), nil).AnyTimes()
 
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 	mockPolicyController.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()

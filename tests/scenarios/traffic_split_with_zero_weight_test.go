@@ -1,8 +1,8 @@
 package scenarios
 
 import (
-	"fmt"
 	"testing"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -20,7 +20,7 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/certificate"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -253,7 +253,9 @@ func TestRDSRespose(t *testing.T) {
 			mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 
-			resources, err := rds.NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+			cm := tresorFake.NewFake(nil, 1*time.Hour)
+
+			resources, err := rds.NewResponse(mockCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
 			assert.Nil(err)
 			assert.NotNil(resources)
 
@@ -359,7 +361,5 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 		}
 	}
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookstoreServiceIdentity, tests.Namespace))
-	certSerialNumber := certificate.SerialNumber("123456")
-	return envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookstoreServiceIdentity, nil), nil
 }

@@ -9,14 +9,10 @@ SVC="bookstore-$VERSION"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
 KUBE_CONTEXT=$(kubectl config current-context)
-ENABLE_MULTICLUSTER="${ENABLE_MULTICLUSTER:-false}"
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  --ignore-not-found
 
-# Create a top level service just for the bookstore domain
-# This will not be needed for multicluster yet, as we haven't integrated with traffic split
-if [ "$ENABLE_MULTICLUSTER" != true ] ; then
-echo -e "Deploy bookstore Service"
+echo -e "Deploy root bookstore Service"
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Service
@@ -32,7 +28,6 @@ spec:
   selector:
     app: bookstore
 EOF
-fi
 
 echo -e "Deploy $SVC Service Account"
 kubectl apply -f - <<EOF
@@ -58,14 +53,15 @@ metadata:
   name: $SVC
   namespace: $BOOKSTORE_NAMESPACE
   labels:
-    app: $SVC
+    app: bookstore
+    version: $VERSION
 spec:
   ports:
   - port: 14001
     name: bookstore-port
-
   selector:
-    app: $SVC
+    app: bookstore
+    version: $VERSION
 EOF
 
 echo -e "Deploy $SVC Deployment"
@@ -79,18 +75,15 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: $SVC
+      app: bookstore
       version: $VERSION
   template:
     metadata:
       labels:
-        app: $SVC
+        app: bookstore
         version: $VERSION
     spec:
       serviceAccountName: "$SVC"
-      nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
       containers:
         - image: "${CTR_REGISTRY}/bookstore:${CTR_TAG}"
           imagePullPolicy: Always

@@ -25,9 +25,6 @@ type Job interface {
 	// JobName returns the name of the job.
 	JobName() string
 
-	// Hash returns a uint64 hash for a job.
-	Hash() uint64
-
 	// Run executes the job.
 	Run()
 

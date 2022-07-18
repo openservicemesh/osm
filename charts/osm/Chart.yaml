@@ -21,10 +21,10 @@ version: 1.1.1
 appVersion: latest-main
 
 # This specifies the minimum Kubernetes version OSM is compatible with.
-kubeVersion: ">= 1.20.0-0"
+kubeVersion: ">= 1.22.9-0"
 
 dependencies:
 - name: contour
-  version: 5.1.0
+  version: 8.0.4
   repository: https://charts.bitnami.com/bitnami
   condition: contour.enabled

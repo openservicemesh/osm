@@ -282,8 +282,6 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		announcements.RetryPolicyAdded, announcements.RetryPolicyDeleted, announcements.RetryPolicyUpdated,
 		// UpstreamTrafficSetting event
 		announcements.UpstreamTrafficSettingAdded, announcements.UpstreamTrafficSettingDeleted, announcements.UpstreamTrafficSettingUpdated,
-		// MulticlusterService event
-		announcements.MultiClusterServiceAdded, announcements.MultiClusterServiceDeleted, announcements.MultiClusterServiceUpdated,
 		//
 		// SMI resource events
 		//

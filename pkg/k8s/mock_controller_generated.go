@@ -8,10 +8,12 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
 	v1 "k8s.io/api/core/v1"
 	v10 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
 )
 
 // MockController is a mock of Controller interface.
@@ -66,6 +68,21 @@ func (mr *MockControllerMockRecorder) GetNamespace(arg0 interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespace", reflect.TypeOf((*MockController)(nil).GetNamespace), arg0)
 }
 
+// GetPodForProxy mocks base method.
+func (m *MockController) GetPodForProxy(arg0 *envoy.Proxy) (*v1.Pod, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPodForProxy", arg0)
+	ret0, _ := ret[0].(*v1.Pod)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPodForProxy indicates an expected call of GetPodForProxy.
+func (mr *MockControllerMockRecorder) GetPodForProxy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPodForProxy", reflect.TypeOf((*MockController)(nil).GetPodForProxy), arg0)
+}
+
 // GetService mocks base method.
 func (m *MockController) GetService(arg0 service.MeshService) *v1.Service {
 	m.ctrl.T.Helper()
@@ -78,6 +95,21 @@ func (m *MockController) GetService(arg0 service.MeshService) *v1.Service {
 func (mr *MockControllerMockRecorder) GetService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetService", reflect.TypeOf((*MockController)(nil).GetService), arg0)
+}
+
+// GetTargetPortForServicePort mocks base method.
+func (m *MockController) GetTargetPortForServicePort(arg0 types.NamespacedName, arg1 uint16) (uint16, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTargetPortForServicePort", arg0, arg1)
+	ret0, _ := ret[0].(uint16)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTargetPortForServicePort indicates an expected call of GetTargetPortForServicePort.
+func (mr *MockControllerMockRecorder) GetTargetPortForServicePort(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortForServicePort", reflect.TypeOf((*MockController)(nil).GetTargetPortForServicePort), arg0, arg1)
 }
 
 // IsMonitoredNamespace mocks base method.

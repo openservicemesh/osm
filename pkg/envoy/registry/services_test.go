@@ -16,9 +16,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -45,7 +45,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
 					constants.AppLabel:               tests.SelectorValue})
 			Expect(pod.Spec.ServiceAccountName).To(Equal(tests.BookstoreServiceAccountName))
-			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&pod}).Times(1)
+			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{pod}).Times(1)
 
 			// Create the SERVICE
 			svcName := uuid.New().String()
@@ -112,10 +112,8 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 				},
 			}, nil).Times(1)
 
-			certCommonName := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, tests.BookstoreServiceAccountName, tests.Namespace)
-			certSerialNumber := certificate.SerialNumber("123456")
-			proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
-			Expect(err).ToNot(HaveOccurred())
+			proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, tests.Namespace), nil)
+			mockKubeController.EXPECT().GetPodForProxy(proxy).Return(pod, nil).Times(1)
 			meshServices, err := proxyRegistry.ListProxyServices(proxy)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -133,7 +131,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
 			newPod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
 
-			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&newPod}).Times(1)
+			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{newPod}).Times(1)
 
 			// Create the SERVICE
 			svcName := uuid.New().String()
@@ -141,10 +139,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			svc := tests.NewServiceFixture(svcName, namespace, selector)
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{svc}).Times(1)
 
-			podCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, envoy.KindSidecar, tests.BookstoreServiceAccountName, namespace))
-			certSerialNumber := certificate.SerialNumber("123456")
-			newProxy, err := envoy.NewProxy(podCN, certSerialNumber, nil)
-			Expect(err).ToNot(HaveOccurred())
+			newProxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, namespace), nil)
 
 			expected := service.MeshService{
 				Namespace: namespace,
@@ -155,6 +150,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			expectedList := []service.MeshService{expected}
 			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(nil, nil)
 
+			mockKubeController.EXPECT().GetPodForProxy(newProxy).Return(newPod, nil).Times(1)
 			// Subdomain gets called in the ListProxyServices
 			meshServices, err := proxyRegistry.ListProxyServices(newProxy)
 			Expect(err).ToNot(HaveOccurred())
@@ -225,7 +221,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 					},
 				},
 			}, nil).Times(1)
-			actualSvcs := listServicesForPod(&pod, mockKubeController)
+			actualSvcs := listServicesForPod(pod, mockKubeController)
 			Expect(len(actualSvcs)).To(Equal(2))
 
 			actualNames := []string{actualSvcs[0].Name, actualSvcs[1].Name}
@@ -244,7 +240,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{service})
 			pod := tests.NewPodFixture(namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
-			actualSvcs := listServicesForPod(&pod, mockKubeController)
+			actualSvcs := listServicesForPod(pod, mockKubeController)
 			Expect(len(actualSvcs)).To(Equal(0))
 		})
 
@@ -267,7 +263,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{service})
 			pod := tests.NewPodFixture(namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
-			actualSvcs := listServicesForPod(&pod, mockKubeController)
+			actualSvcs := listServicesForPod(pod, mockKubeController)
 			Expect(len(actualSvcs)).To(Equal(0))
 		})
 	})
@@ -297,72 +293,6 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 		})
 	})
 })
-
-func TestGetCertCommonNameForPod(t *testing.T) {
-	tests := []struct {
-		name      string
-		pod       v1.Pod
-		shouldErr bool
-	}{
-		{
-			name: "valid CN",
-			pod: v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns",
-					Labels: map[string]string{
-						constants.EnvoyUniqueIDLabelName: uuid.New().String(),
-					},
-				},
-				Spec: v1.PodSpec{
-					ServiceAccountName: "svcacc",
-				},
-			},
-			shouldErr: false,
-		},
-		{
-			name: "invalid UID",
-			pod: v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns",
-					Labels: map[string]string{
-						constants.EnvoyUniqueIDLabelName: uuid.New().String() + "-not-valid",
-					},
-				},
-				Spec: v1.PodSpec{
-					ServiceAccountName: "svcacc",
-				},
-			},
-			shouldErr: true,
-		},
-		{
-			name: "no UID",
-			pod: v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns",
-					Labels:    map[string]string{},
-				},
-				Spec: v1.PodSpec{
-					ServiceAccountName: "svcacc",
-				},
-			},
-			shouldErr: true,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			assert := tassert.New(t)
-			cn, err := getCertCommonNameForPod(test.pod)
-			if test.shouldErr {
-				assert.Empty(cn)
-				assert.Error(err)
-			} else {
-				assert.NotEmpty(cn)
-				assert.NoError(err)
-			}
-		})
-	}
-}
 
 func TestKubernetesServicesToMeshServices(t *testing.T) {
 	testCases := []struct {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 )
 
@@ -35,10 +36,9 @@ func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificateReleas
 
 			proxyUUID := deletedPodObj.Labels[constants.EnvoyUniqueIDLabelName]
 			if proxyIface, ok := pr.connectedProxies.Load(proxyUUID); ok {
-				connectedProxy := proxyIface.(connectedProxy)
-				cn := connectedProxy.proxy.GetCertificateCommonName()
-				log.Warn().Msgf("Pod with label %s: %s found in proxy registry; releasing certificate %s", constants.EnvoyUniqueIDLabelName, proxyUUID, cn)
-				certManager.ReleaseCertificate(cn)
+				proxy := proxyIface.(*envoy.Proxy)
+				log.Warn().Msgf("Pod with label %s: %s found in proxy registry; releasing certificate for proxy %s", constants.EnvoyUniqueIDLabelName, proxyUUID, proxy.Identity)
+				certManager.ReleaseCertificate(envoy.NewXDSCertCNPrefix(proxy.UUID, proxy.Kind(), proxy.Identity))
 			} else {
 				log.Warn().Msgf("Pod with label %s: %s not found in proxy registry", constants.EnvoyUniqueIDLabelName, proxyUUID)
 			}

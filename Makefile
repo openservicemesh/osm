@@ -22,7 +22,7 @@ BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
 BUILD_VERSION_VAR := github.com/openservicemesh/osm/pkg/version.Version
 BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
 DOCKER_GO_VERSION = 1.17
-DOCKER_BUILDX_PLATFORM ?= linux/amd64
+DOCKER_BUILDX_PLATFORM ?= linux/$(shell go env GOARCH)
 # Value for the --output flag on docker buildx build.
 # https://docs.docker.com/engine/reference/commandline/buildx_build/#output
 DOCKER_BUILDX_OUTPUT ?= type=registry
@@ -117,6 +117,10 @@ go-test: cmd/cli/chart.tgz
 .PHONY: go-test-coverage
 go-test-coverage: embed-files
 	./scripts/test-w-coverage.sh
+
+.PHONY: go-benchmark
+go-benchmark: embed-files
+	./scripts/go-benchmark.sh
 
 .PHONY: kind-up
 kind-up:

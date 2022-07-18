@@ -79,7 +79,6 @@ var testPresetMeshConfigMap *corev1.ConfigMap = &corev1.ConfigMap{
 "featureFlags": {
 	"enableWASMStats": false,
 	"enableEgressPolicy": true,
-	"enableMulticlusterMode": false,
 	"enableAsyncProxyServiceMapping": false,
 	"enableIngressBackendPolicy": true,
 	"enableEnvoyActiveHealthChecks": true,
@@ -97,8 +96,7 @@ var testMeshRootCertificate *configv1alpha2.MeshRootCertificate = &configv1alpha
 	},
 	Spec: configv1alpha2.MeshRootCertificateSpec{},
 	Status: configv1alpha2.MeshRootCertificateStatus{
-		State:         constants.MRCStateComplete,
-		RotationStage: constants.MRCStageIssuing,
+		State: constants.MRCStateActive,
 	},
 }
 
@@ -358,10 +356,19 @@ func TestCreateMeshRootCertificate(t *testing.T) {
 			}
 
 			err := b.createMeshRootCertificate()
-			assert.Equal(tc.expectErr, err != nil)
+			if !tc.expectErr {
+				assert.NoError(err)
+			} else {
+				assert.Error(err)
+			}
 
-			_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), meshRootCertificateName, metav1.GetOptions{})
-			assert.Equal(tc.expectDefaultMeshRootCertificate, err == nil)
+			mrc, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), meshRootCertificateName, metav1.GetOptions{})
+			if tc.expectDefaultMeshRootCertificate {
+				assert.NoError(err)
+				assert.Equal(constants.MRCStateActive, mrc.Status.State)
+			} else {
+				assert.Error(err)
+			}
 		})
 	}
 }

@@ -18,15 +18,15 @@ import (
 )
 
 // NewResponse creates a new Secrets Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, certManager *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	log.Info().Str("proxy", proxy.String()).Msg("Composing SDS Discovery Response")
 
 	// OSM currently relies on kubernetes ServiceAccount for service identity
 	s := &sdsImpl{
 		meshCatalog:     meshCatalog,
 		certManager:     certManager,
-		cfg:             cfg,
 		serviceIdentity: proxy.Identity,
+		TrustDomain:     certManager.GetTrustDomain(),
 	}
 
 	var sdsResources []types.Resource
@@ -37,7 +37,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	log.Info().Str("proxy", proxy.String()).Msgf("Creating SDS response for request for resources %v", requestedCerts)
 
 	// 1. Issue a service certificate for this proxy
-	cert, err := certManager.IssueCertificate(certificate.CommonName(s.serviceIdentity), cfg.GetServiceCertValidityPeriod())
+	cert, err := certManager.IssueCertificate(s.serviceIdentity.String(), certificate.Service)
 	if err != nil {
 		log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error issuing a certificate for proxy")
 		return nil, err
@@ -129,7 +129,7 @@ func (s *sdsImpl) getRootCert(cert *certificate.Certificate, sdscert secrets.SDS
 			ValidationContext: &xds_auth.CertificateValidationContext{
 				TrustedCa: &xds_core.DataSource{
 					Specifier: &xds_core.DataSource_InlineBytes{
-						InlineBytes: cert.GetIssuingCA(),
+						InlineBytes: cert.GetTrustedCAs(),
 					},
 				},
 			},
@@ -159,18 +159,18 @@ func (s *sdsImpl) getRootCert(cert *certificate.Certificate, sdscert secrets.SDS
 	}
 	svcIdentitiesInCertRequest := s.meshCatalog.ListServiceIdentitiesForService(*meshSvc)
 
-	secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcIdentities(svcIdentitiesInCertRequest)
+	secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcIdentities(svcIdentitiesInCertRequest, s.TrustDomain)
 	return secret, nil
 }
 
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func getSubjectAltNamesFromSvcIdentities(serviceIdentities []identity.ServiceIdentity) []*xds_matcher.StringMatcher {
+func getSubjectAltNamesFromSvcIdentities(serviceIdentities []identity.ServiceIdentity, trustDomain string) []*xds_matcher.StringMatcher {
 	var matchSANs []*xds_matcher.StringMatcher
 
 	for _, si := range serviceIdentities {
 		match := xds_matcher.StringMatcher{
 			MatchPattern: &xds_matcher.StringMatcher_Exact{
-				Exact: si.String(),
+				Exact: si.AsPrincipal(trustDomain),
 			},
 		}
 		matchSANs = append(matchSANs, &match)

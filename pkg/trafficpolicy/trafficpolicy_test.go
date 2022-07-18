@@ -8,7 +8,8 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -29,8 +30,6 @@ var (
 	}
 
 	testHostnames = []string{"testHostname1", "testHostname2", "testHostname3"}
-
-	testHostnames2 = []string{"testing1", "testing2", "testing3"}
 
 	testWeightedCluster = service.WeightedCluster{
 		ClusterName: "testCluster",
@@ -62,73 +61,6 @@ var (
 	}
 )
 
-func TestAddRule(t *testing.T) {
-	testCases := []struct {
-		name                  string
-		existingRules         []*Rule
-		allowedServiceAccount identity.K8sServiceAccount
-		route                 RouteWeightedClusters
-		expectedRules         []*Rule
-	}{
-		{
-			name:                  "rule for route does not exist",
-			existingRules:         []*Rule{},
-			allowedServiceAccount: testServiceAccount1,
-			route:                 testRoute,
-			expectedRules: []*Rule{
-				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
-				},
-			},
-		},
-		{
-			name: "rule exists for route but not for given service account",
-			existingRules: []*Rule{
-				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
-				},
-			},
-			allowedServiceAccount: testServiceAccount2,
-			route:                 testRoute,
-			expectedRules: []*Rule{
-				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity(), testServiceAccount2.ToServiceIdentity()),
-				},
-			},
-		},
-		{
-			name: "rule exists for route and for given service account",
-			existingRules: []*Rule{
-				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
-				},
-			},
-			allowedServiceAccount: testServiceAccount1,
-			route:                 testRoute,
-			expectedRules: []*Rule{
-				{
-					Route:                    testRoute,
-					AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
-				},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			inboundPolicy := newTestInboundPolicy(tc.name, tc.existingRules)
-			inboundPolicy.AddRule(tc.route, tc.allowedServiceAccount.ToServiceIdentity())
-			assert.Equal(tc.expectedRules, inboundPolicy.Rules)
-		})
-	}
-}
-
 func TestAddRoute(t *testing.T) {
 	var thresholdUintVal uint32 = 3
 	thresholdTimeoutDuration := metav1.Duration{Duration: time.Duration(5 * time.Second)}
@@ -140,7 +72,7 @@ func TestAddRoute(t *testing.T) {
 		expectedRoutes        []*RouteWeightedClusters
 		givenRouteMatch       HTTPRouteMatch
 		givenWeightedClusters []service.WeightedCluster
-		givenRetryPolicy      *v1alpha1.RetryPolicySpec
+		givenRetryPolicy      *policyv1alpha1.RetryPolicySpec
 		expectedErr           bool
 	}{
 		{
@@ -148,12 +80,12 @@ func TestAddRoute(t *testing.T) {
 			existingRoutes:        []*RouteWeightedClusters{},
 			givenRouteMatch:       testHTTPRouteMatch,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster},
-			givenRetryPolicy:      &v1alpha1.RetryPolicySpec{},
+			givenRetryPolicy:      &policyv1alpha1.RetryPolicySpec{},
 			expectedRoutes: []*RouteWeightedClusters{
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
 					WeightedClusters: mapset.NewSet(testWeightedCluster),
-					RetryPolicy:      &v1alpha1.RetryPolicySpec{},
+					RetryPolicy:      &policyv1alpha1.RetryPolicySpec{},
 				},
 			},
 			expectedErr: false,
@@ -168,7 +100,7 @@ func TestAddRoute(t *testing.T) {
 			},
 			givenRouteMatch:       testHTTPRouteMatch2,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster2},
-			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
+			givenRetryPolicy: &policyv1alpha1.RetryPolicySpec{
 				RetryOn: "5xx",
 			},
 			expectedRoutes: []*RouteWeightedClusters{
@@ -179,7 +111,7 @@ func TestAddRoute(t *testing.T) {
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch2,
 					WeightedClusters: mapset.NewSet(testWeightedCluster2),
-					RetryPolicy: &v1alpha1.RetryPolicySpec{
+					RetryPolicy: &policyv1alpha1.RetryPolicySpec{
 						RetryOn: "5xx",
 					},
 				},
@@ -196,7 +128,7 @@ func TestAddRoute(t *testing.T) {
 			},
 			givenRouteMatch:       testHTTPRouteMatch2,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster, testWeightedCluster2},
-			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
+			givenRetryPolicy: &policyv1alpha1.RetryPolicySpec{
 				RetryOn:       "5xx",
 				PerTryTimeout: &thresholdTimeoutDuration,
 			},
@@ -208,7 +140,7 @@ func TestAddRoute(t *testing.T) {
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch2,
 					WeightedClusters: mapset.NewSet(testWeightedCluster, testWeightedCluster2),
-					RetryPolicy: &v1alpha1.RetryPolicySpec{
+					RetryPolicy: &policyv1alpha1.RetryPolicySpec{
 						RetryOn:       "5xx",
 						PerTryTimeout: &thresholdTimeoutDuration,
 					},
@@ -226,7 +158,7 @@ func TestAddRoute(t *testing.T) {
 			},
 			givenRouteMatch:       testHTTPRouteMatch,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster},
-			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
+			givenRetryPolicy: &policyv1alpha1.RetryPolicySpec{
 				RetryOn:       "5xx",
 				NumRetries:    &thresholdUintVal,
 				PerTryTimeout: &thresholdTimeoutDuration,
@@ -235,7 +167,7 @@ func TestAddRoute(t *testing.T) {
 				{
 					HTTPRouteMatch:   testHTTPRouteMatch,
 					WeightedClusters: mapset.NewSet(testWeightedCluster),
-					RetryPolicy: &v1alpha1.RetryPolicySpec{
+					RetryPolicy: &policyv1alpha1.RetryPolicySpec{
 						RetryOn:       "5xx",
 						NumRetries:    &thresholdUintVal,
 						PerTryTimeout: &thresholdTimeoutDuration,
@@ -254,7 +186,7 @@ func TestAddRoute(t *testing.T) {
 			},
 			givenRouteMatch:       testHTTPRouteMatch,
 			givenWeightedClusters: []service.WeightedCluster{testWeightedCluster2},
-			givenRetryPolicy: &v1alpha1.RetryPolicySpec{
+			givenRetryPolicy: &policyv1alpha1.RetryPolicySpec{
 				RetryOn:                  "5xx",
 				RetryBackoffBaseInterval: &thresholdBackoffDuration,
 			},
@@ -280,110 +212,6 @@ func TestAddRoute(t *testing.T) {
 				assert.Nil(err)
 			}
 			assert.Equal(tc.expectedRoutes, outboundPolicy.Routes)
-		})
-	}
-}
-
-func TestMergeInboundPolicies(t *testing.T) {
-	testRule1 := Rule{
-		Route:                    testRoute,
-		AllowedServiceIdentities: mapset.NewSet(testServiceAccount1.ToServiceIdentity()),
-	}
-	testRule2 := Rule{
-		Route:                    testRoute2,
-		AllowedServiceIdentities: mapset.NewSet(testServiceAccount2.ToServiceIdentity()),
-	}
-	testRule1Modified := Rule{
-		Route: RouteWeightedClusters{
-			HTTPRouteMatch: HTTPRouteMatch{
-				Path:          "/hello",
-				PathMatchType: PathMatchRegex,
-				Methods:       []string{"*"},
-			},
-			WeightedClusters: mapset.NewSet(testWeightedCluster),
-		},
-	}
-	testCases := []struct {
-		name            string
-		originalInbound []*InboundTrafficPolicy
-		newInbound      []*InboundTrafficPolicy
-		expectedInbound []*InboundTrafficPolicy
-	}{
-		{
-			name: "hostnames match",
-			originalInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-			newInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule2},
-				},
-			},
-			expectedInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-		},
-		{
-			name: "hostnames do not match",
-			originalInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-			newInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames2,
-					Rules:     []*Rule{&testRule2},
-				},
-			},
-			expectedInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames2,
-					Rules:     []*Rule{&testRule2},
-				},
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-		},
-		{
-			name: "hostnames match but rules differ",
-			originalInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2},
-				},
-			},
-			newInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1Modified},
-				},
-			},
-			expectedInbound: []*InboundTrafficPolicy{
-				{
-					Hostnames: testHostnames,
-					Rules:     []*Rule{&testRule1, &testRule2, &testRule1Modified},
-				},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			actual := MergeInboundPolicies(false, tc.originalInbound, tc.newInbound...)
-			assert.ElementsMatch(tc.expectedInbound, actual)
 		})
 	}
 }
@@ -461,7 +289,7 @@ func TestMergeInboundPoliciesWithPartialHostnames(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual := MergeInboundPolicies(true, tc.originalInbound, tc.newInbound...)
+			actual := MergeInboundPolicies(tc.originalInbound, tc.newInbound...)
 			assert.ElementsMatch(actual, tc.expectedInbound)
 		})
 	}
@@ -595,20 +423,65 @@ func TestMergeRouteWeightedClusters(t *testing.T) {
 func TestNewInboundTrafficPolicy(t *testing.T) {
 	assert := tassert.New(t)
 
-	name := "name"
-	hostnames := []string{"hostname1", "hostname2"}
-	expected := &InboundTrafficPolicy{Name: name, Hostnames: hostnames}
+	rateLimitSpec := &policyv1alpha1.RateLimitSpec{
+		Local: &policyv1alpha1.LocalRateLimitSpec{},
+	}
 
-	actual := NewInboundTrafficPolicy(name, hostnames)
-	assert.Equal(expected, actual)
+	testCases := []struct {
+		name                   string
+		policyName             string
+		hostnames              []string
+		upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
+		expected               *InboundTrafficPolicy
+	}{
+		{
+			name:       "basic inbound policy",
+			policyName: "foo",
+			hostnames:  []string{"foo.com", "bar.com"},
+			expected: &InboundTrafficPolicy{
+				Name:      "foo",
+				Hostnames: []string{"foo.com", "bar.com"},
+			},
+		},
+		{
+			name:       "inbound policy with rate limit configured",
+			policyName: "foo",
+			hostnames:  []string{"foo.com", "bar.com"},
+			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
+				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+					RateLimit: rateLimitSpec,
+				},
+			},
+			expected: &InboundTrafficPolicy{
+				Name:      "foo",
+				Hostnames: []string{"foo.com", "bar.com"},
+				RateLimit: rateLimitSpec,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := NewInboundTrafficPolicy(tc.policyName, tc.hostnames, tc.upstreamTrafficSetting)
+			assert.Equal(tc.expected, actual)
+		})
+	}
 }
 
 func TestNewRouteWeightedCluster(t *testing.T) {
+	perRouteRateLimitConfig := &policyv1alpha1.HTTPPerRouteRateLimitSpec{
+		Local: &policyv1alpha1.HTTPLocalRateLimitSpec{
+			Requests: 10,
+			Unit:     "second",
+		},
+	}
+
 	testCases := []struct {
-		name             string
-		route            HTTPRouteMatch
-		weightedClusters []service.WeightedCluster
-		expected         *RouteWeightedClusters
+		name                   string
+		route                  HTTPRouteMatch
+		weightedClusters       []service.WeightedCluster
+		upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
+		expected               *RouteWeightedClusters
 	}{
 		{
 			name:             "single weighted cluster in set",
@@ -616,13 +489,33 @@ func TestNewRouteWeightedCluster(t *testing.T) {
 			weightedClusters: []service.WeightedCluster{testWeightedCluster},
 			expected:         &RouteWeightedClusters{HTTPRouteMatch: testHTTPRouteMatch, WeightedClusters: mapset.NewSet(testWeightedCluster)},
 		},
+		{
+			name:             "per route rate limiting",
+			route:            testHTTPRouteMatch,
+			weightedClusters: []service.WeightedCluster{testWeightedCluster},
+			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
+				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+					HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
+						{
+							Path:      testHTTPRouteMatch.Path, // matches path on HTTPRouteMatch
+							RateLimit: perRouteRateLimitConfig,
+						},
+					},
+				},
+			},
+			expected: &RouteWeightedClusters{
+				HTTPRouteMatch:   testHTTPRouteMatch,
+				WeightedClusters: mapset.NewSet(testWeightedCluster),
+				RateLimit:        perRouteRateLimitConfig,
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual := NewRouteWeightedCluster(tc.route, tc.weightedClusters)
+			actual := NewRouteWeightedCluster(tc.route, tc.weightedClusters, tc.upstreamTrafficSetting)
 			assert.Equal(tc.expected, actual)
 		})
 	}
@@ -667,14 +560,6 @@ func TestTotalClustersWeight(t *testing.T) {
 			actual := tc.route.TotalClustersWeight()
 			assert.Equal(tc.expectedWeight, actual)
 		})
-	}
-}
-
-func newTestInboundPolicy(name string, rules []*Rule) *InboundTrafficPolicy {
-	return &InboundTrafficPolicy{
-		Name:      name,
-		Hostnames: testHostnames,
-		Rules:     rules,
 	}
 }
 

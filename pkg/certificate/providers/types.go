@@ -6,7 +6,12 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
+
+var log = logger.New("certificate/provider")
 
 // Kind specifies the certificate provider kind
 type Kind string
@@ -49,11 +54,14 @@ type TresorOptions struct {
 
 // VaultOptions is a type that specifies 'Hashicorp Vault' certificate provider options
 type VaultOptions struct {
-	VaultProtocol string
-	VaultHost     string
-	VaultToken    string // TODO(#4745): Remove after deprecating the osm.vault.token option. Replace with VaultTokenSecretName
-	VaultRole     string
-	VaultPort     int
+	VaultProtocol             string
+	VaultHost                 string
+	VaultToken                string // TODO(#4745): Remove after deprecating the osm.vault.token option. Replace with VaultTokenSecretName
+	VaultRole                 string
+	VaultPort                 int
+	VaultTokenSecretNamespace string
+	VaultTokenSecretName      string
+	VaultTokenSecretKey       string
 }
 
 // CertManagerOptions is a type that specifies 'cert-manager.io' certificate provider options
@@ -76,9 +84,10 @@ type MRCProviderGenerator struct {
 	kubeClient kubernetes.Interface
 	kubeConfig *rest.Config // used to generate a CertificateManager client.
 
-	// TODO(#4502): move these to the compat client once we have added these fields to the MRC.
+	// TODO(#4711): move these to the compat client once we have added these fields to the MRC.
 	KeyBitSize int
 
 	// TODO(#4745): Remove after deprecating the osm.vault.token option.
 	DefaultVaultToken string
+	caExtractorFunc   func(certificate.Issuer) (pem.RootCertificate, error)
 }

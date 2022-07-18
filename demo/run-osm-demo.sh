@@ -21,6 +21,7 @@ BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
 BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
 BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
 BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
+PERMISSIVE_MODE="${PERMISSIVE_MODE:-true}"
 CERT_MANAGER="${CERT_MANAGER:-tresor}"
 CTR_REGISTRY="${CTR_REGISTRY:-localhost:5000}"
 CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
@@ -102,6 +103,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --osm-namespace "$K8S_NAMESPACE" \
       --verbose \
       --mesh-name "$MESH_NAME" \
+      --set=osm.enablePermissiveTrafficPolicy="$PERMISSIVE_MODE" \
       --set=osm.certificateProvider.kind="$CERT_MANAGER" \
       --set=osm.vault.host="$VAULT_HOST" \
       --set=osm.vault.token="$VAULT_TOKEN" \
@@ -130,6 +132,7 @@ else
       --osm-namespace "$K8S_NAMESPACE" \
       --verbose \
       --mesh-name "$MESH_NAME" \
+      --set=osm.enablePermissiveTrafficPolicy="$PERMISSIVE_MODE" \
       --set=osm.certificateProvider.kind="$CERT_MANAGER" \
       --set=osm.image.registry="$CTR_REGISTRY" \
       --set=osm.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \

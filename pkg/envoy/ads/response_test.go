@@ -69,7 +69,7 @@ var _ = Describe("Test ADS response functions", func() {
 	// Create a Pod
 	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()), tests.BookstoreServiceAccountName, tests.PodLabels)
 	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
-	_, err = kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
+	_, err = kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	It("should have created a pod", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -87,21 +87,16 @@ var _ = Describe("Test ADS response functions", func() {
 		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
 	}
 
-	certCommonName := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace)
-	certSerialNumber := certificate.SerialNumber("123456")
-	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil)
 
 	Context("Proxy is valid", func() {
 		Expect(proxy).ToNot((BeNil()))
-		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Context("Test sendAllResponses()", func() {
 
-		certManager := tresorFake.NewFake(nil)
-		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.cluster.local", proxySvcAccount.Name, proxySvcAccount.Namespace))
-		certDuration := 1 * time.Hour
-		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
+		certManager := tresorFake.NewFake(nil, 1*time.Hour)
+		certPEM, _ := certManager.IssueCertificate(proxySvcAccount.ToServiceIdentity().String(), certificate.Service)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		kubectrlMock := k8s.NewMockController(mockCtrl)
@@ -109,14 +104,14 @@ var _ = Describe("Test ADS response functions", func() {
 		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
-		mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
 		mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
 			EnableWASMStats:    false,
 			EnableEgressPolicy: false,
 		}).AnyTimes()
 		mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
+
+		mc.GetKubeController().(*k8s.MockController).EXPECT().GetPodForProxy(proxy).Return(pod, nil).AnyTimes()
 
 		metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)
 
@@ -174,16 +169,16 @@ var _ = Describe("Test ADS response functions", func() {
 				CertType: secrets.ServiceCertType,
 			}.String()))
 
-			Expect(metricsstore.DefaultMetricsStore.Contains(fmt.Sprintf("osm_proxy_response_send_success_count{common_name=%q,type=%q} 1\n", proxy.GetCertificateCommonName(), envoy.TypeCDS))).To(BeTrue())
+			Expect(metricsstore.DefaultMetricsStore.Contains(fmt.Sprintf("osm_proxy_response_send_success_count{identity=%q,proxy_uuid=%q,type=%q} 1\n", proxy.Identity, proxy.UUID, envoy.TypeCDS))).To(BeTrue())
 		})
 	})
 
 	Context("Test sendSDSResponse()", func() {
 
-		certManager := tresorFake.NewFake(nil)
-		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace))
+		certManager := tresorFake.NewFake(nil, 1*time.Hour)
+		certCNPrefix := fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace)
 		certDuration := 1 * time.Hour
-		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
+		certPEM, _ := certManager.IssueCertificate(certCNPrefix, certificate.Service)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		kubectrlMock := k8s.NewMockController(mockCtrl)

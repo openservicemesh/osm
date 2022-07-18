@@ -1,7 +1,9 @@
 package providers
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
@@ -13,11 +15,13 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/castorage/k8s"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
@@ -28,73 +32,106 @@ const (
 	rootCertOrganization = "Open Service Mesh"
 )
 
-// NewCertificateManager returns a new certificate manager, with an MRC compat client.
-// TODO(4502): Use an informer behind a feature flag.
-func NewCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
-	providerNamespace string, options Options, msgBroker *messaging.Broker) (*certificate.Manager, error) {
-	if err := options.Validate(); err != nil {
+var getCA func(certificate.Issuer) (pem.RootCertificate, error) = func(i certificate.Issuer) (pem.RootCertificate, error) {
+	cert, err := i.IssueCertificate("init-cert", 1*time.Second)
+	if err != nil {
 		return nil, err
 	}
 
-	// TODO(4502): Switch the compat client to an informer. Might need another struct to compose the informer and
-	// provider generator.
+	return cert.GetIssuingCA(), nil
+}
+
+// NewCertificateManager returns a new certificate manager with a MRC compat client.
+// TODO(4713): Remove and use NewCertificateManagerFromMRC
+func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
+	providerNamespace string, option Options, msgBroker *messaging.Broker, checkInterval time.Duration, trustDomain string) (*certificate.Manager, error) {
+	if err := option.Validate(); err != nil {
+		return nil, err
+	}
+
 	mrcClient := &MRCCompatClient{
 		MRCProviderGenerator: MRCProviderGenerator{
-			kubeClient: kubeClient,
-			kubeConfig: kubeConfig,
-			KeyBitSize: cfg.GetCertKeyBitSize(),
+			kubeClient:      kubeClient,
+			kubeConfig:      kubeConfig,
+			KeyBitSize:      cfg.GetCertKeyBitSize(),
+			caExtractorFunc: getCA,
 		},
 		mrc: &v1alpha2.MeshRootCertificate{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "legacy-compat",
 				Namespace: providerNamespace,
-				Annotations: map[string]string{
-					constants.MRCVersionAnnotation: "legacy-compat",
-				},
 			},
 			Spec: v1alpha2.MeshRootCertificateSpec{
-				Provider: options.AsProviderSpec(),
+				Provider:    option.AsProviderSpec(),
+				TrustDomain: trustDomain,
 			},
-			// TODO(#4502): Detect if an actual MRC exists, and set the status accordingly.
 			Status: v1alpha2.MeshRootCertificateStatus{
-				State:         constants.MRCStateComplete,
-				RotationStage: constants.MRCStageIssuing,
+				State: constants.MRCStateActive,
 			},
 		},
 	}
-
 	// TODO(#4745): Remove after deprecating the osm.vault.token option.
-	if vaultOption, ok := options.(VaultOptions); ok {
+	if vaultOption, ok := option.(VaultOptions); ok {
 		mrcClient.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
 	}
 
-	return certificate.NewManager(mrcClient, cfg.GetServiceCertValidityPeriod(), msgBroker)
+	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, msgBroker, checkInterval)
+}
+
+// NewCertificateManagerFromMRC returns a new certificate manager.
+func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
+	providerNamespace string, option Options, msgBroker *messaging.Broker, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
+	if err := option.Validate(); err != nil {
+		return nil, err
+	}
+
+	mrcClient := &MRCComposer{
+		MRCProviderGenerator: MRCProviderGenerator{
+			kubeClient:      kubeClient,
+			kubeConfig:      kubeConfig,
+			KeyBitSize:      cfg.GetCertKeyBitSize(),
+			caExtractorFunc: getCA,
+		},
+		informerCollection: ic,
+	}
+	// TODO(#4745): Remove after deprecating the osm.vault.token option.
+	if vaultOption, ok := option.(VaultOptions); ok {
+		mrcClient.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
+	}
+
+	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, msgBroker, checkInterval)
 }
 
 // GetCertIssuerForMRC returns a certificate.Issuer generated from the provided MRC.
-func (c *MRCProviderGenerator) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, string, error) {
+func (c *MRCProviderGenerator) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, pem.RootCertificate, error) {
 	p := mrc.Spec.Provider
+	var issuer certificate.Issuer
+	var err error
 	switch {
 	case p.Tresor != nil:
-		return c.getTresorOSMCertificateManager(mrc)
+		issuer, err = c.getTresorOSMCertificateManager(mrc)
 	case p.Vault != nil:
-		return c.getHashiVaultOSMCertificateManager(mrc)
+		issuer, err = c.getHashiVaultOSMCertificateManager(mrc)
 	case p.CertManager != nil:
-		return c.getCertManagerOSMCertificateManager(mrc)
+		issuer, err = c.getCertManagerOSMCertificateManager(mrc)
 	default:
-		return nil, "", fmt.Errorf("Unknown certificate provider: %+v", p)
+		return nil, nil, fmt.Errorf("Unknown certificate provider: %+v", p)
 	}
-}
 
-func getMRCID(mrc *v1alpha2.MeshRootCertificate) (string, error) {
-	if mrc.Annotations == nil || mrc.Annotations[constants.MRCVersionAnnotation] == "" {
-		return "", fmt.Errorf("no annotation found for MRC %s/%s, expected annotation %s", mrc.Namespace, mrc.Name, constants.MRCVersionAnnotation)
+	if err != nil {
+		return nil, nil, err
 	}
-	return mrc.Annotations[constants.MRCVersionAnnotation], nil
+
+	ca, err := c.caExtractorFunc(issuer)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error generating init cert: %w", err)
+	}
+
+	return issuer, ca, nil
 }
 
 // getTresorOSMCertificateManager returns a certificate manager instance with Tresor as the certificate provider
-func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, string, error) {
+func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, error) {
 	var err error
 	var rootCert *certificate.Certificate
 
@@ -104,20 +141,20 @@ func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.Mesh
 	// Regardless of success or failure, all instances can proceed to load the same CA.
 	rootCert, err = tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootValidityPeriod, rootCertCountry, rootCertLocality, rootCertOrganization)
 	if err != nil {
-		return nil, "", errors.New("Failed to create new Certificate Authority with cert issuer tresor")
+		return nil, errors.New("Failed to create new Certificate Authority with cert issuer tresor")
 	}
 
 	if rootCert.GetPrivateKey() == nil {
-		return nil, "", errors.New("Root cert does not have a private key")
+		return nil, errors.New("Root cert does not have a private key")
 	}
 
 	rootCert, err = k8s.GetCertificateFromSecret(mrc.Namespace, mrc.Spec.Provider.Tresor.CA.SecretRef.Name, rootCert, c.kubeClient)
 	if err != nil {
-		return nil, "", fmt.Errorf("Failed to synchronize certificate on Secrets API : %w", err)
+		return nil, fmt.Errorf("Failed to synchronize certificate on Secrets API : %w", err)
 	}
 
 	if rootCert.GetPrivateKey() == nil {
-		return nil, "", fmt.Errorf("Root cert does not have a private key: %w", certificate.ErrInvalidCertSecret)
+		return nil, fmt.Errorf("Root cert does not have a private key: %w", certificate.ErrInvalidCertSecret)
 	}
 
 	tresorClient, err := tresor.New(
@@ -126,44 +163,63 @@ func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.Mesh
 		c.KeyBitSize,
 	)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to instantiate Tresor as a Certificate Manager: %w", err)
+		return nil, fmt.Errorf("failed to instantiate Tresor as a Certificate Manager: %w", err)
 	}
 
-	id, err := getMRCID(mrc)
-	if err != nil {
-		return nil, "", err
-	}
-	return tresorClient, id, nil
+	return tresorClient, nil
 }
 
 // getHashiVaultOSMCertificateManager returns a certificate manager instance with Hashi Vault as the certificate provider
-func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, string, error) {
+func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, error) {
 	provider := mrc.Spec.Provider.Vault
 
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
 	vaultAddr := fmt.Sprintf("%s://%s:%d", provider.Protocol, provider.Host, provider.Port)
-	// TODO(#4502): If the DefaultVaultToken is empty, query the mrc.provider.vault.token.secretRef.
+
+	// If the DefaultVaultToken is empty, query Vault token secret
+	var err error
+	vaultToken := c.DefaultVaultToken
+	if vaultToken == "" {
+		log.Debug().Msgf("Attempting to get Vault token from secret %s", provider.Token.SecretKeyRef.Name)
+		vaultToken, err = getHashiVaultOSMToken(&provider.Token.SecretKeyRef, c.kubeClient)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	vaultClient, err := vault.New(
 		vaultAddr,
-		c.DefaultVaultToken,
+		vaultToken,
 		provider.Role,
 	)
 	if err != nil {
-		return nil, "", fmt.Errorf("error instantiating Hashicorp Vault as a Certificate Manager: %w", err)
+		return nil, fmt.Errorf("error instantiating Hashicorp Vault as a Certificate Manager: %w", err)
 	}
-	id, err := getMRCID(mrc)
+
+	return vaultClient, nil
+}
+
+// getHashiVaultOSMToken returns the Hashi Vault token from the secret specified in the provided secret key reference
+func getHashiVaultOSMToken(secretKeyRef *v1alpha2.SecretKeyReferenceSpec, kubeClient kubernetes.Interface) (string, error) {
+	tokenSecret, err := kubeClient.CoreV1().Secrets(secretKeyRef.Namespace).Get(context.TODO(), secretKeyRef.Name, metav1.GetOptions{})
 	if err != nil {
-		return nil, "", err
+		return "", fmt.Errorf("error retrieving Hashi Vault token secret %s/%s: %w", secretKeyRef.Namespace, secretKeyRef.Name, err)
 	}
-	return vaultClient, id, nil
+
+	token, ok := tokenSecret.Data[secretKeyRef.Key]
+	if !ok {
+		return "", fmt.Errorf("key %s not found in Hashi Vault token secret %s/%s", secretKeyRef.Key, secretKeyRef.Namespace, secretKeyRef.Name)
+	}
+
+	return string(token), nil
 }
 
 // getCertManagerOSMCertificateManager returns a certificate manager instance with cert-manager as the certificate provider
-func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, string, error) {
+func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, error) {
 	provider := mrc.Spec.Provider.CertManager
 	client, err := cmversionedclient.NewForConfig(c.kubeConfig)
 	if err != nil {
-		return nil, "", fmt.Errorf("Failed to build cert-manager client set: %s", err)
+		return nil, fmt.Errorf("Failed to build cert-manager client set: %s", err)
 	}
 
 	cmClient, err := certmanager.New(
@@ -177,11 +233,8 @@ func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2
 		c.KeyBitSize,
 	)
 	if err != nil {
-		return nil, "", fmt.Errorf("error instantiating Jetstack cert-manager client: %w", err)
+		return nil, fmt.Errorf("error instantiating Jetstack cert-manager client: %w", err)
 	}
-	id, err := getMRCID(mrc)
-	if err != nil {
-		return nil, "", err
-	}
-	return cmClient, id, nil
+
+	return cmClient, nil
 }

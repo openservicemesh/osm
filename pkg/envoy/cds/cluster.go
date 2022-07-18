@@ -9,7 +9,6 @@ import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	extensions_upstream_http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/pkg/errors"
@@ -20,7 +19,6 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -47,7 +45,7 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, conf
 	upstreamCluster := &xds_cluster.Cluster{
 		Name: config.Name,
 		TransportSocket: &xds_core.TransportSocket{
-			Name: wellknown.TransportSocketTls,
+			Name: config.Name,
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: marshalledUpstreamTLSContext,
 			},
@@ -73,42 +71,6 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, conf
 	upstreamCluster.TypedExtensionProtocolOptions = typedHTTPProtocolOptions
 
 	return upstreamCluster
-}
-
-// getMulticlusterGatewayUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service for the multicluster gateway
-func getMulticlusterGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamSvc service.MeshService, withActiveHealthChecks bool) (*xds_cluster.Cluster, error) {
-	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
-	if err != nil {
-		return nil, err
-	}
-
-	remoteCluster := &xds_cluster.Cluster{
-		Name: upstreamSvc.ServerName(),
-		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
-			Type: xds_cluster.Cluster_STRICT_DNS,
-		},
-		LbPolicy:                      xds_cluster.Cluster_ROUND_ROBIN,
-		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
-		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
-			ClusterName: upstreamSvc.ServerName(),
-			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
-				{
-					LbEndpoints: []*xds_endpoint.LbEndpoint{{
-						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
-							Endpoint: &xds_endpoint.Endpoint{
-								Address: envoy.GetAddress(upstreamSvc.ServerName(), uint32(upstreamSvc.TargetPort)),
-							},
-						},
-					}},
-				},
-			},
-		},
-	}
-
-	if withActiveHealthChecks {
-		enableHealthChecksOnCluster(remoteCluster, upstreamSvc)
-	}
-	return remoteCluster, nil
 }
 
 func enableHealthChecksOnCluster(cluster *xds_cluster.Cluster, upstreamSvc service.MeshService) {
@@ -394,7 +356,7 @@ func applyUpstreamTrafficSetting(upstreamTrafficSetting *policyv1alpha1.Upstream
 		Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{threshold},
 	}
 
-	if upstreamTrafficSetting == nil {
+	if upstreamTrafficSetting == nil || upstreamTrafficSetting.Spec.ConnectionSettings == nil {
 		return
 	}
 

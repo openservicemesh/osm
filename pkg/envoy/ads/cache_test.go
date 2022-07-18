@@ -8,9 +8,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
 func TestGetProxyFromPod(t *testing.T) {
@@ -18,11 +16,10 @@ func TestGetProxyFromPod(t *testing.T) {
 
 	var (
 		// Default fixtures for various test variables
-		podName         = "pod"
-		namespace       = "namespace"
-		serviceAccount  = "serviceAccount"
-		validUUID       = uuid.New()
-		validCommonName = envoy.NewXDSCertCommonName(validUUID, envoy.KindSidecar, serviceAccount, namespace)
+		podName        = "pod"
+		namespace      = "namespace"
+		serviceAccount = "serviceAccount"
+		validUUID      = uuid.New()
 	)
 
 	testCases := []struct {
@@ -32,8 +29,7 @@ func TestGetProxyFromPod(t *testing.T) {
 		pod *v1.Pod
 
 		// Output check
-		expectErr  bool
-		commonName certificate.CommonName
+		expectErr bool
 	}{
 		{
 			testCaseName: "Pod with no label",
@@ -80,7 +76,6 @@ func TestGetProxyFromPod(t *testing.T) {
 					ServiceAccountName: serviceAccount,
 				},
 			},
-			commonName: validCommonName,
 		},
 	}
 
@@ -90,8 +85,8 @@ func TestGetProxyFromPod(t *testing.T) {
 		if testCase.expectErr {
 			assert.Error(err)
 		} else {
-			assert.Equal(proxyResult.GetCertificateCommonName(), testCase.commonName,
-				"%s: Did not return equal common name")
+			assert.NotNil(proxyResult)
+			assert.Equal(proxyResult.UUID, validUUID)
 		}
 	}
 }

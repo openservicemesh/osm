@@ -3,6 +3,7 @@ package sds
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -12,14 +13,15 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -53,19 +55,14 @@ func TestNewResponse(t *testing.T) {
 
 	// The Common Name of the xDS Certificate (issued to the Envoy on the Pod by the Injector) will
 	// have be prefixed with the ID of the pod. It is the first chunk of a dot-separated string.
-	podID := uuid.New().String()
+	podID := uuid.New()
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", podID, envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace, identity.ClusterLocalTrustDomain))
-	certSerialNumber := certificate.SerialNumber("123456")
-	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	proxy := envoy.NewProxy(envoy.KindSidecar, podID, proxySvcAccount.ToServiceIdentity(), nil)
+	ic, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(fakeKubeClient), informers.WithConfigClient(fakeConfigClient, "-the-mesh-config-name-", "-osm-namespace-"))
 	assert.Nil(err)
 
-	_, err = envoy.NewProxy("-certificate-common-name-is-invalid-", "-cert-serial-number-is-invalid-", nil)
-	assert.Equal(err, envoy.ErrInvalidCertificateCN)
-
-	cfg, err := configurator.NewConfigurator(fakeConfigClient, stop, "-osm-namespace-", "-the-mesh-config-name-", nil)
-	assert.Nil(err)
-	certManager := tresorFake.NewFake(nil)
+	cfg := configurator.NewConfigurator(ic, "-osm-namespace-", "-the-mesh-config-name-", nil)
+	certManager := tresorFake.NewFake(nil, 1*time.Hour)
 	meshCatalog := catalogFake.NewFakeMeshCatalog(fakeKubeClient, fakeConfigClient)
 
 	// ----- Test with an properly configured proxy
@@ -84,8 +81,7 @@ func TestGetRootCert(t *testing.T) {
 
 	// This is used to dynamically set expectations for each test in the list of table driven tests
 	type dynamicMock struct {
-		mockCatalog      *catalog.MockMeshCataloger
-		mockConfigurator *configurator.MockConfigurator
+		mockCatalog *catalog.MockMeshCataloger
 	}
 
 	type testCase struct {
@@ -157,8 +153,7 @@ func TestGetRootCert(t *testing.T) {
 
 			// Initialize the dynamic mocks
 			d := dynamicMock{
-				mockCatalog:      catalog.NewMockMeshCataloger(mockCtrl),
-				mockConfigurator: configurator.NewMockConfigurator(mockCtrl),
+				mockCatalog: catalog.NewMockMeshCataloger(mockCtrl),
 			}
 
 			// Prepare the dynamic mock expectations for each test case
@@ -172,7 +167,6 @@ func TestGetRootCert(t *testing.T) {
 
 				// these points to the dynamic mocks which gets updated for each test
 				meshCatalog: d.mockCatalog,
-				cfg:         d.mockConfigurator,
 			}
 
 			// test the function
@@ -238,12 +232,12 @@ func TestGetSDSSecrets(t *testing.T) {
 		CertChain:  []byte("foo"),
 		PrivateKey: []byte("foo"),
 		IssuingCA:  []byte("foo"),
+		TrustedCAs: []byte("foo"),
 	}
 
 	// This is used to dynamically set expectations for each test in the list of table driven tests
 	type dynamicMock struct {
-		mockCatalog      *catalog.MockMeshCataloger
-		mockConfigurator *configurator.MockConfigurator
+		mockCatalog *catalog.MockMeshCataloger
 	}
 
 	type testCase struct {
@@ -347,8 +341,7 @@ func TestGetSDSSecrets(t *testing.T) {
 
 			// Initialize the dynamic mocks
 			d := dynamicMock{
-				mockCatalog:      catalog.NewMockMeshCataloger(mockCtrl),
-				mockConfigurator: configurator.NewMockConfigurator(mockCtrl),
+				mockCatalog: catalog.NewMockMeshCataloger(mockCtrl),
 			}
 
 			// Prepare the dynamic mock expectations for each test case
@@ -356,19 +349,16 @@ func TestGetSDSSecrets(t *testing.T) {
 				tc.prepare(&d)
 			}
 
-			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, "sa-1", "ns-1"))
-			certSerialNumber := certificate.SerialNumber("123456")
 			s := &sdsImpl{
 				serviceIdentity: tc.serviceIdentity,
 				certManager:     fakeCertManager,
 
 				// these points to the dynamic mocks which gets updated for each test
 				meshCatalog: d.mockCatalog,
-				cfg:         d.mockConfigurator,
+				TrustDomain: "cluster.local",
 			}
 
-			proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
-			assert.Nil(err)
+			proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("sa-1", "ns-1"), nil)
 
 			// test the function
 			sdsSecrets := s.getSDSSecrets(cert, tc.requestedCerts, proxy)
@@ -431,7 +421,7 @@ func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual := getSubjectAltNamesFromSvcIdentities(tc.serviceIdentities)
+			actual := getSubjectAltNamesFromSvcIdentities(tc.serviceIdentities, "cluster.local")
 			assert.ElementsMatch(actual, tc.expectedSANMatchers)
 		})
 	}

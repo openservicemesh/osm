@@ -19,7 +19,7 @@ kind: CustomResourceDefinition
 metadata:
   name: meshrootcertificates.config.openservicemesh.io
   labels:
-    app.kubernetes.io/name : "openservicemesh.io"
+    app.kubernetes.io/name: "openservicemesh.io"
 spec:
   group: config.openservicemesh.io
   scope: Namespaced
@@ -35,14 +35,10 @@ spec:
       served: true
       storage: true
       additionalPrinterColumns:
-      - description: Current state of the MeshRootCertificate config
-        jsonPath: .status.currentState
-        name: State
-        type: string
-      - description: Current rotationStage of the MeshRootCertificate config
-        jsonPath: .status.currentRotationStage
-        name: RotationStage
-        type: string
+        - description: Current state of the MeshRootCertificate config
+          jsonPath: .status.state
+          name: State
+          type: string
       schema:
         openAPIV3Schema:
           type: object
@@ -52,6 +48,10 @@ spec:
               required:
                 - provider
               properties:
+                trustDomain:
+                  description: Trust Domain to use in common name for certificates, e.g. "example.com"
+                  type: string
+                  default: cluster.local
                 provider:
                   description: Certificate provider used by the mesh control plane
                   type: object
@@ -149,9 +149,9 @@ spec:
                                   description: Namespace of the kubernetes secret
                                   type: string
                   oneOf:
-                    - required: ['certManager']
-                    - required: ['vault']
-                    - required: ['tresor']
+                    - required: ["certManager"]
+                    - required: ["vault"]
+                    - required: ["tresor"]
             status:
               type: object
               x-kubernetes-preserve-unknown-fields: true

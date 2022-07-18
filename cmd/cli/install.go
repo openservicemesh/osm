@@ -156,7 +156,7 @@ func (i *installCmd) loadOSMChart() error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error loading chart for installation: %s", err)
+		return fmt.Errorf("error loading chart for installation: %s", err)
 	}
 
 	return nil

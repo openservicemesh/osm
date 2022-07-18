@@ -203,10 +203,6 @@ const (
 	// ErrStartingADSServer indicates the gPRC service failed to start
 	ErrStartingADSServer
 
-	// ERRInitializingProxy indicates an instance of the Envoy proxy that connected to the XDS server could not be
-	// initialized
-	ErrInitializingProxy
-
 	// ErrMismatchedServiceAccount inicates the ServiceAccount referenced in the NodeID does not match the
 	// ServiceAccount specified in the proxy certificate
 	ErrMismatchedServiceAccount
@@ -241,9 +237,6 @@ const (
 
 	// ErrUnsupportedProtocolForService indicates a port's corresponding application protocol is not supported
 	ErrUnsupportedProtocolForService
-
-	// ErrBuildingRBACPolicy indicates the XDS RBAC policy could not be created from a given traffic target policy
-	ErrBuildingRBACPolicy
 
 	// ErrIngressFilterChain indicates there an error related to an ingress filter chain
 	ErrIngressFilterChain
@@ -650,11 +643,6 @@ a new snapshot in the Envoy xDS Aggregate Discovery Services cache.
 The Aggregate Discovery Server (ADS) created by the OSM controller failed to start.
 `,
 
-	ErrInitializingProxy: `
-An Envoy proxy data structure representing a newly connected envoy proxy to the XDS
-server could not be initialized.
-`,
-
 	ErrMismatchedServiceAccount: `
 The ServiceAccount referenced in the NodeID does not match the ServiceAccount
 specified in the proxy certificate.
@@ -709,11 +697,6 @@ will not be sent to the Envoy proxy in a ClusterDiscovery response.
 	ErrUnsupportedProtocolForService: `
 The application protocol specified for a port is not supported for ingress
 traffic. The XDS filter chain for ingress traffic to the port was not created.
-`,
-
-	ErrBuildingRBACPolicy: `
-An XDS RBAC policy could not be generated from the specified traffic target
-policy.
 `,
 
 	ErrIngressFilterChain: `

@@ -9,8 +9,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 )
 
-const vaultTokenSecretName = "osm-vault-token" // #nosec G101: Potential hardcoded credentials
-
 // Validate validates the options for Tresor certificate provider
 func (options TresorOptions) Validate() error {
 	if options.SecretName == "" {
@@ -38,8 +36,8 @@ func (options VaultOptions) Validate() error {
 		return errors.New("VaultHost not specified in Hashi Vault options")
 	}
 
-	if options.VaultToken == "" {
-		return errors.New("VaultToken not specified in Hashi Vault options")
+	if options.VaultToken == "" && (options.VaultTokenSecretKey == "" || options.VaultTokenSecretName == "") {
+		return errors.New("VaultTokenSecretKey and VaultTokenSecretName must both specified if VaultToken is not specified in Hashi Vault options")
 	}
 
 	if options.VaultRole == "" {
@@ -61,7 +59,9 @@ func (options VaultOptions) AsProviderSpec() v1alpha2.ProviderSpec {
 			Host:     options.VaultHost,
 			Token: v1alpha2.VaultTokenSpec{
 				SecretKeyRef: v1alpha2.SecretKeyReferenceSpec{
-					Name: vaultTokenSecretName,
+					Name:      options.VaultTokenSecretName,
+					Namespace: options.VaultTokenSecretNamespace,
+					Key:       options.VaultTokenSecretKey,
 				},
 			},
 			Role: options.VaultRole,

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -27,7 +28,9 @@ import (
 	"k8s.io/kubectl/pkg/util"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/health"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -35,6 +38,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/crdconversion"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -59,10 +63,10 @@ var (
 	osmMeshConfigName  string
 	meshName           string
 	osmVersion         string
+	trustDomain        string
 
-	crdConverterConfig crdconversion.Config
-
-	certProviderKind string
+	certProviderKind          string
+	enableMeshRootCertificate bool
 
 	tresorOptions      providers.TresorOptions
 	vaultOptions       providers.VaultOptions
@@ -93,7 +97,11 @@ func init() {
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
+	flags.BoolVar(&enableMeshRootCertificate, "enable-mesh-root-certificate", false, "Enable unsupported MeshRootCertificate to create the OSM Certificate Manager")
 	flags.StringVar(&caBundleSecretName, "ca-bundle-secret-name", "", "Name of the Kubernetes Secret for the OSM CA bundle")
+
+	// TODO (#4502): Remove when we add full MRC support
+	flags.StringVar(&trustDomain, "trust-domain", "cluster.local", "The trust domain to use as part of the common name when requesting new certificates")
 
 	// Vault certificate manager/provider options
 	flags.StringVar(&vaultOptions.VaultProtocol, "vault-protocol", "http", "Host name of the Hashi Vault")
@@ -101,6 +109,8 @@ func init() {
 	flags.StringVar(&vaultOptions.VaultToken, "vault-token", "", "Secret token for the the Hashi Vault")
 	flags.StringVar(&vaultOptions.VaultRole, "vault-role", "openservicemesh", "Name of the Vault role dedicated to Open Service Mesh")
 	flags.IntVar(&vaultOptions.VaultPort, "vault-port", 8200, "Port of the Hashi Vault")
+	flags.StringVar(&vaultOptions.VaultTokenSecretName, "vault-token-secret-name", "", "Name of the secret storing the Vault token used in OSM")
+	flags.StringVar(&vaultOptions.VaultTokenSecretKey, "vault-token-secret-key", "", "Key for the vault token used in OSM")
 
 	// Cert-manager certificate manager/provider options
 	flags.StringVar(&certManagerOptions.IssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
@@ -121,6 +131,7 @@ func getCertOptions() (providers.Options, error) {
 		tresorOptions.SecretName = caBundleSecretName
 		return tresorOptions, nil
 	case providers.VaultKind:
+		vaultOptions.VaultTokenSecretNamespace = osmNamespace
 		return vaultOptions, nil
 	case providers.CertManagerKind:
 		return certManagerOptions, nil
@@ -170,10 +181,12 @@ func main() {
 		return
 	}
 
-	err = bootstrap.ensureMeshRootCertificate()
-	if err != nil {
-		log.Fatal().Err(err).Msgf("Error setting up default MeshRootCertificate %s from ConfigMap %s", meshRootCertificateName, presetMeshRootCertificateName)
-		return
+	if enableMeshRootCertificate {
+		err = bootstrap.ensureMeshRootCertificate()
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Error setting up default MeshRootCertificate %s from ConfigMap %s", meshRootCertificateName, presetMeshRootCertificateName)
+			return
+		}
 	}
 
 	err = bootstrap.initiatilizeKubernetesEventsRecorder()
@@ -181,9 +194,9 @@ func main() {
 		log.Fatal().Err(err).Msg("Error initializing Kubernetes events recorder")
 	}
 
-	stop := signals.RegisterExitHandlers()
-	_, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	stop := signals.RegisterExitHandlers(cancel)
 
 	// Start the default metrics store
 	metricsstore.DefaultMetricsStore.Start(
@@ -191,33 +204,45 @@ func main() {
 		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
 		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
 		metricsstore.DefaultMetricsStore.ConversionWebhookResourceTotal,
+		metricsstore.DefaultMetricsStore.ReconciliationTotal,
 	)
 
 	msgBroker := messaging.NewBroker(stop)
 
-	// Initialize Configurator to watch resources in the config.openservicemesh.io API group
-	cfg, err := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, msgBroker)
+	informerCollection, err := informers.NewInformerCollection(meshName, stop,
+		informers.WithKubeClient(kubeClient),
+		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
+	)
+
 	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for config.openservicemesh.io")
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
 	}
+
+	// Initialize Configurator to watch resources in the config.openservicemesh.io API group
+	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
 
 	certOpts, err := getCertOptions()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
 	}
-	// Intitialize certificate manager/provider
-	certManager, err := providers.NewCertificateManager(kubeClient, kubeConfig, cfg, osmNamespace,
-		certOpts, msgBroker)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
-			"Error initializing certificate manager of kind %s", certProviderKind)
+
+	var certManager *certificate.Manager
+	if enableMeshRootCertificate {
+		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, cfg, osmNamespace, certOpts, msgBroker, informerCollection, 5*time.Second)
+		if err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
+				"Error initializing certificate manager of kind %s from MRC", certProviderKind)
+		}
+	} else {
+		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace, certOpts, msgBroker, 5*time.Second, trustDomain)
+		if err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
+				"Error initializing certificate manager of kind %s", certProviderKind)
+		}
 	}
-	// watch for certificate rotation
-	certManager.Start(5*time.Second, stop)
 
 	// Initialize the crd conversion webhook server to support the conversion of OSM's CRDs
-	crdConverterConfig.ListenPort = constants.CRDConversionWebhookPort
-	if err := crdconversion.NewConversionWebhook(crdConverterConfig, kubeClient, crdClient, certManager, osmNamespace, enableReconciler, stop); err != nil {
+	if err := crdconversion.NewConversionWebhook(ctx, kubeClient, crdClient, certManager, osmNamespace, enableReconciler); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating crd conversion webhook")
 	}
 
@@ -230,6 +255,9 @@ func main() {
 	httpServer.AddHandler(constants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
 	// Version
 	httpServer.AddHandler(constants.VersionPath, version.GetVersionHandler())
+
+	httpServer.AddHandler(constants.WebhookHealthPath, http.HandlerFunc(health.SimpleHandler))
+
 	// Start HTTP server
 	err = httpServer.Start()
 	if err != nil {
@@ -245,6 +273,7 @@ func main() {
 	}
 
 	<-stop
+	cancel()
 	log.Info().Msgf("Stopping osm-bootstrap %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 }
 
@@ -391,11 +420,24 @@ func (b *bootstrap) createMeshRootCertificate() error {
 	if err != nil {
 		return err
 	}
-	_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshRootCertificate, metav1.CreateOptions{})
+	createdMRC, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshRootCertificate, metav1.CreateOptions{})
 	if apierrors.IsAlreadyExists(err) {
 		log.Info().Msgf("MeshRootCertificate already exists in %s. Skip creating.", b.namespace)
 		return nil
 	}
+	if err != nil {
+		return err
+	}
+
+	createdMRC.Status = configv1alpha2.MeshRootCertificateStatus{
+		State: constants.MRCStateActive,
+	}
+
+	_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).UpdateStatus(context.Background(), createdMRC, metav1.UpdateOptions{})
+	if apierrors.IsAlreadyExists(err) {
+		log.Info().Msgf("MeshRootCertificate status already exists in %s. Skip creating.", b.namespace)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -421,10 +463,6 @@ func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigM
 			Name: meshRootCertificateName,
 		},
 		Spec: presetMeshRootCertificateSpec,
-		Status: configv1alpha2.MeshRootCertificateStatus{
-			State:         constants.MRCStateComplete,
-			RotationStage: constants.MRCStageIssuing,
-		},
 	}
 
 	return mrc, util.CreateApplyAnnotation(mrc, unstructured.UnstructuredJSONScheme)

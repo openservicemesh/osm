@@ -9,24 +9,16 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // Proxy is a representation of an Envoy proxy connected to the xDS server.
 // This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
 type Proxy struct {
-	// The Subject Common Name of the certificate used for Envoy to XDS communication.
-	xDSCertificateCommonName certificate.CommonName
-
 	// UUID of the proxy
 	uuid.UUID
 
 	Identity identity.ServiceIdentity
-
-	// The Serial Number of the certificate used for Envoy to XDS communication.
-	xDSCertificateSerialNumber certificate.SerialNumber
 
 	net.Addr
 
@@ -43,9 +35,6 @@ type Proxy struct {
 	// Contains the last requested resource names (and therefore, subscribed) for a given TypeURI
 	subscribedResources map[TypeURI]mapset.Set
 
-	// hash is based on CommonName
-	hash uint64
-
 	// kind is the proxy's kind (ex. sidecar, gateway)
 	kind ProxyKind
 
@@ -57,7 +46,7 @@ type Proxy struct {
 }
 
 func (p *Proxy) String() string {
-	return fmt.Sprintf("[Serial=%s], [Pod metadata=%s]", p.xDSCertificateSerialNumber, p.PodMetadataString())
+	return fmt.Sprintf("[ProxyUUID=%s], [Pod metadata=%s]", p.UUID, p.PodMetadataString())
 }
 
 // PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
@@ -175,21 +164,6 @@ func (p *Proxy) GetName() string {
 	return fmt.Sprintf("%s:%s", p.Identity.String(), p.UUID.String())
 }
 
-// GetCertificateCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
-func (p *Proxy) GetCertificateCommonName() certificate.CommonName {
-	return p.xDSCertificateCommonName
-}
-
-// GetCertificateSerialNumber returns the Serial Number of the certificate for the connected Envoy proxy.
-func (p *Proxy) GetCertificateSerialNumber() certificate.SerialNumber {
-	return p.xDSCertificateSerialNumber
-}
-
-// GetHash returns the proxy hash based on its xDSCertificateCommonName
-func (p *Proxy) GetHash() uint64 {
-	return p.hash
-}
-
 // GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.
 func (p *Proxy) GetConnectedAt() time.Time {
 	return p.connectedAt
@@ -236,30 +210,15 @@ func (p *Proxy) Kind() ProxyKind {
 }
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
-func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) (*Proxy, error) {
-	// Get CommonName hash for this proxy
-	hash, err := utils.HashFromString(certCommonName.String())
-	if err != nil {
-		log.Warn().Err(err).Msgf("Failed to get hash for proxy serial %s, 0 hash will be used", certSerialNumber)
-	}
-
-	cnMeta, err := getCertificateCommonNameMeta(certCommonName)
-	if err != nil {
-		return nil, ErrInvalidCertificateCN
-	}
-
+func NewProxy(kind ProxyKind, uuid uuid.UUID, svcIdentity identity.ServiceIdentity, ip net.Addr) *Proxy {
 	return &Proxy{
-		xDSCertificateCommonName:   certCommonName,
-		xDSCertificateSerialNumber: certSerialNumber,
-		UUID:                       cnMeta.ProxyUUID,
-
 		// Identity is of the form <name>.<namespace>.cluster.local
-		Identity: cnMeta.ServiceIdentity,
+		Identity: svcIdentity,
+		UUID:     uuid,
 
 		Addr: ip,
 
 		connectedAt: time.Now(),
-		hash:        hash,
 
 		lastNonce:            make(map[TypeURI]string),
 		lastSentVersion:      make(map[TypeURI]uint64),
@@ -267,11 +226,12 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 		lastxDSResourcesSent: make(map[TypeURI]mapset.Set),
 		subscribedResources:  make(map[TypeURI]mapset.Set),
 
-		kind: cnMeta.ProxyKind,
-	}, nil
+		kind: kind,
+	}
 }
 
-// NewXDSCertCommonName returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<serviceAccount>.<namespace>
-func NewXDSCertCommonName(proxyUUID uuid.UUID, kind ProxyKind, serviceAccount, namespace string) certificate.CommonName {
-	return certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", proxyUUID.String(), kind, serviceAccount, namespace, identity.ClusterLocalTrustDomain))
+// NewXDSCertCNPrefix returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<identity>
+// where identity itself is of the form <name>.<namespace>
+func NewXDSCertCNPrefix(proxyUUID uuid.UUID, kind ProxyKind, si identity.ServiceIdentity) string {
+	return fmt.Sprintf("%s.%s.%s", proxyUUID.String(), kind, si)
 }

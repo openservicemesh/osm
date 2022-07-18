@@ -87,11 +87,20 @@ spec:
              kubectl delete --ignore-not-found meshrootcertificate -n '{{ include "osm.namespace" . }}' osm-mesh-root-certificate;
              kubectl delete mutatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.osm.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-injector --ignore-not-found;
              kubectl delete validatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.osm.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-controller --ignore-not-found;
-      nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
 {{- if .Values.osm.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
 {{- end }}
+      {{- if .Values.osm.cleanup.affinity }}
+      affinity:
+      {{- toYaml .Values.osm.cleanup.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.cleanup.nodeSelector }}
+      nodeSelector:
+      {{- toYaml .Values.osm.cleanup.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.cleanup.tolerations }}
+      tolerations:
+      {{- toYaml .Values.osm.cleanup.tolerations | nindent 8 }}
+      {{- end }}
 

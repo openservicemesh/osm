@@ -269,6 +269,7 @@ spec:
                       type: boolean
                     enableMulticlusterMode:
                       type: boolean
+                      description: DEPRECATED, no longer used
                     enableSnapshotCacheMode:
                       type: boolean
                     enableAsyncProxyServiceMapping:
@@ -471,6 +472,7 @@ spec:
                       type: boolean
                     enableMulticlusterMode:
                       type: boolean
+                      description: DEPRECATED, no longer used
                     enableSnapshotCacheMode:
                       type: boolean
                     enableAsyncProxyServiceMapping:

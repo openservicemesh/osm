@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/openservicemesh/osm/blob/main/LICENSE)
 [![release](https://img.shields.io/github/release/openservicemesh/osm/all.svg)](https://github.com/openservicemesh/osm/releases)
 
-Open Service Mesh (OSM) is a lightweight, extensible, Cloud Native [service mesh][1] that allows users to uniformly manage, secure, and get out-of-the-box observability features for highly dynamic microservice environments.
+Open Service Mesh (OSM) is a lightweight, extensible, cloud native [service mesh][1] that allows users to uniformly manage, secure, and get out-of-the-box observability features for highly dynamic microservice environments.
 
 The OSM project builds on the ideas and implementations of many cloud native ecosystem projects including [Linkerd](https://github.com/linkerd/linkerd), [Istio](https://github.com/istio/istio), [Consul](https://github.com/hashicorp/consul), [Envoy](https://github.com/envoyproxy/envoy), [Kuma](https://github.com/kumahq/kuma), [Helm](https://github.com/helm/helm), and the [SMI](https://github.com/servicemeshinterface/smi-spec) specification.
 
@@ -62,7 +62,7 @@ OSM is under active development and is ready for production workloads.
 
 ### Support
 
-[Please search open issues on GitHub](https://github.com/openservicemesh/osm/issues), and if your issue isn't already represented please [open a new one](https://github.com/openservicemesh/osm/issues/new/choose). The OSM project maintainers will respond to the best of their abilities.
+See [SUPPORT](SUPPORT)
 
 ### SMI Specification support
 
@@ -82,7 +82,7 @@ Read more about [OSM's high level goals, design, and architecture](DESIGN.md).
 ## Install
 
 ### Prerequisites
-- Kubernetes cluster running Kubernetes v1.20.0 or greater
+- Kubernetes cluster running Kubernetes v1.22.9 or greater
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
 

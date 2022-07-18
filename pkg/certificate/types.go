@@ -3,8 +3,11 @@
 package certificate
 
 import (
+	"context"
 	"sync"
 	"time"
+
+	"golang.org/x/sync/singleflight"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
@@ -37,6 +40,21 @@ func (cn CommonName) String() string {
 	return string(cn)
 }
 
+// CertType is the type of certificate. This is only used by OSM.
+type CertType string
+
+const (
+	// Internal is the CertType representing all certs issued for use by the OSM
+	// control plane.
+	Internal CertType = "internal"
+
+	// IngressGateway is the CertType for certs issued for use by ingress gateways.
+	IngressGateway CertType = "ingressGateway"
+
+	// Service is the CertType for certs issued for use by the data plane.
+	Service CertType = "service"
+)
+
 // Certificate represents an x509 certificate.
 type Certificate struct {
 	// The CommonName of the certificate
@@ -53,11 +71,17 @@ type Certificate struct {
 	CertChain  pem.Certificate
 	PrivateKey pem.PrivateKey
 
-	// Certificate authority signing this certificate
+	// Certificate Authority signing this certificate
 	IssuingCA pem.RootCertificate
 
-	keyIssuerID string
-	pubIssuerID string
+	// The trust context of this certificate's recipient
+	// Includes both issuing CA and validating CA (if applicable)
+	TrustedCAs pem.RootCertificate
+
+	signingIssuerID    string
+	validatingIssuerID string
+
+	certType CertType
 }
 
 // Issuer is the interface for a certificate authority that can issue certificates from a given root certificate.
@@ -68,7 +92,10 @@ type Issuer interface {
 
 type issuer struct {
 	Issuer
-	ID string
+	ID          string
+	TrustDomain string
+	// memoized once the first certificate is issued
+	CertificateAuthority pem.RootCertificate
 }
 
 // Manager represents all necessary information for the certificate managers.
@@ -77,18 +104,50 @@ type Manager struct {
 	// Types: map[certificate.CommonName]*certificate.Certificate
 	cache sync.Map
 
-	serviceCertValidityDuration time.Duration
+	ingressCertValidityDuration func() time.Duration
+	// TODO(#4711): define serviceCertValidityDuration in the MRC
+	serviceCertValidityDuration func() time.Duration
 	msgBroker                   *messaging.Broker
 
-	mu        sync.RWMutex // mu syncrhonizes acces to the below resources.
-	keyIssuer *issuer
-	pubIssuer *issuer // empty if there is no additional public cert issuer.
+	mu            sync.Mutex // mu syncrhonizes acces to the below resources.
+	signingIssuer *issuer
+	// equal to signingIssuer if there is no additional public cert issuer.
+	validatingIssuer *issuer
+
+	group singleflight.Group
 }
 
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
 type MRCClient interface {
 	List() ([]*v1alpha2.MeshRootCertificate, error)
+	MRCEventBroker
 
 	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.
-	GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, string, error)
+	GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error)
+}
+
+// MRCEventType is a type alias for a string describing the type of MRC event
+type MRCEventType string
+
+// MRCEvent describes a change event on a given MRC
+type MRCEvent struct {
+	Type MRCEventType
+	// The last observed version of the MRC as of the time of this event
+	MRC *v1alpha2.MeshRootCertificate
+}
+
+var (
+	// MRCEventAdded is the type of announcement emitted when we observe an addition of a Kubernetes MeshRootCertificate
+	MRCEventAdded MRCEventType = "meshrootcertificate-added"
+
+	// MRCEventUpdated is the type of announcement emitted when we observe an update to a Kubernetes MeshRootCertificate
+	MRCEventUpdated MRCEventType = "meshrootcertificate-updated"
+)
+
+// MRCEventBroker describes any type that allows the caller to Watch() MRCEvents
+type MRCEventBroker interface {
+	// Watch allows the caller to subscribe to events surrounding
+	// MRCs. Watch returns a channel that emits events, and
+	// an error if the subscription goes awry.
+	Watch(context.Context) (<-chan MRCEvent, error)
 }

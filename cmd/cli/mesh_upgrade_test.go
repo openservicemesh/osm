@@ -24,7 +24,7 @@ func meshUpgradeConfig() *action.Configuration {
 		KubeClient: &kubefake.PrintingKubeClient{
 			Out: ioutil.Discard,
 		},
-		Capabilities: chartutil.DefaultCapabilities,
+		Capabilities: helmCapabilities(),
 		Log:          func(_ string, _ ...interface{}) {},
 	}
 }
