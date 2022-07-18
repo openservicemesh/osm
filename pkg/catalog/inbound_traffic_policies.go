@@ -131,8 +131,8 @@ func (mc *MeshCatalog) getInboundTrafficPoliciesForUpstream(upstreamSvc service.
 		// Only a single rule for permissive mode.
 		inboundPolicyForUpstreamSvc.Rules = []*trafficpolicy.Rule{
 			{
-				Route:                    *trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{localCluster}, upstreamTrafficSetting),
-				AllowedServiceIdentities: mapset.NewSetWith(identity.WildcardServiceIdentity),
+				Route:             *trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{localCluster}, upstreamTrafficSetting),
+				AllowedPrincipals: mapset.NewSetWith(identity.WildcardPrincipal),
 			},
 		}
 	} else {
@@ -180,15 +180,15 @@ func (mc *MeshCatalog) getRoutingRulesFromTrafficTarget(trafficTarget access.Tra
 	// Compute the allowed downstream service identities for the given TrafficTarget object
 	allowedDownstreamIdentities := mapset.NewSet()
 	for _, source := range trafficTarget.Spec.Sources {
-		sourceSvcIdentity := trafficTargetIdentityToSvcAccount(source).ToServiceIdentity()
+		sourceSvcIdentity := trafficTargetIdentityToSvcAccount(source).AsPrincipal(mc.GetTrustDomain())
 		allowedDownstreamIdentities.Add(sourceSvcIdentity)
 	}
 
 	var routingRules []*trafficpolicy.Rule
 	for _, httpRouteMatch := range httpRouteMatches {
 		rule := &trafficpolicy.Rule{
-			Route:                    *trafficpolicy.NewRouteWeightedCluster(httpRouteMatch, []service.WeightedCluster{routingCluster}, upstreamTrafficSetting),
-			AllowedServiceIdentities: allowedDownstreamIdentities,
+			Route:             *trafficpolicy.NewRouteWeightedCluster(httpRouteMatch, []service.WeightedCluster{routingCluster}, upstreamTrafficSetting),
+			AllowedPrincipals: allowedDownstreamIdentities,
 		}
 		routingRules = append(routingRules, rule)
 	}

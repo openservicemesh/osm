@@ -20,6 +20,7 @@ func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certMa
 	cfg configurator.Configurator, serviceProviders []service.Provider, endpointsProviders []endpoint.Provider,
 	msgBroker *messaging.Broker) *MeshCatalog {
 	mc := &MeshCatalog{
+		certManager:        certManager,
 		serviceProviders:   serviceProviders,
 		endpointsProviders: endpointsProviders,
 		meshSpec:           meshSpec,
@@ -41,4 +42,9 @@ func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certMa
 // GetKubeController returns the kube controller instance handling the current cluster
 func (mc *MeshCatalog) GetKubeController() k8s.Controller {
 	return mc.kubeController
+}
+
+// GetTrustDomain returns the currently configured trust domain, ie: cluster.local
+func (mc *MeshCatalog) GetTrustDomain() string {
+	return mc.certManager.GetTrustDomain()
 }

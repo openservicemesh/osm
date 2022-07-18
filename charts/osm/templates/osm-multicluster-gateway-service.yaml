@@ -1,0 +1,20 @@
+{{- if .Values.osm.featureFlags.enableMulticlusterMode }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: osm-multicluster-gateway
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-multicluster-gateway
+spec:
+  ports:
+    - name: multicluster
+      port: 15443
+      targetPort: 15443
+  selector:
+    app: osm-multicluster-gateway
+  # NOTE : This will expose an external IP for the gateway and the gateway acts as a passthrough to all the downstreams in the cluster.
+  type: LoadBalancer
+{{- end }}

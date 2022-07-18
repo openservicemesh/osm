@@ -1,0 +1,57 @@
+{{- if .Values.osm.featureFlags.enableMulticlusterMode }}
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: osm-multicluster-gateway
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    app: osm-multicluster-gateway
+spec:
+  selector:
+    matchLabels:
+      app: osm-multicluster-gateway
+  template:
+    metadata:
+      labels:
+        app: osm-multicluster-gateway
+      name: osm-multicluster-gateway
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+      initContainers:
+        - name: osm-multicluster-gateway-init
+          image: {{ .Values.osm.curlImage }}
+          args:
+          - /bin/sh
+          - -c
+          - >
+            set -x;
+            while [ $(curl -sw '%{http_code}' "http://osm-controller.{{ include "osm.namespace" . }}.svc.cluster.local:9091/health/ready" -o /dev/null) -ne 200 ]; do
+              sleep 10;
+            done
+      containers:
+        - name: envoy
+          image: {{ .Values.osm.sidecarImage }}
+          command:
+            - "envoy"
+          args: [
+            "--config-path", "/etc/envoy/bootstrap.yaml",
+            "--service-node", "osm-multicluster-gateway",
+            "--service-cluster", "osm-multicluster-gateway",
+            "--log-level", {{ .Values.osm.multicluster.gatewayLogLevel }},
+          ]
+          ports:
+            - name: "multicluster"
+              containerPort: 15443
+          volumeMounts:
+            - name: envoy-bootstrap-config-volume
+              mountPath: /etc/envoy
+              readOnly: true
+      volumes:
+        - name: envoy-bootstrap-config-volume
+          secret:
+            secretName: osm-multicluster-gateway-bootstrap-config
+{{- end }}

@@ -60,14 +60,14 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 										HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 								{
 									Route: trafficpolicy.RouteWeightedClusters{
 										HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
 										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -81,7 +81,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 										RetryPolicy:      nil,
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -143,7 +143,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 											},
 										},
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 								{
 									Route: trafficpolicy.RouteWeightedClusters{
@@ -156,7 +156,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 											},
 										},
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 							RateLimit: &policyv1alpha1.RateLimitSpec{
@@ -276,14 +276,14 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 								HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceIdentities: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity()),
+							AllowedPrincipals: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity().AsPrincipal("cluster.local")),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceIdentities: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity()),
+							AllowedPrincipals: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity().AsPrincipal("cluster.local")),
 						},
 					},
 				},
@@ -333,14 +333,14 @@ func TestBuildIngressRouteConfiguration(t *testing.T) {
 								HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+							AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
 								HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+							AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 						},
 					},
 				},
@@ -353,7 +353,7 @@ func TestBuildIngressRouteConfiguration(t *testing.T) {
 								HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+							AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 						},
 					},
 				},
@@ -463,9 +463,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 						},
 						WeightedClusters: mapset.NewSet(testWeightedCluster),
 					},
-					AllowedServiceIdentities: mapset.NewSetFromSlice(
-						[]interface{}{identity.K8sServiceAccount{Name: "foo", Namespace: "bar"}.ToServiceIdentity()},
-					),
+					AllowedPrincipals: mapset.NewSet("foo.bar.cluster.local"),
 				},
 			},
 			expectFunc: func(assert *tassert.Assertions, actual []*xds_route.Route) {
@@ -480,7 +478,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid route rule without Rule.AllowedServiceIdentities",
+			name: "invalid route rule without Rule.AllowedPrincipals",
 			inputRules: []*trafficpolicy.Rule{
 				{
 					Route: trafficpolicy.RouteWeightedClusters{
@@ -492,7 +490,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 						},
 						WeightedClusters: mapset.NewSet(testWeightedCluster),
 					},
-					AllowedServiceIdentities: nil,
+					AllowedPrincipals: nil,
 				},
 			},
 			expectFunc: func(assert *tassert.Assertions, actual []*xds_route.Route) {

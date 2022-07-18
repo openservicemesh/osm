@@ -73,13 +73,13 @@ var _ = BeforeEach(func() {
 })
 
 // Cleanup when error
-var _ = AfterEach(func() {
-	Td.Cleanup(Test)
-})
+// var _ = AfterEach(func() {
+// 	Td.Cleanup(Test)
+// })
 
-var _ = AfterSuite(func() {
-	Td.Cleanup(Suite)
-})
+// var _ = AfterSuite(func() {
+// 	Td.Cleanup(Suite)
+// })
 
 func (o OSMDescribeInfo) String() string {
 	return fmt.Sprintf("[Tier %d][Bucket %d][%s]", o.Tier, o.Bucket, o.OS)

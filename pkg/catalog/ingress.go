@@ -35,7 +35,8 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 	ingressBackendWithStatus := *ingressBackendPolicy
 
 	var trafficRoutingRules []*trafficpolicy.Rule
-	sourceServiceIdentities := mapset.NewSet()
+	// The ingress backend deals with principals (not identities). Principals have the trust domain included.
+	sourcePrincipals := mapset.NewSet()
 	var trafficMatches []*trafficpolicy.IngressTrafficMatch
 	for _, backend := range ingressBackendPolicy.Spec.Backends {
 		if backend.Name != svc.Name || backend.Port.Number != int(svc.TargetPort) {
@@ -91,9 +92,9 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 
 			case policyV1alpha1.KindAuthenticatedPrincipal:
 				if backend.TLS.SkipClientCertValidation {
-					sourceServiceIdentities.Add(identity.WildcardServiceIdentity)
+					sourcePrincipals.Add(identity.WildcardServiceIdentity.String())
 				} else {
-					sourceServiceIdentities.Add(source.Name)
+					sourcePrincipals.Add(source.Name)
 				}
 			}
 		}
@@ -102,7 +103,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		// because the identity cannot be verified for HTTP traffic. HTTP based ingress can
 		// restrict downstreams based on their endpoint's IP address.
 		if strings.EqualFold(backend.Port.Protocol, constants.ProtocolHTTP) {
-			sourceServiceIdentities.Add(identity.WildcardServiceIdentity)
+			sourcePrincipals.Add(identity.WildcardServiceIdentity.String())
 		}
 
 		trafficMatch.SourceIPRanges = sourceIPRanges
@@ -121,7 +122,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 				HTTPRouteMatch:   trafficpolicy.WildCardRouteMatch,
 				WeightedClusters: mapset.NewSet(backendCluster),
 			},
-			AllowedServiceIdentities: sourceServiceIdentities,
+			AllowedPrincipals: sourcePrincipals,
 		}
 		trafficRoutingRules = append(trafficRoutingRules, routingRule)
 	}
