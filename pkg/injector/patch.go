@@ -2,13 +2,14 @@ package injector
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
+
 	"gomodules.xyz/jsonpatch/v2"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -153,15 +154,15 @@ func (wh *mutatingWebhook) verifyPrerequisites(podOS string) error {
 	// Verify that the required images are configured
 	if image := wh.configurator.GetEnvoyImage(); !isWindows && image == "" {
 		// Linux pods require Envoy Linux image
-		return errors.New("MeshConfig sidecar.envoyImage not set")
+		return fmt.Errorf("MeshConfig sidecar.envoyImage not set")
 	}
 	if image := wh.configurator.GetEnvoyWindowsImage(); isWindows && image == "" {
 		// Windows pods require Envoy Windows image
-		return errors.New("MeshConfig sidecar.envoyWindowsImage not set")
+		return fmt.Errorf("MeshConfig sidecar.envoyWindowsImage not set")
 	}
 	if image := wh.configurator.GetInitContainerImage(); !isWindows && image == "" {
 		// Linux pods require init container image
-		return errors.New("MeshConfig sidecar.initContainerImage not set")
+		return fmt.Errorf("MeshConfig sidecar.initContainerImage not set")
 	}
 
 	return nil

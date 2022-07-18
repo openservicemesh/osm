@@ -9,7 +9,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -86,12 +85,12 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			kubeconfig, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return fmt.Errorf("Error fetching kubeconfig: %w", err)
 			}
 
 			clientset, err := kubernetes.NewForConfig(kubeconfig)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
+				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %w", err)
 			}
 			inst.clientSet = clientset
 			return inst.run(config)
@@ -156,7 +155,7 @@ func (i *installCmd) loadOSMChart() error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("error loading chart for installation: %s", err)
+		return fmt.Errorf("error loading chart for installation: %w", err)
 	}
 
 	return nil
@@ -166,7 +165,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 	finalValues := map[string]interface{}{}
 
 	if err := parseVal(i.setOptions, finalValues); err != nil {
-		return nil, errors.Wrap(err, "invalid format for --set")
+		return nil, fmt.Errorf("invalid format for --set: %w", err)
 	}
 
 	valuesConfig := []string{

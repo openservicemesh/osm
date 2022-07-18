@@ -38,6 +38,7 @@ func NewServer(name, namespace string, port int, cm *certificate.Manager, handle
 		cm:           cm,
 		onCertChange: onCertChange,
 	}
+	//#nosec G112
 	s.server = &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,

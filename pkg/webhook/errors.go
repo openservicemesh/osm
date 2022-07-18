@@ -1,7 +1,7 @@
 package webhook
 
-import "github.com/pkg/errors"
+import "fmt"
 
 var (
-	errEmptyAdmissionRequestBody = errors.New("empty request admission request body")
+	errEmptyAdmissionRequestBody = fmt.Errorf("empty request admission request body")
 )

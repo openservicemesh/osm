@@ -1,9 +1,8 @@
 package injector
 
 import (
+	"fmt"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 )
@@ -29,7 +28,7 @@ func (wh *mutatingWebhook) isMetricsEnabled(namespace string) (enabled bool, err
 		case "disabled", "no", "false":
 			enabled = false
 		default:
-			err = errors.Errorf("Invalid value specified for annotation %q: %s", constants.MetricsAnnotation, metrics)
+			err = fmt.Errorf("Invalid value specified for annotation %q: %s", constants.MetricsAnnotation, metrics)
 		}
 	}
 	return

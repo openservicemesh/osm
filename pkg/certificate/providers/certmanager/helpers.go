@@ -27,7 +27,7 @@ func (cm *CertManager) waitForCertificateReady(name string, timeout time.Duratio
 			}
 
 			if err != nil {
-				return false, fmt.Errorf("error getting CertificateRequest %s: %v", name, err)
+				return false, fmt.Errorf("error getting CertificateRequest %s: %w", name, err)
 			}
 
 			isReady := certificateRequestHasCondition(cr, cmapi.CertificateRequestCondition{

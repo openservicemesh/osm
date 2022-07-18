@@ -8,7 +8,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
@@ -63,11 +62,11 @@ func (s *Server) allPodUpdater() {
 func GetProxyFromPod(pod *v1.Pod) (*envoy.Proxy, error) {
 	uuidString, uuidFound := pod.Labels[constants.EnvoyUniqueIDLabelName]
 	if !uuidFound {
-		return nil, errors.Errorf("UUID not found for pod %s/%s, not a mesh pod", pod.Namespace, pod.Name)
+		return nil, fmt.Errorf("UUID not found for pod %s/%s, not a mesh pod", pod.Namespace, pod.Name)
 	}
 	proxyUUID, err := uuid.Parse(uuidString)
 	if err != nil {
-		return nil, errors.Errorf("Could not parse UUID label into UUID type (%s): %v", uuidString, err)
+		return nil, fmt.Errorf("Could not parse UUID label into UUID type (%s): %w", uuidString, err)
 	}
 
 	sa := pod.Spec.ServiceAccountName

@@ -1,12 +1,12 @@
 package eds
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -32,7 +32,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 // fulfillEDSRequest replies only to requested EDS endpoints on Discovery Request
 func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest) ([]types.Resource, error) {
 	if request == nil {
-		return nil, errors.Errorf("Endpoint discovery request for proxy %s cannot be nil", proxy.Identity)
+		return nil, fmt.Errorf("Endpoint discovery request for proxy %s cannot be nil", proxy.Identity)
 	}
 
 	var rdsResources []types.Resource
@@ -72,12 +72,12 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 
 	chunks := strings.FieldsFunc(cluster, splitFunc)
 	if len(chunks) != 3 {
-		return service.MeshService{}, errors.Errorf("Invalid cluster name. Expected: <namespace>/<name>|<port>, got: %s", cluster)
+		return service.MeshService{}, fmt.Errorf("Invalid cluster name. Expected: <namespace>/<name>|<port>, got: %s", cluster)
 	}
 
 	port, err := strconv.ParseUint(chunks[2], 10, 16)
 	if err != nil {
-		return service.MeshService{}, errors.Errorf("Invalid cluster port %s, expected int value: %s", chunks[2], err)
+		return service.MeshService{}, fmt.Errorf("Invalid cluster port %s, expected int value: %w", chunks[2], err)
 	}
 
 	return service.MeshService{

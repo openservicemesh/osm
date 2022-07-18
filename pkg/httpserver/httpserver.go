@@ -33,6 +33,7 @@ type HTTPServer struct {
 func NewHTTPServer(port uint16) *HTTPServer {
 	serverMux := http.NewServeMux()
 
+	//#nosec G112
 	return &HTTPServer{
 		started: false,
 		server: &http.Server{

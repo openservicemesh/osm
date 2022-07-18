@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,7 +79,7 @@ func getMeshInfoList(restConfig *rest.Config, clientSet kubernetes.Interface) ([
 
 	osmControllerDeployments, err := getControllerDeployments(clientSet)
 	if err != nil {
-		return meshInfoList, errors.Errorf("Could not list deployments %v", err)
+		return meshInfoList, fmt.Errorf("Could not list deployments %w", err)
 	}
 	if len(osmControllerDeployments.Items) == 0 {
 		return meshInfoList, nil
@@ -206,7 +205,7 @@ func getSupportedSmiForControllerPod(pod string, namespace string, restConfig *r
 
 	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", localPort, constants.OSMHTTPServerPort))
 	if err != nil {
-		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
+		return nil, fmt.Errorf("Error setting up port forwarding: %w", err)
 	}
 
 	var smiSupported map[string]string
@@ -218,16 +217,16 @@ func getSupportedSmiForControllerPod(pod string, namespace string, restConfig *r
 		// #nosec G107: Potential HTTP request made with variable url
 		resp, err := http.Get(url)
 		if err != nil {
-			return errors.Errorf("Error fetching url %s: %s", url, err)
+			return fmt.Errorf("Error fetching url %s: %s", url, err)
 		}
 
 		if err := json.NewDecoder(resp.Body).Decode(&smiSupported); err != nil {
-			return errors.Errorf("Error rendering HTTP response: %s", err)
+			return fmt.Errorf("Error rendering HTTP response: %s", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Errorf("Error retrieving supported SMI versions for pod %s in namespace %s: %s", pod, namespace, err)
+		return nil, fmt.Errorf("Error retrieving supported SMI versions for pod %s in namespace %s: %s", pod, namespace, err)
 	}
 
 	for smiAPI, smiAPIVersion := range smiSupported {
@@ -261,5 +260,5 @@ func annotateErrorMessageWithActionableMessage(actionableMessage string, errMsgF
 		errMsgFormat += "\n"
 	}
 
-	return errors.Errorf(errMsgFormat+actionableMessage, args...)
+	return fmt.Errorf(errMsgFormat+actionableMessage, args...)
 }

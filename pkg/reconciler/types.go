@@ -44,7 +44,7 @@ type client struct {
 func metaNameIndexFunc(obj interface{}) ([]string, error) {
 	meta, err := meta.Accessor(obj)
 	if err != nil {
-		return []string{""}, fmt.Errorf("object has no meta: %v", err)
+		return []string{""}, fmt.Errorf("object has no meta: %w", err)
 	}
 	return []string{meta.GetName()}, nil
 }

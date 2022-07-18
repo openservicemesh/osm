@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/client-go/kubernetes"
@@ -68,7 +67,7 @@ func (s *validatingWebhookServer) doValidation(w http.ResponseWriter, req *http.
 	log.Trace().Msgf("Received validating webhook request: Method=%v, URL=%v", req.Method, req.URL)
 
 	if contentType := req.Header.Get(webhook.HTTPHeaderContentType); contentType != webhook.ContentTypeJSON {
-		err := errors.Errorf("Invalid content type %s; Expected %s", contentType, webhook.ContentTypeJSON)
+		err := fmt.Errorf("Invalid content type %s; Expected %s", contentType, webhook.ContentTypeJSON)
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidAdmissionReqHeader)).
 			Msgf("Responded to admission request with HTTP %v", http.StatusUnsupportedMediaType)

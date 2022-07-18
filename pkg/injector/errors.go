@@ -1,8 +1,8 @@
 package injector
 
-import "github.com/pkg/errors"
+import "fmt"
 
 var (
-	errNamespaceNotFound   = errors.New("namespace not found")
-	errNilAdmissionRequest = errors.New("nil admission request")
+	errNamespaceNotFound   = fmt.Errorf("namespace not found")
+	errNilAdmissionRequest = fmt.Errorf("nil admission request")
 )

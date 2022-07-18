@@ -69,6 +69,7 @@ var _ = Describe("Test httpserver with probes", func() {
 			router.Handle(url, handler)
 		}
 		testServer = &httptest.Server{
+			//#nosec G112
 			Config: &http.Server{
 				Addr:    fmt.Sprintf(":%d", testHTTPServerPort),
 				Handler: router,
