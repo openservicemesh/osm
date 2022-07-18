@@ -1,11 +1,11 @@
 package lds
 
 import (
+	"fmt"
 	"strings"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -46,7 +46,7 @@ func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xd
 
 func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *trafficpolicy.IngressTrafficMatch, sidecarSpec configv1alpha2.SidecarSpec) (*xds_listener.FilterChain, error) {
 	if trafficMatch == nil {
-		return nil, errors.Errorf("Nil IngressTrafficMatch for ingress on proxy with identity %s", lb.serviceIdentity)
+		return nil, fmt.Errorf("Nil IngressTrafficMatch for ingress on proxy with identity %s", lb.serviceIdentity)
 	}
 
 	// Build the HTTP Connection Manager filter from its options
@@ -63,12 +63,12 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 		tracingAPIEndpoint: lb.cfg.GetTracingEndpoint(),
 	}.build()
 	if err != nil {
-		return nil, errors.Errorf("Error building inbound HTTP connection manager for proxy with identity %s, traffic match: %v ", lb.serviceIdentity, trafficMatch)
+		return nil, fmt.Errorf("Error building inbound HTTP connection manager for proxy with identity %s, traffic match: %v ", lb.serviceIdentity, trafficMatch)
 	}
 
 	marshalledIngressConnManager, err := anypb.New(ingressConnManager)
 	if err != nil {
-		return nil, errors.Errorf("Error marshalling ingress HttpConnectionManager object for proxy with identity %s", lb.serviceIdentity)
+		return nil, fmt.Errorf("Error marshalling ingress HttpConnectionManager object for proxy with identity %s", lb.serviceIdentity)
 	}
 
 	var sourcePrefixes []*xds_core.CidrRange
@@ -116,7 +116,7 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 
 		marshalledDownstreamTLSContext, err := anypb.New(envoy.GetDownstreamTLSContext(lb.serviceIdentity, !trafficMatch.SkipClientCertValidation, sidecarSpec))
 		if err != nil {
-			return nil, errors.Errorf("Error marshalling DownstreamTLSContext in ingress filter chain for proxy with identity %s", lb.serviceIdentity)
+			return nil, fmt.Errorf("Error marshalling DownstreamTLSContext in ingress filter chain for proxy with identity %s", lb.serviceIdentity)
 		}
 
 		filterChain.TransportSocket = &xds_core.TransportSocket{
@@ -127,7 +127,7 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 		}
 
 	default:
-		err := errors.Errorf("Unsupported ingress protocol %s on proxy with identity %s. Ingress protocol must be one of 'http, https'", trafficMatch.Protocol, lb.serviceIdentity)
+		err := fmt.Errorf("Unsupported ingress protocol %s on proxy with identity %s. Ingress protocol must be one of 'http, https'", trafficMatch.Protocol, lb.serviceIdentity)
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUnsupportedProtocolForService)).Msg("Error building filter chain for ingress")
 		return nil, err
 	}

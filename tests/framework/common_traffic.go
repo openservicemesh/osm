@@ -105,7 +105,7 @@ func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 		return HTTPRequestResult{
 			0,
 			nil,
-			fmt.Errorf("Remote exec err: %v | stderr: %s", err, stderr),
+			fmt.Errorf("Remote exec err: %w | stderr: %s", err, stderr),
 		}
 	}
 	if len(stderr) > 0 {
@@ -120,7 +120,7 @@ func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 		return HTTPRequestResult{
 			0,
 			nil,
-			fmt.Errorf("Could not read status code as integer: %v", err),
+			fmt.Errorf("Could not read status code as integer: %w", err),
 		}
 	}
 	delete(curlMappedReturn, StatusCodeWord)
@@ -152,7 +152,7 @@ func (td *OsmTestData) TCPRequest(req TCPRequestDef) TCPRequestResult {
 		// Error codes from the execution come through err
 		return TCPRequestResult{
 			stdout,
-			fmt.Errorf("Remote exec err: %v | stderr: %s | cmd: %s", err, stderr, command),
+			fmt.Errorf("Remote exec err: %w | stderr: %s | cmd: %s", err, stderr, command),
 		}
 	}
 	if len(stderr) > 0 {
@@ -184,7 +184,7 @@ func (td *OsmTestData) GRPCRequest(req GRPCRequestDef) GRPCRequestResult {
 		// Error codes from the execution come through err
 		return GRPCRequestResult{
 			stdout,
-			fmt.Errorf("Remote exec err: %v | stderr: %s | cmd: %s", err, stderr, command),
+			fmt.Errorf("Remote exec err: %w | stderr: %s | cmd: %s", err, stderr, command),
 		}
 	}
 	if len(stderr) > 0 {

@@ -2,8 +2,6 @@ package framework
 
 import (
 	"fmt"
-
-	"github.com/pkg/errors"
 )
 
 // HelmInstallOSM installs an osm control plane using the osm chart which lives in charts/osm
@@ -19,7 +17,7 @@ func (td *OsmTestData) HelmInstallOSM(release, namespace string) error {
 	stdout, stderr, err := td.RunLocal("helm", args...)
 	if err != nil {
 		td.T.Logf("stdout:\n%s", stdout)
-		return errors.Errorf("failed to run helm install with osm chart: %s", stderr)
+		return fmt.Errorf("failed to run helm install with osm chart: %s", stderr)
 	}
 
 	return nil

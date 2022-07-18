@@ -15,7 +15,6 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -134,7 +133,7 @@ func getLocalRateLimitFilterConfig(config *policyv1alpha1.HTTPLocalRateLimitSpec
 	case "hour":
 		fillInterval = time.Hour
 	default:
-		return nil, errors.Errorf("invalid unit %q for HTTP request rate limiting", config.Unit)
+		return nil, fmt.Errorf("invalid unit %q for HTTP request rate limiting", config.Unit)
 	}
 
 	rl := &xds_local_ratelimit.LocalRateLimit{

@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -19,7 +18,7 @@ import (
 )
 
 var (
-	errEmptyResult = errors.Errorf("Empty result from prometheus")
+	errEmptyResult = fmt.Errorf("Empty result from prometheus")
 )
 
 // Prometheus is a simple handler to represent a target Prometheus endpoint to run queries against
@@ -55,7 +54,7 @@ func (p *Prometheus) VectorQuery(query string, t time.Time) (float64, error) {
 		}
 		return float64(vectorVal[0].Value), nil
 	default:
-		return 0, errors.Errorf("Unknown model value type: %v", modelValue.Type().String())
+		return 0, fmt.Errorf("Unknown model value type: %v", modelValue.Type().String())
 	}
 }
 

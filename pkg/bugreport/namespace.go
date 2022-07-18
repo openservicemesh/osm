@@ -1,11 +1,10 @@
 package bugreport
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 )
@@ -21,7 +20,7 @@ var commonNamespaceCmds = [][]string{
 func (c *Config) initRootNamespaceDir() error {
 	rootNsDir := c.rootNamespaceDirPath()
 	if err := os.Mkdir(rootNsDir, 0700); err != nil {
-		return errors.Wrapf(err, "Error creating root dir %s for namespaces", rootNsDir)
+		return fmt.Errorf("Error creating root dir %s for namespaces: %w", rootNsDir, err)
 	}
 	return nil
 }

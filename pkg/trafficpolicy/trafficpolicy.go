@@ -1,12 +1,12 @@
 package trafficpolicy
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 
 	mapset "github.com/deckarep/golang-set"
 	hashstructure "github.com/mitchellh/hashstructure/v2"
-	"github.com/pkg/errors"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
@@ -98,7 +98,7 @@ func (out *OutboundTrafficPolicy) AddRoute(httpRouteMatch HTTPRouteMatch, retryP
 				existingRoute.RetryPolicy = retryPolicy
 				return nil
 			}
-			return errors.Errorf("Route for HTTP Route Match: %v already exists: %v for outbound traffic policy: %s", existingRoute.HTTPRouteMatch, existingRoute, out.Name)
+			return fmt.Errorf("Route for HTTP Route Match: %v already exists: %v for outbound traffic policy: %s", existingRoute.HTTPRouteMatch, existingRoute, out.Name)
 		}
 	}
 

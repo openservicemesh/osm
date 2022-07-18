@@ -2,12 +2,13 @@ package providers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
-	"github.com/pkg/errors"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -219,7 +220,7 @@ func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2
 	provider := mrc.Spec.Provider.CertManager
 	client, err := cmversionedclient.NewForConfig(c.kubeConfig)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to build cert-manager client set: %s", err)
+		return nil, fmt.Errorf("Failed to build cert-manager client set: %w", err)
 	}
 
 	cmClient, err := certmanager.New(

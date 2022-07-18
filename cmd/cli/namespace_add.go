@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -62,12 +61,12 @@ func newNamespaceAdd(out io.Writer) *cobra.Command {
 			namespaceAdd.namespaces = args
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return fmt.Errorf("Error fetching kubeconfig: %w", err)
 			}
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
+				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %w", err)
 			}
 			namespaceAdd.clientSet = clientset
 			return namespaceAdd.run()
@@ -95,7 +94,7 @@ func (a *namespaceAddCmd) run() error {
 			return err
 		}
 		if !exists {
-			return errors.Errorf("mesh [%s] does not exist, please specify another mesh using --mesh-name or create a new mesh", a.meshName)
+			return fmt.Errorf("mesh [%s] does not exist, please specify another mesh using --mesh-name or create a new mesh", a.meshName)
 		}
 
 		deploymentsClient := a.clientSet.AppsV1().Deployments(ns)
@@ -115,7 +114,7 @@ func (a *namespaceAddCmd) run() error {
 		// if the namespace is already a part of the mesh then don't add it again
 		namespace, err := a.clientSet.CoreV1().Namespaces().Get(ctx, ns, metav1.GetOptions{})
 		if err != nil {
-			return errors.Errorf("Could not add namespace [%s] to mesh [%s]: %v", ns, a.meshName, err)
+			return fmt.Errorf("Could not add namespace [%s] to mesh [%s]: %w", ns, a.meshName, err)
 		}
 		meshName := namespace.Labels[constants.OSMKubeResourceMonitorAnnotation]
 		if a.meshName == meshName {
@@ -125,7 +124,7 @@ func (a *namespaceAddCmd) run() error {
 
 		// if ignore label exits don`t add namespace
 		if val, ok := namespace.ObjectMeta.Labels[constants.IgnoreLabel]; ok && val == trueValue {
-			return errors.Errorf("Cannot add ignored namespace")
+			return fmt.Errorf("Cannot add ignored namespace")
 		}
 
 		var patch string
@@ -161,7 +160,7 @@ func (a *namespaceAddCmd) run() error {
 
 		_, err = a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 		if err != nil {
-			return errors.Errorf("Could not add namespace [%s] to mesh [%s]: %v", ns, a.meshName, err)
+			return fmt.Errorf("Could not add namespace [%s] to mesh [%s]: %w", ns, a.meshName, err)
 		}
 
 		_, _ = fmt.Fprintf(a.out, "Namespace [%s] successfully added to mesh [%s]\n", ns, a.meshName)
@@ -181,7 +180,7 @@ func meshExists(clientSet kubernetes.Interface, meshName string) (bool, error) {
 	}
 	osmControllerDeployments, err := deploymentsClient.List(context.TODO(), listOptions)
 	if err != nil {
-		return false, errors.Errorf("Cannot obtain information about the mesh [%s]: [%v]", meshName, err)
+		return false, fmt.Errorf("Cannot obtain information about the mesh [%s]: [%w]", meshName, err)
 	}
 	// the mesh is present if there are osm controllers for the mesh
 	return len(osmControllerDeployments.Items) != 0, nil

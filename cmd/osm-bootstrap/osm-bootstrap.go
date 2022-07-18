@@ -6,13 +6,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -332,7 +332,7 @@ func (b *bootstrap) ensureMeshConfig() error {
 func (b *bootstrap) initiatilizeKubernetesEventsRecorder() error {
 	bootstrapPod, err := b.getBootstrapPod()
 	if err != nil {
-		return errors.Errorf("Error fetching osm-bootstrap pod: %s", err)
+		return fmt.Errorf("Error fetching osm-bootstrap pod: %w", err)
 	}
 	eventRecorder := events.GenericEventRecorder()
 	return eventRecorder.Initialize(bootstrapPod, b.kubeClient, osmNamespace)

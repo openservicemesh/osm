@@ -10,7 +10,6 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admission/v1"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -101,7 +100,7 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 	log.Trace().Msgf("Received mutating webhook request: Method=%v, URL=%v", req.Method, req.URL)
 
 	if contentType := req.Header.Get(webhook.HTTPHeaderContentType); contentType != webhook.ContentTypeJSON {
-		err := errors.Errorf("Invalid content type %s; Expected %s", contentType, webhook.ContentTypeJSON)
+		err := fmt.Errorf("Invalid content type %s; Expected %s", contentType, webhook.ContentTypeJSON)
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidAdmissionReqHeader)).
 			Msgf("Responded to admission request with HTTP %v", http.StatusUnsupportedMediaType)
@@ -256,7 +255,7 @@ func isAnnotatedForInjection(annotations map[string]string, objectKind string, o
 	case "disabled", "no", "false":
 		enabled = false
 	default:
-		err = errors.Errorf("Invalid annotation value for key %q: %s", constants.SidecarInjectionAnnotation, inject)
+		err = fmt.Errorf("Invalid annotation value for key %q: %s", constants.SidecarInjectionAnnotation, inject)
 	}
 	return
 }

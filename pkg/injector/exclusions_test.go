@@ -1,9 +1,9 @@
 package injector
 
 import (
+	"fmt"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,14 +42,14 @@ func TestGetPortExclusionListForPod(t *testing.T) {
 			name:          "contains outbound port exclusion list annontation but invalid port",
 			podAnnotation: map[string]string{outboundPortExclusionListAnnotation: "6060, -7070"},
 			forAnnotation: outboundPortExclusionListAnnotation,
-			expectedError: errors.Errorf("Invalid port value '%s' specified for annotation '%s'", "-7070", outboundPortExclusionListAnnotation),
+			expectedError: fmt.Errorf("Invalid port value '%s' specified for annotation '%s'", "-7070", outboundPortExclusionListAnnotation),
 			expectedPorts: nil,
 		},
 		{
 			name:          "contains inbound port exclusion list annontation but invalid port",
 			podAnnotation: map[string]string{inboundPortExclusionListAnnotation: "6060, -7070"},
 			forAnnotation: inboundPortExclusionListAnnotation,
-			expectedError: errors.Errorf("Invalid port value '%s' specified for annotation '%s'", "-7070", inboundPortExclusionListAnnotation),
+			expectedError: fmt.Errorf("Invalid port value '%s' specified for annotation '%s'", "-7070", inboundPortExclusionListAnnotation),
 			expectedPorts: nil,
 		},
 	}
@@ -168,7 +168,7 @@ func TestGetOutboundIPRangeListForPod(t *testing.T) {
 			name:             "invalid annotation",
 			podAnnotation:    map[string]string{outboundIPRangeExclusionListAnnotation: "foobar"},
 			forAnnotation:    outboundIPRangeExclusionListAnnotation,
-			expectedError:    errors.Errorf("Invalid IP range 'foobar' specified for annotation '%s'", outboundIPRangeExclusionListAnnotation),
+			expectedError:    fmt.Errorf("Invalid IP range 'foobar' specified for annotation '%s'", outboundIPRangeExclusionListAnnotation),
 			expectedIPRanges: nil,
 		},
 	}
