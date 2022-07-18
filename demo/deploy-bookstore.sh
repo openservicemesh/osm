@@ -90,7 +90,7 @@ spec:
       containers:
         - image: "${CTR_REGISTRY}/bookstore:${CTR_TAG}"
           imagePullPolicy: Always
-          name: $SVC
+          name: bookstore
           ports:
             - containerPort: 14001
               name: web
@@ -133,10 +133,10 @@ spec:
         - name: $CTR_REGISTRY_CREDS_NAME
 EOF
 
-kubectl get pods      --no-headers -o wide --selector app="$SVC" -n "$BOOKSTORE_NAMESPACE"
-kubectl get endpoints --no-headers -o wide --selector app="$SVC" -n "$BOOKSTORE_NAMESPACE"
+kubectl get pods      --no-headers -o wide --selector app=bookstore,version="$VERSION" -n "$BOOKSTORE_NAMESPACE"
+kubectl get endpoints --no-headers -o wide --selector app=bookstore,version="$VERSION" -n "$BOOKSTORE_NAMESPACE"
 kubectl get service                -o wide                       -n "$BOOKSTORE_NAMESPACE"
 
-for x in $(kubectl get service -n "$BOOKSTORE_NAMESPACE" --selector app="$SVC" --no-headers | awk '{print $1}'); do
+for x in $(kubectl get service -n "$BOOKSTORE_NAMESPACE" --selector app=bookstore,version="$VERSION" --no-headers | awk '{print $1}'); do
     kubectl get service "$x" -n "$BOOKSTORE_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
 done
