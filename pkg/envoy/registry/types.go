@@ -3,6 +3,7 @@ package registry
 import (
 	"sync"
 
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -14,9 +15,11 @@ var log = logger.New("proxy-registry")
 type ProxyRegistry struct {
 	ProxyServiceMapper
 
-	connectedProxies sync.Map
+	connectedProxies map[string]*envoy.Proxy
 
 	msgBroker *messaging.Broker
+
+	mu sync.Mutex
 }
 
 // A simple interface to release certificates. Created to abstract the certificate.Manager struct for testing purposes.

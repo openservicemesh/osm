@@ -1,6 +1,8 @@
 package registry
 
 import (
+	"sync"
+
 	"github.com/google/uuid"
 
 	. "github.com/onsi/ginkgo"
@@ -8,6 +10,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 var _ = Describe("Test catalog proxy register/unregister", func() {
@@ -40,5 +43,29 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 			connectedProxies := proxyRegistry.ListConnectedProxies()
 			Expect(len(connectedProxies)).To(Equal(0))
 		})
+
+		It("ensures the correctness of proxy count", func() {
+			err := logger.SetLogLevel("error")
+			Expect(err).To(BeNil())
+
+			proxyRegistry := NewProxyRegistry(nil, nil)
+			total := 10000
+
+			wg := sync.WaitGroup{}
+			wg.Add(total*2)
+			for j := 0; j < total; j++ {
+				proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil)
+				go func() {
+					proxyRegistry.RegisterProxy(proxy)
+					wg.Done()
+					proxyRegistry.UnregisterProxy(proxy)
+					wg.Done()
+				}()
+			}
+
+			wg.Wait()
+			Expect(proxyRegistry.GetConnectedProxyCount()).To(Equal(0))
+		})
 	})
+
 })

@@ -187,7 +187,6 @@ func BenchmarkSendXDSResponse(b *testing.B) {
 					b.Fatalf("Failed to send response: %s", err)
 				}
 			}
-			b.StopTimer()
 		})
 	}
 }
