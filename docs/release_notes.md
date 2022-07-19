@@ -4,10 +4,8 @@
 
 ### Notable changes
 
-- OSM certificate provider is now configured using the new CRD, MeshRootCertificate
-  - Custom trust domains (i.e. certificate CommonNames) are now supported
+- Custom trust domains (i.e. certificate CommonNames) are now supported
 - The authentication token used to configure the Hashicorp Vault certificate provider can now be passed in using a secretRef
-- Along with root certificate rotation we support custom trust domains, as well as rotating to new trust domains with no downtime.
 - Envoy has been updated to v1.22 and uses the `envoyproxy/envoy-distroless` image instead of the deprecated `envoyproxy/envoy-alpine` image.
   - This means that `kubectl exec -c envoy ... -- sh` will no longer work for the Envoy sidecar
 - Added support for Kubernetes 1.23 and 1.24
