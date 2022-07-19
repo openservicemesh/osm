@@ -60,6 +60,7 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent,
 							},
 						},
 					},
+					TrustDomain: "cluster.local",
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,

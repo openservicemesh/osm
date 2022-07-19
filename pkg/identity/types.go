@@ -23,6 +23,9 @@ func New(name, namespace string) ServiceIdentity {
 // WildcardServiceIdentity is a wildcard to match all service identities
 const WildcardServiceIdentity ServiceIdentity = "*"
 
+// WildcardPrincipal is a wildcard to match all principals. A principal is a service identity with a trust domain.
+const WildcardPrincipal = "*"
+
 // String returns the ServiceIdentity as a string
 func (si ServiceIdentity) String() string {
 	return string(si)
@@ -68,4 +71,9 @@ func (sa K8sServiceAccount) String() string {
 // ToServiceIdentity converts K8sServiceAccount to the newer ServiceIdentity
 func (sa K8sServiceAccount) ToServiceIdentity() ServiceIdentity {
 	return New(sa.Name, sa.Namespace)
+}
+
+// AsPrincipal converts the K8sServiceAccount to a Principal with the given trust domain.
+func (sa K8sServiceAccount) AsPrincipal(trustDomain string) string {
+	return sa.ToServiceIdentity().AsPrincipal(trustDomain)
 }

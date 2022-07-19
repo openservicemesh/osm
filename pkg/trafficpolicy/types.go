@@ -71,8 +71,9 @@ type InboundTrafficPolicy struct {
 // Rule is a struct that represents which authenticated principals can access a Route.
 // A principal is of the form <service-identity>.<trust-domain>. It can also contain wildcards.
 type Rule struct {
-	Route                    RouteWeightedClusters `json:"route:omitempty"`
-	AllowedServiceIdentities mapset.Set            `json:"allowed_princinpals:omitempty"`
+	Route RouteWeightedClusters `json:"route:omitempty"`
+	// Principals contain the trust domain already while identities do not.
+	AllowedPrincipals mapset.Set `json:"allowed_principals:omitempty"`
 }
 
 // OutboundTrafficPolicy is a struct that associates a list of Routes with outbound traffic on a set of Hostnames
