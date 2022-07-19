@@ -37,7 +37,7 @@ require (
 	github.com/onsi/gomega v1.17.0
 	github.com/opencontainers/runc v1.1.3 // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
-	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_golang v1.11.1
 	github.com/prometheus/common v0.28.0
 	github.com/rs/zerolog v1.18.0
 	github.com/servicemeshinterface/smi-sdk-go v0.5.0
