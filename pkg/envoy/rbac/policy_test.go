@@ -18,7 +18,6 @@ func TestBuild(t *testing.T) {
 		identities            []identity.ServiceIdentity
 		ports                 []uint16
 		applyPermissionsAsAND bool
-		trustDomain           string
 		expectedPolicy        *xds_rbac.Policy
 	}{
 		{

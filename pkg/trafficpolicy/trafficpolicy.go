@@ -144,7 +144,7 @@ func MergeRules(originalRules, latestRules []*Rule) []*Rule {
 		for _, original := range originalRules {
 			if reflect.DeepEqual(latest.Route, original.Route) {
 				foundRoute = true
-				original.AllowedServiceIdentities = original.AllowedServiceIdentities.Union(latest.AllowedServiceIdentities)
+				original.AllowedPrincipals = original.AllowedPrincipals.Union(latest.AllowedPrincipals)
 				break
 			}
 		}
