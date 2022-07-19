@@ -195,7 +195,7 @@ func testIngressBackend() {
 
 		// Create a gateway cert.
 		meshConfig.Spec.Certificate.IngressGateway = &configv1alpha2.IngressGatewayCertSpec{
-			SubjectAltNames:  []string{"ingress-nginx.ingress-ns.cluster.local"},
+			SubjectAltNames:  []string{"ingress-nginx.ingress-ns.example.com"},
 			ValidityDuration: "24h",
 			Secret: corev1.SecretReference{
 				Name:      secretName,
@@ -212,7 +212,7 @@ func testIngressBackend() {
 		// Update the ingress annotations
 		ing.ObjectMeta.Annotations = map[string]string{
 			"nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
-			// # proxy_ssl_name for a service is of the form <service-account>.<namespace>.cluster.local
+			// # proxy_ssl_name for a service is of the form <service-account>.<namespace>.<trustdomain>
 			"nginx.ingress.kubernetes.io/configuration-snippet": fmt.Sprintf(`proxy_ssl_name "%s.%s.cluster.local";`, svcAccDef.Name, destNs),
 			"nginx.ingress.kubernetes.io/proxy-ssl-secret":      fmt.Sprintf("%s/%s", destNs, secretName),
 			"nginx.ingress.kubernetes.io/proxy-ssl-verify":      "on",
@@ -232,7 +232,7 @@ func testIngressBackend() {
 		ingressBackend.Spec.Backends[0].Port.Protocol = "https"
 		ingressBackend.Spec.Sources = append(ingressBackend.Spec.Sources, policyv1alpha1.IngressSourceSpec{
 			Kind: "AuthenticatedPrincipal",
-			Name: "ingress-nginx.ingress-ns.cluster.local",
+			Name: "ingress-nginx.ingress-ns.example.com",
 		})
 
 		_, err = Td.PolicyClient.PolicyV1alpha1().IngressBackends(ingressBackend.Namespace).Update(context.TODO(), ingressBackend, metav1.UpdateOptions{})
