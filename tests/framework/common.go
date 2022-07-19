@@ -1017,7 +1017,7 @@ func (td *OsmTestData) DeleteNs(nsName string) error {
 		}
 	}
 
-	var backgroundDelete metav1.DeletionPropagation = metav1.DeletePropagationBackground
+	backgroundDelete := metav1.DeletePropagationBackground
 
 	td.T.Logf("Deleting namespace %v", nsName)
 	err := td.Client.CoreV1().Namespaces().Delete(context.Background(), nsName, metav1.DeleteOptions{PropagationPolicy: &backgroundDelete})
