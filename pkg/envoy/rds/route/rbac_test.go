@@ -29,10 +29,10 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceIdentities: mapset.NewSetFromSlice([]interface{}{
-					identity.K8sServiceAccount{Name: "foo", Namespace: "ns-1"}.ToServiceIdentity(),
-					identity.K8sServiceAccount{Name: "bar", Namespace: "ns-2"}.ToServiceIdentity(),
-				}),
+				AllowedPrincipals: mapset.NewSet(
+					identity.K8sServiceAccount{Name: "foo", Namespace: "ns-1"}.AsPrincipal("cluster.local"),
+					identity.K8sServiceAccount{Name: "bar", Namespace: "ns-2"}.AsPrincipal("cluster.local"),
+				),
 			},
 			expectedRBACPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
@@ -54,9 +54,9 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceIdentities: mapset.NewSetFromSlice([]interface{}{
-					identity.WildcardServiceIdentity, // setting a wildcard will result in all downstream identities being allowed
-				}),
+				AllowedPrincipals: mapset.NewSet(
+					identity.WildcardPrincipal, // setting a wildcard will result in all downstream identities being allowed
+				),
 			},
 			expectedRBACPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
@@ -73,13 +73,12 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "invalid trafficpolicy rule with Rule.AllowedServiceIdentities not specified",
+			name: "invalid trafficpolicy rule with Rule.AllowedPrincipals not specified",
 			rule: &trafficpolicy.Rule{
 				Route: trafficpolicy.RouteWeightedClusters{
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceIdentities: nil,
 			},
 			expectedRBACPolicy: nil,
 			expectError:        true,

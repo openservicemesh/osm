@@ -127,10 +127,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.AsPrincipal("cluster.local")),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -140,10 +140,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.AsPrincipal("cluster.local")),
 						},
 					},
 				},
@@ -170,10 +170,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.AsPrincipal("cluster.local")),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -183,10 +183,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.AsPrincipal("cluster.local")),
 						},
 					},
 				},
