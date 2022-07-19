@@ -44,11 +44,11 @@ func main() {
 	serverMux := http.NewServeMux()
 	serverMux.HandleFunc("/osm-healthcheck", healthcheckHandler)
 
-	//#nosec G112
 	// Initialize osm-healthcheck HTTP server
 	server := &http.Server{
-		Addr:    ":15904",
-		Handler: serverMux,
+		Addr:              ":15904",
+		Handler:           serverMux,
+		ReadHeaderTimeout: time.Second * 10,
 	}
 
 	log.Info().Msgf("Starting OSM healthcheck HTTP server")
