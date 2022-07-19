@@ -101,6 +101,8 @@ func (s *HTTPServer) Stop() error {
 	s.server = &http.Server{
 		Addr:    fmt.Sprintf(":%d", s.port),
 		Handler: s.httpServeMux,
+		// Needs a default for gosec. This can probably be brought down to a lower value.
+		ReadHeaderTimeout: time.Second * 10,
 	}
 
 	return nil
