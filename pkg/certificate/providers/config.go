@@ -33,7 +33,7 @@ const (
 	rootCertOrganization = "Open Service Mesh"
 )
 
-var getCA func(certificate.Issuer) (pem.RootCertificate, error) = func(i certificate.Issuer) (pem.RootCertificate, error) {
+var getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
 	cert, err := i.IssueCertificate("init-cert", 1*time.Second)
 	if err != nil {
 		return nil, err
