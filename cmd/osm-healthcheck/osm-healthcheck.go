@@ -44,7 +44,7 @@ func main() {
 	serverMux := http.NewServeMux()
 	serverMux.HandleFunc("/osm-healthcheck", healthcheckHandler)
 
-	//#nosec G112
+	// #nosec G112: Potential Slowloris Attack because ReadHeaderTimeout is not configured in the http.Server
 	// Initialize osm-healthcheck HTTP server
 	server := &http.Server{
 		Addr:    ":15904",

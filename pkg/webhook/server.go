@@ -38,7 +38,7 @@ func NewServer(name, namespace string, port int, cm *certificate.Manager, handle
 		cm:           cm,
 		onCertChange: onCertChange,
 	}
-	//#nosec G112
+	// #nosec G112: Potential Slowloris Attack because ReadHeaderTimeout is not configured in the http.Server
 	s.server = &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,

@@ -33,7 +33,7 @@ type HTTPServer struct {
 func NewHTTPServer(port uint16) *HTTPServer {
 	serverMux := http.NewServeMux()
 
-	//#nosec G112
+	// #nosec G112: Potential Slowloris Attack because ReadHeaderTimeout is not configured in the http.Server
 	return &HTTPServer{
 		started: false,
 		server: &http.Server{
@@ -98,7 +98,7 @@ func (s *HTTPServer) Stop() error {
 
 	// Free and reset the server, so it can be started again
 	s.started = false
-	//#nosec G112
+	// #nosec G112: Potential Slowloris Attack because ReadHeaderTimeout is not configured in the http.Server
 	s.server = &http.Server{
 		Addr:    fmt.Sprintf(":%d", s.port),
 		Handler: s.httpServeMux,

@@ -69,7 +69,7 @@ var _ = Describe("Test httpserver with probes", func() {
 			router.Handle(url, handler)
 		}
 		testServer = &httptest.Server{
-			//#nosec G112
+			// #nosec G112: Potential Slowloris Attack because ReadHeaderTimeout is not configured in the http.Server
 			Config: &http.Server{
 				Addr:    fmt.Sprintf(":%d", testHTTPServerPort),
 				Handler: router,

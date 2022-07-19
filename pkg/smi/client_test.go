@@ -382,7 +382,7 @@ func TestGetSmiClientVersionHTTPHandler(t *testing.T) {
 		router.Handle(path, handler)
 	}
 
-	//#nosec G112
+	// #nosec G112: Potential Slowloris Attack because ReadHeaderTimeout is not configured in the http.Server
 	testServer := &httptest.Server{
 		Config: &http.Server{
 			Addr:    fmt.Sprintf(":%d", testHTTPServerPort),
