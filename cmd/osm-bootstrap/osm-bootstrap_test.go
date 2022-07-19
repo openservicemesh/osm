@@ -20,7 +20,7 @@ import (
 
 var testNamespace = "test-namespace"
 
-var testMeshConfig *configv1alpha2.MeshConfig = &configv1alpha2.MeshConfig{
+var testMeshConfig = &configv1alpha2.MeshConfig{
 	ObjectMeta: metav1.ObjectMeta{
 		Namespace: testNamespace,
 		Name:      meshConfigName,
@@ -28,7 +28,7 @@ var testMeshConfig *configv1alpha2.MeshConfig = &configv1alpha2.MeshConfig{
 	Spec: configv1alpha2.MeshConfigSpec{},
 }
 
-var testMeshConfigWithLastAppliedAnnotation *configv1alpha2.MeshConfig = &configv1alpha2.MeshConfig{
+var testMeshConfigWithLastAppliedAnnotation = &configv1alpha2.MeshConfig{
 	ObjectMeta: metav1.ObjectMeta{
 		Namespace: testNamespace,
 		Name:      meshConfigName,
@@ -39,7 +39,7 @@ var testMeshConfigWithLastAppliedAnnotation *configv1alpha2.MeshConfig = &config
 	Spec: configv1alpha2.MeshConfigSpec{},
 }
 
-var testPresetMeshConfigMap *corev1.ConfigMap = &corev1.ConfigMap{
+var testPresetMeshConfigMap = &corev1.ConfigMap{
 	TypeMeta: metav1.TypeMeta{
 		Kind:       "ConfigMap",
 		APIVersion: "v1",
@@ -89,7 +89,7 @@ var testPresetMeshConfigMap *corev1.ConfigMap = &corev1.ConfigMap{
 	},
 }
 
-var testMeshRootCertificate *configv1alpha2.MeshRootCertificate = &configv1alpha2.MeshRootCertificate{
+var testMeshRootCertificate = &configv1alpha2.MeshRootCertificate{
 	ObjectMeta: metav1.ObjectMeta{
 		Namespace: testNamespace,
 		Name:      meshRootCertificateName,
@@ -100,7 +100,7 @@ var testMeshRootCertificate *configv1alpha2.MeshRootCertificate = &configv1alpha
 	},
 }
 
-var testPresetMeshRootCertificate *corev1.ConfigMap = &corev1.ConfigMap{
+var testPresetMeshRootCertificate = &corev1.ConfigMap{
 	TypeMeta: metav1.TypeMeta{
 		Kind:       "ConfigMap",
 		APIVersion: "v1",
