@@ -64,7 +64,7 @@ func (p *PolicyBuilder) UseANDForPermissions(val bool) {
 	p.applyPermissionsAsAnd = val
 }
 
-// AddIdentity adds an identity, later to be converted to a principal, to the list of allowed identities.
+// AddPrincipal adds a principal, to the list of allowed principals.
 func (p *PolicyBuilder) AddPrincipal(principal string) {
 	// We need this extra defense in depth because it is currently possible to configure a wildcard principal
 	// in addition to specific principals. Future changes may look to avoid this.
@@ -76,7 +76,7 @@ func (p *PolicyBuilder) AddPrincipal(principal string) {
 	}
 }
 
-// AllowAnyIdentity allows any principal to access the permissions.
+// AllowAnyPrincipal allows any principal to access the permissions.
 func (p *PolicyBuilder) AllowAnyPrincipal() {
 	p.allowedPrincipals = nil
 	p.allowAllPrincipals = true

@@ -6,8 +6,6 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/identity"
-
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 )
@@ -15,16 +13,15 @@ import (
 func TestBuild(t *testing.T) {
 	testCases := []struct {
 		name                  string
-		identities            []identity.ServiceIdentity
+		principals            []string
 		ports                 []uint16
 		applyPermissionsAsAND bool
 		expectedPolicy        *xds_rbac.Policy
 	}{
 		{
-			name:        "testing rules for single principal",
-			identities:  []identity.ServiceIdentity{identity.New("foo", "domain"), identity.New("bar", "domain")},
-			ports:       []uint16{80},
-			trustDomain: "cluster.local",
+			name:       "testing rules for single principal",
+			principals: []string{"foo.domain.cluster.local", "bar.domain.cluster.local"},
+			ports:      []uint16{80},
 			expectedPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
 					{
@@ -60,10 +57,9 @@ func TestBuild(t *testing.T) {
 			},
 		},
 		{
-			name:        "testing rules for single principal",
-			identities:  []identity.ServiceIdentity{identity.New("foo", "domain")},
-			trustDomain: "cluster.local",
-			ports:       []uint16{80, 443},
+			name:       "testing rules for single principal",
+			principals: []string{"foo.domain.cluster.local"},
+			ports:      []uint16{80, 443},
 			expectedPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
 					{
@@ -96,10 +92,9 @@ func TestBuild(t *testing.T) {
 			// Note that AND ports wouldn't make sense, since you can't have 2 ports at once, but we use it to test
 			// the logic.
 			name:                  "testing rules for AND ports",
-			identities:            []identity.ServiceIdentity{identity.New("foo", "domain")},
+			principals:            []string{"foo.domain.cluster.local"},
 			ports:                 []uint16{80, 443},
 			applyPermissionsAsAND: true,
-			trustDomain:           "cluster.local",
 			expectedPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
 					{
@@ -138,7 +133,7 @@ func TestBuild(t *testing.T) {
 		},
 		{
 			name:       "testing rule for ANY principal when no ports specified",
-			identities: []identity.ServiceIdentity{identity.New("foo", "domain"), identity.WildcardServiceIdentity},
+			principals: []string{"foo.domain.cluster.local", "*"},
 			expectedPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
 					{
@@ -167,6 +162,30 @@ func TestBuild(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:       "testing rule for principals with trust domain",
+			principals: []string{"bar.domain.example.com"},
+			expectedPolicy: &xds_rbac.Policy{
+				Principals: []*xds_rbac.Principal{
+					{
+						Identifier: &xds_rbac.Principal_Authenticated_{
+							Authenticated: &xds_rbac.Principal_Authenticated{
+								PrincipalName: &xds_matcher.StringMatcher{
+									MatchPattern: &xds_matcher.StringMatcher_Exact{
+										Exact: "bar.domain.example.com",
+									},
+								},
+							},
+						},
+					},
+				},
+				Permissions: []*xds_rbac.Permission{
+					{
+						Rule: &xds_rbac.Permission_Any{Any: true},
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {
@@ -174,15 +193,15 @@ func TestBuild(t *testing.T) {
 			assert := tassert.New(t)
 
 			pb := &PolicyBuilder{}
-			for _, svcIdentity := range tc.identities {
-				pb.AddIdentity(svcIdentity)
-			}
 			for _, port := range tc.ports {
 				pb.AddAllowedDestinationPort(port)
 			}
 
+			for _, principal := range tc.principals {
+				pb.AddPrincipal(principal)
+			}
+
 			pb.UseANDForPermissions(tc.applyPermissionsAsAND)
-			pb.SetTrustDomain(tc.trustDomain)
 
 			policy := pb.Build()
 			assert.Equal(tc.expectedPolicy, policy)
