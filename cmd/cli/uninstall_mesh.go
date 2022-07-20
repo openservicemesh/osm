@@ -180,7 +180,9 @@ func (d *uninstallMeshCmd) run() error {
 						clientSet: d.clientSet,
 					}
 
-					_ = removeCmd.run()
+					if err := removeCmd.run(); err != nil {
+					    fmt.Fprintf("Could not cleanup OSM mesh [%s] related labels and annotations for namespace  [%s]....", ...)
+					}
 				}
 				fmt.Fprintf(d.out, "OSM [mesh name: %s] in namespace [%s] uninstalled\n", m.name, m.namespace)
 			}
