@@ -1,6 +1,6 @@
 # Open Service Mesh Helm Chart
 
-![Version: 1.2.0-rc.1](https://img.shields.io/badge/Version-1.2.0--rc.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.2.0-rc.1](https://img.shields.io/badge/AppVersion-v1.2.0--rc.1-informational?style=flat-square)
+![Version: 1.2.0](https://img.shields.io/badge/Version-1.2.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.2.0](https://img.shields.io/badge/AppVersion-v1.2.0-informational?style=flat-square)
 
 A Helm chart to install the [OSM](https://github.com/openservicemesh/osm) control plane on Kubernetes.
 
@@ -127,14 +127,14 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.grafana.port | int | `3000` | Grafana service's port |
 | osm.grafana.rendererImage | string | `"grafana/grafana-image-renderer:3.2.1"` | Image used for Grafana Renderer |
 | osm.grafana.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
-| osm.image.digest | object | `{"osmBootstrap":"sha256:21bb2db4a02f05abf5f8c5a6a3fa6b3deb71b0a87ec0d5d31a11522dcff6131a","osmCRDs":"sha256:27582980e1fc9d70c49d827ed4eded4b3b38109f737e4acd9c3f91af60cd0f99","osmController":"sha256:7ed241c53a71fd82fabcd2be261b76c0e371e75b2a2e523ee33092adad4c8247","osmHealthcheck":"sha256:4f3e1581cfec36d7d1f56c67a5b5433dab78b2e4bb01f72bba8814d8c1e1577c","osmInjector":"sha256:6edd18238335ebfab9e3984d9a0ae0b202542e996b600a9b502d963a319bec2b","osmPreinstall":"sha256:d5cd6b1f9960690f80825418e046bb3b3ae4770454d28b13ea0cfebeab551925","osmSidecarInit":"sha256:38825f27c183d166872bf0fbf3b9f0952d76d0190be28ebe04a2b0c58dcafd48"}` | Image digest (defaults to latest compatible tag) |
-| osm.image.digest.osmBootstrap | string | `"sha256:21bb2db4a02f05abf5f8c5a6a3fa6b3deb71b0a87ec0d5d31a11522dcff6131a"` | osm-boostrap's image digest |
-| osm.image.digest.osmCRDs | string | `"sha256:27582980e1fc9d70c49d827ed4eded4b3b38109f737e4acd9c3f91af60cd0f99"` | osm-crds' image digest |
-| osm.image.digest.osmController | string | `"sha256:7ed241c53a71fd82fabcd2be261b76c0e371e75b2a2e523ee33092adad4c8247"` | osm-controller's image digest |
-| osm.image.digest.osmHealthcheck | string | `"sha256:4f3e1581cfec36d7d1f56c67a5b5433dab78b2e4bb01f72bba8814d8c1e1577c"` | osm-healthcheck's image digest |
-| osm.image.digest.osmInjector | string | `"sha256:6edd18238335ebfab9e3984d9a0ae0b202542e996b600a9b502d963a319bec2b"` | osm-injector's image digest |
-| osm.image.digest.osmPreinstall | string | `"sha256:d5cd6b1f9960690f80825418e046bb3b3ae4770454d28b13ea0cfebeab551925"` | osm-preinstall's image digest |
-| osm.image.digest.osmSidecarInit | string | `"sha256:38825f27c183d166872bf0fbf3b9f0952d76d0190be28ebe04a2b0c58dcafd48"` | Sidecar init container's image digest |
+| osm.image.digest | object | `{"osmBootstrap":"sha256:65fbf0f940233000c896fe6733f6bc1ddb686830c99bf68d0bf43a920a6f063b","osmCRDs":"sha256:e7fb669b4fb8f0232b9b675ed4051058c1b3aeea769a06f20221755ddf0943c9","osmController":"sha256:1f7f1c9e9c3575fd5fb6f8adbae220b74f295b88931400fbd1a88f70893b447c","osmHealthcheck":"sha256:0dba71daf637ec50b11688ad0599004c11d91f058f90abecefce0c16570e4451","osmInjector":"sha256:9c2d18fa6deec41a26fdf01cb03b35b78f6f423e7baeb4d2441447845743e906","osmPreinstall":"sha256:39aad627c5e9d35b4fa819339d629526967490c3f2a516439ab3796bb66a8e96","osmSidecarInit":"sha256:d937f6e130eefb4d46722656254f3a82c0436655c27c8b85df2b08a9905df453"}` | Image digest (defaults to latest compatible tag) |
+| osm.image.digest.osmBootstrap | string | `"sha256:65fbf0f940233000c896fe6733f6bc1ddb686830c99bf68d0bf43a920a6f063b"` | osm-boostrap's image digest |
+| osm.image.digest.osmCRDs | string | `"sha256:e7fb669b4fb8f0232b9b675ed4051058c1b3aeea769a06f20221755ddf0943c9"` | osm-crds' image digest |
+| osm.image.digest.osmController | string | `"sha256:1f7f1c9e9c3575fd5fb6f8adbae220b74f295b88931400fbd1a88f70893b447c"` | osm-controller's image digest |
+| osm.image.digest.osmHealthcheck | string | `"sha256:0dba71daf637ec50b11688ad0599004c11d91f058f90abecefce0c16570e4451"` | osm-healthcheck's image digest |
+| osm.image.digest.osmInjector | string | `"sha256:9c2d18fa6deec41a26fdf01cb03b35b78f6f423e7baeb4d2441447845743e906"` | osm-injector's image digest |
+| osm.image.digest.osmPreinstall | string | `"sha256:39aad627c5e9d35b4fa819339d629526967490c3f2a516439ab3796bb66a8e96"` | osm-preinstall's image digest |
+| osm.image.digest.osmSidecarInit | string | `"sha256:d937f6e130eefb4d46722656254f3a82c0436655c27c8b85df2b08a9905df453"` | Sidecar init container's image digest |
 | osm.image.name | object | `{"osmBootstrap":"osm-bootstrap","osmCRDs":"osm-crds","osmController":"osm-controller","osmHealthcheck":"osm-healthcheck","osmInjector":"osm-injector","osmPreinstall":"osm-preinstall","osmSidecarInit":"init"}` | Image name defaults |
 | osm.image.name.osmBootstrap | string | `"osm-bootstrap"` | osm-boostrap's image name |
 | osm.image.name.osmCRDs | string | `"osm-crds"` | osm-crds' image name |
