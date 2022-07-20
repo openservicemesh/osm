@@ -252,7 +252,7 @@ jobs:
       - name: Build test dependencies
         env:
           DOCKER_BUILDX_OUTPUT: type=docker
-        run: make docker-build-osm-fips build-osm-fips docker-build-tcp-echo-server
+        run: make docker-build-osm-fips build-osm docker-build-tcp-echo-server
       - name: Run tests
         id: test
         env:
