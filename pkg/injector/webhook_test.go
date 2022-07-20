@@ -2,6 +2,7 @@ package injector
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
@@ -678,7 +678,7 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		Expect(requestForNamespace).To(Equal(""))
 
-		expectedAdmissionResponse := webhook.AdmissionError(errors.New("yaml: did not find expected node content"))
+		expectedAdmissionResponse := webhook.AdmissionError(fmt.Errorf("yaml: did not find expected node content"))
 		Expect(admissionResp.Response).To(Equal(expectedAdmissionResponse))
 	})
 

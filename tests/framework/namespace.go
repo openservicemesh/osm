@@ -9,8 +9,6 @@ import (
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-
-	"github.com/pkg/errors"
 )
 
 // AddNsToMesh Adds monitored namespaces to the OSM mesh
@@ -27,7 +25,7 @@ func (td *OsmTestData) AddNsToMesh(enableSidecarInjection bool, ns ...string) er
 			td.T.Logf("error running osm namespace add")
 			td.T.Logf("stdout:\n%s", stdout)
 			td.T.Logf("stderr:\n%s", stderr)
-			return errors.Wrap(err, "failed to run osm namespace add")
+			return fmt.Errorf("failed to run osm namespace add: %w", err)
 		}
 
 		if Td.EnableNsMetricTag {
@@ -37,7 +35,7 @@ func (td *OsmTestData) AddNsToMesh(enableSidecarInjection bool, ns ...string) er
 				td.T.Logf("error running osm namespace add")
 				td.T.Logf("stdout:\n%s", stdout)
 				td.T.Logf("stderr:\n%s", stderr)
-				return errors.Wrap(err, "failed to run osm namespace add")
+				return fmt.Errorf("failed to run osm namespace add: %w", err)
 			}
 		}
 	}

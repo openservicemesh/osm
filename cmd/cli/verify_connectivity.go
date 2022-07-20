@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -73,13 +72,13 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 		RunE: func(_ *cobra.Command, _ []string) error {
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return fmt.Errorf("Error fetching kubeconfig: %w", err)
 			}
 			verifyCmd.restConfig = config
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
+				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %w", err)
 			}
 			verifyCmd.kubeClient = clientset
 
@@ -95,26 +94,26 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 
 			srcName, err := k8s.NamespacedNameFrom(fromPod)
 			if err != nil {
-				return errors.Errorf("--from-pod must be a namespaced name of the form <namespace>/<name>, got %s", fromPod)
+				return fmt.Errorf("--from-pod must be a namespaced name of the form <namespace>/<name>, got %s", fromPod)
 			}
 			verifyCmd.trafficAttr.SrcPod = &srcName
 
 			if toPod == "" && toExtPort == 0 {
-				return errors.New("one of --to-pod|--to-ext-port must be set")
+				return fmt.Errorf("one of --to-pod|--to-ext-port must be set")
 			}
 			if toPod != "" && toExtPort != 0 {
-				return errors.New("--to-pod cannot be set with --to-ext-port")
+				return fmt.Errorf("--to-pod cannot be set with --to-ext-port")
 			}
 
 			if toPod != "" {
 				dstName, err := k8s.NamespacedNameFrom(toPod)
 				if err != nil {
-					return errors.Errorf("--to-pod must be a namespaced name of the form <namespace>/<name>, got %s", toPod)
+					return fmt.Errorf("--to-pod must be a namespaced name of the form <namespace>/<name>, got %s", toPod)
 				}
 				verifyCmd.trafficAttr.DstPod = &dstName
 
 				if dstService == "" {
-					return errors.New("--to-service must be set with --to-pod")
+					return fmt.Errorf("--to-service must be set with --to-pod")
 				}
 				verifyCmd.trafficAttr.DstService = &types.NamespacedName{Namespace: dstName.Namespace, Name: dstService}
 			}
@@ -155,7 +154,7 @@ func (cmd *verifyConnectCmd) run() error {
 			cmd.kubeClient, cmd.meshConfig, cmd.trafficAttr, cmd.meshName)
 
 	default:
-		return errors.New("one of --to-pod|to-ext-port must be set")
+		return fmt.Errorf("one of --to-pod|to-ext-port must be set")
 	}
 
 	result := verify.Run()

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -67,13 +66,13 @@ func newVerifyIngressConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.
 		RunE: func(_ *cobra.Command, _ []string) error {
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return fmt.Errorf("Error fetching kubeconfig: %w", err)
 			}
 			verifyIngressCmd.restConfig = config
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
+				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %w", err)
 			}
 			verifyIngressCmd.kubeClient = clientset
 
@@ -97,12 +96,12 @@ func newVerifyIngressConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.
 
 			srcName, err := k8s.NamespacedNameFrom(fromIngressService)
 			if err != nil {
-				return errors.Errorf("--from-service must be a namespaced name of the form <namespace>/<name>, got %s", fromPod)
+				return fmt.Errorf("--from-service must be a namespaced name of the form <namespace>/<name>, got %s", fromPod)
 			}
 			verifyIngressCmd.trafficAttr.SrcService = &srcName
 			dstName, err := k8s.NamespacedNameFrom(backendPod)
 			if err != nil {
-				return errors.Errorf("--to-pod pod must be a namespaced name of the form <namespace>/<name>, got %s", toPod)
+				return fmt.Errorf("--to-pod pod must be a namespaced name of the form <namespace>/<name>, got %s", toPod)
 			}
 			verifyIngressCmd.trafficAttr.DstPod = &dstName
 			verifyIngressCmd.trafficAttr.DstPort = backendPort

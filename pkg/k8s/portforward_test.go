@@ -1,13 +1,13 @@
 package k8s
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 )
 
@@ -62,7 +62,7 @@ func TestPortForwardInvalidPortSpec(t *testing.T) {
 
 func TestPortForwardDialError(t *testing.T) {
 	dialer := &fakeDialer{
-		dialErr: errors.New("some error"),
+		dialErr: fmt.Errorf("some error"),
 	}
 	pf, err := NewPortForwarder(dialer, ":80")
 	if err != nil {

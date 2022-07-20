@@ -11,7 +11,7 @@ import (
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/pkg/errors"
+
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -104,12 +104,12 @@ func (lb *listenerBuilder) getInboundHTTPFilters(trafficMatch *trafficpolicy.Tra
 		tracingAPIEndpoint: lb.cfg.GetTracingEndpoint(),
 	}.build()
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error building inbound HTTP connection manager for proxy with identity %s and traffic match %s", lb.serviceIdentity, trafficMatch.Name)
+		return nil, fmt.Errorf("Error building inbound HTTP connection manager for proxy with identity %s and traffic match %s: %w", lb.serviceIdentity, trafficMatch.Name, err)
 	}
 
 	marshalledInboundConnManager, err := anypb.New(inboundConnManager)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error marshalling inbound HTTP connection manager for proxy with identity %s and traffic match %s", lb.serviceIdentity, trafficMatch.Name)
+		return nil, fmt.Errorf("Error marshalling inbound HTTP connection manager for proxy with identity %s and traffic match %s: %w", lb.serviceIdentity, trafficMatch.Name, err)
 	}
 	httpConnectionManagerFilter := &xds_listener.Filter{
 		Name: envoy.HTTPConnectionManagerFilterName,
@@ -285,7 +285,7 @@ func buildTCPLocalRateLimitFilter(config *policyv1alpha1.TCPLocalRateLimitSpec, 
 	case "hour":
 		fillInterval = time.Hour
 	default:
-		return nil, errors.Errorf("invalid unit %q for TCP connection rate limiting", config.Unit)
+		return nil, fmt.Errorf("invalid unit %q for TCP connection rate limiting", config.Unit)
 	}
 
 	rateLimit := &xds_local_ratelimit.LocalRateLimit{
@@ -329,12 +329,12 @@ func (lb *listenerBuilder) getOutboundHTTPFilter(routeConfigName string) (*xds_l
 		tracingAPIEndpoint: lb.cfg.GetTracingEndpoint(),
 	}.build()
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error building outbound HTTP connection manager for proxy identity %s", lb.serviceIdentity)
+		return nil, fmt.Errorf("Error building outbound HTTP connection manager for proxy identity %s", lb.serviceIdentity)
 	}
 
 	marshalledFilter, err = anypb.New(outboundConnManager)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error marshalling outbound HTTP connection manager for proxy identity %s", lb.serviceIdentity)
+		return nil, fmt.Errorf("Error marshalling outbound HTTP connection manager for proxy identity %s", lb.serviceIdentity)
 	}
 
 	return &xds_listener.Filter{
@@ -355,7 +355,7 @@ func (lb *listenerBuilder) getOutboundFilterChainMatchForService(trafficMatch tr
 	}
 
 	if len(trafficMatch.DestinationIPRanges) == 0 {
-		return nil, errors.Errorf("Destination IP ranges not specified for mesh upstream traffic match %s", trafficMatch.Name)
+		return nil, fmt.Errorf("Destination IP ranges not specified for mesh upstream traffic match %s", trafficMatch.Name)
 	}
 	for _, ipRange := range trafficMatch.DestinationIPRanges {
 		cidr, err := envoy.GetCIDRRangeFromStr(ipRange)
@@ -420,7 +420,7 @@ func (lb *listenerBuilder) getOutboundTCPFilter(trafficMatch trafficpolicy.Traff
 	}
 
 	if len(trafficMatch.WeightedClusters) == 0 {
-		return nil, errors.Errorf("At least 1 cluster must be configured for an upstream TCP service. None set for traffic match %s", trafficMatch.Name)
+		return nil, fmt.Errorf("At least 1 cluster must be configured for an upstream TCP service. None set for traffic match %s", trafficMatch.Name)
 		// No weighted clusters implies a traffic split does not exist for this upstream, proxy it as is
 	} else if len(trafficMatch.WeightedClusters) == 1 {
 		tcpProxy.ClusterSpecifier = &xds_tcp_proxy.TcpProxy_Cluster{Cluster: trafficMatch.WeightedClusters[0].ClusterName.String()}

@@ -11,7 +11,6 @@ import (
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_secret "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -260,7 +259,7 @@ func (v *EnvoyConfigVerifier) findOutboundFilterChainForService(svc *corev1.Serv
 	if len(svc.Spec.ClusterIP) == 0 || svc.Spec.ClusterIP == corev1.ClusterIPNone {
 		endpoints, err := v.kubeClient.CoreV1().Endpoints(svc.Namespace).Get(context.Background(), svc.Name, metav1.GetOptions{})
 		if err != nil {
-			return errors.Errorf("Endpoints not found for service %q", svcNamespacedName)
+			return fmt.Errorf("Endpoints not found for service %q", svcNamespacedName)
 		}
 		for _, sub := range endpoints.Subsets {
 			for _, ip := range sub.Addresses {
@@ -273,7 +272,7 @@ func (v *EnvoyConfigVerifier) findOutboundFilterChainForService(svc *corev1.Serv
 
 	meshServices, err := v.getDstMeshServicesForSvcPod(*svc, podName)
 	if len(meshServices) == 0 || err != nil {
-		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
+		return fmt.Errorf("endpoints not found for service %s/%s, err: %w", svc.Namespace, svc.Name, err)
 	}
 
 	for _, meshSvc := range meshServices {
@@ -295,25 +294,25 @@ func findOutboundFilterChainForServicePort(meshSvc service.MeshService, dstIPRan
 	}
 
 	if filterChain == nil {
-		return errors.Errorf("filter chain match %s not found", meshSvc.OutboundTrafficMatchName())
+		return fmt.Errorf("filter chain match %s not found", meshSvc.OutboundTrafficMatchName())
 	}
 
 	// Verify the filter chain match
 	if filterChain.FilterChainMatch.DestinationPort.GetValue() != uint32(meshSvc.Port) {
-		return errors.Errorf("filter chain match not found for port %d", meshSvc.Port)
+		return fmt.Errorf("filter chain match not found for port %d", meshSvc.Port)
 	}
 	configuredIPSet := mapset.NewSet()
 	for _, prefix := range filterChain.FilterChainMatch.PrefixRanges {
 		configuredIPSet.Add(prefix.GetAddressPrefix())
 	}
 	if !dstIPRanges.Equal(configuredIPSet) {
-		return errors.Errorf("filter chain match not found for IP ranges %s, found %s", dstIPRanges, configuredIPSet)
+		return fmt.Errorf("filter chain match not found for IP ranges %s, found %s", dstIPRanges, configuredIPSet)
 	}
 
 	// Verify the app protocol filter is present
 	filterName := getFilterForProtocol(meshSvc.Protocol)
 	if filterName == "" {
-		return errors.Errorf("unsupported protocol %s", meshSvc.Protocol)
+		return fmt.Errorf("unsupported protocol %s", meshSvc.Protocol)
 	}
 	filterFound := false
 	for _, filter := range filterChain.Filters {
@@ -323,7 +322,7 @@ func findOutboundFilterChainForServicePort(meshSvc service.MeshService, dstIPRan
 		}
 	}
 	if !filterFound {
-		return errors.Errorf("filter %s not found", filterName)
+		return fmt.Errorf("filter %s not found", filterName)
 	}
 
 	return nil
@@ -568,7 +567,7 @@ func (v *EnvoyConfigVerifier) findInboundFilterChainForService(svc *corev1.Servi
 
 	meshServices, err := v.getDstMeshServicesForSvcPod(*svc, podName)
 	if len(meshServices) == 0 || err != nil {
-		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
+		return fmt.Errorf("endpoints not found for service %s/%s, err: %w", svc.Namespace, svc.Name, err)
 	}
 
 	for _, meshSvc := range meshServices {
@@ -590,18 +589,18 @@ func findInboundFilterChainForServicePort(meshSvc service.MeshService, filterCha
 	}
 
 	if filterChain == nil {
-		return errors.Errorf("filter chain match %s not found", meshSvc.InboundTrafficMatchName())
+		return fmt.Errorf("filter chain match %s not found", meshSvc.InboundTrafficMatchName())
 	}
 
 	// Verify the filter chain match
 	if filterChain.FilterChainMatch.DestinationPort.GetValue() != uint32(meshSvc.TargetPort) {
-		return errors.Errorf("filter chain match not found for port %d", meshSvc.TargetPort)
+		return fmt.Errorf("filter chain match not found for port %d", meshSvc.TargetPort)
 	}
 
 	// Verify the app protocol filter is present
 	filterName := getFilterForProtocol(meshSvc.Protocol)
 	if filterName == "" {
-		return errors.Errorf("unsupported protocol %s", meshSvc.Protocol)
+		return fmt.Errorf("unsupported protocol %s", meshSvc.Protocol)
 	}
 	filterFound := false
 	for _, filter := range filterChain.Filters {
@@ -611,7 +610,7 @@ func findInboundFilterChainForServicePort(meshSvc service.MeshService, filterCha
 		}
 	}
 	if !filterFound {
-		return errors.Errorf("filter %s not found", filterName)
+		return fmt.Errorf("filter %s not found", filterName)
 	}
 
 	return nil
@@ -624,7 +623,7 @@ func (v *EnvoyConfigVerifier) findHTTPRouteForService(svc *corev1.Service, route
 
 	meshServices, err := v.getDstMeshServicesForSvcPod(*svc, podName)
 	if len(meshServices) == 0 || err != nil {
-		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
+		return fmt.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
 	}
 
 	for _, meshSvc := range meshServices {
@@ -654,7 +653,7 @@ func (v *EnvoyConfigVerifier) findClusterForService(svc *corev1.Service, cluster
 
 	meshServices, err := v.getDstMeshServicesForSvcPod(*svc, podName)
 	if len(meshServices) == 0 || err != nil {
-		return errors.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
+		return fmt.Errorf("endpoints not found for service %s/%s, err: %w", svc.Namespace, svc.Name, err)
 	}
 
 	for _, meshSvc := range meshServices {
@@ -680,7 +679,7 @@ func findCluster(clusters []*xds_cluster.Cluster, name string) error {
 		}
 	}
 
-	return errors.Errorf("cluster %s not found", name)
+	return fmt.Errorf("cluster %s not found", name)
 }
 
 func findHTTPRouteConfig(routeConfigs []*xds_route.RouteConfiguration, desireConfigName string, desiredDomain string) error {
@@ -694,7 +693,7 @@ func findHTTPRouteConfig(routeConfigs []*xds_route.RouteConfiguration, desireCon
 	}
 
 	if config == nil {
-		return errors.Errorf("route configuration %s not found", desireConfigName)
+		return fmt.Errorf("route configuration %s not found", desireConfigName)
 	}
 
 	// Look for the FQDN in the virtual hosts
@@ -709,7 +708,7 @@ func findHTTPRouteConfig(routeConfigs []*xds_route.RouteConfiguration, desireCon
 	}
 
 	if virtualHost == nil {
-		return errors.Errorf("virtual host for domain %s not found", desiredDomain)
+		return fmt.Errorf("virtual host for domain %s not found", desiredDomain)
 	}
 
 	return nil
@@ -722,7 +721,7 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnSource(secrets []*xds_secret.Secre
 	srcPod := v.configAttr.trafficAttr.SrcPod
 	pod, err := v.kubeClient.CoreV1().Pods(srcPod.Namespace).Get(context.Background(), srcPod.Name, metav1.GetOptions{})
 	if err != nil {
-		return errors.Errorf("pod %s not found", srcPod)
+		return fmt.Errorf("pod %s not found", srcPod)
 	}
 	downstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity()
 	downstreamSecretName := envoySecrets.SDSCert{
@@ -741,7 +740,7 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnSource(secrets []*xds_secret.Secre
 	}
 	if !expectedSecrets.IsSubset(actualSecrets) {
 		diff := expectedSecrets.Difference(actualSecrets)
-		return errors.Errorf("expected secrets %s not found", diff.String())
+		return fmt.Errorf("expected secrets %s not found", diff.String())
 	}
 
 	return nil
@@ -754,7 +753,7 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnDestination(secrets []*xds_secret.
 	dstPod := v.configAttr.trafficAttr.DstPod
 	pod, err := v.kubeClient.CoreV1().Pods(dstPod.Namespace).Get(context.Background(), dstPod.Name, metav1.GetOptions{})
 	if err != nil {
-		return errors.Errorf("pod %s not found", dstPod)
+		return fmt.Errorf("pod %s not found", dstPod)
 	}
 	upstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity()
 	upstreamSecretName := envoySecrets.SDSCert{
@@ -773,7 +772,7 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnDestination(secrets []*xds_secret.
 	}
 	if !expectedSecrets.IsSubset(actualSecrets) {
 		diff := expectedSecrets.Difference(actualSecrets)
-		return errors.Errorf("expected secrets %s not found", diff.String())
+		return fmt.Errorf("expected secrets %s not found", diff.String())
 	}
 
 	return nil
@@ -792,13 +791,13 @@ func (v *EnvoyConfigVerifier) findEgressFilterChain(filterChains []*xds_listener
 		}
 	}
 	if filterChain == nil {
-		return errors.Errorf("filter chain not found for for port=%d, protocol=%s", port, protocol)
+		return fmt.Errorf("filter chain not found for for port=%d, protocol=%s", port, protocol)
 	}
 
 	// Verify the app protocol filter is present
 	filterName := getFilterForProtocol(protocol)
 	if filterName == "" {
-		return errors.Errorf("unsupported protocol %s", protocol)
+		return fmt.Errorf("unsupported protocol %s", protocol)
 	}
 	filterFound := false
 	for _, filter := range filterChain.Filters {
@@ -808,7 +807,7 @@ func (v *EnvoyConfigVerifier) findEgressFilterChain(filterChains []*xds_listener
 		}
 	}
 	if !filterFound {
-		return errors.Errorf("filter %s not found", filterName)
+		return fmt.Errorf("filter %s not found", filterName)
 	}
 
 	return nil
@@ -831,7 +830,7 @@ func (v *EnvoyConfigVerifier) findEgressHTTPRoute(routeConfigs []*xds_route.Rout
 		}
 	}
 	if config == nil {
-		return errors.Errorf("route configuration %s not found", desiredRouteConfigName)
+		return fmt.Errorf("route configuration %s not found", desiredRouteConfigName)
 	}
 
 	dstHost := v.configAttr.trafficAttr.ExternalHost
@@ -850,7 +849,7 @@ func (v *EnvoyConfigVerifier) findEgressHTTPRoute(routeConfigs []*xds_route.Rout
 	}
 
 	if virtualHost == nil {
-		return errors.Errorf("virtual host for domain %s not found", dstHost)
+		return fmt.Errorf("virtual host for domain %s not found", dstHost)
 	}
 
 	return nil
@@ -876,5 +875,5 @@ func (v *EnvoyConfigVerifier) findEgressCluster(clusters []*xds_cluster.Cluster)
 		}
 	}
 
-	return errors.Errorf("cluster %s not found", clusterName)
+	return fmt.Errorf("cluster %s not found", clusterName)
 }

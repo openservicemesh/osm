@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
@@ -364,7 +362,7 @@ func FromStr(e string) (ErrCode, error) {
 	errStr := strings.TrimLeft(e, "E")
 	errInt, err := strconv.Atoi(errStr)
 	if err != nil {
-		return ErrCode(0), errors.Errorf("error code '%s' is not a valid error code format, should be of the form Exxxx, ex. E1000", e)
+		return ErrCode(0), fmt.Errorf("error code '%s' is not a valid error code format, should be of the form Exxxx, ex. E1000", e)
 	}
 	return ErrCode(errInt), nil
 }

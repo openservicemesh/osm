@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -70,8 +71,9 @@ var _ = Describe("Test httpserver with probes", func() {
 		}
 		testServer = &httptest.Server{
 			Config: &http.Server{
-				Addr:    fmt.Sprintf(":%d", testHTTPServerPort),
-				Handler: router,
+				Addr:              fmt.Sprintf(":%d", testHTTPServerPort),
+				Handler:           router,
+				ReadHeaderTimeout: time.Second * 10,
 			},
 		}
 	})

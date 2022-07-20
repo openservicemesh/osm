@@ -1,6 +1,7 @@
 package events
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -8,8 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
-
-	"github.com/pkg/errors"
 )
 
 func TestMain(m *testing.M) {
@@ -50,7 +49,7 @@ func TestGenericEventRecording(t *testing.T) {
 	GenericEventRecorder().WarnEvent("TestReason", "Test message")
 	<-events
 
-	GenericEventRecorder().ErrorEvent(errors.New("test"), "TestReason", "Test message")
+	GenericEventRecorder().ErrorEvent(fmt.Errorf("test"), "TestReason", "Test message")
 	<-events
 }
 
@@ -82,6 +81,6 @@ func TestSpecificEventRecording(t *testing.T) {
 	eventRecorder.WarnEvent("TestReason", "Test message")
 	<-events
 
-	eventRecorder.ErrorEvent(errors.New("test"), "TestReason", "Test message")
+	eventRecorder.ErrorEvent(fmt.Errorf("test"), "TestReason", "Test message")
 	<-events
 }

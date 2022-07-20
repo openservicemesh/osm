@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -226,7 +225,7 @@ func (c client) ListServiceIdentitiesForService(svc service.MeshService) ([]iden
 
 	k8sSvc := c.GetService(svc)
 	if k8sSvc == nil {
-		return nil, errors.Errorf("Error fetching service %q: %s", svc, errServiceNotFound)
+		return nil, fmt.Errorf("Error fetching service %q: %s", svc, errServiceNotFound)
 	}
 
 	svcAccountsSet := mapset.NewSet()
@@ -278,7 +277,7 @@ func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 		return c.policyClient.PolicyV1alpha1().UpstreamTrafficSettings(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
 
 	default:
-		return nil, errors.Errorf("Unsupported type: %T", t)
+		return nil, fmt.Errorf("Unsupported type: %T", t)
 	}
 }
 
@@ -440,7 +439,7 @@ func (c client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, 
 		return 0, err
 	}
 	if !exists {
-		return 0, errors.Errorf("service %s not found in cache", namespacedSvc)
+		return 0, fmt.Errorf("service %s not found in cache", namespacedSvc)
 	}
 
 	svc := svcIf.(*corev1.Service)
@@ -458,7 +457,7 @@ func (c client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, 
 		return 0, err
 	}
 	if !exists {
-		return 0, errors.Errorf("endpoint for service %s not found in cache", namespacedSvc)
+		return 0, fmt.Errorf("endpoint for service %s not found in cache", namespacedSvc)
 	}
 	endpoint := ep.(*corev1.Endpoints)
 
@@ -470,5 +469,5 @@ func (c client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, 
 		}
 	}
 
-	return 0, errors.Errorf("error finding port name %s for endpoint %s", portName, namespacedSvc)
+	return 0, fmt.Errorf("error finding port name %s for endpoint %s", portName, namespacedSvc)
 }

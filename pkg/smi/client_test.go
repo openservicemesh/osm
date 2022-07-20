@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
@@ -384,8 +385,9 @@ func TestGetSmiClientVersionHTTPHandler(t *testing.T) {
 
 	testServer := &httptest.Server{
 		Config: &http.Server{
-			Addr:    fmt.Sprintf(":%d", testHTTPServerPort),
-			Handler: router,
+			Addr:              fmt.Sprintf(":%d", testHTTPServerPort),
+			Handler:           router,
+			ReadHeaderTimeout: time.Second * 10,
 		},
 	}
 

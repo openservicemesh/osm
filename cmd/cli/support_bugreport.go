@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -91,15 +90,15 @@ func newSupportBugReportCmd(config *action.Configuration, stdout io.Writer, stde
 		RunE: func(_ *cobra.Command, args []string) error {
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return fmt.Errorf("Error fetching kubeconfig: %w", err)
 			}
 			bugReportCmd.kubeClient, err = kubernetes.NewForConfig(config)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
+				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %w", err)
 			}
 			bugReportCmd.policyClient, err = policyClientset.NewForConfig(config)
 			if err != nil {
-				return errors.Errorf("Could not access OSM, check configuration: %s", err)
+				return fmt.Errorf("Could not access OSM, check configuration: %w", err)
 			}
 			return bugReportCmd.run()
 		},

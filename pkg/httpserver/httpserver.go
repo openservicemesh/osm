@@ -36,8 +36,9 @@ func NewHTTPServer(port uint16) *HTTPServer {
 	return &HTTPServer{
 		started: false,
 		server: &http.Server{
-			Addr:    fmt.Sprintf(":%d", port),
-			Handler: serverMux,
+			Addr:              fmt.Sprintf(":%d", port),
+			Handler:           serverMux,
+			ReadHeaderTimeout: time.Second * 10,
 		},
 		httpServeMux: serverMux,
 		port:         port,
@@ -100,6 +101,8 @@ func (s *HTTPServer) Stop() error {
 	s.server = &http.Server{
 		Addr:    fmt.Sprintf(":%d", s.port),
 		Handler: s.httpServeMux,
+		// Needs a default for gosec. This can probably be brought down to a lower value.
+		ReadHeaderTimeout: time.Second * 10,
 	}
 
 	return nil
