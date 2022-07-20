@@ -29,26 +29,52 @@ Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the 
   - [Make version changes on main branch](#make-version-changes-on-main-branch)
   - [Workflow Diagram](#workflow-diagram)
 
-## Create a release branch
+## Create release branches
 
 Look for a branch on the upstream repo named `release-vX.Y`, where `X` and `Y` correspond to the major and minor version of the semver tag to be used for the new release. If the branch already exists, skip to the next step.
 
 Identify the base commit in the `main` branch for the release and cut a release branch off `main`.
-```console
+```shell
 $ git checkout -b release-<version> <commit-id> # ex: git checkout -b release-v0.4 0d05587
 ```
 > Note: Care must be taken to ensure the release branch is created from a commit meant for the release. If unsure about the commit to use to create the release branch, please open an issue in the `osm` repo and a maintainer will assist you with this.
 
 Push the release branch to the upstream repo (NOT forked), identified here by the `upstream` remote.
-```console
+```shell
 $ git push upstream release-<version> # ex: git push upstream release-v0.4
 ```
 
+Next, do the same for a branch named `release-vX.Y-fips`. Again, if the branch already exists, skip to the next step. Make sure the base commit for the fips branch is the same as the regular release branch.
+
+Identify the base commit in the `main` branch for the release and cut a release branch off `main`.
+```shell
+$ git checkout -b release-<version>-fips <commit-id> # ex: git checkout -b release-v0.4-fips 0d05587
+```
+
+Push the FIPS release branch to the upstream repo (NOT forked), identified here by the `upstream` remote.
+```shell
+$ git push upstream release-<version> # ex: git push upstream release-v0.4
+```
+
+
 ## Add changes to be backported
 
-Create a new branch off of the release branch to maintain updates specific to the new version. Let's call it the patch branch. The patch branch should not be created in the upstream repo.
+Create a new branch off of the release branch to maintain updates specific to the new version. Let's call it the patch branch. The patch branch should NOT be created in the upstream repo.
 
 If there are other commits on the `main` branch to be included in the release (such as for successive release candidates or patch releases), cherry-pick those onto the patch branch.
+
+## Create FIPS patch branch
+
+Once you've cherry-picked all of the necessary changes onto your patch branch, create a new branch with the HEAD of your patch branch as your base:
+
+```shell
+$ git status
+On branch <patch-branch>
+...
+$ git checkout -b <patch-branch>-fips
+```
+
+This branch will be the base of all of the FIPS release artifacts that will be created later. For now, switch back to your main patch branch.
 
 ## Create and push the pre-release Git tag
 
@@ -56,13 +82,13 @@ The pre-release Git tag publishes the OSM control plane images to the `openservi
 
 The pre-release Git tag is of the form `pre-rel-<release-version>`, e.g. `pre-rel-v0.4.0`.
 
-```console
+```shell
 $ PRE_RELEASE_VERSION=<pre-release-version> # ex: PRE_RELEASE_VERSION=pre-rel-v0.4.0
 $ git tag "$PRE_RELEASE_VERSION"
 $ git push upstream "$PRE_RELEASE_VERSION"
 ```
 
-Once the pre-release Git tag has been pushed, wait for the Pre-release Github workflow to complete. Upon workflow completion, retrieve the image digests for the given release. The image digests are logged in the "Image digests" step of the Pre-release workflow.
+Once the pre-release Git tag has been pushed, wait for the Pre-release Github workflow to complete (this is a good time to [start the FIPS version of this process](#create-and-push-the-fips-pre-release-git-tag)). Upon workflow completion, retrieve the image digests for the given release. The image digests are logged in the "Image digests" step of the Pre-release workflow.
 
 The image digest logs contain the sha256 image digest for each control plane image as follows:
 ```
@@ -72,6 +98,31 @@ osm-injector: sha256:d2e96d99a311b120c4afd7bd3248f75d0766c98bd121a979a343e438e9c
 osm-crds: sha256:359a4a6b031d0f72848d6bedc742b34b60323ebc5d5001071c0695130b694efd
 osm-bootstrap: sha256:fd159fdb965cc0d3d7704afaf673862b5e92257925fc3f6345810f98bb6246f8
 ```
+
+## Create and push the FIPS pre-release Git tag
+
+Similarly, there is a FIPs pre-release git tag that does the same thing as the main version, just for FIPS artifacts. The image digests published here are necessary later.
+
+The pre-release Git tag is of the form `pre-rel-<release-version>-fips`, e.g. `pre-rel-v0.4.0-fips`.
+
+```shell
+$ PRE_RELEASE_VERSION=<pre-release-version>-fips # ex: PRE_RELEASE_VERSION=pre-rel-v0.4.0-fips
+$ git tag "$PRE_RELEASE_VERSION"
+$ git push upstream "$PRE_RELEASE_VERSION"
+```
+
+Once the FIPSpre-release Git tag has been pushed, wait for the FIPS pre-release Github workflow to complete. Upon workflow completion, retrieve the image digests for the given release. The image digests are logged in the "Image digests" step of the Pre-release workflow.
+
+The image digest logs contain the sha256 image digest for each control plane image (**NOTE: these will be different than the main version!**):
+```
+init: sha256:70b0d33d7d02415a03ddffc5d53cfebf88dd82b5cd11196dab2306426e59c7d9
+osm-controller: sha256:501febfb41b676e85dbe5e32c14a2bb983028f4e2ca05cf506685ebd2d4321af
+osm-injector: sha256:527f15ae763d05fdd5077f07a489c06e5da3e24816aadaa10140263060e4aa01
+osm-crds: sha256:e11849d86ed14e054a6361f31948543132daf9eb612402c17ff41c2a942d4857
+osm-bootstrap: sha256:ea0234d481191f73f53baa50762dd2ee055503267f0e46d2a7591cf2dcc48bc6
+```
+
+(*Before continuing, make sure to grab the correct digest for the patch branch you're working with (main vs. fips)*)
 
 ## Update release branch with patches and versioning changes
 
@@ -95,7 +146,7 @@ Ensure your local copy of the release branch has the latest changes from the PR 
 Once the release is ready to be published, create and push a Git tag from the release branch to
 the main repo (not fork), identified here by the `upstream` remote.
 
-```console
+```shell
 $ export RELEASE_VERSION=<release-version> # ex: export RELEASE_VERSION=v0.4.0
 $ git tag "$RELEASE_VERSION"
 $ git push upstream "$RELEASE_VERSION"

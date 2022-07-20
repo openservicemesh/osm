@@ -1,4 +1,4 @@
-name: Pre-release
+name: FIPS Pre-release
 on:
   push:
     tags:
