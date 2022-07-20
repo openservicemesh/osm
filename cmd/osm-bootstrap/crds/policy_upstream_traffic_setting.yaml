@@ -91,7 +91,7 @@ spec:
                   type: object
                   properties:
                     local:
-                      description: Policy responsible for rate limiting traffic at the upstream service.
+                      description: Local rate limit policy responsible for rate limiting traffic at the upstream service.
                       type: object
                       properties:
                         tcp:
@@ -162,6 +162,242 @@ spec:
                                     description: Value defines the HTTP header value.
                                     type: string
                                     minLength: 1
+                    global:
+                      description: Global rate limit policy responsible for rate limiting traffic to the upstream service.
+                      type: object
+                      properties:
+                        tcp:
+                          description: Global rate limit policy for TCP connections.
+                          type: object
+                          required:
+                          - rateLimitService
+                          - domain
+                          - descriptors
+                          properties:
+                            rateLimitService:
+                              description: Rate limit service to use as a global rate limiter.
+                              type: object
+                              required:
+                              - host
+                              - port
+                              properties:
+                                host:
+                                  description: Hostname of the global rate limit service.
+                                  type: string
+                                  minLength: 1
+                                port:
+                                  description: Port of the global rate limit service.
+                                  type: integer
+                                  minimum: 1
+                                  maximum: 65535
+                            domain:
+                              description: Domain defines a container for a set of rate limits.
+                                All domains known to the Ratelimit service must be globally unique.
+                                They serve as a way to have different rate limit configurations that
+                                don't conflict.
+                              type: string
+                            descriptors:
+                              description: List of rate limit descriptors to use in the rate limit service request.
+                              type: array
+                              minItems: 1
+                              items:
+                                description: Rate limit descriptor to use in the rate limit service request.
+                                type: object
+                                required:
+                                - entries
+                                properties:
+                                  entries:
+                                    description: List of rate limit descriptor entries for the descriptor.
+                                    type: array
+                                    minItems: 1
+                                    items:
+                                      description: Descriptor entry.
+                                      type: object
+                                      required:
+                                      - key
+                                      - value
+                                      properties:
+                                        key:
+                                          description: Key of the descriptor entry.
+                                          type: string
+                                        value:
+                                          description: Value of the descriptor entry.
+                                          type: string
+                            timeout:
+                              description: Timeout (optional) interval for calls to the rate limit service. Defaults to 20ms.
+                              type: string
+                            failOpen:
+                              description: FailOpen (optional) defines whether to allow traffic in case of communication failure between
+                                rate limiting service and the proxy. Defaults to true.
+                              type: boolean
+                        http:
+                          description: Global rate limit policy for HTTP requests.
+                          type: object
+                          required:
+                          - rateLimitService
+                          - domain
+                          - descriptors
+                          properties:
+                            rateLimitService:
+                              description: Rate limit service to use as a global rate limiter.
+                              type: object
+                              required:
+                              - host
+                              - port
+                              properties:
+                                host:
+                                  description: Hostname of the global rate limit service.
+                                  type: string
+                                  minLength: 1
+                                port:
+                                  description: Port of the global rate limit service.
+                                  type: integer
+                                  minimum: 1
+                                  maximum: 65535
+                            domain:
+                              description: Domain defines a container for a set of rate limits.
+                                All domains known to the Ratelimit service must be globally unique.
+                                They serve as a way to have different rate limit configurations that
+                                don't conflict.
+                              type: string
+                            descriptors:
+                              description: List of rate limit descriptors to use in the rate limit service request.
+                              type: array
+                              minItems: 1
+                              items:
+                                description: Rate limit descriptor to use in the rate limit service request.
+                                type: object
+                                required:
+                                - entries
+                                properties:
+                                  entries:
+                                    description: List of rate limit descriptor entries for the descriptor.
+                                    type: array
+                                    minItems: 1
+                                    items:
+                                        description: Descriptor entry.
+                                        type: object
+                                        properties:
+                                          genericKey:
+                                            description: GenericKey (optional) defines a descriptor entry with a static key-value pair.
+                                            type: object
+                                            required:
+                                            - value
+                                            properties:
+                                              value:
+                                                description: Value of the genericKey descriptor entry
+                                                type: string
+                                                minLength: 1
+                                              key:
+                                                description: Key (optional) of the genericKey descriptor entry. Defaults to 'generic_key'.
+                                                type: string
+                                                minLength: 1
+                                          remoteAddress:
+                                            description: RemoteAddress (optional) defines a descriptor entry with with key 'remote_address'
+                                              and value equal to the client's IP address derived from the x-forwarded-for header.
+                                            type: object
+                                          requestHeader:
+                                            description: RequestHeader (optional) defines a descriptor entry that is generated only when the
+                                              request header matches the given header name. The value of the descriptor entry is derived from
+                                              the value of the header present in the request.
+                                            type: object
+                                            required:
+                                            - name
+                                            - key
+                                            properties:
+                                              name:
+                                                description: Name of the header used to look up the descriptor entry's value.
+                                                type: string
+                                                minLength: 1
+                                              key:
+                                                description: Key of the requestHeader descriptor entry.
+                                                type: string
+                                                minLength: 1
+                                          headerValueMatch:
+                                            description: HeaderValueMatch (optional) defines a descriptor entry that is generated when the
+                                              request header matches the given HTTP header match criteria.
+                                            type: object
+                                            required:
+                                            - value
+                                            - headers
+                                            properties:
+                                              value:
+                                                description: Value of the headerValueMatch descriptor entry
+                                                type: string
+                                                minLength: 1
+                                              headers:
+                                                description: List of HTTP header match criteria used to determine whether the descriptor entry
+                                                  should be generated for the request. A match will happen if all the specified headers are
+                                                  present in the request with the same values, or based on presence if the value field is not set.
+                                                type: array
+                                                minItems: 1
+                                                items:
+                                                  description: Header match criteria.
+                                                  type: object
+                                                  required:
+                                                  - name
+                                                  properties:
+                                                    name:
+                                                      description: Name of the header to match.
+                                                      type: string
+                                                      minLength: 1
+                                                    exact:
+                                                      description: Exact (optional) value to match against the given header name.
+                                                      type: string
+                                                      minLength: 1
+                                                    prefix:
+                                                      description: Prefix (optional) value to match against the given header name.
+                                                      type: string
+                                                      minLength: 1
+                                                    suffix:
+                                                      description: Suffix (optional) value to match against the given header name.
+                                                      type: string
+                                                      minLength: 1
+                                                    regex:
+                                                      description: Regex (optional) value to match against the given header name.
+                                                      type: string
+                                                      minLength: 1
+                                                    contains:
+                                                      description: Contains (optional) value to match against the given header name.
+                                                      type: string
+                                                      minLength: 1
+                                                    present:
+                                                      description: Present (optional) defines whether the request matches the criteria
+                                                        when the header is present. If set to false, header match will be performed
+                                                        based on whether the header is absent.
+                                                      type: boolean
+                                                  oneOf:
+                                                  - required: ["name", "exact"]
+                                                  - required: ["name", "prefix"]
+                                                  - required: ["name", "suffix"]
+                                                  - required: ["name", "regex"]
+                                                  - required: ["name", "contains"]
+                                                  - required: ["name", "present"]
+                                              key:
+                                                description: Key (optional) of the headerValueMatch descriptor entry. Defaults to 'header_match'.
+                                                type: string
+                                              expectMatch:
+                                                description: ExpectMatch (optional) defines whether the request must match the given match
+                                                  criteria for the descriptor entry to be generated. If set to false, a descriptor entry will
+                                                  be generated when the request does not match the match criteria. Defaults to true.
+                                                type: boolean
+                                        oneOf:
+                                          - required: ["genericKey"]
+                                          - required: ["remoteAddress"]
+                                          - required: ["requestHeader"]
+                                          - required: ["headerValueMatch"]
+                            timeout:
+                              description: Timeout (optional) interval for calls to the rate limit service. Defaults to 20ms.
+                              type: string
+                            failOpen:
+                              description: FailOpen (optional) defines whether to allow traffic in case of communication failure between
+                                rate limiting service and the proxy. Defaults to true.
+                              type: boolean
+                            enableXRateLimitHeaders:
+                              description: EnableXRateLimitHeaders (optional) defines whether to include the headers
+                                X-RateLimit-Limit, X-RateLimit-Remaining, and X-RateLimit-Reset on responses to clients
+                                when the rate limit service is consulted for a request. Defaults to false.
+                              type: boolean
                 httpRoutes:
                   description: HTTPRoutes defines the list of HTTP routes settings for the upstream host.
                     Settings are applied at a per route level.
@@ -225,6 +461,138 @@ spec:
                                       description: Value defines the HTTP header value.
                                       type: string
                                       minLength: 1
+                          global:
+                            description: Global rate limiting policy applied per route.
+                            type: object
+                            required:
+                            - descriptors
+                            properties:
+                              descriptors:
+                                description: List of rate limit descriptors to use in the rate limit service request.
+                                type: array
+                                minItems: 1
+                                items:
+                                  description: Rate limit descriptor to use in the rate limit service request.
+                                  type: object
+                                  required:
+                                  - entries
+                                  properties:
+                                    entries:
+                                      description: List of rate limit descriptor entries for the descriptor.
+                                      type: array
+                                      minItems: 1
+                                      items:
+                                          description: Descriptor entry.
+                                          type: object
+                                          properties:
+                                            genericKey:
+                                              description: GenericKey (optional) defines a descriptor entry with a static key-value pair.
+                                              type: object
+                                              required:
+                                              - value
+                                              properties:
+                                                value:
+                                                  description: Value of the genericKey descriptor entry
+                                                  type: string
+                                                  minLength: 1
+                                                key:
+                                                  description: Key (optional) of the genericKey descriptor entry. Defaults to 'generic_key'.
+                                                  type: string
+                                                  minLength: 1
+                                            remoteAddress:
+                                              description: RemoteAddress (optional) defines a descriptor entry with with key 'remote_address'
+                                                and value equal to the client's IP address derived from the x-forwarded-for header.
+                                              type: object
+                                            requestHeader:
+                                              description: RequestHeader (optional) defines a descriptor entry that is generated only when the
+                                                request header matches the given header name. The value of the descriptor entry is derived from
+                                                the value of the header present in the request.
+                                              type: object
+                                              required:
+                                              - name
+                                              - key
+                                              properties:
+                                                name:
+                                                  description: Name of the header used to look up the descriptor entry's value.
+                                                  type: string
+                                                  minLength: 1
+                                                key:
+                                                  description: Key of the requestHeader descriptor entry.
+                                                  type: string
+                                                  minLength: 1
+                                            headerValueMatch:
+                                              description: HeaderValueMatch (optional) defines a descriptor entry that is generated when the
+                                                request header matches the given HTTP header match criteria.
+                                              type: object
+                                              required:
+                                              - value
+                                              - headers
+                                              properties:
+                                                value:
+                                                  description: Value of the headerValueMatch descriptor entry
+                                                  type: string
+                                                  minLength: 1
+                                                headers:
+                                                  description: List of HTTP header match criteria used to determine whether the descriptor entry
+                                                    should be generated for the request. A match will happen if all the specified headers are
+                                                    present in the request with the same values, or based on presence if the value field is not set.
+                                                  type: array
+                                                  minItems: 1
+                                                  items:
+                                                    description: Header match criteria.
+                                                    type: object
+                                                    required:
+                                                    - name
+                                                    properties:
+                                                      name:
+                                                        description: Name of the header to match.
+                                                        type: string
+                                                        minLength: 1
+                                                      exact:
+                                                        description: Exact (optional) value to match against the given header name.
+                                                        type: string
+                                                        minLength: 1
+                                                      prefix:
+                                                        description: Prefix (optional) value to match against the given header name.
+                                                        type: string
+                                                        minLength: 1
+                                                      suffix:
+                                                        description: Suffix (optional) value to match against the given header name.
+                                                        type: string
+                                                        minLength: 1
+                                                      regex:
+                                                        description: Regex (optional) value to match against the given header name.
+                                                        type: string
+                                                        minLength: 1
+                                                      contains:
+                                                        description: Contains (optional) value to match against the given header name.
+                                                        type: string
+                                                        minLength: 1
+                                                      present:
+                                                        description: Present (optional) defines whether the request matches the criteria
+                                                          when the header is present. If set to false, header match will be performed
+                                                          based on whether the header is absent.
+                                                        type: boolean
+                                                    oneOf:
+                                                    - required: ["name", "exact"]
+                                                    - required: ["name", "prefix"]
+                                                    - required: ["name", "suffix"]
+                                                    - required: ["name", "regex"]
+                                                    - required: ["name", "contains"]
+                                                    - required: ["name", "present"]
+                                                key:
+                                                  description: Key (optional) of the headerValueMatch descriptor entry. Defaults to 'header_match'.
+                                                  type: string
+                                                expectMatch:
+                                                  description: ExpectMatch (optional) defines whether the request must match the given match
+                                                    criteria for the descriptor entry to be generated. If set to false, a descriptor entry will
+                                                    be generated when the request does not match the match criteria. Defaults to true.
+                                                  type: boolean
+                                          oneOf:
+                                            - required: ["genericKey"]
+                                            - required: ["remoteAddress"]
+                                            - required: ["requestHeader"]
+                                            - required: ["headerValueMatch"]
             status:
               type: object
               x-kubernetes-preserve-unknown-fields: true
