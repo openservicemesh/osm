@@ -15,11 +15,10 @@ var log = logger.New("proxy-registry")
 type ProxyRegistry struct {
 	ProxyServiceMapper
 
-	connectedProxies map[string]*envoy.Proxy
-
 	msgBroker *messaging.Broker
 
-	mu sync.Mutex
+	mu               sync.Mutex
+	connectedProxies map[string]*envoy.Proxy
 }
 
 // A simple interface to release certificates. Created to abstract the certificate.Manager struct for testing purposes.

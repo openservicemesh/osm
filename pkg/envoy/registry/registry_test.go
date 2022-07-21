@@ -2,6 +2,7 @@ package registry
 
 import (
 	"sync"
+	"testing"
 
 	"github.com/google/uuid"
 
@@ -43,29 +44,99 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 			connectedProxies := proxyRegistry.ListConnectedProxies()
 			Expect(len(connectedProxies)).To(Equal(0))
 		})
-
-		It("ensures the correctness of proxy count", func() {
-			err := logger.SetLogLevel("error")
-			Expect(err).To(BeNil())
-
-			proxyRegistry := NewProxyRegistry(nil, nil)
-			total := 10000
-
-			wg := sync.WaitGroup{}
-			wg.Add(total*2)
-			for j := 0; j < total; j++ {
-				proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil)
-				go func() {
-					proxyRegistry.RegisterProxy(proxy)
-					wg.Done()
-					proxyRegistry.UnregisterProxy(proxy)
-					wg.Done()
-				}()
-			}
-
-			wg.Wait()
-			Expect(proxyRegistry.GetConnectedProxyCount()).To(Equal(0))
-		})
 	})
-
 })
+
+func TestRegisterUnregister(t *testing.T) {
+	if err := logger.SetLogLevel("error"); err != nil {
+		t.Logf("Failed to set log level to error: %s", err)
+	}
+
+	proxyRegistry := NewProxyRegistry(nil, nil)
+	total := 10000
+
+	wg := sync.WaitGroup{}
+	wg.Add(total)
+	for j := 0; j < total; j++ {
+		proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil)
+
+		innerWg := sync.WaitGroup{}
+		innerWg.Add(1)
+		go func() {
+			proxyRegistry.RegisterProxy(proxy)
+			innerWg.Done()
+		}()
+
+		go func() {
+			innerWg.Wait()
+			proxyRegistry.UnregisterProxy(proxy)
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	if proxyRegistry.GetConnectedProxyCount() != 0 {
+		t.Errorf("Expected 0 proxies, got %d", proxyRegistry.GetConnectedProxyCount())
+	}
+}
+
+func BenchmarkRegistryAdd(b *testing.B) {
+	if err := logger.SetLogLevel("error"); err != nil {
+		b.Logf("Failed to set log level to error: %s", err)
+	}
+
+	for n := 0; n < b.N; n++ {
+		proxyRegistry := NewProxyRegistry(nil, nil)
+		total := 10000
+
+		wg := sync.WaitGroup{}
+		wg.Add(total)
+		for j := 0; j < total; j++ {
+			proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil)
+
+			innerWg := sync.WaitGroup{}
+			innerWg.Add(1)
+			go func() {
+				proxyRegistry.RegisterProxy(proxy)
+				innerWg.Done()
+			}()
+
+			go func() {
+				innerWg.Wait()
+				proxyRegistry.UnregisterProxy(proxy)
+				wg.Done()
+			}()
+		}
+
+		wg.Wait()
+		if proxyRegistry.GetConnectedProxyCount() != 0 {
+			b.Errorf("Expected %d proxies, got %d", 0, proxyRegistry.GetConnectedProxyCount())
+		}
+	}
+}
+
+func BenchmarkRegistryGetCount(b *testing.B) {
+	if err := logger.SetLogLevel("error"); err != nil {
+		b.Logf("Failed to set log level to error: %s", err)
+	}
+
+	proxyRegistry := NewProxyRegistry(nil, nil)
+	total := 10000
+
+	wg := sync.WaitGroup{}
+	wg.Add(total)
+	for j := 0; j < total; j++ {
+		go func() {
+			proxyRegistry.RegisterProxy(
+				envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil))
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	for n := 0; n < b.N; n++ {
+		if proxyRegistry.GetConnectedProxyCount() != total {
+			b.Errorf("Expected %d proxies, got %d", total, proxyRegistry.GetConnectedProxyCount())
+		}
+	}
+}
