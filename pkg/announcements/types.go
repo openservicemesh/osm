@@ -121,11 +121,6 @@ const (
 	// IngressUpdated is the type of announcement emitted when we observe an update to a Kubernetes Ingress
 	IngressUpdated Kind = "ingress-updated"
 
-	// ---
-
-	// CertificateRotated is the type of announcement emitted when a certificate is rotated by the certificate provider
-	CertificateRotated Kind = "certificate-rotated"
-
 	// --- config.openservicemesh.io API events
 
 	// MeshConfigAdded is the type of announcement emitted when we observe an addition of a Kubernetes MeshConfig

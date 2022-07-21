@@ -378,6 +378,11 @@ func TestSubscribeRotations(t *testing.T) {
 		pubsub:           pubsub.New(0),
 	}
 
+	ch1, unsub1 := cm.SubscribeRotations(cnPrefix1)
+	ch2, unsub2 := cm.SubscribeRotations(cnPrefix2)
+	defer unsub1()
+	defer unsub2()
+
 	cert, err := cm.IssueCertificate(cnPrefix1, Service)
 	assert.NoError(err)
 	assert.Equal("fake-cert-cn1.fake1.domain.com", cert.GetCommonName().String())
@@ -385,11 +390,6 @@ func TestSubscribeRotations(t *testing.T) {
 	cert, err = cm.IssueCertificate(cnPrefix2, Service)
 	assert.NoError(err)
 	assert.Equal("fake-cert-cn2.fake1.domain.com", cert.GetCommonName().String())
-
-	ch1, unsub1 := cm.SubscribeRotations(cnPrefix1)
-	ch2, unsub2 := cm.SubscribeRotations(cnPrefix2)
-	defer unsub1()
-	defer unsub2()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
