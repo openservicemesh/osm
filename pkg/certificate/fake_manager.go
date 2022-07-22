@@ -96,7 +96,6 @@ func FakeCertManager() (*Manager, error) {
 		&fakeMRCClient{},
 		getCertValidityDuration,
 		getCertValidityDuration,
-		nil,
 		1*time.Hour,
 	)
 	if err != nil {

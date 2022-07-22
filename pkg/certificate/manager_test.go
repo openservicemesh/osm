@@ -2,18 +2,18 @@ package certificate
 
 import (
 	"context"
+	"sync"
 	"testing"
 	time "time"
 
+	"github.com/cskr/pubsub"
 	tassert "github.com/stretchr/testify/assert"
 	trequire "github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 func TestShouldRotate(t *testing.T) {
@@ -85,13 +85,13 @@ func TestRotor(t *testing.T) {
 
 	stop := make(chan struct{})
 	defer close(stop)
-	msgBroker := messaging.NewBroker(stop)
-	certManager, err := NewManager(context.Background(), &fakeMRCClient{}, getServiceCertValidityPeriod, getIngressGatewayCertValidityPeriod, msgBroker, 5*time.Second)
+	certManager, err := NewManager(context.Background(), &fakeMRCClient{}, getServiceCertValidityPeriod, getIngressGatewayCertValidityPeriod, 5*time.Second)
 	require.NoError(err)
 
 	certA, err := certManager.IssueCertificate(cnPrefix, Service)
 	require.NoError(err)
-	certRotateChan := msgBroker.GetCertPubSub().Sub(announcements.CertificateRotated.String())
+	certRotateChan, unsub := certManager.SubscribeRotations(cnPrefix)
+	defer unsub()
 
 	// Wait for two certificate rotations to be announced and terminate
 	<-certRotateChan
@@ -182,7 +182,6 @@ func TestIssueCertificate(t *testing.T) {
 
 	stop := make(chan struct{})
 	defer close(stop)
-	msgBroker := messaging.NewBroker(stop)
 
 	t.Run("single key issuer", func(t *testing.T) {
 		cm := &Manager{
@@ -190,7 +189,7 @@ func TestIssueCertificate(t *testing.T) {
 			// The root certificate signing all newly issued certificates
 			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
 			validatingIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake2.domain.com"},
-			msgBroker:        msgBroker,
+			pubsub:           pubsub.New(0),
 		}
 		// single signingIssuer, not cached
 		cert1, err := cm.IssueCertificate(cnPrefix, Service)
@@ -228,7 +227,7 @@ func TestIssueCertificate(t *testing.T) {
 			// The root certificate signing all newly issued certificates
 			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
 			validatingIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2"), TrustDomain: "fake2.domain.com"},
-			msgBroker:        msgBroker,
+			pubsub:           pubsub.New(0),
 		}
 
 		// Not cached
@@ -286,7 +285,7 @@ func TestIssueCertificate(t *testing.T) {
 			// The root certificate signing all newly issued certificates
 			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}, CertificateAuthority: pem.RootCertificate("id1")},
 			validatingIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2", err: true}, CertificateAuthority: pem.RootCertificate("id2")},
-			msgBroker:        msgBroker,
+			pubsub:           pubsub.New(0),
 		}
 
 		// bad signingIssuer
@@ -364,4 +363,48 @@ func TestHandleMRCEvent(t *testing.T) {
 			assert.Equal(tt.wantValidatingIssuer, *m.validatingIssuer)
 		})
 	}
+}
+
+func TestSubscribeRotations(t *testing.T) {
+	assert := tassert.New(t)
+	cnPrefix1 := "fake-cert-cn1"
+	cnPrefix2 := "fake-cert-cn2"
+
+	cm := &Manager{
+		serviceCertValidityDuration: func() time.Duration { return time.Hour },
+		// The root certificate signing all newly issued certificates
+		signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
+		validatingIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
+		pubsub:           pubsub.New(0),
+	}
+
+	ch1, unsub1 := cm.SubscribeRotations(cnPrefix1)
+	ch2, unsub2 := cm.SubscribeRotations(cnPrefix2)
+	defer unsub1()
+	defer unsub2()
+
+	cert, err := cm.IssueCertificate(cnPrefix1, Service)
+	assert.NoError(err)
+	assert.Equal("fake-cert-cn1.fake1.domain.com", cert.GetCommonName().String())
+
+	cert, err = cm.IssueCertificate(cnPrefix2, Service)
+	assert.NoError(err)
+	assert.Equal("fake-cert-cn2.fake1.domain.com", cert.GetCommonName().String())
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		msg1 := <-ch1
+		msg2 := <-ch2
+
+		assert.Equal("fake-cert-cn1.fake2.domain.com", msg1.(*Certificate).GetCommonName().String())
+		assert.Equal("fake-cert-cn2.fake2.domain.com", msg2.(*Certificate).GetCommonName().String())
+		wg.Done()
+	}()
+
+	// swap the issuer which will trigger a rotation
+	cm.signingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2"), TrustDomain: "fake2.domain.com"}
+	cm.checkAndRotate()
+
+	wg.Wait()
 }

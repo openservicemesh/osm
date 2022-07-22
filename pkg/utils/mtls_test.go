@@ -30,7 +30,7 @@ func TestSetupMutualTLS(t *testing.T) {
 		expectedError string
 	}
 
-	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	certManager := tresorFake.NewFake(1 * time.Hour)
 	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.Internal)
 
 	assert.NoError(err)
@@ -38,7 +38,7 @@ func TestSetupMutualTLS(t *testing.T) {
 	serverType := "ADS"
 	goodCertPem := adsCert.GetCertificateChain()
 	goodKeyPem := adsCert.GetPrivateKey()
-	goodCA := adsCert.GetTrustedCAs()
+	goodCA := adsCert.GetIssuingCA()
 	var emptyByteArray []byte
 
 	setupMutualTLStests := []setupMutualTLStest{
@@ -67,7 +67,7 @@ func TestValidateClient(t *testing.T) {
 		expectedError error
 	}
 
-	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	certManager := tresorFake.NewFake(1 * time.Hour)
 	cnPrefix := fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace)
 	certPEM, _ := certManager.IssueCertificate(cnPrefix, certificate.Internal)
 	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())

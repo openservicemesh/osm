@@ -237,9 +237,7 @@ func main() {
 	endpointsProviders := []endpoint.Provider{kubeProvider}
 	serviceProviders := []service.Provider{kubeProvider}
 
-	if err := ingress.Initialize(kubeClient, k8sClient, stop, cfg, certManager, msgBroker); err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress client")
-	}
+	ingress.Initialize(kubeClient, k8sClient, stop, cfg, certManager, msgBroker)
 
 	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
 

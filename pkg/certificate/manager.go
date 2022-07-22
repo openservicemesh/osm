@@ -7,12 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/cskr/pubsub"
+
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 var (
@@ -20,11 +19,11 @@ var (
 )
 
 // NewManager creates a new CertificateManager with the passed MRCClient and options
-func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, msgBroker *messaging.Broker, checkInterval time.Duration) (*Manager, error) {
+func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, checkInterval time.Duration) (*Manager, error) {
 	m := &Manager{
 		serviceCertValidityDuration: getServiceCertValidityPeriod,
 		ingressCertValidityDuration: getIngressCertValidityDuration,
-		msgBroker:                   msgBroker,
+		pubsub:                      pubsub.New(1),
 	}
 
 	err := m.start(ctx, mrcClient)
@@ -312,11 +311,7 @@ func (m *Manager) issueCertificate(prefix string, ct CertType, opts ...IssueOpti
 
 	if rotate {
 		// Certificate was rotated
-		m.msgBroker.GetCertPubSub().Pub(events.PubSubMessage{
-			Kind:   announcements.CertificateRotated,
-			NewObj: newCert,
-			OldObj: cert,
-		}, announcements.CertificateRotated.String())
+		m.pubsub.Pub(newCert, prefix)
 
 		log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s", cert.SerialNumber, newCert.SerialNumber)
 	}
@@ -338,4 +333,18 @@ func (m *Manager) ListIssuedCertificates() []*Certificate {
 		return true // continue the iteration
 	})
 	return certs
+}
+
+// SubscribeRotations returns a channel that outputs every certificate that is rotated by the manager.
+// The caller must call the returned method to close the channel.
+// WARNING: you cannot call wait on the returned channel on the same go routine you are issuing a certificate on.
+func (m *Manager) SubscribeRotations(key string) (chan interface{}, func()) {
+	ch := m.pubsub.Sub(key)
+	return ch, func() {
+		go m.pubsub.Unsub(ch)
+		// must empty the channel to prevent deadlock
+		// https://github.com/openservicemesh/osm/issues/4847
+		for range ch {
+		}
+	}
 }

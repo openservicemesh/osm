@@ -13,13 +13,13 @@ import (
 
 func TestNewGrpc(t *testing.T) {
 	assert := tassert.New(t)
-	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	certManager := tresorFake.NewFake(1 * time.Hour)
 	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.Internal)
 	assert.NoError(err)
 
 	certPem := adsCert.GetCertificateChain()
 	keyPem := adsCert.GetPrivateKey()
-	rootPem := adsCert.GetTrustedCAs()
+	rootPem := adsCert.GetIssuingCA()
 	var emptyByteArray []byte
 
 	type newGrpcTest struct {
@@ -52,14 +52,14 @@ func TestNewGrpc(t *testing.T) {
 func TestGrpcServe(t *testing.T) {
 	assert := tassert.New(t)
 
-	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	certManager := tresorFake.NewFake(1 * time.Hour)
 	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.Internal)
 
 	assert.NoError(err)
 
 	serverType := "ADS"
 	port := 9999
-	grpcServer, lis, err := NewGrpc(serverType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetTrustedCAs())
+	grpcServer, lis, err := NewGrpc(serverType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
 	assert.Nil(err)
 
 	ctx, cancel := context.WithCancel(context.Background())

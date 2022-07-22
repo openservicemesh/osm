@@ -76,7 +76,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 		mrcClient.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
 	}
 
-	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, msgBroker, checkInterval)
+	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, checkInterval)
 }
 
 // NewCertificateManagerFromMRC returns a new certificate manager.
@@ -100,7 +100,7 @@ func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Int
 		mrcClient.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
 	}
 
-	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, msgBroker, checkInterval)
+	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, checkInterval)
 }
 
 // GetCertIssuerForMRC returns a certificate.Issuer generated from the provided MRC.

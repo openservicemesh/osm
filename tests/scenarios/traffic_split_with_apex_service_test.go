@@ -51,7 +51,7 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 		EnableEgressPolicy: false,
 	}).AnyTimes()
 
-	mc := tresorFake.NewFake(nil, 1*time.Hour)
+	mc := tresorFake.NewFake(1 * time.Hour)
 	a.NotNil(a)
 
 	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, mc, proxyRegistry)

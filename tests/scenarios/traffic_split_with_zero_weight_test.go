@@ -253,7 +253,7 @@ func TestRDSRespose(t *testing.T) {
 			mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 
-			cm := tresorFake.NewFake(nil, 1*time.Hour)
+			cm := tresorFake.NewFake(1 * time.Hour)
 
 			resources, err := rds.NewResponse(mockCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
 			assert.Nil(err)

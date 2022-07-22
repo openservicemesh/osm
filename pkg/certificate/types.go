@@ -9,9 +9,10 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
+	"github.com/cskr/pubsub"
+
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
@@ -107,7 +108,6 @@ type Manager struct {
 	ingressCertValidityDuration func() time.Duration
 	// TODO(#4711): define serviceCertValidityDuration in the MRC
 	serviceCertValidityDuration func() time.Duration
-	msgBroker                   *messaging.Broker
 
 	mu            sync.Mutex // mu syncrhonizes acces to the below resources.
 	signingIssuer *issuer
@@ -115,6 +115,8 @@ type Manager struct {
 	validatingIssuer *issuer
 
 	group singleflight.Group
+
+	pubsub *pubsub.PubSub
 }
 
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
