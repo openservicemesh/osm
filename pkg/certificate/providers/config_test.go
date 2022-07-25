@@ -30,10 +30,8 @@ import (
 func TestGetCertificateManager(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
-	mockConfigurator.EXPECT().IsDebugServerEnabled().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
-	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(1 * time.Hour).AnyTimes()
 	type testCase struct {
 		name        string
 		expectError bool
@@ -163,10 +161,7 @@ func TestGetCertificateManager(t *testing.T) {
 func TestGetCertificateManagerFromMRC(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-
-	mockConfigurator.EXPECT().IsDebugServerEnabled().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
-	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(1 * time.Hour).AnyTimes()
+	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 	type testCase struct {
 		name        string

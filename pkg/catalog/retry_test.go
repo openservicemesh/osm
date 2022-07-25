@@ -231,7 +231,13 @@ func TestGetRetryPolicy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha2.FeatureFlags{EnableRetryPolicy: tc.retryPolicyFlag}).Times(1)
+			mockCfg.EXPECT().GetMeshConfig().Return(
+				v1alpha2.MeshConfig{
+					Spec: v1alpha2.MeshConfigSpec{
+						FeatureFlags: v1alpha2.FeatureFlags{EnableRetryPolicy: tc.retryPolicyFlag},
+					},
+				},
+			).AnyTimes()
 			mockPolicyController.EXPECT().ListRetryPolicies(gomock.Any()).Return(tc.retryCRDs).Times(1)
 
 			res := mc.getRetryPolicy(retrySrc, tc.destSvc)

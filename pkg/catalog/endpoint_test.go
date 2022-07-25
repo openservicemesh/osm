@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -150,7 +151,13 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 				configurator:   mockConfigurator,
 			}
 
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).AnyTimes()
+			mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+				Spec: v1alpha2.MeshConfigSpec{
+					Traffic: v1alpha2.TrafficSpec{
+						EnablePermissiveTrafficPolicyMode: tc.permissiveMode,
+					},
+				},
+			}).AnyTimes()
 
 			for svc, endpoints := range tc.outboundServiceEndpoints {
 				mockProvider.EXPECT().ListEndpointsForService(svc).Return(endpoints).AnyTimes()

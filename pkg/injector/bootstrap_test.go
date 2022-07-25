@@ -51,6 +51,16 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				TLSMinProtocolVersion: "TLSv1_2",
 				TLSMaxProtocolVersion: "TLSv1_3",
 				CipherSuites:          []string{},
+				EnvoyWindowsImage:     envoyImage,
+				EnvoyImage:            envoyImage,
+				LogLevel:              "debug",
+				Resources: corev1.ResourceRequirements{
+					// Test set Limits
+					Limits: map[corev1.ResourceName]resource.Quantity{
+						"cpu":    resource.MustParse("2"),
+						"memory": resource.MustParse("512M"),
+					},
+				},
 			},
 		},
 	}
@@ -83,18 +93,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 
 	Context("test unix getEnvoySidecarContainerSpec()", func() {
 		It("creates Envoy sidecar spec", func() {
-			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("debug").Times(1)
-			mockConfigurator.EXPECT().GetEnvoyImage().Return(envoyImage).Times(1)
-			mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return(envoyImage).Times(0)
-			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{
-				// Test set Limits
-				Limits: map[corev1.ResourceName]resource.Quantity{
-					"cpu":    resource.MustParse("2"),
-					"memory": resource.MustParse("512M"),
-				},
-				// Test unset Requests
-				Requests: nil,
-			}).Times(1)
 			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, constants.OSLinux)
 
 			expected := corev1.Container{
@@ -208,18 +206,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 
 	Context("test Windows getEnvoySidecarContainerSpec()", func() {
 		It("creates Envoy sidecar spec", func() {
-			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("debug").Times(1)
-			mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return(envoyImage).Times(1)
-			mockConfigurator.EXPECT().GetEnvoyImage().Return(envoyImage).Times(0)
-			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{
-				// Test set Limits
-				Limits: map[corev1.ResourceName]resource.Quantity{
-					"cpu":    resource.MustParse("2"),
-					"memory": resource.MustParse("512M"),
-				},
-				// Test unset Requests
-				Requests: nil,
-			}).Times(1)
 			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, constants.OSWindows)
 
 			expected := corev1.Container{

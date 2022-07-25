@@ -81,7 +81,7 @@ func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*traf
 			applyInboundVirtualHostConfig(virtualHost, config)
 			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
 		}
-		if featureFlags := cfg.GetFeatureFlags(); featureFlags.EnableWASMStats {
+		if featureFlags := cfg.GetMeshConfig().Spec.FeatureFlags; featureFlags.EnableWASMStats {
 			for k, v := range proxy.StatsHeaders() {
 				routeConfig.ResponseHeadersToAdd = append(routeConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
 					Header: &core.HeaderValue{

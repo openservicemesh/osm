@@ -22,7 +22,6 @@ import (
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
 
-	"github.com/openservicemesh/osm/pkg/auth"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -73,9 +72,6 @@ func TestNewResponse(t *testing.T) {
 	configClient := configFake.NewSimpleClientset()
 	meshCatalog := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
 
-	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
-		Enable: false,
-	}).AnyTimes()
 	mockConfigurator.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{
 		Spec: configv1alpha2.MeshConfigSpec{
 			Traffic: configv1alpha2.TrafficSpec{
@@ -87,12 +83,10 @@ func TestNewResponse(t *testing.T) {
 					Enable: false,
 				},
 			},
+			FeatureFlags: configv1alpha2.FeatureFlags{
+				EnableEgressPolicy: true,
+			},
 		},
-	}).AnyTimes()
-
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableWASMStats:    false,
-		EnableEgressPolicy: true,
 	}).AnyTimes()
 
 	proxy, pod, err := getProxy(kubeClient)

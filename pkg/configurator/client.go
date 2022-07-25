@@ -84,8 +84,20 @@ func (c *Client) metricsHandler() cache.ResourceEventHandlerFuncs {
 			// Ensure metrics reflect however the rest of the control plane
 			// handles when the MeshConfig doesn't exist. If this happens not to
 			// be the "real" MeshConfig, handleMetrics() will simply ignore it.
-			config.Spec.FeatureFlags = c.GetFeatureFlags()
+			config.Spec.FeatureFlags = c.GetMeshConfig().Spec.FeatureFlags
 			handleMetrics(config)
 		},
 	}
+}
+
+// The functions in this file implement the configurator.Configurator interface
+
+// GetMeshConfig returns the MeshConfig resource corresponding to the control plane
+func (c *Client) GetMeshConfig() configv1alpha2.MeshConfig {
+	return c.getMeshConfig()
+}
+
+// GetOSMNamespace returns the namespace in which the OSM controller pod resides.
+func (c *Client) GetOSMNamespace() string {
+	return c.osmNamespace
 }

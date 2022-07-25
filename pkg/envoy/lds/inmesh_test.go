@@ -339,7 +339,7 @@ func TestBuildInboundHTTPFilterChain(t *testing.T) {
 			assert.Equal(filterChain.FilterChainMatch, tc.expectedFilterChainMatch)
 			assert.Len(filterChain.Filters, len(tc.expectedFilterNames))
 			for i, filter := range filterChain.Filters {
-				assert.Equal(filter.Name, tc.expectedFilterNames[i])
+				assert.Equal(tc.expectedFilterNames[i], filter.Name)
 			}
 		})
 	}

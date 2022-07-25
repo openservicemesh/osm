@@ -29,7 +29,7 @@ func (s *Server) getTypeResources(proxy *envoy.Proxy, request *xds_discovery.Dis
 		return nil, errUnknownTypeURL
 	}
 
-	if s.cfg.IsDebugServerEnabled() {
+	if s.cfg.GetMeshConfig().Spec.Observability.EnableDebugServer {
 		s.trackXDSLog(proxy.GetName(), typeURI)
 	}
 

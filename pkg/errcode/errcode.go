@@ -162,9 +162,6 @@ const (
 
 	// ErrMeshConfigFetchFromCache indicates failed to fetch MeshConfig from cache with specific key
 	ErrMeshConfigFetchFromCache
-
-	// ErrMeshConfigMarshaling indicates failed to marshal MeshConfig into other format like JSON
-	ErrMeshConfigMarshaling
 )
 
 // Range 5000-5500 reserved for errors related to Envoy XDS control plane
@@ -584,9 +581,6 @@ Failed to cast object to MeshConfig.
 `,
 	ErrMeshConfigFetchFromCache: `
 Failed to fetch MeshConfig from cache with specific key.
-`,
-	ErrMeshConfigMarshaling: `
-Failed to marshal MeshConfig into other format.
 `,
 
 	//

@@ -7,6 +7,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 func getTracingCluster(cfg configurator.Configurator) *xds_cluster.Cluster {
@@ -24,7 +25,7 @@ func getTracingCluster(cfg configurator.Configurator) *xds_cluster.Cluster {
 					LbEndpoints: []*xds_endpoint.LbEndpoint{{
 						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 							Endpoint: &xds_endpoint.Endpoint{
-								Address: envoy.GetAddress(cfg.GetTracingHost(), cfg.GetTracingPort()),
+								Address: envoy.GetAddress(utils.GetTracingHost(cfg.GetMeshConfig()), utils.GetTracingPort(cfg.GetMeshConfig())),
 							},
 						},
 					}},

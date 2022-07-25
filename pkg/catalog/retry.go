@@ -9,7 +9,7 @@ import (
 // getRetryPolicy returns the RetryPolicySpec for the given downstream identity and upstream service
 // TODO: Add support for wildcard destinations
 func (mc *MeshCatalog) getRetryPolicy(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) *v1alpha1.RetryPolicySpec {
-	if !mc.configurator.GetFeatureFlags().EnableRetryPolicy {
+	if !mc.configurator.GetMeshConfig().Spec.FeatureFlags.EnableRetryPolicy {
 		log.Trace().Msgf("Retry policy flag not enabled")
 		return nil
 	}
