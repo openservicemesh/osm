@@ -98,6 +98,8 @@ jobs:
           make go-mod-tidy
       - name: Codegen checks
         run: make check-codegen
+      - name: FIPS codegen checks
+        run: make check-codegen-fips
 
   mocks:
     name: Mocks

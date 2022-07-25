@@ -2,7 +2,7 @@ name: Release Helm Chart
 on:
   push:
     tags:
-      - "v*"
+      - "v[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
   release:

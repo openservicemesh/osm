@@ -70,6 +70,10 @@ clean-osm:
 codegen:
 	./codegen/gen-crd-client.sh
 
+.PHONY: codegen-fips
+codegen-fips:
+	./codegen/fips.sh
+
 .PHONY: chart-readme
 chart-readme:
 	go run github.com/norwoodj/helm-docs/cmd/helm-docs -c charts -t charts/osm/README.md.gotmpl
@@ -94,6 +98,11 @@ check-mocks:
 check-codegen:
 	@./codegen/gen-crd-client.sh
 	@git diff --exit-code || { echo "----- Please commit the changes made by './codegen/gen-crd-client.sh' -----"; exit 1; }
+
+.PHONY: check-codegen-fips
+check-codegen-fips:
+	@./codegen/fips.sh
+	@git diff --exit-code || { echo "----- Please commit the changes made by './codegen/fips.sh' -----"; exit 1; }
 
 .PHONY: go-checks
 go-checks: go-lint go-fmt go-mod-tidy check-mocks check-codegen
