@@ -37,11 +37,11 @@ jobs:
           CTR_TAG: ${{ needs.version.outputs.version }}
           VERIFY_TAGS: "true"
         run: make docker-build-fips
-      - name: Push images with latest tag
+      - name: Push images with latest-fips tag
         # Only for non-pre-releases
         if: ${{ !(contains(env.VERSION, '-alpha.') || contains(env.VERSION, '-beta.') || contains(env.VERSION, '-rc.') || contains(env.VERSION, '-nightly.')) }}
         env:
-          CTR_TAG: latest
+          CTR_TAG: latest-fips
         run: make docker-build-fips
       - name: Image digests
         env:
