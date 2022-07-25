@@ -17,6 +17,7 @@ import (
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/constants"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -32,17 +33,36 @@ import (
 
 func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 	upstreamSvcAccount := identity.K8sServiceAccount{Namespace: "ns1", Name: "sa1"}
-	perRouteRateLimitConfig := &policyv1alpha1.HTTPPerRouteRateLimitSpec{
+	perRouteLocalRateLimitConfig := &policyv1alpha1.HTTPPerRouteRateLimitSpec{
 		Local: &policyv1alpha1.HTTPLocalRateLimitSpec{
 			Requests: 10,
 			Unit:     "second",
 		},
 	}
-	virtualHostRateLimitConfig := &policyv1alpha1.RateLimitSpec{
+	virtualHostLocalRateLimitConfig := &policyv1alpha1.RateLimitSpec{
 		Local: &policyv1alpha1.LocalRateLimitSpec{
 			HTTP: &policyv1alpha1.HTTPLocalRateLimitSpec{
 				Requests: 100,
 				Unit:     "minute",
+			},
+		},
+	}
+	perRouteGlobalRateLimitConfig := &policyv1alpha1.HTTPPerRouteRateLimitSpec{
+		Global: &policyv1alpha1.HTTPGlobalPerRouteRateLimitSpec{},
+	}
+	virtualHostGlobalRateLimitConfig := &policyv1alpha1.RateLimitSpec{
+		Global: &policyv1alpha1.GlobalRateLimitSpec{
+			TCP: &policyv1alpha1.TCPGlobalRateLimitSpec{
+				RateLimitService: policyv1alpha1.RateLimitServiceSpec{
+					Host: "foo.bar",
+					Port: 8080,
+				},
+			},
+			HTTP: &policyv1alpha1.HTTPGlobalRateLimitSpec{
+				RateLimitService: policyv1alpha1.RateLimitServiceSpec{
+					Host: "foo.bar",
+					Port: 8080,
+				},
 			},
 		},
 	}
@@ -1702,7 +1722,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			},
 		},
 		{
-			name:             "multiple services, SMI mode, 1 TrafficTarget, 1 HTTPRouteGroup, 0 TrafficSplit, with rate limiting",
+			name:             "multiple services, SMI mode, 1 TrafficTarget, 1 HTTPRouteGroup, 0 TrafficSplit, with local rate limiting",
 			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
 			upstreamServices: []service.MeshService{
 				{
@@ -1777,11 +1797,11 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			trafficSplits: nil,
 			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
 				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
-					RateLimit: virtualHostRateLimitConfig,
+					RateLimit: virtualHostLocalRateLimitConfig,
 					HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
 						{
 							Path:      "/get", // matches route allowed by HTTPRouteGroup
-							RateLimit: perRouteRateLimitConfig,
+							RateLimit: perRouteLocalRateLimitConfig,
 						},
 					},
 				},
@@ -1806,7 +1826,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								"s1.ns1.svc.cluster.local",
 								"s1.ns1.svc.cluster.local:80",
 							},
-							RateLimit: virtualHostRateLimitConfig,
+							RateLimit: virtualHostLocalRateLimitConfig,
 							Rules: []*trafficpolicy.Rule{
 								{
 									Route: trafficpolicy.RouteWeightedClusters{
@@ -1822,7 +1842,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											ClusterName: "ns1/s1|8080|local",
 											Weight:      100,
 										}),
-										RateLimit: perRouteRateLimitConfig,
+										RateLimit: perRouteLocalRateLimitConfig,
 									},
 									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
@@ -1847,7 +1867,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								"s2.ns1.svc.cluster.local",
 								"s2.ns1.svc.cluster.local:90",
 							},
-							RateLimit: virtualHostRateLimitConfig,
+							RateLimit: virtualHostLocalRateLimitConfig,
 							Rules: []*trafficpolicy.Rule{
 								{
 									Route: trafficpolicy.RouteWeightedClusters{
@@ -1863,7 +1883,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											ClusterName: "ns1/s2|9090|local",
 											Weight:      100,
 										}),
-										RateLimit: perRouteRateLimitConfig,
+										RateLimit: perRouteLocalRateLimitConfig,
 									},
 									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
@@ -1891,7 +1911,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			},
 		},
 		{
-			name:             "multiple services, permissive mode, 0 TrafficSplit, with rate limiting",
+			name:             "multiple services, permissive mode, 0 TrafficSplit, with local rate limiting",
 			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
 			upstreamServices: []service.MeshService{
 				{
@@ -1912,11 +1932,11 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			permissiveMode: true,
 			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
 				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
-					RateLimit: virtualHostRateLimitConfig,
+					RateLimit: virtualHostLocalRateLimitConfig,
 					HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
 						{
 							Path:      ".*", // matches wildcard path regex for permissive mode
-							RateLimit: perRouteRateLimitConfig,
+							RateLimit: perRouteLocalRateLimitConfig,
 						},
 					},
 				},
@@ -1941,7 +1961,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								"s1.ns1.svc.cluster.local",
 								"s1.ns1.svc.cluster.local:80",
 							},
-							RateLimit: virtualHostRateLimitConfig,
+							RateLimit: virtualHostLocalRateLimitConfig,
 							Rules: []*trafficpolicy.Rule{
 								{
 									Route: trafficpolicy.RouteWeightedClusters{
@@ -1950,7 +1970,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											ClusterName: "ns1/s1|80|local",
 											Weight:      100,
 										}),
-										RateLimit: perRouteRateLimitConfig,
+										RateLimit: perRouteLocalRateLimitConfig,
 									},
 									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
@@ -1972,7 +1992,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								"s2.ns1.svc.cluster.local",
 								"s2.ns1.svc.cluster.local:90",
 							},
-							RateLimit: virtualHostRateLimitConfig,
+							RateLimit: virtualHostLocalRateLimitConfig,
 							Rules: []*trafficpolicy.Rule{
 								{
 									Route: trafficpolicy.RouteWeightedClusters{
@@ -1981,7 +2001,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											ClusterName: "ns1/s2|90|local",
 											Weight:      100,
 										}),
-										RateLimit: perRouteRateLimitConfig,
+										RateLimit: perRouteLocalRateLimitConfig,
 									},
 									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
@@ -2001,6 +2021,127 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
 						Address: "127.0.0.1",
 						Port:    90,
+					},
+				},
+			},
+		},
+		{
+			name:             "multiple services, permissive mode, 0 TrafficSplit, with global rate limiting",
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamServices: []service.MeshService{
+				{
+					Name:       "s1",
+					Namespace:  "ns1",
+					Port:       80,
+					TargetPort: 80,
+					Protocol:   "http",
+				},
+				{
+					Name:       "s2",
+					Namespace:  "ns1",
+					Port:       90,
+					TargetPort: 90,
+					Protocol:   "http",
+				},
+			},
+			permissiveMode: true,
+			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
+				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+					RateLimit: virtualHostGlobalRateLimitConfig,
+					HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
+						{
+							Path:      ".*", // matches wildcard path regex for permissive mode
+							RateLimit: perRouteGlobalRateLimitConfig,
+						},
+					},
+				},
+			},
+			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
+				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
+			},
+			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
+				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+					80: {
+						{
+							Name: "s1.ns1.svc.cluster.local",
+							Hostnames: []string{
+								"s1",
+								"s1:80",
+								"s1.ns1",
+								"s1.ns1:80",
+								"s1.ns1.svc",
+								"s1.ns1.svc:80",
+								"s1.ns1.svc.cluster",
+								"s1.ns1.svc.cluster:80",
+								"s1.ns1.svc.cluster.local",
+								"s1.ns1.svc.cluster.local:80",
+							},
+							RateLimit: virtualHostGlobalRateLimitConfig,
+							Rules: []*trafficpolicy.Rule{
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+										WeightedClusters: mapset.NewSet(service.WeightedCluster{
+											ClusterName: "ns1/s1|80|local",
+											Weight:      100,
+										}),
+										RateLimit: perRouteGlobalRateLimitConfig,
+									},
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+								},
+							},
+						},
+					},
+					90: {
+						{
+							Name: "s2.ns1.svc.cluster.local",
+							Hostnames: []string{
+								"s2",
+								"s2:90",
+								"s2.ns1",
+								"s2.ns1:90",
+								"s2.ns1.svc",
+								"s2.ns1.svc:90",
+								"s2.ns1.svc.cluster",
+								"s2.ns1.svc.cluster:90",
+								"s2.ns1.svc.cluster.local",
+								"s2.ns1.svc.cluster.local:90",
+							},
+							RateLimit: virtualHostGlobalRateLimitConfig,
+							Rules: []*trafficpolicy.Rule{
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+										WeightedClusters: mapset.NewSet(service.WeightedCluster{
+											ClusterName: "ns1/s2|90|local",
+											Weight:      100,
+										}),
+										RateLimit: perRouteGlobalRateLimitConfig,
+									},
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+								},
+							},
+						},
+					},
+				},
+				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+					{
+						Name:    "ns1/s1|80|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+						Address: "127.0.0.1",
+						Port:    80,
+					},
+					{
+						Name:    "ns1/s2|90|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
+						Address: "127.0.0.1",
+						Port:    90,
+					},
+					{
+						Name:     "foo.bar|8080",
+						Address:  "foo.bar",
+						Port:     8080,
+						Protocol: constants.ProtocolH2C,
 					},
 				},
 			},

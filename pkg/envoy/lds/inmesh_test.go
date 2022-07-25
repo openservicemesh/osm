@@ -272,7 +272,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 			expectError:         false,
 		},
 		{
-			name:           "inbound HTTP filter chain with rate limiting enabled",
+			name:           "inbound HTTP filter chain with local rate limiting enabled",
 			permissiveMode: true,
 			trafficMatch: &trafficpolicy.TrafficMatch{
 				Name:                "inbound_ns1/svc1_90_http",
@@ -295,6 +295,34 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 				ApplicationProtocols: []string{"osm"},
 			},
 			expectedFilterNames: []string{envoy.L4LocalRateLimitFilterName, envoy.HTTPConnectionManagerFilterName},
+			expectError:         false,
+		},
+		{
+			name:           "inbound HTTP filter chain with global rate limiting enabled",
+			permissiveMode: true,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "http",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+				RateLimit: &policyv1alpha1.RateLimitSpec{
+					Global: &policyv1alpha1.GlobalRateLimitSpec{
+						TCP: &policyv1alpha1.TCPGlobalRateLimitSpec{
+							RateLimitService: policyv1alpha1.RateLimitServiceSpec{
+								Host: "foo.bar",
+								Port: 8080,
+							},
+						},
+					},
+				},
+			},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
+				TransportProtocol:    "tls",
+				ApplicationProtocols: []string{"osm"},
+			},
+			expectedFilterNames: []string{envoy.L4GlobalRateLimitFilterName, envoy.HTTPConnectionManagerFilterName},
 			expectError:         false,
 		},
 	}
@@ -423,6 +451,34 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 				ApplicationProtocols: []string{"osm"},
 			},
 			expectedFilterNames: []string{envoy.L4LocalRateLimitFilterName, envoy.TCPProxyFilterName},
+			expectError:         false,
+		},
+		{
+			name:           "inbound HTTP filter chain with global rate limiting enabled",
+			permissiveMode: true,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "http",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+				RateLimit: &policyv1alpha1.RateLimitSpec{
+					Global: &policyv1alpha1.GlobalRateLimitSpec{
+						TCP: &policyv1alpha1.TCPGlobalRateLimitSpec{
+							RateLimitService: policyv1alpha1.RateLimitServiceSpec{
+								Host: "foo.bar",
+								Port: 8080,
+							},
+						},
+					},
+				},
+			},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
+				TransportProtocol:    "tls",
+				ApplicationProtocols: []string{"osm"},
+			},
+			expectedFilterNames: []string{envoy.L4GlobalRateLimitFilterName, envoy.TCPProxyFilterName},
 			expectError:         false,
 		},
 	}

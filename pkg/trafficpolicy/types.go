@@ -154,7 +154,12 @@ type MeshClusterConfig struct {
 	EnableEnvoyActiveHealthChecks bool
 
 	// UpstreamTrafficSetting is the traffic setting for the upstream cluster
+	// +optional
 	UpstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
+
+	// Protocol to use for the cluster
+	// +optional
+	Protocol string
 }
 
 // TrafficMatch is the type used to represent attributes used to match traffic
