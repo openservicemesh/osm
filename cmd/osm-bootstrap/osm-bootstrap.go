@@ -209,7 +209,7 @@ func main() {
 
 	msgBroker := messaging.NewBroker(stop)
 
-	informerCollection, err := informers.NewInformerCollection(meshName, msgBroker, stop,
+	informerCollection, err := informers.NewInformerCollection(meshName, stop,
 		informers.WithKubeClient(kubeClient),
 		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
 	)
@@ -219,7 +219,7 @@ func main() {
 	}
 
 	// Initialize Configurator to watch resources in the config.openservicemesh.io API group
-	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName)
+	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
 
 	certOpts, err := getCertOptions()
 	if err != nil {

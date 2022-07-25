@@ -61,11 +61,15 @@ func (b *Broker) GetProxyUpdatePubSub() *pubsub.PubSub {
 	return b.proxyUpdatePubSub
 }
 
-// GetKubeEventPubSub returns the PubSub instance corresponding to k8s events
-func (b *Broker) GetKubeEventPubSub() *pubsub.PubSub {
-	return b.kubeEventPubSub
+// SubscribeKubeEvents subscribe to kubernetes events.
+func (b *Broker) SubscribeKubeEvents(topics ...string) (chan interface{}, func()) {
+	ch := b.kubeEventPubSub.Sub(topics...)
+	return ch, func() {
+		b.Unsub(b.kubeEventPubSub, ch)
+	}
 }
 
+// PublishKubeEvent publishes the event to the kube event pubsub
 func (b *Broker) PublishKubeEvent(e events.PubSubMessage) {
 	b.kubeEventPubSub.Pub(e, e.Topic())
 }
@@ -204,6 +208,7 @@ func (b *Broker) runProxyUpdateDispatcher(stopCh <-chan struct{}) {
 	}
 }
 
+// BroadcastProxyUpdate sends a proxy update event on the proxy update channel.
 func (b *Broker) BroadcastProxyUpdate() {
 	atomic.AddUint64(&b.totalQProxyEventCount, 1)
 	b.proxyUpdateCh <- ProxyUpdateTopic

@@ -8,10 +8,12 @@ import (
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 const (
@@ -29,13 +31,27 @@ const (
 )
 
 // NewSMIClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewSMIClient(informerCollection *informers.InformerCollection, osmNamespace string, kubeController k8s.Controller) *Client {
-	return &Client{
+func NewSMIClient(informerCollection *informers.InformerCollection, osmNamespace string, kubeController k8s.Controller, msgBroker *messaging.Broker) *Client {
+	client := Client{
 		providerIdent:  kubernetesClientName,
 		informers:      informerCollection,
 		osmNamespace:   osmNamespace,
 		kubeController: kubeController,
 	}
+
+	shouldObserve := func(obj interface{}) bool {
+		object, ok := obj.(metav1.Object)
+		if !ok {
+			return false
+		}
+		return informerCollection.IsMonitoredNamespace(object.GetNamespace())
+	}
+	informerCollection.AddEventHandler(informers.InformerKeyTrafficSplit, k8s.GetEventHandlerFuncs(shouldObserve, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyHTTPRouteGroup, k8s.GetEventHandlerFuncs(shouldObserve, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyTCPRoute, k8s.GetEventHandlerFuncs(shouldObserve, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyTrafficTarget, k8s.GetEventHandlerFuncs(shouldObserve, msgBroker))
+
+	return &client
 }
 
 // ListTrafficSplits implements mesh.MeshSpec by returning the list of traffic splits.

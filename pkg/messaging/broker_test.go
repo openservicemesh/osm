@@ -29,22 +29,22 @@ func TestAllEvents(t *testing.T) {
 	proxyUpdateChan := c.GetProxyUpdatePubSub().Sub(ProxyUpdateTopic)
 	defer c.Unsub(c.proxyUpdatePubSub, proxyUpdateChan)
 
-	podChan := c.GetKubeEventPubSub().Sub(
+	podChan, unsubPodCH := c.SubscribeKubeEvents(
 		events.Pod.Added(),
 		events.Pod.Updated(),
 		events.Pod.Deleted(),
 	)
-	defer c.Unsub(c.kubeEventPubSub, podChan)
+	defer unsubPodCH()
 
-	endpointsChan := c.GetKubeEventPubSub().Sub(
+	endpointsChan, unsubEpsCh := c.SubscribeKubeEvents(
 		events.Endpoint.Added(),
 		events.Endpoint.Updated(),
 		events.Endpoint.Deleted(),
 	)
-	defer c.Unsub(c.kubeEventPubSub, endpointsChan)
+	defer unsubEpsCh()
 
-	meshCfgChan := c.GetKubeEventPubSub().Sub(events.MeshConfig.Updated())
-	defer c.Unsub(c.kubeEventPubSub, meshCfgChan)
+	meshCfgChan, unsubMshCfg := c.SubscribeKubeEvents(events.MeshConfig.Updated())
+	defer unsubMshCfg()
 
 	numEventTriggers := 50
 	// Endpoints add/update/delete will result in proxy update events

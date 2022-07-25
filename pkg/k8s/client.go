@@ -22,16 +22,75 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	osminformers "github.com/openservicemesh/osm/pkg/k8s/informers"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewKubernetesController returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewKubernetesController(informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface) Controller {
+func NewKubernetesController(informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) Controller {
+	return newClient(informerCollection, policyClient, msgBroker, selectInformers...)
+}
+
+func newClient(informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *client {
 	// Initialize client object
-	return &client{
+	c := &client{
 		informers:    informerCollection,
+		msgBroker:    msgBroker,
 		policyClient: policyClient,
 	}
+
+	// Initialize informers
+	informerInitHandlerMap := map[InformerKey]func(){
+		Namespaces:      c.initNamespaceMonitor,
+		Services:        c.initServicesMonitor,
+		ServiceAccounts: c.initServiceAccountsMonitor,
+		Pods:            c.initPodMonitor,
+		Endpoints:       c.initEndpointMonitor,
+	}
+
+	// If specific informers are not selected to be initialized, initialize all informers
+	if len(selectInformers) == 0 {
+		selectInformers = []InformerKey{Namespaces, Services, ServiceAccounts, Pods, Endpoints}
+	}
+
+	for _, informer := range selectInformers {
+		informerInitHandlerMap[informer]()
+	}
+
+	return c
+}
+
+// Initializes Namespace monitoring
+func (c *client) initNamespaceMonitor() {
+	// Add event handler to informer
+	c.informers.AddEventHandler(osminformers.InformerKeyNamespace, GetEventHandlerFuncs(nil, c.msgBroker))
+}
+
+// Function to filter K8s meta Objects by OSM's isMonitoredNamespace
+func (c *client) shouldObserve(obj interface{}) bool {
+	object, ok := obj.(metav1.Object)
+	if !ok {
+		return false
+	}
+	return c.IsMonitoredNamespace(object.GetNamespace())
+}
+
+// Initializes Service monitoring
+func (c *client) initServicesMonitor() {
+	c.informers.AddEventHandler(osminformers.InformerKeyService, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
+}
+
+// Initializes Service Account monitoring
+func (c *client) initServiceAccountsMonitor() {
+	c.informers.AddEventHandler(osminformers.InformerKeyServiceAccount, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
+}
+
+func (c *client) initPodMonitor() {
+	c.informers.AddEventHandler(osminformers.InformerKeyPod, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
+}
+
+func (c *client) initEndpointMonitor() {
+	c.informers.AddEventHandler(osminformers.InformerKeyEndpoints, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
 
 // IsMonitoredNamespace returns a boolean indicating if the namespace is among the list of monitored namespaces

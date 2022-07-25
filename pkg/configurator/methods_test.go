@@ -12,7 +12,6 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	testclient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
-	"github.com/openservicemesh/osm/pkg/messaging"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 )
@@ -31,11 +30,11 @@ func TestCreateUpdateConfig(t *testing.T) {
 	t.Run("MeshConfig doesn't exist", func(t *testing.T) {
 		meshConfigClientSet := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
-		broker := messaging.NewBroker(stop)
-		ic, err := informers.NewInformerCollection("osm", broker, stop, informers.WithConfigClient(meshConfigClientSet, osmMeshConfigName, osmNamespace))
+
+		ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClientSet, osmMeshConfigName, osmNamespace))
 		tassert.Nil(t, err)
 
-		cfg := NewConfigurator(ic, osmNamespace, osmMeshConfigName)
+		cfg := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
 		tassert.Equal(t, configv1alpha2.MeshConfig{}, cfg.getMeshConfig())
 	})
 
@@ -466,11 +465,10 @@ func TestCreateUpdateConfig(t *testing.T) {
 			stop := make(chan struct{})
 			defer close(stop)
 
-			broker := messaging.NewBroker(stop)
-			ic, err := informers.NewInformerCollection("osm", broker, stop, informers.WithConfigClient(meshConfigClientSet, osmMeshConfigName, osmNamespace))
+			ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClientSet, osmMeshConfigName, osmNamespace))
 			assert.Nil(err)
 
-			cfg := NewConfigurator(ic, osmNamespace, osmMeshConfigName)
+			cfg := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
 
 			meshConfig := configv1alpha2.MeshConfig{
 				ObjectMeta: metav1.ObjectMeta{

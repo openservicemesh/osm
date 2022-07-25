@@ -8,7 +8,6 @@ import (
 
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
@@ -25,12 +24,10 @@ func TestGetMeshConfig(t *testing.T) {
 	meshConfigClient := fakeConfig.NewSimpleClientset()
 	stop := make(chan struct{})
 
-	broker := messaging.NewBroker(stop)
-
-	ic, err := informers.NewInformerCollection("osm", broker, stop, informers.WithConfigClient(meshConfigClient, osmMeshConfigName, osmNamespace))
+	ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClient, osmMeshConfigName, osmNamespace))
 	a.Nil(err)
 
-	c := NewConfigurator(ic, osmNamespace, osmMeshConfigName)
+	c := NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
 
 	// Returns empty MeshConfig if informer cache is empty
 	a.Equal(configv1alpha2.MeshConfig{}, c.getMeshConfig())

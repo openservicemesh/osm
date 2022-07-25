@@ -2,7 +2,6 @@ package informers
 
 import (
 	"errors"
-	"reflect"
 	"testing"
 
 	"github.com/rs/zerolog/log"
@@ -12,33 +11,26 @@ import (
 	smiTrafficSpecInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/informers/externalversions"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	smiTrafficSplitInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	configInformers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
-	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 // InformerCollectionOption is a function that modifies an informer collection
 type InformerCollectionOption func(*InformerCollection)
 
 // NewInformerCollection creates a new InformerCollection
-func NewInformerCollection(meshName string, broker *messaging.Broker, stop <-chan struct{}, opts ...InformerCollectionOption) (*InformerCollection, error) {
+func NewInformerCollection(meshName string, stop <-chan struct{}, opts ...InformerCollectionOption) (*InformerCollection, error) {
 	ic := &InformerCollection{
 		meshName:  meshName,
-		broker:    broker,
 		informers: map[InformerKey]cache.SharedIndexInformer{},
 	}
 
@@ -47,11 +39,6 @@ func NewInformerCollection(meshName string, broker *messaging.Broker, stop <-cha
 		if opt != nil {
 			opt(ic)
 		}
-	}
-
-	for _, informer := range ic.informers {
-		// add eventhandler
-		informer.AddEventHandler(ic.eventHandlers())
 	}
 
 	if err := ic.run(stop); err != nil {
@@ -189,6 +176,17 @@ func (ic *InformerCollection) Update(key InformerKey, obj interface{}, t *testin
 	return i.GetStore().Update(obj)
 }
 
+// AddEventHandler adds an handler to the informer indexed by the given InformerKey
+func (ic *InformerCollection) AddEventHandler(informerKey InformerKey, handler cache.ResourceEventHandler) {
+	i, ok := ic.informers[informerKey]
+	if !ok {
+		log.Info().Msgf("attempted to add event handler for nil informer %s", informerKey)
+		return
+	}
+
+	i.AddEventHandler(handler)
+}
+
 // GetByKey retrieves an item (based on the given index) from the store of the informer indexed by the given InformerKey
 func (ic *InformerCollection) GetByKey(informerKey InformerKey, objectKey string) (interface{}, bool, error) {
 	informer, ok := ic.informers[informerKey]
@@ -212,86 +210,7 @@ func (ic *InformerCollection) List(informerKey InformerKey) []interface{} {
 }
 
 // IsMonitoredNamespace returns a boolean indicating if the namespace is among the list of monitored namespaces
-func (ic *InformerCollection) IsMonitoredNamespace(namespace string) bool {
+func (ic InformerCollection) IsMonitoredNamespace(namespace string) bool {
 	_, exists, _ := ic.informers[InformerKeyNamespace].GetStore().GetByKey(namespace)
 	return exists
-}
-
-// AddEventHandler adds an handler to the informer indexed by the given InformerKey
-func (ic *InformerCollection) AddEventHandler(informerKey InformerKey, handler cache.ResourceEventHandler) {
-	i, ok := ic.informers[informerKey]
-	if !ok {
-		log.Info().Msgf("attempted to add event handler for nil informer %s", informerKey)
-		return
-	}
-
-	i.AddEventHandler(handler)
-}
-
-func (ic *InformerCollection) eventHandlers() cache.ResourceEventHandlerFuncs {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			ic.queueEvent(obj, events.PubSubMessage{
-				Type:   events.Added,
-				Kind:   events.GetKind(obj),
-				NewObj: obj,
-			})
-		},
-		UpdateFunc: func(old, new interface{}) {
-			ic.queueEvent(new, events.PubSubMessage{
-				Type:   events.Updated,
-				Kind:   events.GetKind(new),
-				OldObj: old,
-				NewObj: new,
-			})
-		},
-		DeleteFunc: func(obj interface{}) {
-			ic.queueEvent(obj, events.PubSubMessage{
-				Type:   events.Deleted,
-				Kind:   events.GetKind(obj),
-				OldObj: obj,
-			})
-		},
-	}
-}
-
-func (ic *InformerCollection) shouldObserve(obj interface{}) bool {
-	switch obj.(type) {
-	case *corev1.Namespace, *configv1alpha2.MeshConfig, *configv1alpha2.MeshRootCertificate:
-		return true
-	default:
-		object, ok := obj.(metav1.Object)
-		if !ok {
-			return false
-		}
-		return ic.IsMonitoredNamespace(object.GetNamespace())
-	}
-}
-
-func (ic *InformerCollection) queueEvent(obj interface{}, event events.PubSubMessage) {
-	if !ic.shouldObserve(obj) {
-		return
-	}
-	logResourceEvent(event.Topic(), obj)
-	ns := getNamespace(obj)
-	metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(event.Topic(), ns).Inc()
-	ic.broker.GetQueue().AddRateLimited(event)
-}
-
-func getNamespace(obj interface{}) string {
-	return reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-}
-
-func logResourceEvent(event string, obj interface{}) {
-	log := log.With().Str("event", event).Logger()
-	o, err := meta.Accessor(obj)
-	if err != nil {
-		log.Error().Err(err).Msg("error parsing object, ignoring")
-		return
-	}
-	name := o.GetName()
-	if o.GetNamespace() != "" {
-		name = o.GetNamespace() + "/" + name
-	}
-	log.Debug().Str("resource_name", name).Msg("received kubernetes resource event")
 }

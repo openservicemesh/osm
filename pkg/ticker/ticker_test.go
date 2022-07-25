@@ -25,9 +25,6 @@ func TestResyncTicker(t *testing.T) {
 	// Give enough time for Ticker to start and subscribe to MeshConfig updates
 	time.Sleep(500 * time.Millisecond)
 
-	// Verify that the ticker ticks at the configured interval
-	kubePubSub := msgBroker.GetKubeEventPubSub()
-
 	type test struct {
 		name                 string
 		event                events.PubSubMessage
@@ -207,7 +204,7 @@ func TestResyncTicker(t *testing.T) {
 			a := assert.New(t)
 			done := false
 
-			kubePubSub.Pub(tc.event, events.MeshConfig.Updated())
+			msgBroker.PublishKubeEvent(tc.event)
 			timeout := time.After(tc.waitUntil)
 			for !done {
 				select {

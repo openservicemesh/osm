@@ -179,6 +179,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 		cfg               configurator.Configurator
 		providerNamespace string
 		options           Options
+		msgBroker         *messaging.Broker
 	}
 	testCases := []testCase{
 		{
@@ -443,11 +444,11 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				getCA = oldCA
 			}()
 
-			ic, err := informers.NewInformerCollection("osm", nil, nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient, "", "osm-system"))
+			ic, err := informers.NewInformerCollection("osm", nil, informers.WithKubeClient(tc.kubeClient), informers.WithConfigClient(tc.configClient, "", "osm-system"))
 			assert.NoError(err)
 			assert.NotNil(ic)
 
-			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.cfg, tc.providerNamespace, tc.options, nil, ic, 1*time.Hour)
+			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker, ic, 1*time.Hour)
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)

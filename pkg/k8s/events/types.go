@@ -77,17 +77,17 @@ func (at Kind) String() string {
 
 // Added returns the string representation of the Kind combined with the added keyword to be used for a PubSub Topic.
 func (at Kind) Added() string {
-	return fmt.Sprintf("%s-", at)
+	return fmt.Sprintf("%s-%s", at, Added)
 }
 
 // Updated returns the string representation of the Kind combined with the updated keyword to be used for a PubSub Topic.
 func (at Kind) Updated() string {
-	return fmt.Sprintf("%s-updated", at)
+	return fmt.Sprintf("%s-%s", at, Updated)
 }
 
 // Deleted returns the string representation of the Kind combined with the deleted keyword to be used for a PubSub Topic.
 func (at Kind) Deleted() string {
-	return fmt.Sprintf("%s-deleted", at)
+	return fmt.Sprintf("%s-%s", at, Deleted)
 }
 
 const (
@@ -140,6 +140,7 @@ const (
 	UpstreamTrafficSetting Kind = "upstreamtrafficsetting"
 )
 
+// GetKind returns the Kind for the given k8s object.
 func GetKind(obj interface{}) Kind {
 	switch obj.(type) {
 	case *corev1.Pod:

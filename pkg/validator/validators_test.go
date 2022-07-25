@@ -12,9 +12,9 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
-	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
 )
@@ -772,10 +772,10 @@ func TestIngressBackendValidator(t *testing.T) {
 			}
 
 			fakeClient := fakePolicyClientset.NewSimpleClientset(objects...)
-			informerCollection, err := informers.NewInformerCollection("osm", broker, stop, informers.WithPolicyClient(fakeClient))
+			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
 			assert.NoError(err)
 
-			policyClient := policy.NewPolicyController(informerCollection, k8sController)
+			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
 			pv := &policyValidator{
 				policyClient: policyClient,
 			}
@@ -785,8 +785,9 @@ func TestIngressBackendValidator(t *testing.T) {
 			// policy client's msgBroker eventhandler registered when it initially runs
 			// and that leads to a race condition in tests
 			if len(objects) > 0 {
-				eventsChan := broker.GetKubeEventPubSub().Sub(events.IngressBackend.Added())
-				<-eventsChan
+				events, unsub := broker.SubscribeKubeEvents(events.IngressBackend.Added())
+				<-events
+				unsub()
 			}
 
 			resp, err := pv.ingressBackendValidator(tc.input)
@@ -1290,10 +1291,10 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 			}
 
 			fakeClient := fakePolicyClientset.NewSimpleClientset(objects...)
-			informerCollection, err := informers.NewInformerCollection("osm", broker, stop, informers.WithPolicyClient(fakeClient))
+			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
 			assert.NoError(err)
 
-			policyClient := policy.NewPolicyController(informerCollection, k8sController)
+			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
 
 			pv := &policyValidator{
 				policyClient: policyClient,
@@ -1304,8 +1305,9 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 			// policy client's msgBroker eventhandler registered when it initially runs
 			// and that leads to a race condition in tests (due to the kubeController mockss)
 			if len(objects) > 0 {
-				eventsChan := broker.GetKubeEventPubSub().Sub(events.UpstreamTrafficSetting.Added())
-				<-eventsChan
+				events, unsub := broker.SubscribeKubeEvents(events.UpstreamTrafficSetting.Added())
+				<-events
+				unsub()
 			}
 
 			resp, err := pv.upstreamTrafficSettingValidator(tc.input)

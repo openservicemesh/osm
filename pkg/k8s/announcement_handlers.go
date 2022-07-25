@@ -21,9 +21,8 @@ import (
 // and updates their corresponding proxy bootstrap config Secret's OwnerReferences
 // to point to the associated pod.
 func WatchAndUpdateProxyBootstrapSecret(kubeClient kubernetes.Interface, msgBroker *messaging.Broker, stop <-chan struct{}) {
-	kubePubSub := msgBroker.GetKubeEventPubSub()
-	podAddChan := kubePubSub.Sub(events.Pod.Added())
-	defer msgBroker.Unsub(kubePubSub, podAddChan)
+	podAddChan, unsub := msgBroker.SubscribeKubeEvents(events.Pod.Added())
+	defer unsub()
 
 	for {
 		select {
@@ -79,9 +78,8 @@ func WatchAndUpdateProxyBootstrapSecret(kubeClient kubernetes.Interface, msgBrok
 
 // WatchAndUpdateLogLevel watches for log level changes and updates the global log level
 func WatchAndUpdateLogLevel(msgBroker *messaging.Broker, stop <-chan struct{}) {
-	kubePubSub := msgBroker.GetKubeEventPubSub()
-	meshCfgUpdateChan := kubePubSub.Sub(events.MeshConfig.Updated())
-	defer msgBroker.Unsub(kubePubSub, meshCfgUpdateChan)
+	meshCfgUpdateChan, unsub := msgBroker.SubscribeKubeEvents(events.MeshConfig.Updated())
+	defer unsub()
 
 	for {
 		select {

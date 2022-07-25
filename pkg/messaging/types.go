@@ -27,5 +27,6 @@ type Broker struct {
 }
 
 const (
+	// ProxyUpdateTopic is the topic used to send proxy updates
 	ProxyUpdateTopic = "proxy-update"
 )

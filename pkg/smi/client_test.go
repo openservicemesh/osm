@@ -49,7 +49,7 @@ func bootstrapClient(stop chan struct{}, t *testing.T) (*Client, *fakeKubeClient
 	smiTrafficSpecClientSet := testTrafficSpecClient.NewSimpleClientset()
 	smiTrafficTargetClientSet := testTrafficTargetClient.NewSimpleClientset()
 	msgBroker := messaging.NewBroker(stop)
-	informerCollection, err := informers.NewInformerCollection(meshName, msgBroker, stop,
+	informerCollection, err := informers.NewInformerCollection(meshName, stop,
 		informers.WithKubeClient(kubeClient),
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
 	)
@@ -58,7 +58,7 @@ func bootstrapClient(stop chan struct{}, t *testing.T) (*Client, *fakeKubeClient
 		return nil, nil, err
 	}
 
-	kubernetesClient := k8s.NewKubernetesController(informerCollection, nil)
+	kubernetesClient := k8s.NewKubernetesController(informerCollection, nil, msgBroker)
 
 	fakeClientSet := &fakeKubeClientSet{
 		kubeClient:                kubeClient,
@@ -90,6 +90,7 @@ func bootstrapClient(stop chan struct{}, t *testing.T) (*Client, *fakeKubeClient
 		informerCollection,
 		osmNamespace,
 		kubernetesClient,
+		msgBroker,
 	)
 
 	return meshSpec, fakeClientSet, err

@@ -1,11 +1,14 @@
 package policy
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -15,11 +18,25 @@ const (
 )
 
 // NewPolicyController returns a policy.Controller interface related to functionality provided by the resources in the policy.openservicemesh.io API group
-func NewPolicyController(informerCollection *informers.InformerCollection, kubeController k8s.Controller) *Client {
-	return &Client{
+func NewPolicyController(informerCollection *informers.InformerCollection, kubeController k8s.Controller, msgBroker *messaging.Broker) *Client {
+	client := &Client{
 		informers:      informerCollection,
 		kubeController: kubeController,
 	}
+
+	shouldObserve := func(obj interface{}) bool {
+		object, ok := obj.(metav1.Object)
+		if !ok {
+			return false
+		}
+		return kubeController.IsMonitoredNamespace(object.GetNamespace())
+	}
+	client.informers.AddEventHandler(informers.InformerKeyEgress, k8s.GetEventHandlerFuncs(shouldObserve, msgBroker))
+	client.informers.AddEventHandler(informers.InformerKeyIngressBackend, k8s.GetEventHandlerFuncs(shouldObserve, msgBroker))
+	client.informers.AddEventHandler(informers.InformerKeyRetry, k8s.GetEventHandlerFuncs(shouldObserve, msgBroker))
+	client.informers.AddEventHandler(informers.InformerKeyUpstreamTrafficSetting, k8s.GetEventHandlerFuncs(shouldObserve, msgBroker))
+
+	return client
 }
 
 // ListEgressPoliciesForSourceIdentity lists the Egress policies for the given source identity based on service accounts

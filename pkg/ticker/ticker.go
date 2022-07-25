@@ -49,9 +49,8 @@ func (r *ResyncTicker) Start(quit <-chan struct{}) {
 // based on the configuration.
 func (r *ResyncTicker) watchConfig(quit <-chan struct{}) {
 	// Subscribe to MeshConfig updates through which Ticker can be turned on/off
-	kubePubSub := r.msgBroker.GetKubeEventPubSub()
-	meshConfigUpdateChan := kubePubSub.Sub(events.MeshConfig.Updated())
-	defer r.msgBroker.Unsub(kubePubSub, meshConfigUpdateChan)
+	meshConfigUpdateChan, unsub := r.msgBroker.SubscribeKubeEvents(events.MeshConfig.Updated())
+	defer unsub()
 
 	for {
 		select {

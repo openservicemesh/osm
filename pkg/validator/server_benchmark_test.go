@@ -42,7 +42,7 @@ func BenchmarkDoValidation(b *testing.B) {
 	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
 	policyClient := policyFake.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
-	informerCollection, err := informers.NewInformerCollection(tests.MeshName, msgBroker, stop,
+	informerCollection, err := informers.NewInformerCollection(tests.MeshName, stop,
 		informers.WithKubeClient(kubeClient),
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
 		informers.WithConfigClient(configClient, tests.OsmMeshConfigName, tests.OsmNamespace),
@@ -51,8 +51,8 @@ func BenchmarkDoValidation(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
-	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient)
-	policyController := policy.NewPolicyController(informerCollection, k8sClient)
+	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
+	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
 	kv := &policyValidator{
 		policyClient: policyController,
 	}

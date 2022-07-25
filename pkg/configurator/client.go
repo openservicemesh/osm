@@ -10,16 +10,23 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
-func NewConfigurator(informerCollection *informers.InformerCollection, osmNamespace, meshConfigName string) *Client {
-	return &Client{
+func NewConfigurator(informerCollection *informers.InformerCollection, osmNamespace, meshConfigName string, msgBroker *messaging.Broker) *Client {
+	c := &Client{
 		informers:      informerCollection,
 		osmNamespace:   osmNamespace,
 		meshConfigName: meshConfigName,
 	}
+	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, k8s.GetEventHandlerFuncs(nil, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, c.metricsHandler())
+	informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, k8s.GetEventHandlerFuncs(nil, msgBroker))
+
+	return c
 }
 
 func (c *Client) getMeshConfigCacheKey() string {

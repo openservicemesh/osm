@@ -40,9 +40,8 @@ func (c *client) storeCertInSecret(cert *certificate.Certificate, secret corev1.
 }
 
 func (c *client) provisionIngressGatewayCert(currentCertSpec *configv1alpha2.IngressGatewayCertSpec, stop <-chan struct{}) {
-	kubePubSub := c.msgBroker.GetKubeEventPubSub()
-	meshConfigUpdateChan := kubePubSub.Sub(events.MeshConfig.Updated())
-	defer c.msgBroker.Unsub(kubePubSub, meshConfigUpdateChan)
+	meshConfigUpdateChan, unsub := c.msgBroker.SubscribeKubeEvents(events.MeshConfig.Updated())
+	defer unsub()
 
 	// stopWatchingRotations is a function that should be called when the cert rotation is no longer needed on the
 	// specified SAN. This can happen on SAN changes or on the deletion of the ingress gateway spec.

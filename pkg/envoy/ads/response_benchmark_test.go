@@ -49,16 +49,16 @@ func setupTestServer(b *testing.B) {
 	kubeClient := k8sClientFake.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
 	policyClient := policyFake.NewSimpleClientset()
-	informerCollection, err := informers.NewInformerCollection(tests.MeshName, msgBroker, stop,
+	informerCollection, err := informers.NewInformerCollection(tests.MeshName, stop,
 		informers.WithKubeClient(kubeClient),
 		informers.WithConfigClient(configClient, tests.OsmMeshConfigName, tests.OsmNamespace),
 	)
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
-	kubeController := k8s.NewKubernetesController(informerCollection, policyClient)
-	policyController := policy.NewPolicyController(informerCollection, kubeController)
-	osmConfigurator = configurator.NewConfigurator(informerCollection, tests.OsmNamespace, tests.OsmMeshConfigName)
+	kubeController := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
+	policyController := policy.NewPolicyController(informerCollection, kubeController, msgBroker)
+	osmConfigurator = configurator.NewConfigurator(informerCollection, tests.OsmNamespace, tests.OsmMeshConfigName, msgBroker)
 	kubeProvider := kube.NewClient(kubeController, osmConfigurator)
 
 	meshConfig := configv1alpha2.MeshConfig{
@@ -114,7 +114,7 @@ func setupTestServer(b *testing.B) {
 
 	proxyUUID := uuid.New()
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
-	meshSpec := smi.NewSMIClient(informerCollection, tests.OsmNamespace, kubeController)
+	meshSpec := smi.NewSMIClient(informerCollection, tests.OsmNamespace, kubeController, msgBroker)
 	mc := catalog.NewMeshCatalog(
 		kubeController,
 		meshSpec,

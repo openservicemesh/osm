@@ -14,9 +14,8 @@ func (d *DebugConfig) StartDebugServerConfigListener(stop chan struct{}) {
 	httpDebugServer := httpserver.NewHTTPServer(constants.DebugPort)
 	httpDebugServer.AddHandlers(d.GetHandlers())
 
-	kubePubSub := d.msgBroker.GetKubeEventPubSub()
-	meshCfgUpdateChan := kubePubSub.Sub(events.MeshConfig.Updated())
-	defer d.msgBroker.Unsub(kubePubSub, meshCfgUpdateChan)
+	meshCfgUpdateChan, unsub := d.msgBroker.SubscribeKubeEvents(events.MeshConfig.Updated())
+	defer unsub()
 
 	started := false
 	if d.configurator.IsDebugServerEnabled() {

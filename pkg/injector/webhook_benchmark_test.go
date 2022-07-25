@@ -80,11 +80,11 @@ func BenchmarkPodCreationHandler(b *testing.B) {
 	policyClient := policyFake.NewSimpleClientset()
 	stop := signals.RegisterExitHandlers()
 	msgBroker := messaging.NewBroker(stop)
-	informerCollection, err := informers.NewInformerCollection(tests.MeshName, msgBroker, stop,
+	informerCollection, err := informers.NewInformerCollection(tests.MeshName, stop,
 		informers.WithKubeClient(kubeClient),
 		informers.WithConfigClient(configClient, tests.OsmMeshConfigName, tests.OsmNamespace),
 	)
-	kubeController := k8s.NewKubernetesController(informerCollection, policyClient)
+	kubeController := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
 	if err != nil {
 		b.Fatalf("Failed to create kubeController: %s", err.Error())
 	}

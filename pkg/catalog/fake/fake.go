@@ -48,13 +48,12 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 
 	osmNamespace := "-test-osm-namespace-"
 	osmMeshConfigName := "-test-osm-mesh-config-"
-	broker := messaging.NewBroker(stop)
-	ic, err := informers.NewInformerCollection("osm", broker, stop, informers.WithKubeClient(kubeClient), informers.WithConfigClient(meshConfigClient, osmMeshConfigName, osmNamespace))
+	ic, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kubeClient), informers.WithConfigClient(meshConfigClient, osmMeshConfigName, osmNamespace))
 	if err != nil {
 		return nil
 	}
 
-	cfg := configurator.NewConfigurator(ic, osmNamespace, osmMeshConfigName)
+	cfg := configurator.NewConfigurator(ic, osmNamespace, osmMeshConfigName, nil)
 
 	certManager := tresorFake.NewFake(1 * time.Hour)
 
@@ -120,5 +119,5 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 	mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(nil).AnyTimes()
 
 	return catalog.NewMeshCatalog(mockKubeController, meshSpec, certManager,
-		mockPolicyController, stop, cfg, serviceProviders, endpointProviders, broker)
+		mockPolicyController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
 }
