@@ -187,7 +187,7 @@ func main() {
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(kubeConfig)
 
-	informerCollection, err := informers.NewInformerCollection(meshName, stop,
+	informerCollection, err := informers.NewInformerCollection(meshName, msgBroker, stop,
 		informers.WithKubeClient(kubeClient),
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
 		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
@@ -199,10 +199,10 @@ func main() {
 	}
 
 	// Initialize Configurator to watch resources in the config.openservicemesh.io API group
-	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
+	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName)
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
-	kubeController := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker, k8s.Namespaces)
+	kubeController := k8s.NewKubernetesController(informerCollection, policyClient)
 
 	certOpts, err := getCertOptions()
 	if err != nil {

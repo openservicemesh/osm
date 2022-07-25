@@ -9,7 +9,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 
@@ -42,7 +41,7 @@ func (c *client) storeCertInSecret(cert *certificate.Certificate, secret corev1.
 
 func (c *client) provisionIngressGatewayCert(currentCertSpec *configv1alpha2.IngressGatewayCertSpec, stop <-chan struct{}) {
 	kubePubSub := c.msgBroker.GetKubeEventPubSub()
-	meshConfigUpdateChan := kubePubSub.Sub(announcements.MeshConfigUpdated.String())
+	meshConfigUpdateChan := kubePubSub.Sub(events.MeshConfig.Updated())
 	defer c.msgBroker.Unsub(kubePubSub, meshConfigUpdateChan)
 
 	// stopWatchingRotations is a function that should be called when the cert rotation is no longer needed on the

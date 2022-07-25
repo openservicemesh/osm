@@ -13,6 +13,7 @@ import (
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
+	"github.com/openservicemesh/osm/pkg/messaging"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -133,11 +134,13 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			a := assert.New(t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
 			fakeClient := fakePolicyClient.NewSimpleClientset()
-			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			informerCollection, err := informers.NewInformerCollection("osm", broker, stop, informers.WithPolicyClient(fakeClient))
 			a.Nil(err)
-			c := NewPolicyController(informerCollection, mockKubeController, nil)
+			c := NewPolicyController(informerCollection, mockKubeController)
 			a.Nil(err)
 			a.NotNil(c)
 
@@ -325,10 +328,13 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
 			fakeClient := fakePolicyClient.NewSimpleClientset()
-			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			informerCollection, err := informers.NewInformerCollection("osm", broker, stop, informers.WithPolicyClient(fakeClient))
 			a.Nil(err)
-			c := NewPolicyController(informerCollection, nil, nil)
+			c := NewPolicyController(informerCollection, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
@@ -474,10 +480,13 @@ func TestListRetryPolicy(t *testing.T) {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			a := assert.New(t)
 
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
 			fakeClient := fakePolicyClient.NewSimpleClientset()
-			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			informerCollection, err := informers.NewInformerCollection("osm", broker, stop, informers.WithPolicyClient(fakeClient))
 			a.Nil(err)
-			c := NewPolicyController(informerCollection, mockKubeController, nil)
+			c := NewPolicyController(informerCollection, mockKubeController)
 			a.Nil(err)
 			a.NotNil(c)
 
@@ -620,10 +629,13 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
 			fakeClient := fakePolicyClient.NewSimpleClientset()
-			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			informerCollection, err := informers.NewInformerCollection("osm", broker, stop, informers.WithPolicyClient(fakeClient))
 			a.Nil(err)
-			c := NewPolicyController(informerCollection, nil, nil)
+			c := NewPolicyController(informerCollection, nil)
 			a.Nil(err)
 			a.NotNil(c)
 

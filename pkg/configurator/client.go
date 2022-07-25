@@ -9,39 +9,17 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
-func NewConfigurator(informerCollection *informers.InformerCollection, osmNamespace, meshConfigName string, msgBroker *messaging.Broker) *Client {
-	c := &Client{
+func NewConfigurator(informerCollection *informers.InformerCollection, osmNamespace, meshConfigName string) *Client {
+	return &Client{
 		informers:      informerCollection,
 		osmNamespace:   osmNamespace,
 		meshConfigName: meshConfigName,
 	}
-
-	// configure listener
-	meshConfigEventTypes := k8s.EventTypes{
-		Add:    announcements.MeshConfigAdded,
-		Update: announcements.MeshConfigUpdated,
-		Delete: announcements.MeshConfigDeleted,
-	}
-
-	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, k8s.GetEventHandlerFuncs(nil, meshConfigEventTypes, msgBroker))
-	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, c.metricsHandler())
-
-	meshRootCertificateEventTypes := k8s.EventTypes{
-		Add:    announcements.MeshRootCertificateAdded,
-		Update: announcements.MeshRootCertificateUpdated,
-		Delete: announcements.MeshRootCertificateDeleted,
-	}
-	informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, k8s.GetEventHandlerFuncs(nil, meshRootCertificateEventTypes, msgBroker))
-
-	return c
 }
 
 func (c *Client) getMeshConfigCacheKey() string {

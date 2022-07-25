@@ -16,7 +16,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -69,7 +68,6 @@ const (
 type client struct {
 	policyClient policyv1alpha1Client.Interface
 	informers    *informers.InformerCollection
-	msgBroker    *messaging.Broker
 }
 
 // Controller is the controller interface for K8s services

@@ -11,7 +11,6 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -23,7 +22,7 @@ import (
 // to point to the associated pod.
 func WatchAndUpdateProxyBootstrapSecret(kubeClient kubernetes.Interface, msgBroker *messaging.Broker, stop <-chan struct{}) {
 	kubePubSub := msgBroker.GetKubeEventPubSub()
-	podAddChan := kubePubSub.Sub(announcements.PodAdded.String())
+	podAddChan := kubePubSub.Sub(events.Pod.Added())
 	defer msgBroker.Unsub(kubePubSub, podAddChan)
 
 	for {
@@ -81,7 +80,7 @@ func WatchAndUpdateProxyBootstrapSecret(kubeClient kubernetes.Interface, msgBrok
 // WatchAndUpdateLogLevel watches for log level changes and updates the global log level
 func WatchAndUpdateLogLevel(msgBroker *messaging.Broker, stop <-chan struct{}) {
 	kubePubSub := msgBroker.GetKubeEventPubSub()
-	meshCfgUpdateChan := kubePubSub.Sub(announcements.MeshConfigUpdated.String())
+	meshCfgUpdateChan := kubePubSub.Sub(events.MeshConfig.Updated())
 	defer msgBroker.Unsub(kubePubSub, meshCfgUpdateChan)
 
 	for {

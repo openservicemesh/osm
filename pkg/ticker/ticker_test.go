@@ -9,7 +9,6 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -55,7 +54,8 @@ func TestResyncTicker(t *testing.T) {
 						},
 					},
 				},
-				Kind: announcements.MeshConfigUpdated,
+				Kind: events.MeshConfig,
+				Type: events.Updated,
 			},
 			waitUntil:        6 * time.Second,
 			minExpectedTicks: 5,
@@ -77,7 +77,8 @@ func TestResyncTicker(t *testing.T) {
 						},
 					},
 				},
-				Kind: announcements.MeshConfigUpdated,
+				Kind: events.MeshConfig,
+				Type: events.Updated,
 			},
 			waitUntil:        6 * time.Second,
 			minExpectedTicks: 10,
@@ -99,7 +100,8 @@ func TestResyncTicker(t *testing.T) {
 						},
 					},
 				},
-				Kind: announcements.MeshConfigUpdated,
+				Kind: events.MeshConfig,
+				Type: events.Updated,
 			},
 			waitUntil:        2 * time.Second,
 			minExpectedTicks: 0,
@@ -121,7 +123,8 @@ func TestResyncTicker(t *testing.T) {
 						},
 					},
 				},
-				Kind: announcements.MeshConfigUpdated,
+				Kind: events.MeshConfig,
+				Type: events.Updated,
 			},
 			waitUntil:        3 * time.Second,
 			minExpectedTicks: 4,
@@ -143,7 +146,8 @@ func TestResyncTicker(t *testing.T) {
 						},
 					},
 				},
-				Kind: announcements.MeshConfigUpdated,
+				Kind: events.MeshConfig,
+				Type: events.Updated,
 			},
 			waitUntil:        3 * time.Second,
 			minExpectedTicks: 4,
@@ -165,7 +169,8 @@ func TestResyncTicker(t *testing.T) {
 						},
 					},
 				},
-				Kind: announcements.MeshConfigUpdated,
+				Kind: events.MeshConfig,
+				Type: events.Updated,
 			},
 			waitUntil:            1 * time.Second,
 			minExpectedTicks:     0,
@@ -188,7 +193,8 @@ func TestResyncTicker(t *testing.T) {
 						},
 					},
 				},
-				Kind: announcements.MeshConfigUpdated,
+				Kind: events.MeshConfig,
+				Type: events.Updated,
 			},
 			waitUntil:            3 * time.Second,
 			minExpectedTicks:     4,
@@ -201,7 +207,7 @@ func TestResyncTicker(t *testing.T) {
 			a := assert.New(t)
 			done := false
 
-			kubePubSub.Pub(tc.event, announcements.MeshConfigUpdated.String())
+			kubePubSub.Pub(tc.event, events.MeshConfig.Updated())
 			timeout := time.After(tc.waitUntil)
 			for !done {
 				select {

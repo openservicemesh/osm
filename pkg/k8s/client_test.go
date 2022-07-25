@@ -63,9 +63,12 @@ func TestIsMonitoredNamespace(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
 
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+			ic, err := informers.NewInformerCollection(testMeshName, broker, stop, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := NewKubernetesController(ic, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			actual := c.IsMonitoredNamespace(tc.ns)
@@ -106,9 +109,13 @@ func TestGetNamespace(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+			ic, err := informers.NewInformerCollection(testMeshName, broker, stop, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := NewKubernetesController(ic, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			actual := c.GetNamespace(tc.ns)
@@ -153,9 +160,13 @@ func TestListMonitoredNamespaces(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+			ic, err := informers.NewInformerCollection(testMeshName, broker, stop, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := NewKubernetesController(ic, nil)
 			for _, ns := range tc.namespaces {
 				_ = ic.Add(informers.InformerKeyNamespace, ns, t)
 			}
@@ -212,9 +223,13 @@ func TestGetService(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+			ic, err := informers.NewInformerCollection(testMeshName, broker, stop, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := NewKubernetesController(ic, nil)
 			_ = ic.Add(informers.InformerKeyService, tc.service, t)
 
 			actual := c.GetService(tc.svc)
@@ -269,9 +284,13 @@ func TestListServices(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+			ic, err := informers.NewInformerCollection(testMeshName, broker, stop, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := NewKubernetesController(ic, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, s := range tc.services {
@@ -326,9 +345,13 @@ func TestListServiceAccounts(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+			ic, err := informers.NewInformerCollection(testMeshName, broker, stop, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := NewKubernetesController(ic, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, s := range tc.sa {
@@ -383,9 +406,13 @@ func TestListPods(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+			ic, err := informers.NewInformerCollection(testMeshName, broker, stop, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := NewKubernetesController(ic, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, p := range tc.pods {
@@ -437,9 +464,14 @@ func TestGetEndpoints(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+
+			ic, err := informers.NewInformerCollection(testMeshName, broker, stop, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := NewKubernetesController(ic, nil)
 			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
 
 			actual, err := c.GetEndpoints(tc.svc)
@@ -537,9 +569,12 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
 
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+			ic, err := informers.NewInformerCollection(testMeshName, broker, stop, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := NewKubernetesController(ic, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 			for _, p := range tc.pods {
 				_ = ic.Add(informers.InformerKeyPod, p, t)
@@ -711,9 +746,13 @@ func TestUpdateStatus(t *testing.T) {
 			a := tassert.New(t)
 			kubeClient := testclient.NewSimpleClientset()
 			policyClient := fakePolicyClient.NewSimpleClientset(tc.existingResource.(runtime.Object))
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(kubeClient), informers.WithPolicyClient(policyClient))
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+
+			ic, err := informers.NewInformerCollection(testMeshName, broker, stop, informers.WithKubeClient(kubeClient), informers.WithPolicyClient(policyClient))
 			a.Nil(err)
-			c := NewKubernetesController(ic, policyClient, nil)
+			c := NewKubernetesController(ic, policyClient)
 			_, err = c.UpdateStatus(tc.updatedResource)
 			a.Equal(tc.expectErr, err != nil)
 		})
@@ -1027,10 +1066,14 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 			assert := tassert.New(t)
 
 			fakeClient := testclient.NewSimpleClientset(tc.svcEndpoints...)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(fakeClient))
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+
+			ic, err := informers.NewInformerCollection(testMeshName, broker, nil, informers.WithKubeClient(fakeClient))
 			assert.Nil(err)
 
-			kubeController := NewKubernetesController(ic, nil, nil)
+			kubeController := NewKubernetesController(ic, nil)
 			assert.NotNil(kubeController)
 
 			actual := ServiceToMeshServices(kubeController, tc.svc)
@@ -1065,10 +1108,11 @@ func TestGetPodForProxy(t *testing.T) {
 		tests.NewPodFixture(namespace, "pod-2", tests.BookstoreServiceAccountName, someOthePodLabels),
 	)
 
-	ic, err := informers.NewInformerCollection(testMeshName, stop, informers.WithKubeClient(kubeClient))
+	broker := messaging.NewBroker(stop)
+	ic, err := informers.NewInformerCollection(testMeshName, broker, stop, informers.WithKubeClient(kubeClient))
 	assert.Nil(err)
 
-	kubeController := NewKubernetesController(ic, nil, messaging.NewBroker(nil))
+	kubeController := NewKubernetesController(ic, nil)
 
 	testCases := []struct {
 		name  string
@@ -1281,9 +1325,12 @@ func TestGetTargetPortForServicePort(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
 
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+			ic, err := informers.NewInformerCollection(testMeshName, broker, stop, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := NewKubernetesController(ic, nil)
 			_ = ic.Add(informers.InformerKeyService, tc.svc, t)
 			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
 

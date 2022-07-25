@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 // InformerKey stores the different Informers we keep for K8s resources
@@ -63,5 +65,6 @@ var (
 // type should only be passed around as a pointer
 type InformerCollection struct {
 	informers map[InformerKey]cache.SharedIndexInformer
+	broker    *messaging.Broker
 	meshName  string
 }

@@ -192,7 +192,7 @@ func main() {
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(kubeConfig)
 
-	informerCollection, err := informers.NewInformerCollection(meshName, stop,
+	informerCollection, err := informers.NewInformerCollection(meshName, msgBroker, stop,
 		informers.WithKubeClient(kubeClient),
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
 		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
@@ -203,11 +203,11 @@ func main() {
 	}
 
 	// This component will be watching resources in the config.openservicemesh.io API group
-	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
+	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName)
 
-	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
+	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient)
 
-	meshSpec := smi.NewSMIClient(informerCollection, osmNamespace, k8sClient, msgBroker)
+	meshSpec := smi.NewSMIClient(informerCollection, osmNamespace, k8sClient)
 
 	certOpts, err := getCertOptions()
 	if err != nil {
@@ -239,7 +239,7 @@ func main() {
 
 	ingress.Initialize(kubeClient, k8sClient, stop, cfg, certManager, msgBroker)
 
-	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
+	policyController := policy.NewPolicyController(informerCollection, k8sClient)
 
 	meshCatalog := catalog.NewMeshCatalog(
 		k8sClient,
