@@ -23,34 +23,23 @@ func (pr *ProxyRegistry) RegisterProxy(proxy *envoy.Proxy) {
 	}
 
 	pr.mu.Lock()
+	defer pr.mu.Unlock()
 	pr.connectedProxies[uuid] = proxy
-	pr.mu.Unlock()
 	log.Debug().Str("proxy", proxy.String()).Msg("Registered new proxy")
 }
 
 // GetConnectedProxy loads a connected proxy from the registry.
 func (pr *ProxyRegistry) GetConnectedProxy(uuid string) *envoy.Proxy {
 	pr.mu.Lock()
-	p, ok := pr.connectedProxies[uuid]
-	pr.mu.Unlock()
-
-	if !ok {
-		return nil
-	}
-	return p
+	defer pr.mu.Unlock()
+	return pr.connectedProxies[uuid]
 }
 
 // UnregisterProxy unregisters the given proxy from the catalog.
 func (pr *ProxyRegistry) UnregisterProxy(proxy *envoy.Proxy) {
-	uuid := proxy.UUID.String()
-	if pr.GetConnectedProxy(uuid) == nil {
-		log.Debug().Str("proxy", proxy.String()).Msgf("Proxy %s does not exist", proxy.String())
-		return
-	}
-
 	pr.mu.Lock()
-	delete(pr.connectedProxies, uuid)
-	pr.mu.Unlock()
+	defer pr.mu.Unlock()
+	delete(pr.connectedProxies, proxy.UUID.String())
 	log.Debug().Msgf("Unregistered proxy %s", proxy.String())
 }
 
