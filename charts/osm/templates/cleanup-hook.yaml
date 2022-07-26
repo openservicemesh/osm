@@ -76,7 +76,7 @@ spec:
         - name: garbage-collector
           image: "{{ include "osmCRDs.image" . }}"
           imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
-          # NOTE: any changes to resources being cleaned up should be updated in the lists/commands in the uninstall guide (https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/uninstall.md#uninstall-osm-control-plane-and-remove-user-provided-resources) and the uninstall troubleshooting guide (https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/uninstall.md)
+          # NOTE: any changes to resources being cleaned up should be updated in the lists/commands in the uninstall guide (https://github.com/openservicemesh/osm-docs/blob/main/content/en/docs/guides/uninstall.md#uninstall-osm-control-plane-and-remove-user-provided-resources) and the uninstall troubleshooting guide (https://github.com/openservicemesh/osm-docs/blob/main/content/en/docs/guides/troubleshooting/uninstall.md)
           command:
             - sh
             - -c
