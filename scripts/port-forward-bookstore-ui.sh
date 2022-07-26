@@ -7,7 +7,7 @@
 # shellcheck disable=SC1091
 source .env
 
-selector="$1"
+selector="${1:-app=bookstore,version=v1}"
 thisScript="$(dirname "$0")/$(basename "$0")"
 
 if [ -z "$selector" ]; then
