@@ -7,7 +7,10 @@ import (
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	xds_config_ratelimit "github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v3"
+	xds_common_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	xds_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/local_ratelimit/v3"
+	xds_global_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/ratelimit/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/golang/protobuf/ptypes/any"
@@ -17,6 +20,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/service"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -83,6 +87,14 @@ func (lb *listenerBuilder) getInboundHTTPFilters(trafficMatch *trafficpolicy.Tra
 	// Apply the network level local rate limit filter if configured for the TrafficMatch
 	if trafficMatch.RateLimit != nil && trafficMatch.RateLimit.Local != nil && trafficMatch.RateLimit.Local.TCP != nil {
 		rateLimitFilter, err := buildTCPLocalRateLimitFilter(trafficMatch.RateLimit.Local.TCP, trafficMatch.Name)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, rateLimitFilter)
+	}
+	// Apply the network level global rate limit filter if configured for the TrafficMatch
+	if trafficMatch.RateLimit != nil && trafficMatch.RateLimit.Global != nil && trafficMatch.RateLimit.Global.TCP != nil {
+		rateLimitFilter, err := buildTCPGlobalRateLimitFilter(trafficMatch.RateLimit.Global.TCP, trafficMatch.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -250,6 +262,14 @@ func (lb *listenerBuilder) getInboundTCPFilters(trafficMatch *trafficpolicy.Traf
 		}
 		filters = append(filters, rateLimitFilter)
 	}
+	// Apply the network level global rate limit filter if configured for the TrafficMatch
+	if trafficMatch.RateLimit != nil && trafficMatch.RateLimit.Global != nil && trafficMatch.RateLimit.Global.TCP != nil {
+		rateLimitFilter, err := buildTCPGlobalRateLimitFilter(trafficMatch.RateLimit.Global.TCP, trafficMatch.Name)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, rateLimitFilter)
+	}
 
 	// Apply the TCP Proxy Filter
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
@@ -304,6 +324,59 @@ func buildTCPLocalRateLimitFilter(config *policyv1alpha1.TCPLocalRateLimitSpec, 
 
 	filter := &xds_listener.Filter{
 		Name:       envoy.L4LocalRateLimitFilterName,
+		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledConfig},
+	}
+
+	return filter, nil
+}
+
+func buildTCPGlobalRateLimitFilter(config *policyv1alpha1.TCPGlobalRateLimitSpec, statPrefix string) (*xds_listener.Filter, error) {
+	if config == nil {
+		return nil, nil
+	}
+
+	rateLimit := &xds_global_ratelimit.RateLimit{
+		StatPrefix: statPrefix,
+		Domain:     config.Domain,
+		RateLimitService: &xds_config_ratelimit.RateLimitServiceConfig{
+			GrpcService: &xds_core.GrpcService{
+				TargetSpecifier: &xds_core.GrpcService_EnvoyGrpc_{
+					EnvoyGrpc: &xds_core.GrpcService_EnvoyGrpc{
+						ClusterName: service.RateLimitServiceClusterName(config.RateLimitService),
+					},
+				},
+			},
+			TransportApiVersion: xds_core.ApiVersion_V3,
+		},
+	}
+
+	var descriptors []*xds_common_ratelimit.RateLimitDescriptor
+	for _, desc := range config.Descriptors {
+		var entries []*xds_common_ratelimit.RateLimitDescriptor_Entry
+		for _, entry := range desc.Entries {
+			entries = append(entries, &xds_common_ratelimit.RateLimitDescriptor_Entry{Key: entry.Key, Value: entry.Value})
+		}
+
+		descriptors = append(descriptors, &xds_common_ratelimit.RateLimitDescriptor{Entries: entries})
+	}
+	rateLimit.Descriptors = descriptors
+
+	if config.Timeout != nil {
+		rateLimit.Timeout = durationpb.New(config.Timeout.Duration)
+		rateLimit.RateLimitService.GrpcService.Timeout = durationpb.New(config.Timeout.Duration)
+	}
+
+	if config.FailOpen != nil {
+		rateLimit.FailureModeDeny = !*config.FailOpen
+	}
+
+	marshalledConfig, err := anypb.New(rateLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	filter := &xds_listener.Filter{
+		Name:       envoy.L4GlobalRateLimitFilterName,
 		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledConfig},
 	}
 

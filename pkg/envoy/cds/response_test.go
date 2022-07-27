@@ -139,7 +139,7 @@ func TestNewResponse(t *testing.T) {
 		actualClusters = append(actualClusters, cl)
 	}
 
-	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
+	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getHTTPProtocolOptions(""))
 	assert.Nil(err)
 
 	expectedLocalCluster := &xds_cluster.Cluster{

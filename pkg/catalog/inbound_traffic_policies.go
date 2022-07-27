@@ -46,6 +46,10 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		upstreamSvcSet.Add(svc)
 	}
 
+	// Used to avoid duplicate clusters that can arise when multiple
+	// upstream services reference the same global rate limit service
+	rlsClusterSet := mapset.NewSet()
+
 	// A policy (traffic match, route, cluster) must be built for each upstream service. This
 	// includes apex/root services associated with the given upstream service.
 	allUpstreamServices := mc.getUpstreamServicesIncludeApex(upstreamServices)
@@ -66,6 +70,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 
 		upstreamTrafficSetting := mc.policyController.GetUpstreamTrafficSetting(
 			policy.UpstreamTrafficSettingGetOpt{MeshService: &upstreamSvc})
+		clusterConfigs = append(clusterConfigs, getRateLimitServiceClusters(upstreamTrafficSetting, rlsClusterSet)...)
 
 		// ---
 		// Create a TrafficMatch for this upstream servic.
@@ -303,4 +308,46 @@ func (mc *MeshCatalog) getUpstreamServicesIncludeApex(upstreamServices []service
 	}
 
 	return allServices
+}
+
+// getRateLimitServiceClusters returns a list of MeshClusterConfig objects corresponding to the global
+// rate limit service instance. It ensures only a single cluster config if the same rate limit service
+// is used for both TCP and HTTP rate limiting.
+func getRateLimitServiceClusters(upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting, clusterSet mapset.Set) []*trafficpolicy.MeshClusterConfig {
+	if upstreamTrafficSetting == nil || upstreamTrafficSetting.Spec.RateLimit == nil || upstreamTrafficSetting.Spec.RateLimit.Global == nil {
+		return nil
+	}
+
+	rateLimit := upstreamTrafficSetting.Spec.RateLimit
+	var clusters []*trafficpolicy.MeshClusterConfig
+
+	if rateLimit.Global.TCP != nil {
+		clusterName := service.RateLimitServiceClusterName(rateLimit.Global.TCP.RateLimitService)
+		if !clusterSet.Contains(clusterName) {
+			clusters = append(clusters, &trafficpolicy.MeshClusterConfig{
+				Name:     clusterName,
+				Address:  rateLimit.Global.TCP.RateLimitService.Host,
+				Port:     uint32(rateLimit.Global.TCP.RateLimitService.Port),
+				Protocol: constants.ProtocolH2C,
+			})
+			clusterSet.Add(clusterName)
+		}
+	}
+
+	if rateLimit.Global.HTTP != nil {
+		clusterName := service.RateLimitServiceClusterName(rateLimit.Global.HTTP.RateLimitService)
+		// Only configure an HTTP rate limiting cluster if the same cluster is not already
+		// referenced by a TCP rate limiting config
+		if !clusterSet.Contains(clusterName) {
+			clusters = append(clusters, &trafficpolicy.MeshClusterConfig{
+				Name:     clusterName,
+				Address:  rateLimit.Global.HTTP.RateLimitService.Host,
+				Port:     uint32(rateLimit.Global.HTTP.RateLimitService.Port),
+				Protocol: constants.ProtocolH2C,
+			})
+			clusterSet.Add(clusterName)
+		}
+	}
+
+	return clusters
 }

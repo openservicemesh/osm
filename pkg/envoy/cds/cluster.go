@@ -34,7 +34,7 @@ var replacer = strings.NewReplacer(".", "_", ":", "_")
 // getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, config trafficpolicy.MeshClusterConfig, sidecarSpec configv1alpha2.SidecarSpec) *xds_cluster.Cluster {
-	httpProtocolOptions := getDefaultHTTPProtocolOptions()
+	httpProtocolOptions := getHTTPProtocolOptions("")
 
 	marshalledUpstreamTLSContext, err := anypb.New(
 		envoy.GetUpstreamTLSContext(downstreamIdentity, config.Service, sidecarSpec))
@@ -101,7 +101,7 @@ func enableHealthChecksOnCluster(cluster *xds_cluster.Cluster, upstreamSvc servi
 
 // getLocalServiceCluster returns an Envoy Cluster corresponding to the local service
 func getLocalServiceCluster(config trafficpolicy.MeshClusterConfig) *xds_cluster.Cluster {
-	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
+	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getHTTPProtocolOptions(config.Protocol))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting typed HTTP protocol options for local cluster %s", config.Name)
 		return nil
@@ -141,6 +141,37 @@ func getLocalServiceCluster(config trafficpolicy.MeshClusterConfig) *xds_cluster
 		},
 		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
 	}
+}
+
+// getHTTPProtocolOptions returns the HttpProtocolOptions for the given protocol.
+// If an empty protocol string is specified, it returns options using the downstream protocol by default.
+func getHTTPProtocolOptions(protocol string) *extensions_upstream_http.HttpProtocolOptions {
+	// Use downstream protocol by default
+	options := &extensions_upstream_http.HttpProtocolOptions{
+		UpstreamProtocolOptions: &extensions_upstream_http.HttpProtocolOptions_UseDownstreamProtocolConfig{
+			UseDownstreamProtocolConfig: &extensions_upstream_http.HttpProtocolOptions_UseDownstreamHttpConfig{
+				Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+			},
+		},
+	}
+
+	switch protocol {
+	case constants.ProtocolH2C, constants.ProtocolHTTP2:
+		options.UpstreamProtocolOptions = &extensions_upstream_http.HttpProtocolOptions_ExplicitHttpConfig_{
+			ExplicitHttpConfig: &extensions_upstream_http.HttpProtocolOptions_ExplicitHttpConfig{
+				ProtocolConfig: &extensions_upstream_http.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{},
+			},
+		}
+
+	case constants.ProtocolHTTP1:
+		options.UpstreamProtocolOptions = &extensions_upstream_http.HttpProtocolOptions_ExplicitHttpConfig_{
+			ExplicitHttpConfig: &extensions_upstream_http.HttpProtocolOptions_ExplicitHttpConfig{
+				ProtocolConfig: &extensions_upstream_http.HttpProtocolOptions_ExplicitHttpConfig_HttpProtocolOptions{},
+			},
+		}
+	}
+
+	return options
 }
 
 // getPrometheusCluster returns an Envoy Cluster responsible for scraping metrics by Prometheus
@@ -223,7 +254,7 @@ func getDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*
 		return nil, fmt.Errorf("Invalid egress cluster config: Port unspecified")
 	}
 
-	httpProtocolOptions := getDefaultHTTPProtocolOptions()
+	httpProtocolOptions := getHTTPProtocolOptions("")
 
 	upstreamCluster := &xds_cluster.Cluster{
 		Name:        config.Name,
@@ -266,7 +297,7 @@ func getDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*
 // getOriginalDestinationEgressCluster returns an Envoy cluster that routes traffic to its original destination.
 // The original destination is the original IP address and port prior to being redirected to the sidecar proxy.
 func getOriginalDestinationEgressCluster(name string, upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) (*xds_cluster.Cluster, error) {
-	httpProtocolOptions := getDefaultHTTPProtocolOptions()
+	httpProtocolOptions := getHTTPProtocolOptions("")
 
 	upstreamCluster := &xds_cluster.Cluster{
 		Name: name,
@@ -278,7 +309,7 @@ func getOriginalDestinationEgressCluster(name string, upstreamTrafficSetting *po
 
 	applyUpstreamTrafficSetting(upstreamTrafficSetting, upstreamCluster, httpProtocolOptions)
 
-	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
+	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getHTTPProtocolOptions(""))
 	if err != nil {
 		return nil, err
 	}
@@ -311,16 +342,6 @@ func localClustersFromClusterConfigs(configs []*trafficpolicy.MeshClusterConfig)
 		clusters = append(clusters, getLocalServiceCluster(*c))
 	}
 	return clusters
-}
-
-func getDefaultHTTPProtocolOptions() *extensions_upstream_http.HttpProtocolOptions {
-	return &extensions_upstream_http.HttpProtocolOptions{
-		UpstreamProtocolOptions: &extensions_upstream_http.HttpProtocolOptions_UseDownstreamProtocolConfig{
-			UseDownstreamProtocolConfig: &extensions_upstream_http.HttpProtocolOptions_UseDownstreamHttpConfig{
-				Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
-			},
-		},
-	}
 }
 
 func getTypedHTTPProtocolOptions(httpProtocolOptions *extensions_upstream_http.HttpProtocolOptions) (map[string]*any.Any, error) {
