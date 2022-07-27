@@ -310,7 +310,7 @@ func (mc *MeshCatalog) getUpstreamServicesIncludeApex(upstreamServices []service
 	return allServices
 }
 
-// getRateLimitServiceClusters returns a list MeshClusterConfig objects corresponding to the global
+// getRateLimitServiceClusters returns a list of MeshClusterConfig objects corresponding to the global
 // rate limit service instance. It ensures only a single cluster config if the same rate limit service
 // is used for both TCP and HTTP rate limiting.
 func getRateLimitServiceClusters(upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting, clusterSet mapset.Set) []*trafficpolicy.MeshClusterConfig {

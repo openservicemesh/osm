@@ -158,6 +158,7 @@ type MeshClusterConfig struct {
 	UpstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
 
 	// Protocol to use for the cluster
+	// One of http1, http2, h2c
 	// +optional
 	Protocol string
 }
