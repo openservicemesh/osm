@@ -392,12 +392,15 @@ func TestSubscribeRotations(t *testing.T) {
 	assert.Equal("fake-cert-cn2.fake1.domain.com", cert.GetCommonName().String())
 
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(2)
 	go func() {
 		msg1 := <-ch1
-		msg2 := <-ch2
-
 		assert.Equal("fake-cert-cn1.fake2.domain.com", msg1.(*Certificate).GetCommonName().String())
+		wg.Done()
+	}()
+
+	go func() {
+		msg2 := <-ch2
 		assert.Equal("fake-cert-cn2.fake2.domain.com", msg2.(*Certificate).GetCommonName().String())
 		wg.Done()
 	}()
