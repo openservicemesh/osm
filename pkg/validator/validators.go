@@ -290,6 +290,7 @@ var validMRCTransitions = map[string][]string{
 
 // meshRootCertificateValidator validates the MeshRootCertificate custom resource
 func (cv *configValidator) meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	log.Debug().Msg("made it to MRC validator")
 	switch req.Operation {
 	case admissionv1.Create:
 		newMRC := &configv1alpha2.MeshRootCertificate{}

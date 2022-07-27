@@ -33,7 +33,7 @@ type validatingWebhookServer struct {
 }
 
 // NewValidatingWebhook returns a validatingWebhookServer with the defaultValidators that were previously registered.
-func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler, validateTrafficTarget bool, certManager *certificate.Manager, kubeClient kubernetes.Interface, configClient configClientset.Interface, policyClient policy.Controller) error {
+func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler, validateTrafficTarget bool, validateMeshRootCertificate bool, certManager *certificate.Manager, kubeClient kubernetes.Interface, configClient configClientset.Interface, policyClient policy.Controller) error {
 	kv := &policyValidator{
 		policyClient: policyClient,
 	}
@@ -56,7 +56,7 @@ func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, 
 	srv, err := webhook.NewServer(ValidatorWebhookSvc, osmNamespace, constants.ValidatorWebhookPort, certManager, map[string]http.HandlerFunc{
 		validationAPIPath: v.doValidation,
 	}, func(cert *certificate.Certificate) error {
-		if err := createOrUpdateValidatingWebhook(kubeClient, cert, webhookConfigName, meshName, osmNamespace, osmVersion, validateTrafficTarget, enableReconciler); err != nil {
+		if err := createOrUpdateValidatingWebhook(kubeClient, cert, webhookConfigName, meshName, osmNamespace, osmVersion, validateTrafficTarget, enableReconciler, validateMeshRootCertificate); err != nil {
 			return err
 		}
 		return nil
