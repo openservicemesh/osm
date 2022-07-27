@@ -11,41 +11,55 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/handler"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 )
 
+type Handler struct {
+	handler.XDSHandler
+
+	MeshCatalog      catalog.MeshCataloger
+	Proxy            *envoy.Proxy
+	DiscoveryRequest *xds_discovery.DiscoveryRequest
+	Cfg              configurator.Configurator
+	CertManager      *certificate.Manager
+	ProxyRegistry    *registry.ProxyRegistry
+}
+
+
 // NewResponse creates a new Secrets Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, certManager *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
-	log.Info().Str("proxy", proxy.String()).Msg("Composing SDS Discovery Response")
+// func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, certManager *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
+func (h *Handler) Respond() ([]types.Resource, error) {
+	log.Info().Str("proxy", h.Proxy.String()).Msg("Composing SDS Discovery Response")
 
 	// OSM currently relies on kubernetes ServiceAccount for service identity
 	s := &sdsImpl{
-		meshCatalog:     meshCatalog,
-		certManager:     certManager,
-		serviceIdentity: proxy.Identity,
-		TrustDomain:     certManager.GetTrustDomain(),
+		meshCatalog:     h.MeshCatalog,
+		certManager:     h.CertManager,
+		serviceIdentity: h.Proxy.Identity,
+		TrustDomain:     h.CertManager.GetTrustDomain(),
 	}
 
 	var sdsResources []types.Resource
 
 	// The DiscoveryRequest contains the requested certs
-	requestedCerts := request.ResourceNames
+	requestedCerts := h.DiscoveryRequest.ResourceNames
 
-	log.Info().Str("proxy", proxy.String()).Msgf("Creating SDS response for request for resources %v", requestedCerts)
+	log.Info().Str("proxy", h.Proxy.String()).Msgf("Creating SDS response for request for resources %v", requestedCerts)
 
 	// 1. Issue a service certificate for this proxy
-	cert, err := certManager.IssueCertificate(s.serviceIdentity.String(), certificate.Service)
+	cert, err := h.CertManager.IssueCertificate(s.serviceIdentity.String(), certificate.Service)
 	if err != nil {
-		log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error issuing a certificate for proxy")
+		log.Error().Err(err).Str("proxy", h.Proxy.String()).Msgf("Error issuing a certificate for proxy")
 		return nil, err
 	}
 
 	// 2. Create SDS secret resources based on the requested certs in the DiscoveryRequest
 	// request.ResourceNames is expected to be a list of either "service-cert:namespace/service" or "root-cert:namespace/service"
-	for _, envoyProto := range s.getSDSSecrets(cert, requestedCerts, proxy) {
+	for _, envoyProto := range s.getSDSSecrets(cert, requestedCerts, h.Proxy) {
 		sdsResources = append(sdsResources, envoyProto)
 	}
 
@@ -186,4 +200,12 @@ func subjectAltNamesToStr(sanMatchList []*xds_matcher.StringMatcher) []string {
 		sanStr = append(sanStr, sanMatcher.GetExact())
 	}
 	return sanStr
+}
+
+func (h *Handler) SetProxy(proxy *envoy.Proxy) {
+	h.Proxy = proxy
+}
+
+func (h *Handler) SetDiscoveryRequest(request *xds_discovery.DiscoveryRequest) {
+	h.DiscoveryRequest = request
 }

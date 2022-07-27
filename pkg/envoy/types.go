@@ -141,3 +141,4 @@ const (
 	// KindSidecar implies the proxy is a sidecar
 	KindSidecar ProxyKind = "sidecar"
 )
+

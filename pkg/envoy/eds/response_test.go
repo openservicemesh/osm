@@ -66,7 +66,14 @@ func TestEndpointConfiguration(t *testing.T) {
 	request := &xds_discovery.DiscoveryRequest{
 		ResourceNames: []string{"default/bookstore-v1|80"},
 	}
-	resources, err := NewResponse(meshCatalog, proxy, request, mockConfigurator, nil, nil)
+
+	handler := Handler{
+		MeshCatalog: meshCatalog,
+		Proxy: proxy,
+		DiscoveryRequest: request,
+		Cfg: mockConfigurator,
+	}
+	resources, err := handler.Respond()
 	assert.Nil(err)
 	assert.NotNil(resources)
 

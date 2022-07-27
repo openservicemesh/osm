@@ -5,8 +5,6 @@ import (
 	"sync"
 	"time"
 
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 
@@ -14,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/handler"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -29,7 +28,8 @@ var (
 type Server struct {
 	catalog       catalog.MeshCataloger
 	proxyRegistry *registry.ProxyRegistry
-	xdsHandlers   map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, *certificate.Manager, *registry.ProxyRegistry) ([]types.Resource, error)
+	xdsHandlers   map[envoy.TypeURI]handler.XDSHandler
+
 	// xdsLog is a map of key proxy.GetName(), which is of the form <identity>:<uuid> to map xds TypeURI to a slice of timestamps
 	xdsLog         map[string]map[envoy.TypeURI][]time.Time
 	xdsMapLogMutex sync.Mutex

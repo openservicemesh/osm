@@ -13,21 +13,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/handler"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
-
-// NewResponse creates a new Endpoint Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
-	// If request comes through and requests specific endpoints, just attempt to answer those
-	if request != nil && len(request.ResourceNames) > 0 {
-		return fulfillEDSRequest(meshCatalog, proxy, request)
-	}
-
-	// Otherwise, generate all endpoint configuration for this proxy
-	return generateEDSConfig(meshCatalog, proxy)
-}
 
 // fulfillEDSRequest replies only to requested EDS endpoints on Discovery Request
 func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest) ([]types.Resource, error) {
@@ -51,10 +41,26 @@ func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, re
 	return rdsResources, nil
 }
 
-// generateEDSConfig generates all endpoints expected for a given proxy
-func generateEDSConfig(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy) ([]types.Resource, error) {
+type Handler struct {
+	handler.XDSHandler
+
+	MeshCatalog      catalog.MeshCataloger
+	Proxy            *envoy.Proxy
+	DiscoveryRequest *xds_discovery.DiscoveryRequest
+	Cfg              configurator.Configurator
+	CertManager      *certificate.Manager
+	ProxyRegistry    *registry.ProxyRegistry
+}
+
+func (h *Handler) Respond() ([]types.Resource, error) {
+	// If request comes through and requests specific endpoints, just attempt to answer those
+	if h.DiscoveryRequest != nil && len(h.DiscoveryRequest.ResourceNames) > 0 {
+		return fulfillEDSRequest(h.MeshCatalog, h.Proxy, h.DiscoveryRequest)
+	}
+
+	// Otherwise, generate all endpoint configuration for this proxy
 	var edsResources []types.Resource
-	upstreamSvcEndpoints := getUpstreamEndpointsForProxyIdentity(meshCatalog, proxy.Identity)
+	upstreamSvcEndpoints := getUpstreamEndpointsForProxyIdentity(h.MeshCatalog, h.Proxy.Identity)
 
 	for svc, endpoints := range upstreamSvcEndpoints {
 		loadAssignment := newClusterLoadAssignment(svc, endpoints)
@@ -101,4 +107,28 @@ func getUpstreamEndpointsForProxyIdentity(meshCatalog catalog.MeshCataloger, pro
 
 	log.Trace().Msgf("Allowed outbound service endpoints for proxy with identity %s: %v", proxyIdentity, allowedServicesEndpoints)
 	return allowedServicesEndpoints
+}
+
+func (h *Handler) SetMeshCataloger(cataloger catalog.MeshCataloger) {
+	h.MeshCatalog = cataloger
+}
+
+func (h *Handler) SetProxy(proxy *envoy.Proxy) {
+	h.Proxy = proxy
+}
+
+func (h *Handler) SetDiscoveryRequest(request *xds_discovery.DiscoveryRequest) {
+	h.DiscoveryRequest = request
+}
+
+func (h *Handler) SetConfigurator(cfg configurator.Configurator) {
+	h.Cfg = cfg
+}
+
+func (h *Handler) SetCertManager(certManager *certificate.Manager) {
+	h.CertManager = certManager
+}
+
+func (h *Handler) SetProxyRegistry(proxyRegistry *registry.ProxyRegistry) {
+	h.ProxyRegistry = proxyRegistry
 }

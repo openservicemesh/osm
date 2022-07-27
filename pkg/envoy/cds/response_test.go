@@ -120,7 +120,13 @@ func TestNewResponse(t *testing.T) {
 
 	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(newPod1, nil)
 
-	resp, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+	handler := Handler{
+		MeshCatalog: mockCatalog,
+		Proxy: proxy,
+		Cfg: mockConfigurator,
+		ProxyRegistry: proxyRegistry,
+	}
+	resp, err := handler.Respond()
 	assert.Nil(err)
 
 	// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
@@ -423,7 +429,13 @@ func TestNewResponseListServicesError(t *testing.T) {
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxy.Identity).Return(nil).AnyTimes()
 	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
+	handler := Handler{
+		MeshCatalog: meshCatalog,
+		Proxy: proxy,
+		Cfg: cfg,
+		ProxyRegistry: proxyRegistry,
+	}
+	resp, err := handler.Respond()
 	tassert.Error(t, err)
 	tassert.Nil(t, resp)
 }
@@ -455,7 +467,14 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	})
 	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(pod, nil)
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
+	handler := Handler{
+		MeshCatalog: meshCatalog,
+		Proxy: proxy,
+		Cfg: cfg,
+		ProxyRegistry: proxyRegistry,
+	}
+	resp, err := handler.Respond()
+
 	tassert.NoError(t, err)
 	tassert.Empty(t, resp)
 }
@@ -491,7 +510,14 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	})
 	mockKubeController.EXPECT().GetPodForProxy(proxy).Return(pod, nil)
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
+	handler := Handler{
+		MeshCatalog: meshCatalog,
+		Proxy: proxy,
+		Cfg: cfg,
+		ProxyRegistry: proxyRegistry,
+	}
+	resp, err := handler.Respond()
+
 	tassert.NoError(t, err)
 	tassert.Len(t, resp, 1)
 	tassert.Equal(t, resp[0].(*xds_cluster.Cluster).Name, "my-cluster")

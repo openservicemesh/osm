@@ -10,32 +10,46 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/handler"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-// NewResponse creates a new Route Discovery Response.
-func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryReq *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, cm *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
-	proxyServices, err := proxyRegistry.ListProxyServices(proxy)
+type Handler struct {
+	handler.XDSHandler
+
+	MeshCatalog      catalog.MeshCataloger
+	Proxy            *envoy.Proxy
+	DiscoveryRequest *xds_discovery.DiscoveryRequest
+	Cfg              configurator.Configurator
+	CertManager      *certificate.Manager
+	ProxyRegistry    *registry.ProxyRegistry
+}
+
+// // NewResponse creates a new Route Discovery Response.
+// func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryReq *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, cm *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
+
+func (h *Handler) Respond() ([]types.Resource, error) {
+	proxyServices, err := h.ProxyRegistry.ListProxyServices(h.Proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
-			Msgf("Error looking up services for Envoy with name=%s", proxy.GetName())
+			Msgf("Error looking up services for Envoy with name=%s", h.Proxy.GetName())
 		return nil, err
 	}
 
 	var rdsResources []types.Resource
 
-	trustDomain := cm.GetTrustDomain()
+	trustDomain := h.CertManager.GetTrustDomain()
 
 	// ---
 	// Build inbound mesh route configurations. These route configurations allow
 	// the services associated with this proxy to accept traffic from downstream
 	// clients on allowed routes.
-	inboundMeshTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(proxy.Identity, proxyServices)
+	inboundMeshTrafficPolicy := h.MeshCatalog.GetInboundMeshTrafficPolicy(h.Proxy.Identity, proxyServices)
 	if inboundMeshTrafficPolicy != nil {
-		inboundMeshRouteConfig := route.BuildInboundMeshRouteConfiguration(inboundMeshTrafficPolicy.HTTPRouteConfigsPerPort, proxy, cfg, trustDomain)
+		inboundMeshRouteConfig := route.BuildInboundMeshRouteConfiguration(inboundMeshTrafficPolicy.HTTPRouteConfigsPerPort, h.Proxy, h.Cfg, trustDomain)
 		for _, config := range inboundMeshRouteConfig {
 			rdsResources = append(rdsResources, config)
 		}
@@ -45,7 +59,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 	// Build outbound mesh route configurations. These route configurations allow this proxy
 	// to direct traffic to upstream services that it is authorized to connect to on allowed
 	// routes.
-	outboundMeshTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(proxy.Identity)
+	outboundMeshTrafficPolicy := h.MeshCatalog.GetOutboundMeshTrafficPolicy(h.Proxy.Identity)
 
 	if outboundMeshTrafficPolicy != nil {
 		outboundMeshRouteConfig := route.BuildOutboundMeshRouteConfiguration(outboundMeshTrafficPolicy.HTTPRouteConfigsPerPort)
@@ -60,7 +74,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 	// clients on allowed routes.
 	var ingressTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
 	for _, svc := range proxyServices {
-		ingressPolicy, err := cataloger.GetIngressTrafficPolicy(svc)
+		ingressPolicy, err := h.MeshCatalog.GetIngressTrafficPolicy(svc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting ingress traffic policy for service %s, skipping", svc)
 			continue
@@ -79,9 +93,9 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 	// ---
 	// Build egress route configurations. These route configurations allow this
 	// proxy to direct traffic to external non-mesh destinations on allowed routes.
-	egressTrafficPolicy, err := cataloger.GetEgressTrafficPolicy(proxy.Identity)
+	egressTrafficPolicy, err := h.MeshCatalog.GetEgressTrafficPolicy(h.Proxy.Identity)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving egress traffic policies for proxy with identity %s, skipping egress route configuration", proxy.Identity)
+		log.Error().Err(err).Msgf("Error retrieving egress traffic policies for proxy with identity %s, skipping egress route configuration", h.Proxy.Identity)
 	}
 	if egressTrafficPolicy != nil {
 		egressRouteConfigs := route.BuildEgressRouteConfiguration(egressTrafficPolicy.HTTPRouteConfigsPerPort)
@@ -96,8 +110,8 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 	// but we need to ensure an empty RDS route configuration is returned for the requested
 	// RDS resources that OSM cannot fulfill so that the XDS state machine converges. Envoy
 	// will ignore any configuration resource that it doesn't require.
-	if discoveryReq != nil {
-		rdsResources = ensureRDSRequestCompletion(discoveryReq, rdsResources)
+	if h.DiscoveryRequest != nil {
+		rdsResources = ensureRDSRequestCompletion(h.DiscoveryRequest, rdsResources)
 	}
 
 	return rdsResources, nil
@@ -127,4 +141,12 @@ func ensureRDSRequestCompletion(discoveryReq *xds_discovery.DiscoveryRequest, rd
 	log.Info().Msgf("RDS did not fulfill all requested resources (diff: %v). Fulfill with empty RouteConfigs.", requestDifference)
 
 	return rdsResources
+}
+
+func (h *Handler) SetProxy(proxy *envoy.Proxy) {
+	h.Proxy = proxy
+}
+
+func (h *Handler) SetDiscoveryRequest(request *xds_discovery.DiscoveryRequest) {
+	h.DiscoveryRequest = request
 }

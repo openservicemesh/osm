@@ -298,7 +298,16 @@ func TestNewResponse(t *testing.T) {
 
 			mc := tresorFake.NewFake(1 * time.Hour)
 
-			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mockConfigurator, mc, proxyRegistry)
+			handler := Handler{
+				MeshCatalog: mockCatalog,
+				Proxy: proxy,
+				Cfg: mockConfigurator,
+				ProxyRegistry: proxyRegistry,
+				CertManager: mc,
+				DiscoveryRequest: &discoveryRequest,
+			}
+			resources, err := handler.Respond()
+
 			assert.Nil(err)
 			assert.NotNil(resources)
 
@@ -478,7 +487,15 @@ func TestResponseRequestCompletion(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		resources, err := NewResponse(mockCatalog, testProxy, tc.request, mockConfigurator, mc, proxyRegistry)
+		handler := Handler{
+			MeshCatalog: mockCatalog,
+			Proxy: testProxy,
+			Cfg: mockConfigurator,
+			ProxyRegistry: proxyRegistry,
+			CertManager: mc,
+			DiscoveryRequest: tc.request,
+		}
+		resources, err := handler.Respond()
 		assert.Nil(err)
 
 		if tc.request != nil {

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/cds"
 	"github.com/openservicemesh/osm/pkg/envoy/eds"
+	"github.com/openservicemesh/osm/pkg/envoy/handler"
 	"github.com/openservicemesh/osm/pkg/envoy/lds"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
@@ -40,12 +40,37 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pro
 	server := Server{
 		catalog:       meshCatalog,
 		proxyRegistry: proxyRegistry,
-		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, *certificate.Manager, *registry.ProxyRegistry) ([]types.Resource, error){
-			envoy.TypeEDS: eds.NewResponse,
-			envoy.TypeCDS: cds.NewResponse,
-			envoy.TypeRDS: rds.NewResponse,
-			envoy.TypeLDS: lds.NewResponse,
-			envoy.TypeSDS: sds.NewResponse,
+		xdsHandlers: map[envoy.TypeURI]handler.XDSHandler{
+			envoy.TypeEDS: &eds.Handler{
+				MeshCatalog: meshCatalog,
+				Cfg: cfg,
+				CertManager: certManager,
+				ProxyRegistry: proxyRegistry,
+			},
+			envoy.TypeCDS: &cds.Handler{
+				MeshCatalog: meshCatalog,
+				Cfg: cfg,
+				CertManager: certManager,
+				ProxyRegistry: proxyRegistry,
+			},
+			envoy.TypeRDS: &rds.Handler{
+				MeshCatalog: meshCatalog,
+				Cfg: cfg,
+				CertManager: certManager,
+				ProxyRegistry: proxyRegistry,
+			},
+			envoy.TypeLDS: &lds.Handler{
+				MeshCatalog: meshCatalog,
+				Cfg: cfg,
+				CertManager: certManager,
+				ProxyRegistry: proxyRegistry,
+			},
+			envoy.TypeSDS: &sds.Handler{
+				MeshCatalog: meshCatalog,
+				Cfg: cfg,
+				CertManager: certManager,
+				ProxyRegistry: proxyRegistry,
+			},
 		},
 		osmNamespace:   osmNamespace,
 		cfg:            cfg,

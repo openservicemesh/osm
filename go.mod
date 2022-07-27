@@ -80,7 +80,10 @@ require (
 	honnef.co/go/tools v0.1.1 // indirect
 )
 
-require k8s.io/kubectl v0.23.5
+require (
+	github.com/docker/cli v20.10.9+incompatible
+	k8s.io/kubectl v0.23.5
+)
 
 require (
 	4d63.com/gochecknoglobals v0.0.0-20201008074935-acfc0b28355a // indirect
@@ -138,7 +141,6 @@ require (
 	github.com/digitalocean/godo v1.44.0 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/dnaeon/go-vcr v1.2.0 // indirect
-	github.com/docker/cli v20.10.9+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.6.3 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect

@@ -34,7 +34,9 @@ func (s *Server) getTypeResources(proxy *envoy.Proxy, request *xds_discovery.Dis
 	}
 
 	// Invoke XDS handler
-	resources, err := handler(s.catalog, proxy, request, s.cfg, s.certManager, s.proxyRegistry)
+	handler.SetProxy(proxy)
+	handler.SetDiscoveryRequest(request)
+	resources, err := handler.Respond()
 	if err != nil {
 		xdsPathTimeTrack(startedAt, typeURI, proxy, false)
 		return nil, errCreatingResponse

@@ -102,7 +102,14 @@ func TestNewResponse(t *testing.T) {
 	}), nil)
 
 	cm := tresorFake.NewFake(1 * time.Hour)
-	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
+	handler := Handler{
+		MeshCatalog: meshCatalog,
+		Proxy: proxy,
+		Cfg: mockConfigurator,
+		ProxyRegistry: proxyRegistry,
+		CertManager: cm,
+	}
+	resources, err := handler.Respond()
 	assert.NotNil(err)
 	assert.Nil(resources)
 
@@ -110,7 +117,14 @@ func TestNewResponse(t *testing.T) {
 		return []service.MeshService{tests.BookbuyerService}, nil
 	}), nil)
 
-	resources, err = NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
+	handler = Handler{
+		MeshCatalog: meshCatalog,
+		Proxy: proxy,
+		Cfg: mockConfigurator,
+		ProxyRegistry: proxyRegistry,
+		CertManager: cm,
+	}
+	resources, err = handler.Respond()
 	assert.Empty(err)
 	assert.NotNil(resources)
 	// There are 3 listeners configured based on the configuration:
