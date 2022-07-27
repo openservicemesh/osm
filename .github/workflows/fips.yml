@@ -215,7 +215,7 @@ jobs:
       - name: Build docker images
         env:
           DOCKER_BUILDX_OUTPUT: type=docker
-        run: make docker-build-osm
+        run: make docker-build-osm-fips
       - name: Setup Trivy
         run: make trivy-ci-setup
       - name: Scan docker images for vulnerabilities

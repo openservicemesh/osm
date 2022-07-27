@@ -22,11 +22,21 @@ BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
 BUILD_VERSION_VAR := github.com/openservicemesh/osm/pkg/version.Version
 BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
 DOCKER_GO_VERSION = 1.19
-DOCKER_GO_FIPS_VERSION = 1.19-fips-cbl-mariner2.0
+DOCKER_GO_BASE_IMAGE = golang:$(DOCKER_GO_VERSION)
+DOCKER_FINAL_BASE_IMAGE = gcr.io/distroless/static
+DOCKER_GO_BUILD_FLAGS =
 DOCKER_BUILDX_PLATFORM ?= linux/$(shell go env GOARCH)
 # Value for the --output flag on docker buildx build.
 # https://docs.docker.com/engine/reference/commandline/buildx_build/#output
 DOCKER_BUILDX_OUTPUT ?= type=registry
+CGO_ENABLED = 0
+
+ifeq ($(FIPS),1)
+	CGO_ENABLED = 1
+	DOCKER_GO_BASE_IMAGE = mcr.microsoft.com/oss/go/microsoft/golang:$(DOCKER_GO_VERSION)-fips-cbl-mariner2.0
+	DOCKER_FINAL_BASE_IMAGE = mcr.microsoft.com/cbl-mariner/distroless/base:2.0
+	DOCKER_GO_BUILD_FLAGS = -tags fips
+endif
 
 LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w"
 
@@ -70,10 +80,6 @@ clean-osm:
 codegen:
 	./codegen/gen-crd-client.sh
 
-.PHONY: codegen-fips
-codegen-fips:
-	./codegen/fips.sh
-
 .PHONY: chart-readme
 chart-readme:
 	go run github.com/norwoodj/helm-docs/cmd/helm-docs -c charts -t charts/osm/README.md.gotmpl
@@ -98,11 +104,6 @@ check-mocks:
 check-codegen:
 	@./codegen/gen-crd-client.sh
 	@git diff --exit-code || { echo "----- Please commit the changes made by './codegen/gen-crd-client.sh' -----"; exit 1; }
-
-.PHONY: check-codegen-fips
-check-codegen-fips:
-	@./codegen/fips.sh
-	@git diff --exit-code || { echo "----- Please commit the changes made by './codegen/fips.sh' -----"; exit 1; }
 
 .PHONY: go-checks
 go-checks: go-lint go-fmt go-mod-tidy check-mocks check-codegen
@@ -171,26 +172,17 @@ $(DOCKER_DEMO_TARGETS):
 .PHONY: docker-build-demo
 docker-build-demo: $(DOCKER_DEMO_TARGETS)
 
-DOCKER_FIPS_DEMO_TARGETS = $(addprefix docker-build-fips-, $(DEMO_TARGETS))
-.PHONY: $(DOCKER_FIPS_DEMO_TARGETS)
-$(DOCKER_FIPS_DEMO_TARGETS): NAME=$(@:docker-build-fips-%=%)
-$(DOCKER_FIPS_DEMO_TARGETS):
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/$(NAME):$(CTR_TAG) -f dockerfiles/Dockerfile.demo.fips --build-arg GO_VERSION=$(DOCKER_GO_FIPS_VERSION) --build-arg BINARY=$(NAME) .
-
-.PHONY: docker-build-demo-fips
-docker-build-demo-fips: $(DOCKER_FIPS_DEMO_TARGETS)
-
 .PHONY: docker-build-init
 docker-build-init:
 	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/init:$(CTR_TAG) - < dockerfiles/Dockerfile.init
 
 .PHONY: docker-build-osm-controller
 docker-build-osm-controller:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-controller --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-controller --build-arg GO_BASE_IMAGE=$(DOCKER_GO_BASE_IMAGE) --build-arg FINAL_BASE_IMAGE=$(DOCKER_FINAL_BASE_IMAGE) --build-arg LDFLAGS=$(LDFLAGS) --build-arg CGO_ENABLED=$(CGO_ENABLED) --build-arg GO_BUILD_FLAGS="$(DOCKER_GO_BUILD_FLAGS)" .
 
 .PHONY: docker-build-osm-injector
 docker-build-osm-injector:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-injector:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-injector --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-injector:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-injector --build-arg GO_BASE_IMAGE=$(DOCKER_GO_BASE_IMAGE) --build-arg FINAL_BASE_IMAGE=$(DOCKER_FINAL_BASE_IMAGE) --build-arg LDFLAGS=$(LDFLAGS) --build-arg CGO_ENABLED=$(CGO_ENABLED) --build-arg GO_BUILD_FLAGS="$(DOCKER_GO_BUILD_FLAGS)" .
 
 .PHONY: docker-build-osm-crds
 docker-build-osm-crds:
@@ -198,55 +190,22 @@ docker-build-osm-crds:
 
 .PHONY: docker-build-osm-bootstrap
 docker-build-osm-bootstrap:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-bootstrap:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-bootstrap --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-bootstrap:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-bootstrap --build-arg GO_BASE_IMAGE=$(DOCKER_GO_BASE_IMAGE) --build-arg FINAL_BASE_IMAGE=$(DOCKER_FINAL_BASE_IMAGE) --build-arg LDFLAGS=$(LDFLAGS) --build-arg CGO_ENABLED=$(CGO_ENABLED) --build-arg GO_BUILD_FLAGS="$(DOCKER_GO_BUILD_FLAGS)" .
 
 .PHONY: docker-build-osm-preinstall
 docker-build-osm-preinstall:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-preinstall:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-preinstall --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-preinstall:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-preinstall --build-arg GO_BASE_IMAGE=$(DOCKER_GO_BASE_IMAGE) --build-arg FINAL_BASE_IMAGE=$(DOCKER_FINAL_BASE_IMAGE) --build-arg LDFLAGS=$(LDFLAGS) --build-arg CGO_ENABLED=$(CGO_ENABLED) --build-arg GO_BUILD_FLAGS="$(DOCKER_GO_BUILD_FLAGS)" .
 
 .PHONY: docker-build-osm-healthcheck
 docker-build-osm-healthcheck:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-healthcheck:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-healthcheck --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
-
-.PHONY: docker-build-init-fips
-docker-build-init-fips:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/init:$(CTR_TAG) - < dockerfiles/Dockerfile.init
-
-
-.PHONY: docker-build-osm-controller-fips
-docker-build-osm-controller-fips:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-controller.fips --build-arg GO_VERSION=$(DOCKER_GO_FIPS_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
-
-.PHONY: docker-build-osm-injector-fips
-docker-build-osm-injector-fips:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-injector:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-injector.fips --build-arg GO_VERSION=$(DOCKER_GO_FIPS_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
-
-.PHONY: docker-build-osm-crds-fips
-docker-build-osm-crds-fips:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-crds:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-crds ./cmd/osm-bootstrap/crds
-
-.PHONY: docker-build-osm-bootstrap-fips
-docker-build-osm-bootstrap-fips:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-bootstrap:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-bootstrap.fips --build-arg GO_VERSION=$(DOCKER_GO_FIPS_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
-
-.PHONY: docker-build-osm-preinstall-fips
-docker-build-osm-preinstall-fips:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-preinstall:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-preinstall.fips --build-arg GO_VERSION=$(DOCKER_GO_FIPS_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
-
-.PHONY: docker-build-osm-healthcheck-fips
-docker-build-osm-healthcheck-fips:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-healthcheck:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-healthcheck.fips --build-arg GO_VERSION=$(DOCKER_GO_FIPS_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-healthcheck:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-healthcheck --build-arg GO_BASE_IMAGE=$(DOCKER_GO_BASE_IMAGE) --build-arg FINAL_BASE_IMAGE=$(DOCKER_FINAL_BASE_IMAGE) --build-arg LDFLAGS=$(LDFLAGS) --build-arg CGO_ENABLED=$(CGO_ENABLED) --build-arg GO_BUILD_FLAGS="$(DOCKER_GO_BUILD_FLAGS)" .
 
 OSM_TARGETS = init osm-controller osm-injector osm-crds osm-bootstrap osm-preinstall osm-healthcheck
 DOCKER_OSM_TARGETS = $(addprefix docker-build-, $(OSM_TARGETS))
-DOCKER_FIPS_OSM_TARGETS = $(addsuffix -fips, $(addprefix docker-build-, $(OSM_TARGETS)))
 
 
 .PHONY: docker-build-osm
 docker-build-osm: $(DOCKER_OSM_TARGETS)
-
-.PHONY: docker-build-osm-fips
-docker-build-osm-fips: $(DOCKER_FIPS_OSM_TARGETS)
 
 .PHONY: buildx-context
 buildx-context:
@@ -257,7 +216,6 @@ check-image-exists-%:
 	@if [ "$(VERIFY_TAGS)" = "true" ]; then scripts/image-exists.sh $(CTR_REGISTRY)/$(NAME):$(CTR_TAG); fi
 
 $(foreach target,$(OSM_TARGETS) $(DEMO_TARGETS),$(eval docker-build-$(target): check-image-exists-$(target) buildx-context))
-$(foreach target,$(OSM_TARGETS) $(DEMO_TARGETS),$(eval docker-build-$(target)-fips: check-image-exists-$(target) buildx-context))
 
 
 docker-digest-%: NAME=$(@:docker-digest-%=%)
@@ -266,9 +224,6 @@ docker-digest-%:
 
 .PHONY: docker-digests-osm
 docker-digests-osm: $(addprefix docker-digest-, $(OSM_TARGETS))
-
-.PHONY: docker-digests-osm-fips
-docker-digests-osm-fips: $(addsuffix -fips, $(addprefix docker-digest-, $(OSM_TARGETS)))
 
 .PHONY: docker-build
 docker-build: docker-build-osm docker-build-demo
@@ -279,8 +234,7 @@ docker-build-cross-osm: docker-build-osm
 docker-build-cross-demo: DOCKER_BUILDX_PLATFORM=linux/amd64,windows/amd64,linux/arm64
 docker-build-cross-demo: docker-build-demo
 docker-build-cross: docker-build-cross-osm docker-build-cross-demo
-docker-build-fips: docker-build-osm-fips docker-build-demo-fips
-
+ 
 .PHONY: embed-files
 embed-files: cmd/cli/chart.tgz
 
