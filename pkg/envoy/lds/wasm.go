@@ -20,21 +20,13 @@ import (
 //go:embed stats.wasm
 var statsWASMBytes []byte
 
-func (lb *listenerBuilder) getWASMStatsHeaders() map[string]string {
-	if lb.cfg.GetFeatureFlags().EnableWASMStats {
-		return lb.statsHeaders
-	}
-
-	return nil
-}
-
-func getWASMStatsConfig(statsHeaders map[string]string) ([]*xds_hcm.HttpFilter, *xds_hcm.LocalReplyConfig, error) {
+func getWASMStatsConfig(wasmStatsHeaders map[string]string) ([]*xds_hcm.HttpFilter, *xds_hcm.LocalReplyConfig, error) {
 	statsFilter, err := getStatsWASMFilter()
 	if err != nil {
 		return nil, nil, fmt.Errorf("Error gettings WASM Stats filter: %w", err)
 	}
 
-	headerFilter, err := getAddHeadersFilter(statsHeaders)
+	headerFilter, err := getAddHeadersFilter(wasmStatsHeaders)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Error getting WASM stats Header filter: %w", err)
 	}
@@ -53,7 +45,7 @@ func getWASMStatsConfig(statsHeaders map[string]string) ([]*xds_hcm.HttpFilter, 
 		// HTTP responses with the "unknown" value hardcoded because we don't
 		// know the intended destination of the request.
 		var localReplyHeaders []*envoy_config_core_v3.HeaderValueOption
-		for k := range statsHeaders {
+		for k := range wasmStatsHeaders {
 			localReplyHeaders = append(localReplyHeaders, &envoy_config_core_v3.HeaderValueOption{
 				Header: &envoy_config_core_v3.HeaderValue{
 					Key:   k,

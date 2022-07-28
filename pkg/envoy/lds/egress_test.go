@@ -5,23 +5,15 @@ import (
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/envoy"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 func TestGetEgressHTTPFilterChain(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-
 	testCases := []struct {
 		name                     string
 		destinationPort          int
@@ -51,19 +43,14 @@ func TestGetEgressHTTPFilterChain(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-
 			lb := &listenerBuilder{
-				cfg: mockConfigurator,
+				permissiveEgress: false, // Egress policy enabled
 			}
-			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-			mockConfigurator.EXPECT().GetTracingEndpoint().Return("some-endpoint").AnyTimes()
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-				EnableEgressPolicy: true,
-				EnableWASMStats:    false}).AnyTimes()
+
 			match := trafficpolicy.TrafficMatch{
 				DestinationPort: tc.destinationPort,
 			}
-			actual, err := lb.getEgressHTTPFilterChain(match)
+			actual, err := lb.buildEgressHTTPFilterChain(match)
 
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedFilterChainMatch, actual.FilterChainMatch)
@@ -74,11 +61,6 @@ func TestGetEgressHTTPFilterChain(t *testing.T) {
 }
 
 func TestGetEgressTCPFilterChain(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-
 	testCases := []struct {
 		name                     string
 		trafficMatch             trafficpolicy.TrafficMatch
@@ -155,15 +137,11 @@ func TestGetEgressTCPFilterChain(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
+			lb := &listenerBuilder{
+				permissiveEgress: false, // Egress policy enabled
+			}
 
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-				EnableEgressPolicy: true,
-				EnableWASMStats:    false,
-			}).AnyTimes()
-
-			lb := &listenerBuilder{}
-
-			actual, err := lb.getEgressTCPFilterChain(tc.trafficMatch)
+			actual, err := lb.buildEgressTCPFilterChain(tc.trafficMatch)
 
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedFilterChainMatch, actual.FilterChainMatch)
@@ -174,11 +152,6 @@ func TestGetEgressTCPFilterChain(t *testing.T) {
 }
 
 func TestGetEgressFilterChainsForMatches(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-
 	testCases := []struct {
 		name                     string
 		trafficMatches           []*trafficpolicy.TrafficMatch
@@ -226,16 +199,9 @@ func TestGetEgressFilterChainsForMatches(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-
 			lb := &listenerBuilder{
-				cfg: mockConfigurator,
+				permissiveEgress: false, // Egress policy enabled
 			}
-			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-			mockConfigurator.EXPECT().GetTracingEndpoint().Return("some-endpoint").AnyTimes()
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-				EnableEgressPolicy: true,
-				EnableWASMStats:    false,
-			}).AnyTimes()
 
 			actual := lb.getEgressFilterChainsForMatches(tc.trafficMatches)
 

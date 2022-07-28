@@ -8,24 +8,19 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
-	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 // buildRBACFilter builds an RBAC filter based on SMI TrafficTarget policies.
 // The returned RBAC filter has policies that gives downstream principals full access to the local service.
-func (lb *listenerBuilder) buildRBACFilter() (*xds_listener.Filter, error) {
-	networkRBACPolicy, err := lb.buildInboundRBACPolicies()
+func buildRBACFilter(trafficTargets []trafficpolicy.TrafficTargetWithRoutes, trustDomain string) (*xds_listener.Filter, error) {
+	networkRBACPolicy, err := buildInboundRBACPolicies(trafficTargets, trustDomain)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error building inbound RBAC policies for principal %q", lb.serviceIdentity)
 		return nil, err
 	}
 
 	marshalledNetworkRBACPolicy, err := anypb.New(networkRBACPolicy)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
-			Msgf("Error marshalling RBAC policy: %v", networkRBACPolicy)
 		return nil, err
 	}
 
@@ -38,22 +33,12 @@ func (lb *listenerBuilder) buildRBACFilter() (*xds_listener.Filter, error) {
 }
 
 // buildInboundRBACPolicies builds the RBAC policies based on allowed principals
-func (lb *listenerBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, error) {
-	proxyIdentity := identity.ServiceIdentity(lb.serviceIdentity.String())
-	trafficTargets, err := lb.meshCatalog.ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingInboundTrafficTargets)).
-			Msgf("Error listing allowed inbound traffic targets for proxy identity %s", proxyIdentity)
-		return nil, err
-	}
-
+func buildInboundRBACPolicies(trafficTargets []trafficpolicy.TrafficTargetWithRoutes, trustDomain string) (*xds_network_rbac.RBAC, error) {
 	rbacPolicies := make(map[string]*xds_rbac.Policy)
 	// Build an RBAC policies based on SMI TrafficTarget policies
 	for _, targetPolicy := range trafficTargets {
-		rbacPolicies[targetPolicy.Name] = buildRBACPolicyFromTrafficTarget(targetPolicy, lb.trustDomain)
+		rbacPolicies[targetPolicy.Name] = buildRBACPolicyFromTrafficTarget(targetPolicy, trustDomain)
 	}
-
-	log.Debug().Msgf("RBAC policy for proxy with identity %s: %+v", proxyIdentity, rbacPolicies)
 
 	// Create an inbound RBAC policy that denies a request by default, unless a policy explicitly allows it
 	networkRBACPolicy := &xds_network_rbac.RBAC{

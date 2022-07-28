@@ -9,34 +9,27 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xds_listener.FilterChain {
-	ingressPolicy, err := lb.meshCatalog.GetIngressTrafficPolicy(svc)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrIngressFilterChain)).
-			Msgf("Error getting ingress filter chain for proxy with identity %s and service %s", lb.serviceIdentity, svc)
-		return nil
-	}
-
-	if ingressPolicy == nil {
-		log.Trace().Msgf("No ingress policy confiugred for proxy with identity %s and service %s", lb.serviceIdentity, svc)
+func (lb *listenerBuilder) buildIngressFilterChains() []*xds_listener.FilterChain {
+	if lb.ingressTrafficPolicies == nil {
 		return nil
 	}
 
 	var filterChains []*xds_listener.FilterChain
-	for _, trafficMatch := range ingressPolicy.TrafficMatches {
-		if filterChain, err := lb.getIngressFilterChainFromTrafficMatch(trafficMatch, lb.cfg.GetMeshConfig().Spec.Sidecar); err != nil {
-			log.Error().Err(err).Msgf("Error building ingress filter chain for proxy with identity %s service %s", lb.serviceIdentity, svc)
-		} else {
+
+	for _, policy := range lb.ingressTrafficPolicies {
+		for _, trafficMatch := range policy.TrafficMatches {
+			filterChain, err := lb.buildIngressFilterChainFromTrafficMatch(trafficMatch)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error building ingress filter chain for traffic match %s for proxy with identity %s", trafficMatch.Name, lb.proxyIdentity)
+				continue
+			}
 			filterChains = append(filterChains, filterChain)
 		}
 	}
@@ -44,31 +37,31 @@ func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xd
 	return filterChains
 }
 
-func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *trafficpolicy.IngressTrafficMatch, sidecarSpec configv1alpha2.SidecarSpec) (*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) buildIngressFilterChainFromTrafficMatch(trafficMatch *trafficpolicy.IngressTrafficMatch) (*xds_listener.FilterChain, error) {
 	if trafficMatch == nil {
-		return nil, fmt.Errorf("Nil IngressTrafficMatch for ingress on proxy with identity %s", lb.serviceIdentity)
+		return nil, fmt.Errorf("Nil IngressTrafficMatch for ingress on proxy with identity %s", lb.proxyIdentity)
 	}
 
-	// Build the HTTP Connection Manager filter from its options
-	ingressConnManager, err := httpConnManagerOptions{
-		direction:         inbound,
-		rdsRoutConfigName: route.IngressRouteConfigName,
+	hcmBuilder := HTTPConnManagerBuilder()
+	hcmBuilder.StatsPrefix(route.IngressRouteConfigName).
+		RouteConfigName(route.IngressRouteConfigName).
+		DefaultFilters()
 
-		// Additional filters
-		wasmStatsHeaders: nil, // no WASM Stats for ingress traffic
-		extAuthConfig:    lb.getExtAuthConfig(),
-
-		// Tracing options
-		enableTracing:      lb.cfg.IsTracingEnabled(),
-		tracingAPIEndpoint: lb.cfg.GetTracingEndpoint(),
-	}.build()
-	if err != nil {
-		return nil, fmt.Errorf("Error building inbound HTTP connection manager for proxy with identity %s, traffic match: %v ", lb.serviceIdentity, trafficMatch)
+	if lb.httpTracingEndpoint != "" {
+		tracing, err := getHTTPTracingConfig(lb.httpTracingEndpoint)
+		if err != nil {
+			return nil, fmt.Errorf("error building outbound http filter: %w", err)
+		}
+		hcmBuilder.Tracing(tracing)
+	}
+	if lb.extAuthzConfig != nil && lb.extAuthzConfig.Enable {
+		hcmBuilder.AddFilter(getExtAuthzHTTPFilter(lb.extAuthzConfig))
 	}
 
-	marshalledIngressConnManager, err := anypb.New(ingressConnManager)
+	// Build the HTTP Connection Manager filter
+	hcmFilter, err := hcmBuilder.Build()
 	if err != nil {
-		return nil, fmt.Errorf("Error marshalling ingress HttpConnectionManager object for proxy with identity %s", lb.serviceIdentity)
+		return nil, fmt.Errorf("error building ingress filter chain: %w", err)
 	}
 
 	var sourcePrefixes []*xds_core.CidrRange
@@ -90,12 +83,7 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 			SourcePrefixRanges: sourcePrefixes,
 		},
 		Filters: []*xds_listener.Filter{
-			{
-				Name: envoy.HTTPConnectionManagerFilterName,
-				ConfigType: &xds_listener.Filter_TypedConfig{
-					TypedConfig: marshalledIngressConnManager,
-				},
-			},
+			hcmFilter,
 		},
 	}
 
@@ -103,7 +91,7 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 	case constants.ProtocolHTTP:
 		// For HTTP backend, only allow traffic from authorized
 		if filterChain.FilterChainMatch.SourcePrefixRanges == nil {
-			log.Warn().Msgf("Allowing HTTP ingress on proxy with identity %s is insecure, use IngressBackend.Spec.Sources to restrict clients", lb.serviceIdentity)
+			log.Warn().Msgf("Allowing HTTP ingress on proxy with identity %s is insecure, use IngressBackend.Spec.Sources to restrict clients", lb.proxyIdentity)
 		}
 
 	case constants.ProtocolHTTPS:
@@ -114,9 +102,9 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 		filterChain.FilterChainMatch.TransportProtocol = envoy.TransportProtocolTLS
 		filterChain.FilterChainMatch.ServerNames = trafficMatch.ServerNames
 
-		marshalledDownstreamTLSContext, err := anypb.New(envoy.GetDownstreamTLSContext(lb.serviceIdentity, !trafficMatch.SkipClientCertValidation, sidecarSpec))
+		marshalledDownstreamTLSContext, err := anypb.New(envoy.GetDownstreamTLSContext(lb.proxyIdentity, !trafficMatch.SkipClientCertValidation, lb.sidecarSpec))
 		if err != nil {
-			return nil, fmt.Errorf("Error marshalling DownstreamTLSContext in ingress filter chain for proxy with identity %s", lb.serviceIdentity)
+			return nil, fmt.Errorf("Error marshalling DownstreamTLSContext in ingress filter chain for proxy with identity %s", lb.proxyIdentity)
 		}
 
 		filterChain.TransportSocket = &xds_core.TransportSocket{
@@ -127,7 +115,7 @@ func (lb *listenerBuilder) getIngressFilterChainFromTrafficMatch(trafficMatch *t
 		}
 
 	default:
-		err := fmt.Errorf("Unsupported ingress protocol %s on proxy with identity %s. Ingress protocol must be one of 'http, https'", trafficMatch.Protocol, lb.serviceIdentity)
+		err := fmt.Errorf("Unsupported ingress protocol %s on proxy with identity %s. Ingress protocol must be one of 'http, https'", trafficMatch.Protocol, lb.proxyIdentity)
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUnsupportedProtocolForService)).Msg("Error building filter chain for ingress")
 		return nil, err
 	}
