@@ -137,7 +137,7 @@ func TestCreatePatch(t *testing.T) {
 			wh := &mutatingWebhook{
 				kubeClient:          client,
 				kubeController:      mockNsController,
-				certManager:         tresorFake.NewFake(nil, 1*time.Hour),
+				certManager:         tresorFake.NewFake(1 * time.Hour),
 				configurator:        mockConfigurator,
 				nonInjectNamespaces: mapset.NewSet(),
 			}
@@ -236,7 +236,7 @@ func TestCreatePatch(t *testing.T) {
 		wh := &mutatingWebhook{
 			kubeClient:          client,
 			kubeController:      mockNsController,
-			certManager:         tresorFake.NewFake(nil, 1*time.Hour),
+			certManager:         tresorFake.NewFake(1 * time.Hour),
 			configurator:        mockConfigurator,
 			nonInjectNamespaces: mapset.NewSet(),
 		}

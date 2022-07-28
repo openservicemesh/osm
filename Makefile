@@ -215,7 +215,7 @@ docker-build: docker-build-osm docker-build-demo
 .PHONY: docker-build-cross-osm docker-build-cross-demo docker-build-cross
 docker-build-cross-osm: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
 docker-build-cross-osm: docker-build-osm
-docker-build-cross-demo: DOCKER_BUILDX_PLATFORM=linux/amd64,windows/amd64
+docker-build-cross-demo: DOCKER_BUILDX_PLATFORM=linux/amd64,windows/amd64,linux/arm64
 docker-build-cross-demo: docker-build-demo
 docker-build-cross: docker-build-cross-osm docker-build-cross-demo
 

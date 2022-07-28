@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -77,7 +76,7 @@ func singleMeshOK(clientset kubernetes.Interface, enforceSingleMesh bool) func()
 			}).String(),
 		})
 		if err != nil {
-			return errors.Wrap(err, "listing OSM deployments")
+			return fmt.Errorf("listing OSM deployments: %w", err)
 		}
 
 		var existingMeshes []string
@@ -91,11 +90,11 @@ func singleMeshOK(clientset kubernetes.Interface, enforceSingleMesh bool) func()
 		}
 
 		if len(existingSingleMeshes) > 0 {
-			return errors.Errorf("Mesh(es) %s already enforce it is the only mesh in the cluster, cannot install new meshes", strings.Join(existingSingleMeshes, ", "))
+			return fmt.Errorf("Mesh(es) %s already enforce it is the only mesh in the cluster, cannot install new meshes", strings.Join(existingSingleMeshes, ", "))
 		}
 
 		if enforceSingleMesh && len(existingMeshes) > 0 {
-			return errors.Errorf("Mesh(es) %s already exist so a new mesh enforcing it is the only one cannot be installed", strings.Join(existingMeshes, ", "))
+			return fmt.Errorf("Mesh(es) %s already exist so a new mesh enforcing it is the only one cannot be installed", strings.Join(existingMeshes, ", "))
 		}
 
 		return nil
@@ -110,14 +109,14 @@ func namespaceHasNoMesh(clientset kubernetes.Interface, namespace string) func()
 			}).String(),
 		})
 		if err != nil {
-			return errors.Wrapf(err, "listing osm-controller deployments in namespace %s", namespace)
+			return fmt.Errorf("listing osm-controller deployments in namespace %s: %w", namespace, err)
 		}
 		var meshNames []string
 		for _, dep := range deps.Items {
 			meshNames = append(meshNames, dep.Labels["meshName"])
 		}
 		if len(meshNames) > 0 {
-			return errors.Errorf("Namespace %s already contains meshes %v", namespace, meshNames)
+			return fmt.Errorf("Namespace %s already contains meshes %v", namespace, meshNames)
 		}
 		return nil
 	}

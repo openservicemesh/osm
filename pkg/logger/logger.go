@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -74,7 +73,7 @@ func SetLogLevel(verbosity string) error {
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 
 	default:
-		return errors.Errorf("Invalid log level '%s' specified. Please specify one of %v", verbosity, AllowedLevels)
+		return fmt.Errorf("Invalid log level '%s' specified. Please specify one of %v", verbosity, AllowedLevels)
 	}
 	return nil
 }

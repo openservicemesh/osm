@@ -3,9 +3,8 @@ package ingress
 import (
 	"context"
 	"reflect"
-	"time"
+	"sync"
 
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,66 +16,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
-// provisionIngressGatewayCert does the following:
-// 1. If an ingress gateway certificate spec is specified in the MeshConfig resource, issues a certificate
-//    for it and stores it in the referenced secret.
-// 2. Starts a goroutine to watch for changes to the MeshConfig resource and certificate rotation, and
-//    updates/removes the certificate and secret as necessary.
-func (c *client) provisionIngressGatewayCert(stop <-chan struct{}) error {
-	defaultCertSpec := c.cfg.GetMeshConfig().Spec.Certificate.IngressGateway
-	if defaultCertSpec != nil {
-		// Issue a certificate for the default certificate spec
-		if err := c.createAndStoreGatewayCert(*defaultCertSpec); err != nil {
-			return errors.Wrap(err, "Error provisioning default ingress gateway cert")
-		}
-	}
-
-	// Initialize a watcher to watch for CREATE/UPDATE/DELETE on the ingress gateway cert spec
-	go c.handleCertificateChange(defaultCertSpec, stop)
-
-	return nil
-}
-
-// createAndStoreGatewayCert creates a certificate for the given certificate spec and stores
-// it in the referenced k8s secret if the spec is valid.
-func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCertSpec) error {
-	if len(spec.SubjectAltNames) == 0 {
-		return errors.New("Ingress gateway certificate spec must specify at least 1 SAN")
-	}
-
-	// Validate the validity duration
-	if _, err := time.ParseDuration(spec.ValidityDuration); err != nil {
-		return errors.Wrapf(err, "Invalid cert duration '%s' specified", spec.ValidityDuration)
-	}
-
-	// Validate the secret ref
-	if spec.Secret.Name == "" || spec.Secret.Namespace == "" {
-		return errors.Errorf("Ingress gateway cert secret's name and namespace cannot be nil, got %s/%s", spec.Secret.Namespace, spec.Secret.Name)
-	}
-
-	// Issue a certificate
-	// OSM only support configuring a single SAN per cert, so pick the first one
-	certCN := spec.SubjectAltNames[0]
-
-	// A certificate for this CN may be cached already. Delete it before issuing a new certificate.
-	c.certProvider.ReleaseCertificate(certCN)
-	issuedCert, err := c.certProvider.IssueCertificate(certCN, certificate.IngressGateway, certificate.FullCNProvided())
-	if err != nil {
-		return errors.Wrapf(err, "Error issuing a certificate for ingress gateway")
-	}
-
-	// Store the certificate in the referenced secret
-	if err := c.storeCertInSecret(issuedCert, spec.Secret); err != nil {
-		return errors.Wrapf(err, "Error storing ingress gateway cert in secret %s/%s", spec.Secret.Namespace, spec.Secret.Name)
-	}
-
-	return nil
-}
-
 // storeCertInSecret stores the certificate in the specified k8s TLS secret
 func (c *client) storeCertInSecret(cert *certificate.Certificate, secret corev1.SecretReference) error {
 	secretData := map[string][]byte{
-		"ca.crt":  cert.GetTrustedCAs(),
+		"ca.crt":  cert.GetIssuingCA(),
 		"tls.crt": cert.GetCertificateChain(),
 		"tls.key": cert.GetPrivateKey(),
 	}
@@ -97,16 +40,20 @@ func (c *client) storeCertInSecret(cert *certificate.Certificate, secret corev1.
 	return err
 }
 
-// handleCertificateChange updates the gateway certificate and secret when the MeshConfig resource changes or
-// when the corresponding gateway certificate is rotated.
-func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.IngressGatewayCertSpec, stop <-chan struct{}) {
+func (c *client) provisionIngressGatewayCert(currentCertSpec *configv1alpha2.IngressGatewayCertSpec, stop <-chan struct{}) {
 	kubePubSub := c.msgBroker.GetKubeEventPubSub()
 	meshConfigUpdateChan := kubePubSub.Sub(announcements.MeshConfigUpdated.String())
 	defer c.msgBroker.Unsub(kubePubSub, meshConfigUpdateChan)
 
-	certPubSub := c.msgBroker.GetCertPubSub()
-	certRotateChan := certPubSub.Sub(announcements.CertificateRotated.String())
-	defer c.msgBroker.Unsub(certPubSub, certRotateChan)
+	// stopWatchingRotations is a function that should be called when the cert rotation is no longer needed on the
+	// specified SAN. This can happen on SAN changes or on the deletion of the ingress gateway spec.
+	// It's set to an empty func so that when a SAN is not specified we can safely call stop without checking for a nil
+	// value.
+	stopWatchingRotations := func() {}
+
+	if currentCertSpec != nil && len(currentCertSpec.SubjectAltNames) > 0 {
+		stopWatchingRotations = c.handleCertChanges(currentCertSpec.SubjectAltNames[0], currentCertSpec.Secret)
+	}
 
 	for {
 		select {
@@ -134,58 +81,89 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 				continue
 			}
 			if newCertSpec == nil && currentCertSpec != nil {
+				stopWatchingRotations()
 				// Implies the certificate reference was removed, delete the corresponding secret and certificate
 				if err := c.removeGatewayCertAndSecret(*currentCertSpec); err != nil {
 					log.Error().Err(err).Msg("Error removing stale gateway certificate/secret")
 				}
-			} else if newCertSpec != nil {
-				// New cert spec is not nil and is not the same as the current cert spec, update required
-				err := c.createAndStoreGatewayCert(*newCertSpec)
-				if err != nil {
-					log.Error().Err(err).Msgf("Error updating ingress gateway cert and secret")
-				}
+			} else if shouldRelisten(currentCertSpec, newCertSpec) {
+				stopWatchingRotations()
+				stopWatchingRotations = c.handleCertChanges(newCertSpec.SubjectAltNames[0], newCertSpec.Secret)
 			}
 			currentCertSpec = newCertSpec
 
-		// A certificate was rotated
-		case msg, ok := <-certRotateChan:
-			if !ok {
-				log.Warn().Msg("Notification channel closed for certificate rotation")
-				continue
-			}
-
-			event, ok := msg.(events.PubSubMessage)
-			if !ok {
-				log.Error().Msgf("Received unexpected message %T on channel, expected PubSubMessage", event)
-				continue
-			}
-			cert, ok := event.NewObj.(*certificate.Certificate)
-			if !ok {
-				log.Error().Msgf("Received unexpected message %T on cert rotation channel, expected Certificate", cert)
-				continue
-			}
-
-			// This should never happen, but guarding against a panic due to the usage of a pointer
-			if currentCertSpec == nil {
-				log.Error().Msgf("Current ingress gateway cert spec is nil, but a certificate for it was rotated - unexpected")
-				continue
-			}
-
-			cnInCertSpec := currentCertSpec.SubjectAltNames[0] // Only single SAN is supported in certs
-
-			// Only update the secret if the cert rotated matches the cert spec
-			if cert.GetCommonName() != certificate.CommonName(cnInCertSpec) {
-				continue
-			}
-
-			log.Info().Msg("Ingress gateway certificate was rotated, updating corresponding secret")
-			if err := c.createAndStoreGatewayCert(*currentCertSpec); err != nil {
-				log.Error().Err(err).Msgf("Error updating ingress gateway cert secret after cert rotation")
-			}
-
 		case <-stop:
+			stopWatchingRotations()
 			return
 		}
+	}
+}
+
+func shouldRelisten(oldSpec *configv1alpha2.IngressGatewayCertSpec, newSpec *configv1alpha2.IngressGatewayCertSpec) bool {
+	if newSpec == nil || len(newSpec.SubjectAltNames) == 0 {
+		return false
+	}
+
+	if oldSpec == nil || len(oldSpec.SubjectAltNames) == 0 {
+		return true
+	}
+
+	return oldSpec.SubjectAltNames[0] != newSpec.SubjectAltNames[0]
+}
+
+// handleCertChanges creates and stores a certificate with the given common name into the given secret ref.
+// It then watches for all cert rotations and updates the secret on changes.
+func (c *client) handleCertChanges(cn string, secret corev1.SecretReference) func() {
+	// This is some fanciness to provide the following guarantees:
+	// 1. The subscription is called before a goroutine starts, allowing the subscription creation to be deterministic.
+	//	  This means that the subscription is guaranteed to not miss any rotations in the period between issuance and
+	//    the goroutine starting.
+	// 2. By signalling to stop (instead of just closing it), we guarantee the close func doesn't return before the
+	// 	  goroutine stops. This prevents race conditions where we return before the below goroutine has exited, spawn
+	//	  a new routine due to a changed SAN, and both routines can now race to write out the certificate. This can occur
+	//	  when an update with a new SAN comes through at the same time as a rotation is triggered.
+	// 3. The once allows the close method to be called multiple times.
+	// #1 and #2 are required to prevent
+	var once sync.Once
+	stop := make(chan struct{})
+
+	// must subscribe prior to issuing the cert to guarantee we get all rotations.
+	certRotateChan, unsub := c.certProvider.SubscribeRotations(cn)
+
+	cert, err := c.certProvider.IssueCertificate(cn, certificate.IngressGateway, certificate.FullCNProvided())
+	if err != nil {
+		log.Err(err).Msg("error issuing a certificate for ingress gateway")
+	}
+	if err := c.storeCertInSecret(cert, secret); err != nil {
+		log.Err(err).Msg("Error updating ingress gateway cert secret after cert rotation")
+	}
+
+	go func() {
+		for {
+			select {
+			// A certificate was rotated
+			case msg := <-certRotateChan:
+				cert := msg.(*certificate.Certificate)
+				log.Info().Msgf("Ingress gateway certificate was rotated, updating secret %s/%s", secret.Name, secret.Namespace)
+				if err := c.storeCertInSecret(cert, secret); err != nil {
+					log.Err(err).Msg("Error updating ingress gateway cert secret after cert rotation")
+				}
+
+			case <-stop:
+				return
+			}
+		}
+	}()
+	return func() {
+		// Allow close to be called multiple times by wrapping it in a once.
+		once.Do(func() {
+			// We don't just close the channel because we want to wait for the above goroutine to exit. Since there
+			// is no logic (or race conditions), in the select's stop case we can safely proceed. See the method
+			// comment for more.
+			stop <- struct{}{}
+			unsub()
+			close(stop)
+		})
 	}
 }
 

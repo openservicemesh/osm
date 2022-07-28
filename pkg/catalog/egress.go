@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -140,7 +139,7 @@ func (mc *MeshCatalog) getUpstreamTrafficSettingForEgress(egressPolicy *policyv1
 				policy.UpstreamTrafficSettingGetOpt{NamespacedName: &namespacedName})
 
 			if upstreamtrafficSetting == nil {
-				return nil, errors.Errorf("UpstreamTrafficSetting %s specified in Egress policy %s/%s could not be found, ignoring it",
+				return nil, fmt.Errorf("UpstreamTrafficSetting %s specified in Egress policy %s/%s could not be found, ignoring it",
 					namespacedName.String(), egressPolicy.Namespace, egressPolicy.Name)
 			}
 

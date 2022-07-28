@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/identity"
 )
 
@@ -119,6 +121,11 @@ func (ms MeshService) IngressTrafficMatchName() string {
 // IngressTrafficMatchName returns the ingress traffic match name
 func IngressTrafficMatchName(name, namespace string, targetPort uint16, protocol string) string {
 	return fmt.Sprintf("ingress_%s/%s_%d_%s", namespace, name, targetPort, protocol)
+}
+
+// RateLimitServiceClusterName returns the cluster name used for the global rate limit service
+func RateLimitServiceClusterName(svc policyv1alpha1.RateLimitServiceSpec) string {
+	return fmt.Sprintf("%s|%d", svc.Host, svc.Port)
 }
 
 // ClusterName is a type for a service name

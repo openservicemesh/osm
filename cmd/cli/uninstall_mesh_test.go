@@ -366,6 +366,21 @@ func TestUninstallClusterWideResources(t *testing.T) {
 					},
 					Spec: apiv1.CustomResourceDefinitionSpec{},
 				},
+				// OSM CRD
+				&apiv1.CustomResourceDefinition{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "CustomResourceDefinition",
+						APIVersion: "apiextensions.k8s.io/v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "meshrootcertificates.config.openservicemesh.io",
+						Labels: map[string]string{
+							constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue,
+							constants.ReconcileLabel:     strconv.FormatBool(true),
+						},
+					},
+					Spec: apiv1.CustomResourceDefinitionSpec{},
+				},
 				// SMI CRD
 				&apiv1.CustomResourceDefinition{
 					TypeMeta: metav1.TypeMeta{

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -170,7 +169,7 @@ func (v *PodProbeVerifier) Run() Result {
 
 func (p *podProber) Probe(pod types.NamespacedName) error {
 	if p.protocol != constants.ProtocolHTTP && p.protocol != constants.ProtocolHTTPS {
-		return errors.Errorf("unsupported probe protocol: %s", p.protocol)
+		return fmt.Errorf("unsupported probe protocol: %s", p.protocol)
 	}
 
 	dialer, err := k8s.DialerToPod(p.restConfig, p.kubeClient, pod.Name, pod.Namespace)
@@ -219,7 +218,7 @@ func (p *podProber) Probe(pod types.NamespacedName) error {
 		defer resp.Body.Close()
 
 		if resp.StatusCode != 200 {
-			return errors.Errorf("unexpected response code: %d", resp.StatusCode)
+			return fmt.Errorf("unexpected response code: %d", resp.StatusCode)
 		}
 		return nil
 	})

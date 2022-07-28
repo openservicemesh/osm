@@ -105,9 +105,10 @@ const (
 	HTTPLocalRateLimitFilterName = "envoy.filters.http.local_ratelimit"
 
 	// Network (L4) filters
-	TCPProxyFilterName         = "tcp_proxy"
-	L4LocalRateLimitFilterName = "l4_local_rate_limit"
-	L4RBACFilterName           = "l4_rbac"
+	TCPProxyFilterName          = "tcp_proxy"
+	L4LocalRateLimitFilterName  = "l4_local_rate_limit"
+	L4GlobalRateLimitFilterName = "l4_global_rate_limit"
+	L4RBACFilterName            = "l4_rbac"
 
 	// Listener filters
 	OriginalDstFilterName   = "original_dst"

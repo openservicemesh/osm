@@ -1,6 +1,7 @@
 package envoy
 
 import (
+	"fmt"
 	"net"
 	"strings"
 
@@ -10,7 +11,7 @@ import (
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/pkg/errors"
+
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -253,7 +254,7 @@ func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
 	chunks := strings.Split(serviceNodeID, constants.EnvoyServiceNodeSeparator)
 
 	if len(chunks) < 5 {
-		return nil, errors.New("invalid envoy service node id format")
+		return nil, fmt.Errorf("invalid envoy service node id format")
 	}
 
 	meta := &PodMetadata{

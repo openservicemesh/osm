@@ -9,7 +9,6 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -17,7 +16,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/utils"
@@ -30,7 +28,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	// and the Subject CN is in the allowedCommonNames set.
 	certCommonName, certSerialNumber, err := utils.ValidateClient(server.Context())
 	if err != nil {
-		return errors.Wrap(err, "Could not start Aggregated Discovery Service gRPC stream for newly connected Envoy proxy")
+		return fmt.Errorf("Could not start Aggregated Discovery Service gRPC stream for newly connected Envoy proxy: %w", err)
 	}
 
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Envoy connections is less than maxDataPlaneConnections
@@ -75,9 +73,8 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	defer s.msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
 
 	// Register for certificate rotation updates
-	certPubSub := s.msgBroker.GetCertPubSub()
-	certRotateChan := certPubSub.Sub(announcements.CertificateRotated.String())
-	defer s.msgBroker.Unsub(certPubSub, certRotateChan)
+	certRotateChan, unsub := s.certManager.SubscribeRotations(si.String())
+	defer unsub()
 
 	newJob := func(typeURIs []envoy.TypeURI, discoveryRequest *xds_discovery.DiscoveryRequest) *proxyResponseJob {
 		return &proxyResponseJob{
@@ -134,17 +131,12 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			// Do not send SDS, let envoy figure out what certs does it want.
 			<-s.workqueues.AddJob(newJob([]envoy.TypeURI{envoy.TypeCDS, envoy.TypeEDS, envoy.TypeLDS, envoy.TypeRDS}, nil))
 
-		case certRotateMsg := <-certRotateChan:
-			cert := certRotateMsg.(events.PubSubMessage).NewObj.(*certificate.Certificate)
-			if isCNforProxy(proxy, cert.GetCommonName()) {
-				// The CN whose corresponding certificate was updated (rotated) by the certificate provider is associated
-				// with this proxy, so update the secrets corresponding to this certificate via SDS.
-				log.Debug().Str("proxy", proxy.String()).Msg("Certificate has been updated for proxy")
+		case <-certRotateChan:
+			log.Debug().Str("proxy", proxy.String()).Msg("Certificate has been updated for proxy")
 
-				// Empty DiscoveryRequest should create the SDS specific request
-				// Prepare to queue the SDS proxy response job on the worker pool
-				<-s.workqueues.AddJob(newJob([]envoy.TypeURI{envoy.TypeSDS}, nil))
-			}
+			// Empty DiscoveryRequest should create the SDS specific request
+			// Prepare to queue the SDS proxy response job on the worker pool
+			<-s.workqueues.AddJob(newJob([]envoy.TypeURI{envoy.TypeSDS}, nil))
 		}
 	}
 }
@@ -316,20 +308,6 @@ func getResourceSliceFromMapset(resourceMap mapset.Set) []string {
 	}
 	sort.Strings(resourceSlice)
 	return resourceSlice
-}
-
-// isCNforProxy returns true if the given CN for the workload certificate matches the given proxy's identity.
-// Proxy identity corresponds to the k8s service account, while the workload certificate is of the form
-// <svc-account>.<namespace>.<trust-domain>.
-func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
-	// Workload certificate CN is of the form <svc-account>.<namespace>.<trust-domain>
-	chunks := strings.Split(cn.String(), constants.DomainDelimiter)
-	if len(chunks) < 3 {
-		return false
-	}
-
-	identityForCN := identity.K8sServiceAccount{Name: chunks[0], Namespace: chunks[1]}
-	return identityForCN == proxy.Identity.ToK8sServiceAccount()
 }
 
 func getCertificateCommonNameMeta(cn certificate.CommonName) (envoy.ProxyKind, uuid.UUID, identity.ServiceIdentity, error) {

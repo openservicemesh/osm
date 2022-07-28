@@ -1,14 +1,14 @@
 package route
 
 import (
+	"errors"
+
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	xds_http_rbac "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -20,18 +20,16 @@ const (
 // The principals in the RBAC policy are derived from the allowed service accounts specified in the given rule.
 // The permissions in the RBAC policy are implicitly set to ANY (all permissions).
 func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule, trustDomain string) (*any.Any, error) {
-	if rule.AllowedServiceIdentities == nil {
-		return nil, errors.Errorf("traffipolicy.Rule.AllowedServiceIdentities not set")
+	if rule.AllowedPrincipals == nil {
+		return nil, errors.New("traffipolicy.Rule.AllowedPrincipals not set")
 	}
 
 	pb := &rbac.PolicyBuilder{}
 
 	// Create the list of principals for this policy
-	for downstream := range rule.AllowedServiceIdentities.Iter() {
-		pb.AddIdentity(downstream.(identity.ServiceIdentity))
+	for downstream := range rule.AllowedPrincipals.Iter() {
+		pb.AddPrincipal(downstream.(string))
 	}
-
-	pb.SetTrustDomain(trustDomain)
 
 	// A single RBAC policy per route
 	rbacPolicyMap := map[string]*xds_rbac.Policy{rbacPerRoutePolicyName: pb.Build()}

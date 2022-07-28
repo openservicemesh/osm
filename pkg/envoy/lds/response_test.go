@@ -101,7 +101,7 @@ func TestNewResponse(t *testing.T) {
 		return nil, fmt.Errorf("dummy error")
 	}), nil)
 
-	cm := tresorFake.NewFake(nil, 1*time.Hour)
+	cm := tresorFake.NewFake(1 * time.Hour)
 	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
 	assert.NotNil(err)
 	assert.Nil(resources)

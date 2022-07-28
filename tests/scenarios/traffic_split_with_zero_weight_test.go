@@ -127,10 +127,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.AsPrincipal("cluster.local")),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -140,10 +140,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.AsPrincipal("cluster.local")),
 						},
 					},
 				},
@@ -170,10 +170,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.AsPrincipal("cluster.local")),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -183,10 +183,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.AsPrincipal("cluster.local")),
 						},
 					},
 				},
@@ -253,7 +253,7 @@ func TestRDSRespose(t *testing.T) {
 			mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 
-			cm := tresorFake.NewFake(nil, 1*time.Hour)
+			cm := tresorFake.NewFake(1 * time.Hour)
 
 			resources, err := rds.NewResponse(mockCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
 			assert.Nil(err)

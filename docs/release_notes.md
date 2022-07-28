@@ -4,10 +4,8 @@
 
 ### Notable changes
 
-- OSM certificate provider is now configured using the new CRD, MeshRootCertificate
-  - Custom trust domains (i.e. certificate CommonNames) are now supported
+- Custom trust domains (i.e. certificate CommonNames) are now supported
 - The authentication token used to configure the Hashicorp Vault certificate provider can now be passed in using a secretRef
-- Along with root certificate rotation we support custom trust domains, as well as rotating to new trust domains with no downtime.
 - Envoy has been updated to v1.22 and uses the `envoyproxy/envoy-distroless` image instead of the deprecated `envoyproxy/envoy-alpine` image.
   - This means that `kubectl exec -c envoy ... -- sh` will no longer work for the Envoy sidecar
 - Added support for Kubernetes 1.23 and 1.24
@@ -22,6 +20,7 @@
   - `osm_proxy_xds_request_count`
 - Support for Kubernetes 1.20 and 1.21 has been dropped
 - Multi-arch installation supported by the Chart Helm by customizing the `affinity` and `nodeSelector` fields
+- Root service in a `TrafficSplit` configuration must have a selector matching the pods backing the leaf services. The legacy behavior where a root service without a selector matching the pods backing the leaf services is able to split traffic, has been removed.
 
 ## Release v1.1.0
 

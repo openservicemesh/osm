@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
 	helmStorage "helm.sh/helm/v3/pkg/storage/driver"
@@ -74,18 +74,18 @@ func newUninstallMeshCmd(config *action.Configuration, in io.Reader, out io.Writ
 			// get kubeconfig and initialize k8s client
 			kubeconfig, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return fmt.Errorf("Error fetching kubeconfig: %s", err)
+				return fmt.Errorf("Error fetching kubeconfig: %w", err)
 			}
 			uninstall.config = kubeconfig
 
 			uninstall.clientSet, err = kubernetes.NewForConfig(kubeconfig)
 			if err != nil {
-				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
+				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %w", err)
 			}
 
 			uninstall.extensionsClientset, err = extensionsClientset.NewForConfig(kubeconfig)
 			if err != nil {
-				return fmt.Errorf("Could not access extension client set: %s", err)
+				return fmt.Errorf("Could not access extension client set: %w", err)
 			}
 
 			uninstall.meshNamespace = settings.Namespace()
@@ -112,7 +112,7 @@ func (d *uninstallMeshCmd) run() error {
 	if !settings.IsManaged() {
 		meshInfoList, err := getMeshInfoList(d.config, d.clientSet)
 		if err != nil {
-			return errors.Wrapf(err, "unable to list meshes within the cluster")
+			return fmt.Errorf("unable to list meshes within the cluster: %w", err)
 		}
 		if len(meshInfoList) == 0 {
 			fmt.Fprintf(d.out, "No OSM control planes found\n")
@@ -159,7 +159,7 @@ func (d *uninstallMeshCmd) run() error {
 
 			_, err = d.client.Run(m.name)
 			if err != nil {
-				if errors.Cause(err) == helmStorage.ErrReleaseNotFound {
+				if errors.Is(err, helmStorage.ErrReleaseNotFound) {
 					fmt.Fprintf(d.out, "No OSM control plane with mesh name [%s] found in namespace [%s]\n", m.name, m.namespace)
 				}
 
@@ -256,7 +256,7 @@ func (d *uninstallMeshCmd) deleteClusterResources() error {
 	if d.deleteClusterWideResources {
 		meshInfoList, err := getMeshInfoList(d.config, d.clientSet)
 		if err != nil {
-			return errors.Wrapf(err, "unable to list meshes within the cluster")
+			return fmt.Errorf("unable to list meshes within the cluster: %w", err)
 		}
 		if len(meshInfoList) != 0 {
 			fmt.Fprintf(d.out, "Deleting cluster resources will affect current mesh(es) in cluster:\n")
@@ -304,7 +304,7 @@ func (d *uninstallMeshCmd) uninstallCustomResourceDefinitions() error {
 		"egresses.policy.openservicemesh.io",
 		"ingressbackends.policy.openservicemesh.io",
 		"meshconfigs.config.openservicemesh.io",
-		"meshRootCertificate.config.openservicemesh.io",
+		"meshrootcertificates.config.openservicemesh.io",
 		"upstreamtrafficsettings.policy.openservicemesh.io",
 		"retries.policy.openservicemesh.io",
 		"httproutegroups.specs.smi-spec.io",

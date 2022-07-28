@@ -1,9 +1,9 @@
 package crdconversion
 
 import (
+	"fmt"
 	"net/http"
 
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -19,7 +19,7 @@ func convertTCPRoute(Object *unstructured.Unstructured, toVersion string) (*unst
 	fromVersion := Object.GetAPIVersion()
 
 	if toVersion == fromVersion {
-		return nil, errors.Errorf("TCPRoute: conversion from a version to itself should not call the webhook: %s", toVersion)
+		return nil, fmt.Errorf("TCPRoute: conversion from a version to itself should not call the webhook: %s", toVersion)
 	}
 
 	log.Info().Msgf("TCPRoute: successfully converted object")

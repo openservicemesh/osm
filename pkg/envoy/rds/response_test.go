@@ -19,11 +19,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -120,7 +119,7 @@ func TestNewResponse(t *testing.T) {
 								},
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceIdentities: mapset.NewSet(tests.BookstoreServiceAccount.ToServiceIdentity()),
+							AllowedPrincipals: mapset.NewSet(tests.BookstoreServiceAccount.AsPrincipal("cluster.local")),
 						},
 					},
 				},
@@ -137,7 +136,7 @@ func TestNewResponse(t *testing.T) {
 								},
 								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 							},
-							AllowedServiceIdentities: mapset.NewSet(tests.BookstoreServiceAccount.ToServiceIdentity()),
+							AllowedPrincipals: mapset.NewSet(tests.BookstoreServiceAccount.AsPrincipal("cluster.local")),
 						},
 					},
 				},
@@ -167,10 +166,10 @@ func TestNewResponse(t *testing.T) {
 										Weight:      100,
 									}),
 								},
-								AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      tests.BookbuyerServiceAccountName,
 									Namespace: tests.Namespace,
-								}.ToServiceIdentity()),
+								}.AsPrincipal("cluster.local")),
 							},
 							{
 								Route: trafficpolicy.RouteWeightedClusters{
@@ -180,10 +179,10 @@ func TestNewResponse(t *testing.T) {
 										Weight:      100,
 									}),
 								},
-								AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      tests.BookbuyerServiceAccountName,
 									Namespace: tests.Namespace,
-								}.ToServiceIdentity()),
+								}.AsPrincipal("cluster.local")),
 							},
 						},
 					},
@@ -210,10 +209,10 @@ func TestNewResponse(t *testing.T) {
 										Weight:      100,
 									}),
 								},
-								AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      tests.BookbuyerServiceAccountName,
 									Namespace: tests.Namespace,
-								}.ToServiceIdentity()),
+								}.AsPrincipal("cluster.local")),
 							},
 							{
 								Route: trafficpolicy.RouteWeightedClusters{
@@ -223,10 +222,10 @@ func TestNewResponse(t *testing.T) {
 										Weight:      100,
 									}),
 								},
-								AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      tests.BookbuyerServiceAccountName,
 									Namespace: tests.Namespace,
-								}.ToServiceIdentity()),
+								}.AsPrincipal("cluster.local")),
 							},
 						},
 					},
@@ -297,7 +296,7 @@ func TestNewResponse(t *testing.T) {
 				ResourceNames: []string{},
 			}
 
-			mc := tresorFake.NewFake(nil, 1*time.Hour)
+			mc := tresorFake.NewFake(1 * time.Hour)
 
 			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mockConfigurator, mc, proxyRegistry)
 			assert.Nil(err)
@@ -444,7 +443,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 		return []service.MeshService{tests.BookstoreV1Service}, nil
 	}), nil)
 
-	mc := tresorFake.NewFake(nil, 1*time.Hour)
+	mc := tresorFake.NewFake(1 * time.Hour)
 
 	mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(nil).AnyTimes()

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -42,13 +41,13 @@ func newVerifyControlPlaneCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 		RunE: func(_ *cobra.Command, _ []string) error {
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return fmt.Errorf("Error fetching kubeconfig: %w", err)
 			}
 			verifyCmd.restConfig = config
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
-				return errors.Errorf("error initializing client: %s", err)
+				return fmt.Errorf("error initializing client: %w", err)
 			}
 			verifyCmd.kubeClient = clientset
 

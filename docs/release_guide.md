@@ -130,7 +130,7 @@ Follow the [Generating API Reference Documentation](/docs/api_reference/README.m
 
 ### 4. Update error code documentation
 
-On the docs site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md) to update the OSM error code table.
+On the docs site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blob/main/content/en/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blob/main/content/en/docs/guides/troubleshooting/control_plane_error_codes.md) to update the OSM error code table.
 
 1. Build OSM on the release branch.
 1. Generate the mapping of OSM error codes and their descriptions using the `osm support` cli tool.
@@ -146,7 +146,7 @@ On the docs site's main branch, edit the file [https://github.com/openservicemes
     | E1001      | The specified log level could not be set in the system.                          |
    ```
 
-1. Copy the table and replace the existing table in the file [https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md).
+1. Copy the table and replace the existing table in the file [https://github.com/openservicemesh/osm-docs/blob/main/content/en/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blob/main/content/en/docs/guides/troubleshooting/control_plane_error_codes.md).
 1. If there were updates to the table, make a PR in the OSM docs repository.
 
 

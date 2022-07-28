@@ -2,6 +2,7 @@ package injector
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
@@ -563,7 +563,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
-		certManager := tresorFake.NewFake(nil, 1*time.Hour)
+		certManager := tresorFake.NewFake(1 * time.Hour)
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
@@ -581,7 +581,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
-		certManager := tresorFake.NewFake(nil, 1*time.Hour)
+		certManager := tresorFake.NewFake(1 * time.Hour)
 
 		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
@@ -678,7 +678,7 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		Expect(requestForNamespace).To(Equal(""))
 
-		expectedAdmissionResponse := webhook.AdmissionError(errors.New("yaml: did not find expected node content"))
+		expectedAdmissionResponse := webhook.AdmissionError(fmt.Errorf("yaml: did not find expected node content"))
 		Expect(admissionResp.Response).To(Equal(expectedAdmissionResponse))
 	})
 
@@ -836,7 +836,7 @@ func TestWebhookMutate(t *testing.T) {
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
 			kubeController:      kubeController,
-			certManager:         tresorFake.NewFake(nil, 1*time.Hour),
+			certManager:         tresorFake.NewFake(1 * time.Hour),
 			kubeClient:          fake.NewSimpleClientset(),
 			configurator:        cfg,
 		}
@@ -882,7 +882,7 @@ func TestWebhookMutate(t *testing.T) {
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
 			kubeController:      kubeController,
-			certManager:         tresorFake.NewFake(nil, 1*time.Hour),
+			certManager:         tresorFake.NewFake(1 * time.Hour),
 			kubeClient:          fake.NewSimpleClientset(),
 			configurator:        cfg,
 		}
