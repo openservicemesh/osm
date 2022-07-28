@@ -244,7 +244,7 @@ embed-files-test:
 
 .PHONY: build-ci
 build-ci: embed-files
-	CGO_ENABLED=$CGO_ENABLED go build -v $GO_BUILD_FLAGS ./...
+	CGO_ENABLED=$(CGO_ENABLED) go build -v $(GO_BUILD_FLAGS) ./...
 
 .PHONY: trivy-ci-setup
 trivy-ci-setup:
