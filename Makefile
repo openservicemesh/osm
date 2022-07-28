@@ -167,7 +167,7 @@ DOCKER_DEMO_TARGETS = $(addprefix docker-build-, $(DEMO_TARGETS))
 .PHONY: $(DOCKER_DEMO_TARGETS)
 $(DOCKER_DEMO_TARGETS): NAME=$(@:docker-build-%=%)
 $(DOCKER_DEMO_TARGETS):
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/$(NAME):$(CTR_TAG) -f dockerfiles/Dockerfile.demo --build-arg GO_BASE_IMAGE=$(DOCKER_GO_BASE_IMAGE) --build-arg BINARY=$(NAME) .
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/$(NAME):$(CTR_TAG) -f dockerfiles/Dockerfile.demo --build-arg GO_BASE_IMAGE=$(DOCKER_GO_BASE_IMAGE) --build-arg BINARY=$(NAME) --build-arg FINAL_BASE_IMAGE=$(DOCKER_FINAL_BASE_IMAGE) --build-arg CGO_ENABLED=$(CGO_ENABLED) --build-arg GO_BUILD_FLAGS="$(DOCKER_GO_BUILD_FLAGS)" .
 
 .PHONY: docker-build-demo
 docker-build-demo: $(DOCKER_DEMO_TARGETS)
