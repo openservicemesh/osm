@@ -46,7 +46,7 @@ func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, 
 		},
 	}
 
-	srv, err := webhook.NewServer(ValidatorWebhookSvc, osmNamespace, constants.ValidatorWebhookPort, certManager, map[string]http.HandlerFunc{
+	srv := webhook.NewServer(ValidatorWebhookSvc, osmNamespace, constants.ValidatorWebhookPort, certManager, map[string]http.HandlerFunc{
 		validationAPIPath: v.doValidation,
 	}, func(cert *certificate.Certificate) error {
 		if err := createOrUpdateValidatingWebhook(kubeClient, cert, webhookConfigName, meshName, osmNamespace, osmVersion, validateTrafficTarget, enableReconciler); err != nil {
@@ -55,12 +55,7 @@ func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, 
 		return nil
 	})
 
-	if err != nil {
-		return err
-	}
-
-	go srv.Run(ctx)
-	return nil
+	return srv.Run(ctx)
 }
 
 func (s *validatingWebhookServer) doValidation(w http.ResponseWriter, req *http.Request) {

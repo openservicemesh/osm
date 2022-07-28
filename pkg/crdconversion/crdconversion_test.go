@@ -100,8 +100,7 @@ func TestNewConversionWebhook(t *testing.T) {
 
 	fakeCertManager := tresorFake.NewFake(1 * time.Hour)
 	osmNamespace := "-osm-namespace-"
-	enablesReconciler := false
 
-	actualErr := NewConversionWebhook(context.Background(), crdClient.ApiextensionsV1(), fakeCertManager, osmNamespace, enablesReconciler)
+	actualErr := NewConversionWebhook(context.Background(), crdClient.ApiextensionsV1(), fakeCertManager, osmNamespace)
 	assert.NotNil(actualErr)
 }
