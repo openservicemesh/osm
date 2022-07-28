@@ -36,20 +36,17 @@ func (wh *mutatingWebhook) createEnvoyBootstrapFromExisting(newBootstrapSecretNa
 }
 
 func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert *certificate.Certificate, originalHealthProbes models.HealthProbes) (*corev1.Secret, error) {
-	builder := bootstrap.Builder{
-		NodeID: cert.GetCommonName().String(),
+	builder := bootstrap.NewBuilder()
+	builder.SetNodeID(cert.GetCommonName().String())
+	builder.SetXDSHost(fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, osmNamespace))
+	// OriginalHealthProbes stores the path and port for liveness, readiness, and startup health probes as initially
+	// defined on the Pod Spec.
+	builder.SetOriginalHealthProbes(originalHealthProbes)
+	builder.SetTLSMinProtocolVersion(wh.configurator.GetMeshConfig().Spec.Sidecar.TLSMinProtocolVersion)
+	builder.SetTLSMaxProtocolVersion(wh.configurator.GetMeshConfig().Spec.Sidecar.TLSMaxProtocolVersion)
+	builder.SetCipherSuites(wh.configurator.GetMeshConfig().Spec.Sidecar.CipherSuites)
+	builder.SetECDHCurves(wh.configurator.GetMeshConfig().Spec.Sidecar.ECDHCurves)
 
-		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, osmNamespace),
-
-		// OriginalHealthProbes stores the path and port for liveness, readiness, and startup health probes as initially
-		// defined on the Pod Spec.
-		OriginalHealthProbes: originalHealthProbes,
-
-		TLSMinProtocolVersion: wh.configurator.GetMeshConfig().Spec.Sidecar.TLSMinProtocolVersion,
-		TLSMaxProtocolVersion: wh.configurator.GetMeshConfig().Spec.Sidecar.TLSMaxProtocolVersion,
-		CipherSuites:          wh.configurator.GetMeshConfig().Spec.Sidecar.CipherSuites,
-		ECDHCurves:            wh.configurator.GetMeshConfig().Spec.Sidecar.ECDHCurves,
-	}
 	bootstrapConfig, err := builder.Build()
 	if err != nil {
 		return nil, err
