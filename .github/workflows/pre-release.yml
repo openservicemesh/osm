@@ -2,7 +2,7 @@ name: Pre-release
 on:
   push:
     tags:
-      - "pre-rel-v[0-9]+.[0-9]+.[0-9]+"
+      - "pre-rel-v*"
       - "v0.0.0-nightly*"
 
 env:
@@ -22,11 +22,15 @@ jobs:
     name: Docker Images
     runs-on: ubuntu-latest
     needs: version
+    strategy:
+      matrix:
+        tags: ['', 'fips']
     env:
       DOCKER_USER: ${{ secrets.RELEASE_DOCKER_USER }}
       DOCKER_PASS: ${{ secrets.RELEASE_DOCKER_PASS }}
       VERSION: ${{ needs.version.outputs.version }}
       BUILD_DATE: "$$(date +%Y-%m-%d-%H:%M)"
+      FIPS: ${{ contains(matrix.tags, 'fips') && 1 || 0 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -34,26 +38,29 @@ jobs:
         run: docker login --username "$DOCKER_USER" --password-stdin <<< "$DOCKER_PASS"
       - name: Push images with version tag
         env:
-          CTR_TAG: ${{ needs.version.outputs.version }}
+          CTR_TAG: ${{ contains(matrix.tags, 'fips') && format('{0}-fips', needs.version.outputs.version) || needs.version.outputs.version }}
           VERIFY_TAGS: "true"
         run: make docker-build-cross
       - name: Push images with latest tag
         # Only for non-pre-releases
         if: ${{ !(contains(env.VERSION, '-alpha.') || contains(env.VERSION, '-beta.') || contains(env.VERSION, '-rc.') || contains(env.VERSION, '-nightly.')) }}
         env:
-          CTR_TAG: latest
+          CTR_TAG: ${{ env.FIPS == 0 && 'latest' || 'latest-fips'}}
         run: make docker-build-cross
       - name: Image digests
         env:
-          CTR_TAG: ${{ needs.version.outputs.version }}
+          CTR_TAG: ${{ contains(matrix.tags, 'fips') && format('{0}-fips', needs.version.outputs.version) || needs.version.outputs.version }}
         run: make docker-digests-osm
 
   imagescan:
     name: Scan images for security vulnerabilities
     runs-on: ubuntu-latest
     needs: [images, version]
+    strategy:
+      matrix:
+        tags: ['', 'fips']
     env:
-      CTR_TAG: ${{ needs.version.outputs.version }}
+      CTR_TAG: ${{ contains(matrix.tags, 'fips') && format('{0}-fips', needs.version.outputs.version) || needs.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2

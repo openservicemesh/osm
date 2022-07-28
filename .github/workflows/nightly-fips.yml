@@ -1,0 +1,144 @@
+name: Go FIPS
+on:
+  schedule:
+    - cron: "0 0 * * *"
+env:
+  CI_WAIT_FOR_OK_SECONDS: 60
+  CI_MAX_ITERATIONS_THRESHOLD: 60
+  CI_CLIENT_CONCURRENT_CONNECTIONS: 1
+  CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 60
+  CI_MIN_SUCCESS_THRESHOLD: 1
+  OSM_HUMAN_DEBUG_LOG: true
+
+jobs:
+  imagescan:
+    name: Scan images for security vulnerabilities
+    runs-on: ubuntu-latest
+    env:
+      CTR_TAG: ${{ github.sha }}-fips
+      CTR_REGISTRY: "localhost:5000"
+      FIPS: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build docker images
+        env:
+          DOCKER_BUILDX_OUTPUT: type=docker
+        run: make docker-build-osm
+      - name: Setup Trivy
+        run: make trivy-ci-setup
+      - name: Scan docker images for vulnerabilities
+        run: make trivy-scan-images
+   
+  e2etest:
+    name: Go test e2e
+    runs-on: ubuntu-latest # No need for fips container here, since the OSM images being built/tested are using the FIPS image
+    needs: build
+    strategy:
+      matrix:
+        k8s_version: [""]
+        focus: [""]
+        bucket: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        include:
+          - k8s_version: v1.22.9
+            focus: "Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP"
+            bucket: ".*"
+          - k8s_version: v1.23.6
+            focus: "Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP"
+            bucket: ".*"
+          - k8s_version: v1.24.1
+            focus: "Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP"
+            bucket: ".*"
+    env:
+      CTR_TAG: ${{ github.sha }}-fips
+      CTR_REGISTRY: "localhost:5000" # unused for kind, but currently required in framework
+      FIPS: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build test dependencies
+        env:
+          DOCKER_BUILDX_OUTPUT: type=docker
+        run: make docker-build-osm-fips build-osm docker-build-tcp-echo-server
+      - name: Run tests
+        id: test
+        env:
+          K8S_NAMESPACE: "osm-system"
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -kindClusterVersion='${{ matrix.k8s_version }}' -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\].*${{ matrix.focus }}'
+        continue-on-error: true
+      - name: Set Logs name
+        if: ${{ steps.test.conclusion != 'skipped' }}
+        run: |
+          if [[ -n "${{ matrix.k8s_version }}" ]]; then
+            echo "ARTIFACT_NAME=test_logs_k8s_version_${{ matrix.k8s_version }}" >> $GITHUB_ENV
+          else
+            echo "ARTIFACT_NAME=test_logs_bucket_${{ matrix.bucket }}" >> $GITHUB_ENV
+          fi
+      - name: Upload test logs
+        if: ${{ steps.test.conclusion != 'skipped' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: /tmp/test**/*
+      - name: Check continue tests
+        if: ${{ steps.test.conclusion != 'skipped' && steps.test.outcome == 'failure'}}
+        run: exit 1
+      - name: Clean tests
+        if: ${{ steps.test.conclusion != 'skipped' }}
+        run: rm -rf /tmp/test*
+
+  integration-tresor:
+    name: Integration Test with Tresor, SMI traffic policies, and egress disabled
+    runs-on: ubuntu-latest # No need for fips container here, since the OSM images being built/tested are using the FIPS image
+    needs: [build]
+    env:
+      FIPS: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run Simulation w/ Tresor, SMI policies, egress disabled and reconciler disabled
+        env:
+          CERT_MANAGER: "tresor"
+          BOOKSTORE_SVC: "bookstore"
+          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "0"
+          ENABLE_EGRESS: "false"
+          ENABLE_RECONCILER: "false"
+          PERMISSIVE_MODE: "false"
+          DEPLOY_TRAFFIC_SPLIT: "true"
+          CTR_TAG: ${{ github.sha }}-fips
+          USE_PRIVATE_REGISTRY: "false"
+          DOCKER_BUILD_CMD: "make docker-build"
+        run: |
+          touch .env
+          make kind-up
+          ./demo/run-osm-demo.sh
+          go run ./ci/cmd/maestro.go
+
+  images:
+    name: Docker Images
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/heads/release-') && github.event_name == 'push' }}
+    env:
+      DOCKER_USER: ${{ secrets.RELEASE_DOCKER_USER }}
+      DOCKER_PASS: ${{ secrets.RELEASE_DOCKER_PASS }}
+      CTR_REGISTRY: ${{ github.repository_owner }}
+      FIPS: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Docker Login
+        run: docker login --username "$DOCKER_USER" --password-stdin <<< "$DOCKER_PASS"
+      - name: Push images with git sha tag
+        env:
+          CTR_TAG: ${{ github.sha }}-fips
+        run: make docker-build

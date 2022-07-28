@@ -112,6 +112,33 @@ jobs:
       - name: Go Build
         run: make build-ci
 
+  build-fips:
+    name: Go build (FIPS)
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/oss/go/microsoft/golang:1.17-fips-cbl-mariner2.0
+      env:
+        FIPS: 1
+        GNUPGHOME: /root/.gnupg
+    steps:
+      - name: Yum Update
+        run: |
+          yum update -y
+          yum install -y make git gcc gcc-c++ glibc-devel openssl-devel bash ca-certificates
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            /root/.cache/go-build
+            /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Go Build
+        run: make build-ci
+
   unittest:
     name: Go test
     runs-on: ubuntu-latest
@@ -134,12 +161,64 @@ jobs:
         with:
           flags: unittests
 
+  unittest-fips:
+    name: Go test (FIPS)
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/oss/go/microsoft/golang:1.17-fips-cbl-mariner2.0
+      env:
+        GNUPGHOME: /root/.gnupg
+        GOFIPS: 1
+        FIPS: 1
+    needs: build
+    steps:
+      - name: Yum Update
+        run: |
+          yum update -y
+          yum install -y make git gcc gcc-c++ glibc-devel openssl-devel bash ca-certificates
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            /root/.cache/go-build
+            /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: go mod tidy
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          make go-mod-tidy
+      - name: Test
+        run: make go-test
+
   imagescan:
     name: Scan images for security vulnerabilities
     runs-on: ubuntu-latest
     env:
       CTR_TAG: ${{ github.sha }}
       CTR_REGISTRY: "localhost:5000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build docker images
+        env:
+          DOCKER_BUILDX_OUTPUT: type=docker
+        run: make docker-build-osm
+      - name: Setup Trivy
+        run: make trivy-ci-setup
+      - name: Scan docker images for vulnerabilities
+        run: make trivy-scan-images
+
+  imagescan-fips:
+    name: Scan images for security vulnerabilities (FIPS)
+    runs-on: ubuntu-latest
+    env:
+      CTR_TAG: ${{ github.sha }}-fips
+      CTR_REGISTRY: "localhost:5000"
+      FIPS: 1
     steps:
       - name: Checkout
         uses: actions/checkout@v2
