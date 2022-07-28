@@ -16,6 +16,7 @@ func NewProxyRegistry(mapper ProxyServiceMapper, msgBroker *messaging.Broker) *P
 
 // RegisterProxy registers a newly connected proxy.
 func (pr *ProxyRegistry) RegisterProxy(proxy *envoy.Proxy) {
+	// TODO(#4950) check register request sequence before proceeding
 	uuid := proxy.UUID.String()
 	if pr.GetConnectedProxy(uuid) != nil {
 		log.Debug().Str("proxy", proxy.String()).Msgf("Proxy %s already registered", proxy.String())
