@@ -61,7 +61,7 @@ func (b *Broker) GetProxyUpdatePubSub() *pubsub.PubSub {
 	return b.proxyUpdatePubSub
 }
 
-// SubscribeKubeEvents subscribe to kubernetes events.
+// SubscribeKubeEvents subscribes to kubernetes events, along with an unsubscribe function.
 func (b *Broker) SubscribeKubeEvents(topics ...string) (chan interface{}, func()) {
 	ch := b.kubeEventPubSub.Sub(topics...)
 	return ch, func() {
@@ -208,10 +208,9 @@ func (b *Broker) runProxyUpdateDispatcher(stopCh <-chan struct{}) {
 	}
 }
 
-// BroadcastProxyUpdate sends a proxy update event on the proxy update channel.
+// BroadcastProxyUpdate enqueues a broadcast to update all proxies.
 func (b *Broker) BroadcastProxyUpdate() {
-	atomic.AddUint64(&b.totalQProxyEventCount, 1)
-	b.proxyUpdateCh <- ProxyUpdateTopic
+	b.queue.Add(events.PubSubMessage{Kind: events.ProxyUpdate, Type: events.Added})
 }
 
 // processEvent processes an event dispatched from the workqueue.
@@ -274,8 +273,8 @@ func shouldPublish(msg events.PubSubMessage) (bool, string) {
 	case
 		events.Endpoint, events.Ingress,
 		events.Egress, events.IngressBackend, events.RetryPolicy, events.UpstreamTrafficSetting,
-		events.RouteGroup, events.TCPRoute, events.TrafficSplit, events.TrafficTarget:
-		// announcements.ProxyUpdate:
+		events.RouteGroup, events.TCPRoute, events.TrafficSplit, events.TrafficTarget,
+		events.ProxyUpdate:
 		return true, ""
 
 	case events.MeshConfig:
