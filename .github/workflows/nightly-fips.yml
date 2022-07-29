@@ -1,7 +1,10 @@
-name: Go FIPS
+name: Nightly FIPS
 on:
   schedule:
     - cron: "0 0 * * *"
+  push:
+    branches:
+      - fips-playground
     
 env:
   CI_WAIT_FOR_OK_SECONDS: 60
