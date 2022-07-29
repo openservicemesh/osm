@@ -2,9 +2,7 @@ name: Go FIPS
 on:
   schedule:
     - cron: "0 0 * * *"
-  push:
-    branches:
-      - fips-playground
+    
 env:
   CI_WAIT_FOR_OK_SECONDS: 60
   CI_MAX_ITERATIONS_THRESHOLD: 60
@@ -13,7 +11,33 @@ env:
   CI_MIN_SUCCESS_THRESHOLD: 1
   OSM_HUMAN_DEBUG_LOG: true
 
-jobs:   
+jobs:
+  build:
+    name: Go build
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/oss/go/microsoft/golang:1.17-fips-cbl-mariner2.0
+      env:
+        FIPS: 1
+        GNUPGHOME: /root/.gnupg
+    steps:
+      - name: Yum Update
+        run: |
+          yum update -y
+          yum install -y make git gcc gcc-c++ glibc-devel openssl-devel bash ca-certificates
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            /root/.cache/go-build
+            /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Go Build
+        run: make build-ci
   e2etest:
     name: Go test e2e
     runs-on: ubuntu-latest # No need for fips container here, since the OSM images being built/tested are using the FIPS image
