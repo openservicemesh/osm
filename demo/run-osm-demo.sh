@@ -43,7 +43,6 @@ DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 TIMEOUT="${TIMEOUT:-90s}"
 USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
 PUBLISH_IMAGES="${PUBLISH_IMAGES:-true}"
-DOCKER_BUILD_CMD="${DOCKER_BUILD_CMD:-make docker-build}"
 
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
@@ -91,7 +90,7 @@ if [ "$DEPLOY_ON_OPENSHIFT" = true ] ; then
 fi
 
 if [ "$PUBLISH_IMAGES" = true ]; then
-    $DOCKER_BUILD_CMD
+    make docker-build
 fi
 
 ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"

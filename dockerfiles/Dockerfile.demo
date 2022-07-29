@@ -1,25 +1,17 @@
-ARG GO_BASE_IMAGE
-ARG FINAL_BASE_IMAGE
-FROM --platform=$BUILDPLATFORM $GO_BASE_IMAGE AS builder
+ARG GO_VERSION
+FROM --platform=$BUILDPLATFORM golang:$GO_VERSION AS builder
 ARG TARGETOS
 ARG TARGETARCH
-ARG CGO_ENABLED
 ARG BINARY
-ARG GO_BUILD_FLAGS
 
 WORKDIR /osm
 COPY . .
-RUN if [ $(command -v yum) ]; then \
-      yum update -y && \
-      yum install -y ca-certificates; \
-    fi
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
-    CGO_ENABLED=$CGO_ENABLED GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v ./demo/cmd/$BINARY $GO_BUILD_FLAGS
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v ./demo/cmd/$BINARY
 
 FROM mcr.microsoft.com/windows/nanoserver:ltsc2022 AS final-windows
-FROM $FINAL_BASE_IMAGE AS final-linux
+FROM gcr.io/distroless/base AS final-linux
 FROM final-$TARGETOS
 ARG BINARY
-ENV GOFIPS=1
 COPY --from=builder /osm/$BINARY* /

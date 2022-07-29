@@ -10,26 +10,7 @@ env:
   CI_MIN_SUCCESS_THRESHOLD: 1
   OSM_HUMAN_DEBUG_LOG: true
 
-jobs:
-  imagescan:
-    name: Scan images for security vulnerabilities
-    runs-on: ubuntu-latest
-    env:
-      CTR_TAG: ${{ github.sha }}-fips
-      CTR_REGISTRY: "localhost:5000"
-      FIPS: 1
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Build docker images
-        env:
-          DOCKER_BUILDX_OUTPUT: type=docker
-        run: make docker-build-osm
-      - name: Setup Trivy
-        run: make trivy-ci-setup
-      - name: Scan docker images for vulnerabilities
-        run: make trivy-scan-images
-   
+jobs:   
   e2etest:
     name: Go test e2e
     runs-on: ubuntu-latest # No need for fips container here, since the OSM images being built/tested are using the FIPS image
@@ -117,28 +98,8 @@ jobs:
           DEPLOY_TRAFFIC_SPLIT: "true"
           CTR_TAG: ${{ github.sha }}-fips
           USE_PRIVATE_REGISTRY: "false"
-          DOCKER_BUILD_CMD: "make docker-build"
         run: |
           touch .env
           make kind-up
           ./demo/run-osm-demo.sh
           go run ./ci/cmd/maestro.go
-
-  images:
-    name: Docker Images
-    runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/heads/release-') && github.event_name == 'push' }}
-    env:
-      DOCKER_USER: ${{ secrets.RELEASE_DOCKER_USER }}
-      DOCKER_PASS: ${{ secrets.RELEASE_DOCKER_PASS }}
-      CTR_REGISTRY: ${{ github.repository_owner }}
-      FIPS: 1
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Docker Login
-        run: docker login --username "$DOCKER_USER" --password-stdin <<< "$DOCKER_PASS"
-      - name: Push images with git sha tag
-        env:
-          CTR_TAG: ${{ github.sha }}-fips
-        run: make docker-build
