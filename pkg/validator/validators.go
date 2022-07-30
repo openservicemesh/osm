@@ -288,6 +288,15 @@ var validMRCTransitions = map[string][]string{
 	"":                                   {constants.MRCStateValidatingRollout, constants.MRCStateError},
 }
 
+var validMRCStateCombinations = map[string]string{
+	constants.MRCStateValidatingRollout:  constants.MRCStateActive,
+	constants.MRCStateIssuingRollout:     constants.MRCStateActive,
+	constants.MRCStateActive:             constants.MRCStateIssuingRollback,
+	constants.MRCStateValidatingRollback: constants.MRCStateActive,
+	constants.MRCStateIssuingRollback:    constants.MRCStateIssuingRollout,
+	constants.MRCStateInactive:           constants.MRCStateActive,
+}
+
 // meshRootCertificateValidator validates the MeshRootCertificate custom resource
 func (cv *configValidator) meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 	log.Debug().Msg("made it to MRC validator")
@@ -308,7 +317,7 @@ func (cv *configValidator) meshRootCertificateValidator(req *admissionv1.Admissi
 		}
 
 		if cv.activeRootCertificateRotation(newMRC) {
-			return nil, fmt.Errorf("cannot create MRC %s/%s with status %s. Certificate rotation in progress. At most, only 2 MRCs can be in non error or non inactive states",
+			return nil, fmt.Errorf("cannot create MRC %s/%s with status %s. Certificate rotation in progress. At most, only 2 MRCs can be in non error or non inactive states. Wait until the current rotation is complete to begin another root certificate rotation",
 				newMRC.GetNamespace(), newMRC.GetName(), newMRC.Status.State)
 		}
 
@@ -328,11 +337,11 @@ func (cv *configValidator) meshRootCertificateValidator(req *admissionv1.Admissi
 		}
 
 		if !reflect.DeepEqual(oldMRC.Spec.Provider, newMRC.Spec.Provider) {
-			return nil, fmt.Errorf("cannot update certificate provider settings for MRC %s/%s", newMRC.GetNamespace(), newMRC.GetName())
+			return nil, fmt.Errorf("cannot update certificate provider settings for MRC %s/%s. Create a new MRC and initiate root certificate rotation to update the provider", newMRC.GetNamespace(), newMRC.GetName())
 		}
 
 		if oldMRC.Spec.TrustDomain != newMRC.Spec.TrustDomain {
-			return nil, fmt.Errorf("cannot update trust domain for MRC %s/%s", newMRC.GetNamespace(), newMRC.GetName())
+			return nil, fmt.Errorf("cannot update trust domain for MRC %s/%s. Create a new MRC and initiate root certificate rotation to update the trust domain", newMRC.GetNamespace(), newMRC.GetName())
 		}
 
 		if oldMRC.Status.State == newMRC.Status.State {
@@ -344,8 +353,12 @@ func (cv *configValidator) meshRootCertificateValidator(req *admissionv1.Admissi
 		}
 
 		if cv.activeRootCertificateRotation(newMRC) {
-			return nil, fmt.Errorf("cannot update MRC %s/%s root with status %s. Certificate rotation in progress. At most, only 2 MRCs can be in non error or non inactive states",
+			return nil, fmt.Errorf("cannot update MRC %s/%s root with status %s. Certificate rotation in progress. At most, only 2 MRCs can be in non error or non inactive states. Wait until the current rotation is complete to begin another root certificate rotation",
 				newMRC.GetNamespace(), newMRC.GetName(), newMRC.Status.State)
+		}
+
+		if err := cv.validateMeshRootCertificateStatusCombination(newMRC); err != nil {
+			return nil, err
 		}
 	}
 
@@ -356,7 +369,7 @@ func (cv *configValidator) meshRootCertificateValidator(req *admissionv1.Admissi
 func (cv *configValidator) activeRootCertificateRotation(newMRC *configv1alpha2.MeshRootCertificate) bool {
 	mrcList, err := cv.configClient.ConfigV1alpha2().MeshRootCertificates(cv.osmNamespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
-		log.Error().Err(err)
+		log.Err(err).Str("mrc", newMRC.Name).Msg("failed to list MRCs to determine if root certificate rotation is in progress")
 		return false
 	}
 
@@ -368,7 +381,7 @@ func (cv *configValidator) activeRootCertificateRotation(newMRC *configv1alpha2.
 	}
 
 	if inUseMRCs >= 2 {
-		log.Debug().Msgf("root certificate rotation in progress. Found %d MRCs in non error, not inactive, or empty states", inUseMRCs)
+		log.Debug().Str("mrc", newMRC.Name).Msgf("root certificate rotation in progress. Found %d MRCs in non error, not inactive, or empty states", inUseMRCs)
 		return true
 	}
 
@@ -382,7 +395,7 @@ func validateMeshRootCertificateStatusTransition(oldMRC *configv1alpha2.MeshRoot
 	}
 
 	if oldMRC.Status.State == newMRC.Status.State {
-		log.Debug().Msgf("no status update for MRC %s/%s with state %s", newMRC.GetNamespace(), newMRC.GetName(), newMRC.Status.State)
+		log.Debug().Str("mrc", newMRC.Name).Msgf("no status update for MRC %s/%s with state %s", newMRC.GetNamespace(), newMRC.GetName(), newMRC.Status.State)
 		return nil
 	}
 
@@ -399,4 +412,31 @@ func validateMeshRootCertificateStatusTransition(oldMRC *configv1alpha2.MeshRoot
 	}
 	return fmt.Errorf("invalid status update for MRC %s/%s from %s state to %s state. New state %s not found in list of supported states",
 		newMRC.GetNamespace(), newMRC.GetName(), oldMRC.Status.State, newMRC.Status.State, oldMRC.Status.State)
+}
+
+// validateMeshRootCertificateStatusCombination verifies the status combinations of MRCs in the mesh
+func (cv *configValidator) validateMeshRootCertificateStatusCombination(newMRC *configv1alpha2.MeshRootCertificate) error {
+	if newMRC.Status.State == constants.MRCStateError {
+		log.Debug().Str("mrc", newMRC.Name).Msg("attempted to verify state combination of MRCs in root certificate rotation. Found error state for MRC which is a valid combination with all other MRC states")
+		return nil
+	}
+
+	mrcList, err := cv.configClient.ConfigV1alpha2().MeshRootCertificates(cv.osmNamespace).List(context.TODO(), v1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list MRCs to determine if the status combination of MRCs is valid: %w", err)
+	}
+
+	for _, mrc := range mrcList.Items {
+		if mrc.Status.State != "" && mrc.Status.State != constants.MRCStateError && mrc.Status.State != constants.MRCStateInactive && mrc.GetName() != newMRC.GetName() {
+			if validCombination := validMRCStateCombinations[newMRC.Status.State]; validCombination != mrc.Status.State {
+				return fmt.Errorf("invalid MRC state combination of %s and %s. Expected %s and %s", newMRC.Status.State, mrc.Status.State, newMRC.Status.State, validCombination)
+			} else {
+				log.Debug().Str("mrc", newMRC.Name).Msg("verified valid state combination of MRCs in root certificate rotation")
+				return nil
+			}
+		}
+	}
+
+	log.Debug().Str("mrc", newMRC.Name).Msg("attempted to verify state combination of MRCs in root certificate rotation. Found no other MRCs with non error or non inactive states")
+	return nil
 }
