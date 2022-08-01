@@ -4,7 +4,7 @@ TARGETS      := darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64
 BINNAME      ?= osm
 DIST_DIRS    := find * -type d -exec
 CTR_REGISTRY ?= openservicemesh
-CTR_TAG      ?= latest
+CTR_TAG      ?= latest-main
 VERIFY_TAGS  ?= false
 
 GOPATH = $(shell go env GOPATH)
@@ -50,6 +50,9 @@ endif
 ifndef CTR_TAG
 	$(error CTR_TAG environment variable is not defined; see the .env.example file for more information; then source .env)
 endif
+
+.PHONY: build-osm-all
+build-osm-all: build-osm docker-build-osm
 
 .PHONY: build-osm
 build-osm: cmd/cli/chart.tgz
