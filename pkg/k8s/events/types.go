@@ -88,8 +88,8 @@ func (at Kind) Deleted() string {
 }
 
 const (
-	// ProxyUpdate is a special event kind that does not correspond to a k8s event, but instead is used as an indicator
-	// to trigger a broadcast to update all proxies.
+	// ProxyUpdate is a special osm event kind that does not correspond to a k8s event, but instead is used as an
+	// indicator for osm to trigger a broadcast to update all proxies.
 	ProxyUpdate Kind = "proxy"
 
 	// Pod is a Kind for Kubernetes pod events.
