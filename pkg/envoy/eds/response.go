@@ -35,7 +35,8 @@ func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, re
 		return nil, fmt.Errorf("Endpoint discovery request for proxy %s cannot be nil", proxy.Identity)
 	}
 
-	var rdsResources []types.Resource
+	meshSvcEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
+
 	for _, cluster := range request.ResourceNames {
 		meshSvc, err := clusterToMeshSvc(cluster)
 		if err != nil {
@@ -44,24 +45,25 @@ func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, re
 		}
 		endpoints := meshCatalog.ListAllowedUpstreamEndpointsForService(proxy.Identity, meshSvc)
 		log.Trace().Msgf("Endpoints for upstream cluster %s for downstream proxy identity %s: %v", cluster, proxy.Identity, endpoints)
-		loadAssignment := newClusterLoadAssignment(meshSvc, endpoints)
-		rdsResources = append(rdsResources, loadAssignment)
+		meshSvcEndpoints[meshSvc] = endpoints
 	}
 
-	return rdsResources, nil
+	builder := endpointsBuilder{
+		upstreamSvcEndpoints: meshSvcEndpoints,
+	}
+
+	return builder.Build(), nil
 }
 
 // generateEDSConfig generates all endpoints expected for a given proxy
 func generateEDSConfig(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy) ([]types.Resource, error) {
-	var edsResources []types.Resource
 	upstreamSvcEndpoints := getUpstreamEndpointsForProxyIdentity(meshCatalog, proxy.Identity)
 
-	for svc, endpoints := range upstreamSvcEndpoints {
-		loadAssignment := newClusterLoadAssignment(svc, endpoints)
-		edsResources = append(edsResources, loadAssignment)
+	builder := endpointsBuilder{
+		upstreamSvcEndpoints: upstreamSvcEndpoints,
 	}
 
-	return edsResources, nil
+	return builder.Build(), nil
 }
 
 // clusterToMeshSvc returns the MeshService associated with the given cluster name
