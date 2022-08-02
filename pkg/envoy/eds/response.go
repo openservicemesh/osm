@@ -21,6 +21,8 @@ import (
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	meshSvcEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
 
+	builder := newEndpointsBuilder()
+
 	// If request comes through and requests specific endpoints, just attempt to answer those
 	if request != nil && len(request.ResourceNames) > 0 {
 		for _, cluster := range request.ResourceNames {
@@ -31,21 +33,20 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 			}
 			endpoints := meshCatalog.ListAllowedUpstreamEndpointsForService(proxy.Identity, meshSvc)
 			log.Trace().Msgf("Endpoints for upstream cluster %s for downstream proxy identity %s: %v", cluster, proxy.Identity, endpoints)
-			meshSvcEndpoints[meshSvc] = endpoints
+			builder.AddEndpoints(meshSvc, endpoints)
 		}
 	} else {
 		// Otherwise, generate all endpoint configuration for this proxy
 		// Get only those service endpoints that belong to the allowed upstream service accounts for the proxy
 		// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 		for _, dstSvc := range meshCatalog.ListOutboundServicesForIdentity(proxy.Identity) {
-			meshSvcEndpoints[dstSvc] = meshCatalog.ListAllowedUpstreamEndpointsForService(proxy.Identity, dstSvc)
+			builder.AddEndpoints(
+				dstSvc,
+				meshCatalog.ListAllowedUpstreamEndpointsForService(proxy.Identity, dstSvc),
+			)
 		}
 
 		log.Trace().Msgf("Allowed outbound service endpoints for proxy with identity %s: %v", proxy.Identity, meshSvcEndpoints)
-	}
-
-	builder := endpointsBuilder{
-		upstreamSvcEndpoints: meshSvcEndpoints,
 	}
 
 	return builder.Build(), nil

@@ -22,6 +22,17 @@ type endpointsBuilder struct {
 	upstreamSvcEndpoints map[service.MeshService][]endpoint.Endpoint
 }
 
+func newEndpointsBuilder() *endpointsBuilder {
+	return &endpointsBuilder{
+		upstreamSvcEndpoints: make(map[service.MeshService][]endpoint.Endpoint),
+	}
+}
+
+func (b *endpointsBuilder) AddEndpoints(svc service.MeshService, endpoints []endpoint.Endpoint) {
+	b.upstreamSvcEndpoints[svc] = endpoints
+}
+
+// Build generate Envoy endpoint resources based on stored endpoints
 func (b *endpointsBuilder) Build() []types.Resource {
 	var edsResources []types.Resource
 
