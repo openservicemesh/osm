@@ -14,53 +14,38 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewResponse creates a new Endpoint Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
-	// If request comes through and requests specific endpoints, just attempt to answer those
-	if request != nil && len(request.ResourceNames) > 0 {
-		return fulfillEDSRequest(meshCatalog, proxy, request)
-	}
-
-	// Otherwise, generate all endpoint configuration for this proxy
-	return generateEDSConfig(meshCatalog, proxy)
-}
-
-// fulfillEDSRequest replies only to requested EDS endpoints on Discovery Request
-func fulfillEDSRequest(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest) ([]types.Resource, error) {
-	if request == nil {
-		return nil, fmt.Errorf("Endpoint discovery request for proxy %s cannot be nil", proxy.Identity)
-	}
-
 	meshSvcEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
 
-	for _, cluster := range request.ResourceNames {
-		meshSvc, err := clusterToMeshSvc(cluster)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error retrieving MeshService from Cluster %s", cluster)
-			continue
+	// If request comes through and requests specific endpoints, just attempt to answer those
+	if request != nil && len(request.ResourceNames) > 0 {
+		for _, cluster := range request.ResourceNames {
+			meshSvc, err := clusterToMeshSvc(cluster)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error retrieving MeshService from Cluster %s", cluster)
+				continue
+			}
+			endpoints := meshCatalog.ListAllowedUpstreamEndpointsForService(proxy.Identity, meshSvc)
+			log.Trace().Msgf("Endpoints for upstream cluster %s for downstream proxy identity %s: %v", cluster, proxy.Identity, endpoints)
+			meshSvcEndpoints[meshSvc] = endpoints
 		}
-		endpoints := meshCatalog.ListAllowedUpstreamEndpointsForService(proxy.Identity, meshSvc)
-		log.Trace().Msgf("Endpoints for upstream cluster %s for downstream proxy identity %s: %v", cluster, proxy.Identity, endpoints)
-		meshSvcEndpoints[meshSvc] = endpoints
+	} else {
+		// Otherwise, generate all endpoint configuration for this proxy
+		// Get only those service endpoints that belong to the allowed upstream service accounts for the proxy
+		// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
+		for _, dstSvc := range meshCatalog.ListOutboundServicesForIdentity(proxy.Identity) {
+			meshSvcEndpoints[dstSvc] = meshCatalog.ListAllowedUpstreamEndpointsForService(proxy.Identity, dstSvc)
+		}
+
+		log.Trace().Msgf("Allowed outbound service endpoints for proxy with identity %s: %v", proxy.Identity, meshSvcEndpoints)
 	}
 
 	builder := endpointsBuilder{
 		upstreamSvcEndpoints: meshSvcEndpoints,
-	}
-
-	return builder.Build(), nil
-}
-
-// generateEDSConfig generates all endpoints expected for a given proxy
-func generateEDSConfig(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy) ([]types.Resource, error) {
-	upstreamSvcEndpoints := getUpstreamEndpointsForProxyIdentity(meshCatalog, proxy.Identity)
-
-	builder := endpointsBuilder{
-		upstreamSvcEndpoints: upstreamSvcEndpoints,
 	}
 
 	return builder.Build(), nil
@@ -90,17 +75,4 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 		// endpoints of a service are derived from it's TargetPort and not Port.
 		TargetPort: uint16(port),
 	}, nil
-}
-
-// getUpstreamEndpointsForProxyIdentity returns only those service endpoints that belong to the allowed upstream service accounts for the proxy
-// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func getUpstreamEndpointsForProxyIdentity(meshCatalog catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity) map[service.MeshService][]endpoint.Endpoint {
-	allowedServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
-
-	for _, dstSvc := range meshCatalog.ListOutboundServicesForIdentity(proxyIdentity) {
-		allowedServicesEndpoints[dstSvc] = meshCatalog.ListAllowedUpstreamEndpointsForService(proxyIdentity, dstSvc)
-	}
-
-	log.Trace().Msgf("Allowed outbound service endpoints for proxy with identity %s: %v", proxyIdentity, allowedServicesEndpoints)
-	return allowedServicesEndpoints
 }
