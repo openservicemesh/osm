@@ -49,7 +49,7 @@ spec:
       nodeSelector:
         kubernetes.io/os: linux
       containers:
-      - image: mysql:5.6
+      - image: mysql:8
         name: mysql
         env:
         - name: MYSQL_ROOT_PASSWORD
