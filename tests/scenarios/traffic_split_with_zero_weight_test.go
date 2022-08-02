@@ -18,7 +18,6 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -29,6 +28,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	kubefake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -240,9 +240,7 @@ func TestRDSRespose(t *testing.T) {
 				EnableWASMStats: false,
 			}).AnyTimes()
 
-			proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-				return []service.MeshService{tests.BookstoreV1Service}, nil
-			}), nil)
+			proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(kubefake.WithIdentityServiceMapping(proxy.Identity, []service.MeshService{tests.BookstoreV1Service})), nil)
 
 			outboundTestPort := 8888 // Port used for the outbound services in this test
 			inboundTestPort := 80    // Port used for the inbound services in this test

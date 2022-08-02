@@ -19,6 +19,7 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	kubefake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
@@ -62,9 +63,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
 	mc := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}), nil)
+	proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(), nil)
 
 	// Create a Pod
 	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()), tests.BookstoreServiceAccountName, tests.PodLabels)

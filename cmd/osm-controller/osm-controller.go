@@ -253,8 +253,7 @@ func main() {
 		msgBroker,
 	)
 
-	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
-	proxyRegistry := registry.NewProxyRegistry(proxyMapper, msgBroker)
+	proxyRegistry := registry.NewProxyRegistry(kubeProvider, msgBroker)
 	go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
 
 	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, certificate.Internal)

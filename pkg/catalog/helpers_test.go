@@ -40,7 +40,7 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockPolicyController := policy.NewMockController(mockCtrl)
 	mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
 
-	provider := kubeFake.NewFakeProvider()
+	provider := kubeFake.NewFakeProvider(kubeFake.WithDefaultDemo)
 	endpointProviders := []endpoint.Provider{
 		provider,
 	}

@@ -37,7 +37,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 
 	stop := make(<-chan struct{})
 
-	provider := kubeFake.NewFakeProvider()
+	provider := kubeFake.NewFakeProvider(kubeFake.WithDefaultDemo)
 
 	endpointProviders := []endpoint.Provider{
 		provider,

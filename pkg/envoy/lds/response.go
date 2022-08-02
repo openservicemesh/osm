@@ -9,7 +9,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
-	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 )
@@ -46,12 +45,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	// --- INBOUND -------------------
 	inboundListener := newInboundListener()
 
-	svcList, err := proxyRegistry.ListProxyServices(proxy)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
-			Str("proxy", proxy.String()).Msgf("Error looking up MeshServices associated with proxy")
-		return nil, err
-	}
+	svcList := proxyRegistry.GetServicesForServiceIdentity(proxy.Identity)
 
 	// Create inbound mesh filter chains based on mesh traffic policies
 	inboundMeshTrafficPolicy := meshCatalog.GetInboundMeshTrafficPolicy(lb.serviceIdentity, svcList)

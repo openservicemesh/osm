@@ -12,21 +12,13 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
-	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 // NewResponse creates a new Route Discovery Response.
 func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryReq *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, cm *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
-	proxyServices, err := proxyRegistry.ListProxyServices(proxy)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
-			Msgf("Error looking up services for Envoy with name=%s", proxy.GetName())
-		return nil, err
-	}
-
 	var rdsResources []types.Resource
-
+	proxyServices := proxyRegistry.GetServicesForServiceIdentity(proxy.Identity)
 	trustDomain := cm.GetTrustDomain()
 
 	// ---

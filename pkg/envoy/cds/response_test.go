@@ -24,7 +24,6 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -33,6 +32,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	kubefake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -67,9 +67,7 @@ func TestNewResponse(t *testing.T) {
 		},
 	}
 
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return []service.MeshService{testMeshSvc}, nil
-	}), nil)
+	proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(kubefake.WithIdentityServiceMapping(proxy.Identity, []service.MeshService{testMeshSvc})), nil)
 
 	expectedOutboundMeshPolicy := &trafficpolicy.OutboundMeshTrafficPolicy{
 		ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
@@ -411,28 +409,9 @@ func TestNewResponse(t *testing.T) {
 	assert.ElementsMatch(expectedClusters, foundClusters)
 }
 
-func TestNewResponseListServicesError(t *testing.T) {
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, fmt.Errorf("some error")
-	}), nil)
-	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil)
-
-	ctrl := gomock.NewController(t)
-	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	cfg := configurator.NewMockConfigurator(ctrl)
-	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxy.Identity).Return(nil).AnyTimes()
-	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-
-	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
-	tassert.Error(t, err)
-	tassert.Nil(t, resp)
-}
-
 func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}), nil)
+	proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(), nil)
 
 	proxyUUID := uuid.New()
 	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil)
@@ -462,10 +441,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 
 func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}), nil)
-
+	proxyRegistry := registry.NewProxyRegistry(kubefake.NewFakeProvider(), nil)
 	proxyUUID := uuid.New()
 	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil)
 
