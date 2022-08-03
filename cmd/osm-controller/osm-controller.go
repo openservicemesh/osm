@@ -270,7 +270,7 @@ func main() {
 
 	clientset := extensionsClientset.NewForConfigOrDie(kubeConfig)
 
-	if err := validator.NewValidatingWebhook(ctx, validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, enableMeshRootCertificate, certManager, kubeClient, configClient, policyController); err != nil {
+	if err := validator.NewValidatingWebhook(ctx, validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, certManager, kubeClient, configClient, policyController); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
 	}
 

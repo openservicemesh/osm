@@ -299,7 +299,6 @@ var validMRCStateCombinations = map[string]string{
 
 // meshRootCertificateValidator validates the MeshRootCertificate custom resource
 func (cv *configValidator) meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
-	log.Debug().Msg("made it to MRC validator")
 	switch req.Operation {
 	case admissionv1.Create:
 		newMRC := &configv1alpha2.MeshRootCertificate{}
@@ -311,21 +310,10 @@ func (cv *configValidator) meshRootCertificateValidator(req *admissionv1.Admissi
 			return nil, fmt.Errorf("trustDomain must be non empty for MRC %s/%s", newMRC.GetNamespace(), newMRC.GetName())
 		}
 
-		// if no state is set, MRC will not be considered for rotation
-		if newMRC.Status.State == "" {
-			return nil, nil
-		}
-
+		// the MRC status does not need to be validated since it can't be set on create as a subresource of a CRD
 		if cv.activeRootCertificateRotation(newMRC) {
-			return nil, fmt.Errorf("cannot create MRC %s/%s with status %s. Certificate rotation in progress. At most, only 2 MRCs can be in non error or non inactive states. Wait until the current rotation is complete to begin another root certificate rotation",
-				newMRC.GetNamespace(), newMRC.GetName(), newMRC.Status.State)
-		}
-
-		if _, ok := validMRCTransitions[newMRC.Status.State]; !ok {
-			return nil, fmt.Errorf("invalid status %s for MRC %s/%s. Must be %s, %s, %s, %s, %s, %s, or %s",
-				newMRC.Status.State, newMRC.GetNamespace(), newMRC.GetName(), constants.MRCStateValidatingRollout,
-				constants.MRCStateIssuingRollout, constants.MRCStateActive, constants.MRCStateIssuingRollback,
-				constants.MRCStateValidatingRollback, constants.MRCStateInactive, constants.MRCStateError)
+			return nil, fmt.Errorf("cannot create MRC %s/%s and initiate rotation. Certificate rotation in progress. At most, only 2 MRCs can be in non error or non inactive states. Wait until the current rotation is complete to begin another root certificate rotation",
+				newMRC.GetNamespace(), newMRC.GetName())
 		}
 	case admissionv1.Update:
 		newMRC, oldMRC := &configv1alpha2.MeshRootCertificate{}, &configv1alpha2.MeshRootCertificate{}

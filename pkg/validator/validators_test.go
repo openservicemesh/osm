@@ -1493,43 +1493,6 @@ func TestMeshRootCertificateValidator(t *testing.T) {
 			},
 			expErrStr: "trustDomain must be non empty for MRC osm-system/osm-mesh-root-certificate",
 		},
-		{
-			name: "MeshRootCertificate with no state on create",
-			input: &admissionv1.AdmissionRequest{
-				Operation: admissionv1.Create,
-				Kind: metav1.GroupVersionKind{
-					Group:   "configv1alpha2",
-					Version: "config.openservicemesh.io",
-					Kind:    "MeshRootCertificate",
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(`
-					{
-						"apiVersion": "config.openservicemesh.io/configv1alpha2",
-						"kind": "MeshRootCertificate",
-						"metadata": {
-							"name": "osm-mesh-root-certificate",
-							"namespace": "osm-system"
-						},
-						"spec": {
-							"trustDomain": "trustDomain",
-							"provider": {
-								"tresor": {
-							 		"ca": {
-										"secretRef": {
-											"name": "osm-ca-bundle",
-											"namespace": "osm-system"
-							  			}
-							 		}
-								}
-							}
-						}
-					}
-					`),
-				},
-			},
-			expErrStr: "",
-		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1843,35 +1806,35 @@ func TestValidateMeshRootCertificateStatusCombination(t *testing.T) {
 	assert := tassert.New(t)
 	testCases := []struct {
 		name         string
-		mrc          v1alpha2.MeshRootCertificate
+		mrc          configv1alpha2.MeshRootCertificate
 		configClient configClientset.Interface
 		expErr       bool
 	}{
 		{
 			name: "invalid status combination, validatingRollback and issuingRollout",
-			mrc: v1alpha2.MeshRootCertificate{
+			mrc: configv1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mrc",
 					Namespace: "osm-namespace",
 				},
-				Status: v1alpha2.MeshRootCertificateStatus{
+				Status: configv1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateValidatingRollout,
 				},
 			},
 			configClient: fakeConfigClientset.NewSimpleClientset(
 				[]runtime.Object{
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc",
 							Namespace: "osm-namespace",
 						},
 					},
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc2",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateIssuingRollout,
 						},
 					},
@@ -1881,18 +1844,18 @@ func TestValidateMeshRootCertificateStatusCombination(t *testing.T) {
 		},
 		{
 			name: "no active rotation, update from no status to active",
-			mrc: v1alpha2.MeshRootCertificate{
+			mrc: configv1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mrc",
 					Namespace: "osm-namespace",
 				},
-				Status: v1alpha2.MeshRootCertificateStatus{
+				Status: configv1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
 				},
 			},
 			configClient: fakeConfigClientset.NewSimpleClientset(
 				[]runtime.Object{
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc",
 							Namespace: "osm-namespace",
@@ -1904,23 +1867,23 @@ func TestValidateMeshRootCertificateStatusCombination(t *testing.T) {
 		},
 		{
 			name: "no active rotation, update from active to error",
-			mrc: v1alpha2.MeshRootCertificate{
+			mrc: configv1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mrc",
 					Namespace: "osm-namespace",
 				},
-				Status: v1alpha2.MeshRootCertificateStatus{
+				Status: configv1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateError,
 				},
 			},
 			configClient: fakeConfigClientset.NewSimpleClientset(
 				[]runtime.Object{
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateActive,
 						},
 					},
@@ -1930,29 +1893,29 @@ func TestValidateMeshRootCertificateStatusCombination(t *testing.T) {
 		},
 		{
 			name: "valid status combination, validatingRollout and active",
-			mrc: v1alpha2.MeshRootCertificate{
+			mrc: configv1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mrc",
 					Namespace: "osm-namespace",
 				},
-				Status: v1alpha2.MeshRootCertificateStatus{
+				Status: configv1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateValidatingRollout,
 				},
 			},
 			configClient: fakeConfigClientset.NewSimpleClientset(
 				[]runtime.Object{
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc",
 							Namespace: "osm-namespace",
 						},
 					},
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc2",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateActive,
 						},
 					},
@@ -1962,32 +1925,32 @@ func TestValidateMeshRootCertificateStatusCombination(t *testing.T) {
 		},
 		{
 			name: "valid status combination, issuingRollout and active",
-			mrc: v1alpha2.MeshRootCertificate{
+			mrc: configv1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mrc",
 					Namespace: "osm-namespace",
 				},
-				Status: v1alpha2.MeshRootCertificateStatus{
+				Status: configv1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateIssuingRollout,
 				},
 			},
 			configClient: fakeConfigClientset.NewSimpleClientset(
 				[]runtime.Object{
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateValidatingRollout,
 						},
 					},
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc2",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateActive,
 						},
 					},
@@ -1997,32 +1960,32 @@ func TestValidateMeshRootCertificateStatusCombination(t *testing.T) {
 		},
 		{
 			name: "valid status combination, active and issuingRollback",
-			mrc: v1alpha2.MeshRootCertificate{
+			mrc: configv1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mrc",
 					Namespace: "osm-namespace",
 				},
-				Status: v1alpha2.MeshRootCertificateStatus{
+				Status: configv1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
 				},
 			},
 			configClient: fakeConfigClientset.NewSimpleClientset(
 				[]runtime.Object{
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateIssuingRollout,
 						},
 					},
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc2",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateIssuingRollback,
 						},
 					},
@@ -2032,32 +1995,32 @@ func TestValidateMeshRootCertificateStatusCombination(t *testing.T) {
 		},
 		{
 			name: "valid status combination, issuingRollback and issuingRollout",
-			mrc: v1alpha2.MeshRootCertificate{
+			mrc: configv1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mrc",
 					Namespace: "osm-namespace",
 				},
-				Status: v1alpha2.MeshRootCertificateStatus{
+				Status: configv1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateIssuingRollback,
 				},
 			},
 			configClient: fakeConfigClientset.NewSimpleClientset(
 				[]runtime.Object{
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateActive,
 						},
 					},
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc2",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateIssuingRollout,
 						},
 					},
@@ -2067,32 +2030,32 @@ func TestValidateMeshRootCertificateStatusCombination(t *testing.T) {
 		},
 		{
 			name: "valid status combination, validatingRollback and active",
-			mrc: v1alpha2.MeshRootCertificate{
+			mrc: configv1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mrc",
 					Namespace: "osm-namespace",
 				},
-				Status: v1alpha2.MeshRootCertificateStatus{
+				Status: configv1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateValidatingRollback,
 				},
 			},
 			configClient: fakeConfigClientset.NewSimpleClientset(
 				[]runtime.Object{
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateIssuingRollback,
 						},
 					},
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc2",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateActive,
 						},
 					},
@@ -2102,32 +2065,32 @@ func TestValidateMeshRootCertificateStatusCombination(t *testing.T) {
 		},
 		{
 			name: "valid status combination, inactive and active",
-			mrc: v1alpha2.MeshRootCertificate{
+			mrc: configv1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mrc",
 					Namespace: "osm-namespace",
 				},
-				Status: v1alpha2.MeshRootCertificateStatus{
+				Status: configv1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateInactive,
 				},
 			},
 			configClient: fakeConfigClientset.NewSimpleClientset(
 				[]runtime.Object{
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateValidatingRollback,
 						},
 					},
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc2",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateActive,
 						},
 					},
@@ -2137,32 +2100,32 @@ func TestValidateMeshRootCertificateStatusCombination(t *testing.T) {
 		},
 		{
 			name: "valid status combination, error state",
-			mrc: v1alpha2.MeshRootCertificate{
+			mrc: configv1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mrc",
 					Namespace: "osm-namespace",
 				},
-				Status: v1alpha2.MeshRootCertificateStatus{
+				Status: configv1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateError,
 				},
 			},
 			configClient: fakeConfigClientset.NewSimpleClientset(
 				[]runtime.Object{
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateIssuingRollback,
 						},
 					},
-					&v1alpha2.MeshRootCertificate{
+					&configv1alpha2.MeshRootCertificate{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mrc2",
 							Namespace: "osm-namespace",
 						},
-						Status: v1alpha2.MeshRootCertificateStatus{
+						Status: configv1alpha2.MeshRootCertificateStatus{
 							State: constants.MRCStateActive,
 						},
 					},
