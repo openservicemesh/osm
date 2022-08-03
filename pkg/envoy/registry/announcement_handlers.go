@@ -3,7 +3,6 @@ package registry
 import (
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -11,9 +10,8 @@ import (
 
 // ReleaseCertificateHandler releases certificates based on podDelete events
 func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificateReleaser, stop <-chan struct{}) {
-	kubePubSub := pr.msgBroker.GetKubeEventPubSub()
-	podDeleteChan := kubePubSub.Sub(announcements.PodDeleted.String())
-	defer pr.msgBroker.Unsub(kubePubSub, podDeleteChan)
+	podDeleteChan, unsub := pr.msgBroker.SubscribeKubeEvents(events.Pod.Deleted())
+	defer unsub()
 
 	for {
 		select {

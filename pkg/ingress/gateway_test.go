@@ -14,7 +14,6 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -167,11 +166,12 @@ func TestProvisionIngressGatewayCert(t *testing.T) {
 			}
 
 			if tc.updatedMeshConfig != nil {
-				msgBroker.GetKubeEventPubSub().Pub(events.PubSubMessage{
-					Kind:   announcements.MeshConfigUpdated,
+				msgBroker.PublishKubeEvent(events.PubSubMessage{
+					Kind:   events.MeshConfig,
+					Type:   events.Updated,
 					NewObj: tc.updatedMeshConfig,
 					OldObj: tc.previousMeshConfig,
-				}, announcements.MeshConfigUpdated.String())
+				})
 				time.Sleep(maxTimeForEventToBePublished)
 			}
 

@@ -6,7 +6,6 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -50,9 +49,8 @@ func (r *ResyncTicker) Start(quit <-chan struct{}) {
 // based on the configuration.
 func (r *ResyncTicker) watchConfig(quit <-chan struct{}) {
 	// Subscribe to MeshConfig updates through which Ticker can be turned on/off
-	kubePubSub := r.msgBroker.GetKubeEventPubSub()
-	meshConfigUpdateChan := kubePubSub.Sub(announcements.MeshConfigUpdated.String())
-	defer r.msgBroker.Unsub(kubePubSub, meshConfigUpdateChan)
+	meshConfigUpdateChan, unsub := r.msgBroker.SubscribeKubeEvents(events.MeshConfig.Updated())
+	defer unsub()
 
 	for {
 		select {
@@ -138,9 +136,7 @@ func (r *ResyncTicker) startTicker(tickIterval time.Duration) {
 			return
 
 		case <-ticker.C:
-			r.msgBroker.GetQueue().AddRateLimited(events.PubSubMessage{
-				Kind: announcements.ProxyUpdate,
-			})
+			r.msgBroker.BroadcastProxyUpdate()
 			log.Trace().Msg("Ticking, queued internal event")
 		}
 	}

@@ -9,7 +9,6 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -23,23 +22,9 @@ func NewConfigurator(informerCollection *informers.InformerCollection, osmNamesp
 		osmNamespace:   osmNamespace,
 		meshConfigName: meshConfigName,
 	}
-
-	// configure listener
-	meshConfigEventTypes := k8s.EventTypes{
-		Add:    announcements.MeshConfigAdded,
-		Update: announcements.MeshConfigUpdated,
-		Delete: announcements.MeshConfigDeleted,
-	}
-
-	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, k8s.GetEventHandlerFuncs(nil, meshConfigEventTypes, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, k8s.GetEventHandlerFuncs(nil, msgBroker))
 	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, c.metricsHandler())
-
-	meshRootCertificateEventTypes := k8s.EventTypes{
-		Add:    announcements.MeshRootCertificateAdded,
-		Update: announcements.MeshRootCertificateUpdated,
-		Delete: announcements.MeshRootCertificateDeleted,
-	}
-	informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, k8s.GetEventHandlerFuncs(nil, meshRootCertificateEventTypes, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, k8s.GetEventHandlerFuncs(nil, msgBroker))
 
 	return c
 }

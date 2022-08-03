@@ -17,7 +17,6 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -64,12 +63,7 @@ func newClient(informerCollection *osminformers.InformerCollection, policyClient
 // Initializes Namespace monitoring
 func (c *client) initNamespaceMonitor() {
 	// Add event handler to informer
-	nsEventTypes := EventTypes{
-		Add:    announcements.NamespaceAdded,
-		Update: announcements.NamespaceUpdated,
-		Delete: announcements.NamespaceDeleted,
-	}
-	c.informers.AddEventHandler(osminformers.InformerKeyNamespace, GetEventHandlerFuncs(nil, nsEventTypes, c.msgBroker))
+	c.informers.AddEventHandler(osminformers.InformerKeyNamespace, GetEventHandlerFuncs(nil, c.msgBroker))
 }
 
 // Function to filter K8s meta Objects by OSM's isMonitoredNamespace
@@ -83,40 +77,20 @@ func (c *client) shouldObserve(obj interface{}) bool {
 
 // Initializes Service monitoring
 func (c *client) initServicesMonitor() {
-	svcEventTypes := EventTypes{
-		Add:    announcements.ServiceAdded,
-		Update: announcements.ServiceUpdated,
-		Delete: announcements.ServiceDeleted,
-	}
-	c.informers.AddEventHandler(osminformers.InformerKeyService, GetEventHandlerFuncs(c.shouldObserve, svcEventTypes, c.msgBroker))
+	c.informers.AddEventHandler(osminformers.InformerKeyService, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
 
 // Initializes Service Account monitoring
 func (c *client) initServiceAccountsMonitor() {
-	svcEventTypes := EventTypes{
-		Add:    announcements.ServiceAccountAdded,
-		Update: announcements.ServiceAccountUpdated,
-		Delete: announcements.ServiceAccountDeleted,
-	}
-	c.informers.AddEventHandler(osminformers.InformerKeyServiceAccount, GetEventHandlerFuncs(c.shouldObserve, svcEventTypes, c.msgBroker))
+	c.informers.AddEventHandler(osminformers.InformerKeyServiceAccount, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
 
 func (c *client) initPodMonitor() {
-	podEventTypes := EventTypes{
-		Add:    announcements.PodAdded,
-		Update: announcements.PodUpdated,
-		Delete: announcements.PodDeleted,
-	}
-	c.informers.AddEventHandler(osminformers.InformerKeyPod, GetEventHandlerFuncs(c.shouldObserve, podEventTypes, c.msgBroker))
+	c.informers.AddEventHandler(osminformers.InformerKeyPod, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
 
 func (c *client) initEndpointMonitor() {
-	eptEventTypes := EventTypes{
-		Add:    announcements.EndpointAdded,
-		Update: announcements.EndpointUpdated,
-		Delete: announcements.EndpointDeleted,
-	}
-	c.informers.AddEventHandler(osminformers.InformerKeyEndpoints, GetEventHandlerFuncs(c.shouldObserve, eptEventTypes, c.msgBroker))
+	c.informers.AddEventHandler(osminformers.InformerKeyEndpoints, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
 
 // IsMonitoredNamespace returns a boolean indicating if the namespace is among the list of monitored namespaces
