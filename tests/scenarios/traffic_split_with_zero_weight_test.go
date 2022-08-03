@@ -355,5 +355,5 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 		}
 	}
 
-	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookstoreServiceIdentity, nil), nil
+	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookstoreServiceIdentity, nil, 1), nil
 }

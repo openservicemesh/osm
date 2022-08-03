@@ -419,7 +419,7 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 		}
 	}
 
-	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookstoreServiceIdentity, nil), nil
+	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookstoreServiceIdentity, nil, 1), nil
 }
 
 func TestResponseRequestCompletion(t *testing.T) {
@@ -431,7 +431,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 	uuid := uuid.New()
-	testProxy := envoy.NewProxy(envoy.KindSidecar, uuid, identity.New("some-service", "some-namespace"), nil)
+	testProxy := envoy.NewProxy(envoy.KindSidecar, uuid, identity.New("some-service", "some-namespace"), nil, 1)
 
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return []service.MeshService{tests.BookstoreV1Service}, nil

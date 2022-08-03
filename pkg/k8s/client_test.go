@@ -1020,7 +1020,7 @@ func TestGetPodForProxy(t *testing.T) {
 	}{
 		{
 			name:  "fails when UUID does not match",
-			proxy: envoy.NewProxy(envoy.KindSidecar, uuid.New(), tests.BookstoreServiceIdentity, nil),
+			proxy: envoy.NewProxy(envoy.KindSidecar, uuid.New(), tests.BookstoreServiceIdentity, nil, 1),
 			err:   errDidNotFindPodForUUID,
 		},
 		{
@@ -1030,18 +1030,18 @@ func TestGetPodForProxy(t *testing.T) {
 		},
 		{
 			name:  "2 pods with same uuid",
-			proxy: envoy.NewProxy(envoy.KindSidecar, someOtherEnvoyUID, tests.BookstoreServiceIdentity, nil),
+			proxy: envoy.NewProxy(envoy.KindSidecar, someOtherEnvoyUID, tests.BookstoreServiceIdentity, nil, 1),
 			err:   errMoreThanOnePodForUUID,
 		},
 		{
 			name:  "fails when namespace does not match certificate",
-			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, "bad-namespace"), nil),
+			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, "bad-namespace"), nil, 1),
 			err:   errNamespaceDoesNotMatchProxy,
 		},
 		{
 			name:  "works as expected",
 			pod:   pod,
-			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, tests.BookstoreServiceIdentity, nil),
+			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, tests.BookstoreServiceIdentity, nil, 1),
 		},
 	}
 

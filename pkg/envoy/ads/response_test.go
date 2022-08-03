@@ -85,7 +85,7 @@ var _ = Describe("Test ADS response functions", func() {
 		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
 	}
 
-	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil)
+	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil, 1)
 
 	Context("Proxy is valid", func() {
 		Expect(proxy).ToNot((BeNil()))

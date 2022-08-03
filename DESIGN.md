@@ -306,12 +306,6 @@ type MeshCataloger interface {
   // which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
 	GetServicesForProxy(*envoy.Proxy) ([]service.MeshService, error)
 
-	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
-	RegisterProxy(*envoy.Proxy)
-
-	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
-	UnregisterProxy(*envoy.Proxy)
-
 	// GetServicesForServiceIdentity returns a list of services corresponding to a service identity
 	GetServicesForServiceIdentity(identity.ServiceIdentityt) ([]service.MeshService, error)
 

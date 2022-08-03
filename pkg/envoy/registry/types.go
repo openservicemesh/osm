@@ -3,6 +3,8 @@ package registry
 import (
 	"sync"
 
+	"github.com/cskr/pubsub"
+
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -16,12 +18,8 @@ type ProxyRegistry struct {
 	ProxyServiceMapper
 
 	msgBroker *messaging.Broker
+	pubsub    *pubsub.PubSub
 
 	mu               sync.Mutex
-	connectedProxies map[string]*envoy.Proxy
-}
-
-// A simple interface to release certificates. Created to abstract the certificate.Manager struct for testing purposes.
-type certificateReleaser interface {
-	ReleaseCertificate(key string)
+	connectedProxies map[int64]*envoy.Proxy
 }

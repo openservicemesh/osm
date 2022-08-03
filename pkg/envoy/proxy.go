@@ -24,6 +24,10 @@ type Proxy struct {
 
 	// The time this Proxy connected to the OSM control plane
 	connectedAt time.Time
+	// Connection ID is used to distinguish a single proxy that reconnects from the old proxy.
+	// The one with the larger ID is the newer proxy.
+	// NOTE: it is not used properly in the old, StreamAggregatedResources, and only works properly for the SnapshotCache.
+	connectionID int64
 
 	lastSentVersion    map[TypeURI]uint64
 	lastAppliedVersion map[TypeURI]uint64
@@ -169,6 +173,14 @@ func (p *Proxy) GetConnectedAt() time.Time {
 	return p.connectedAt
 }
 
+// GetConnectionID returns the connection ID of the proxy.
+// Connection ID is used to distinguish a single proxy that reconnects from the old proxy.
+// The one with the larger ID is the newer proxy.
+// NOTE: it is not used properly in the old, StreamAggregatedResources, and only works properly for the SnapshotCache.
+func (p *Proxy) GetConnectionID() int64 {
+	return p.connectionID
+}
+
 // GetIP returns the IP address of the Envoy proxy connected to xDS.
 func (p *Proxy) GetIP() net.Addr {
 	return p.Addr
@@ -210,7 +222,7 @@ func (p *Proxy) Kind() ProxyKind {
 }
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
-func NewProxy(kind ProxyKind, uuid uuid.UUID, svcIdentity identity.ServiceIdentity, ip net.Addr) *Proxy {
+func NewProxy(kind ProxyKind, uuid uuid.UUID, svcIdentity identity.ServiceIdentity, ip net.Addr, connectionID int64) *Proxy {
 	return &Proxy{
 		// Identity is of the form <name>.<namespace>.cluster.local
 		Identity: svcIdentity,
@@ -218,7 +230,8 @@ func NewProxy(kind ProxyKind, uuid uuid.UUID, svcIdentity identity.ServiceIdenti
 
 		Addr: ip,
 
-		connectedAt: time.Now(),
+		connectedAt:  time.Now(),
+		connectionID: connectionID,
 
 		lastNonce:            make(map[TypeURI]string),
 		lastSentVersion:      make(map[TypeURI]uint64),

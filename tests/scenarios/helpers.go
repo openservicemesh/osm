@@ -43,5 +43,5 @@ func getSidecarProxy(kubeClient kubernetes.Interface, proxyUUID uuid.UUID, svcId
 		}
 	}
 
-	return envoy.NewProxy(envoy.KindSidecar, proxyUUID, svcIdentity, nil), nil
+	return envoy.NewProxy(envoy.KindSidecar, proxyUUID, svcIdentity, nil, 1), nil
 }

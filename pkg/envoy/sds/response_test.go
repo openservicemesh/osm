@@ -57,7 +57,7 @@ func TestNewResponse(t *testing.T) {
 	// have be prefixed with the ID of the pod. It is the first chunk of a dot-separated string.
 	podID := uuid.New()
 
-	proxy := envoy.NewProxy(envoy.KindSidecar, podID, proxySvcAccount.ToServiceIdentity(), nil)
+	proxy := envoy.NewProxy(envoy.KindSidecar, podID, proxySvcAccount.ToServiceIdentity(), nil, 1)
 	ic, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(fakeKubeClient), informers.WithConfigClient(fakeConfigClient, "-the-mesh-config-name-", "-osm-namespace-"))
 	assert.Nil(err)
 
@@ -358,7 +358,7 @@ func TestGetSDSSecrets(t *testing.T) {
 				TrustDomain: "cluster.local",
 			}
 
-			proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("sa-1", "ns-1"), nil)
+			proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("sa-1", "ns-1"), nil, 1)
 
 			// test the function
 			sdsSecrets := s.getSDSSecrets(cert, tc.requestedCerts, proxy)
