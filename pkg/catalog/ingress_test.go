@@ -13,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
+	"github.com/openservicemesh/osm/pkg/providers"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -390,27 +391,23 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			mockServiceProvider := service.NewMockProvider(mockCtrl)
-			mockEndpointsProvider := endpoint.NewMockProvider(mockCtrl)
+			mockProvider := providers.NewMockProvider(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
 			mockKubeController := k8s.NewMockController(mockCtrl)
 
 			meshCatalog := &MeshCatalog{
-				serviceProviders:   []service.Provider{mockServiceProvider},
-				endpointsProviders: []endpoint.Provider{mockEndpointsProvider},
-				configurator:       mockCfg,
-				policyController:   mockPolicyController,
-				kubeController:     mockKubeController,
+				Provider:         mockProvider,
+				configurator:     mockCfg,
+				policyController: mockPolicyController,
+				kubeController:   mockKubeController,
 			}
 
 			// Note: if AnyTimes() is used with a mock function, it implies the function may or may not be called
 			// depending on the test case.
 			mockPolicyController.EXPECT().GetIngressBackendPolicy(tc.meshSvc).Return(tc.ingressBackend).AnyTimes()
-			mockServiceProvider.EXPECT().GetID().Return("mock").AnyTimes()
-			mockEndpointsProvider.EXPECT().ListEndpointsForService(ingressSourceSvc).Return(ingressBackendSvcEndpoints).AnyTimes()
-			mockEndpointsProvider.EXPECT().ListEndpointsForService(sourceSvcWithoutEndpoints).Return(nil).AnyTimes()
-			mockEndpointsProvider.EXPECT().GetID().Return("mock").AnyTimes()
+			mockProvider.EXPECT().ListEndpointsForService(ingressSourceSvc).Return(ingressBackendSvcEndpoints).AnyTimes()
+			mockProvider.EXPECT().ListEndpointsForService(sourceSvcWithoutEndpoints).Return(nil).AnyTimes()
 			mockKubeController.EXPECT().UpdateStatus(gomock.Any()).Return(nil, nil).AnyTimes()
 
 			actual, err := meshCatalog.GetIngressTrafficPolicy(tc.meshSvc)

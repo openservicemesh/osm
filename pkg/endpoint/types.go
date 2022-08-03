@@ -7,26 +7,7 @@ package endpoint
 import (
 	"fmt"
 	"net"
-
-	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 )
-
-// Provider is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
-type Provider interface {
-	// ListEndpointsForService retrieves the IP addresses comprising the given service.
-	ListEndpointsForService(service.MeshService) []Endpoint
-
-	// ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
-	ListEndpointsForIdentity(identity.ServiceIdentity) []Endpoint
-
-	// GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service FQDN is resolved under
-	// the scope of the provider
-	GetResolvableEndpointsForService(service.MeshService) []Endpoint
-
-	// GetID returns the unique identifier of the EndpointsProvider.
-	GetID() string
-}
 
 // Endpoint is a tuple of IP and Port representing an instance of a service
 type Endpoint struct {

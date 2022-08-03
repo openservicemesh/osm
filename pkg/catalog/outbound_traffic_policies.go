@@ -42,7 +42,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		// IP range must not have duplicates, use a mapset to only add unique IP ranges
 		var destinationIPRanges []string
 		destinationIPSet := mapset.NewSet()
-		for _, endp := range mc.getDNSResolvableServiceEndpoints(meshSvc) {
+		for _, endp := range mc.GetResolvableEndpointsForService(meshSvc) {
 			ipCIDR := endp.IP.String() + "/32"
 			if added := destinationIPSet.Add(ipCIDR); added {
 				destinationIPRanges = append(destinationIPRanges, ipCIDR)
@@ -146,7 +146,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		return mc.listMeshServices()
+		return mc.ListServices()
 	}
 
 	svcAccount := serviceIdentity.ToK8sServiceAccount()
@@ -164,7 +164,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 				Namespace: t.Spec.Destination.Namespace,
 			}
 
-			for _, destService := range mc.getServicesForServiceIdentity(sa.ToServiceIdentity()) {
+			for _, destService := range mc.GetServicesForServiceIdentity(sa.ToServiceIdentity()) {
 				if added := serviceSet.Add(destService); added {
 					allowedServices = append(allowedServices, destService)
 				}

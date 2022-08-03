@@ -15,6 +15,7 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/policy"
+	"github.com/openservicemesh/osm/pkg/providers"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -578,28 +579,24 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockServiceProvider := service.NewMockProvider(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
+			mockProvider := providers.NewMockProvider(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-				serviceProviders:   []service.Provider{mockServiceProvider},
-				configurator:       mockCfg,
-				meshSpec:           mockMeshSpec,
-				policyController:   mockPolicyController,
+				kubeController:   mockKubeController,
+				Provider:         mockProvider,
+				configurator:     mockCfg,
+				meshSpec:         mockMeshSpec,
+				policyController: mockPolicyController,
 			}
 
 			// Mock calls to k8s client caches
 			mockCfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).AnyTimes()
 			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{}).AnyTimes()
-			mockServiceProvider.EXPECT().ListServices().Return(allMeshServices).AnyTimes()
+			mockProvider.EXPECT().ListServices().Return(allMeshServices).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
-			mockServiceProvider.EXPECT().GetID().Return("test").AnyTimes()
-			mockEndpointProvider.EXPECT().GetID().Return("test").AnyTimes()
 			// Mock conditional traffic split for service
 			mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).DoAndReturn(
 				func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
@@ -622,16 +619,16 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			if !tc.permissiveMode {
 				for _, target := range trafficTargets {
 					dstSvcIdentity := identity.K8sServiceAccount{Namespace: target.Spec.Destination.Namespace, Name: target.Spec.Destination.Name}.ToServiceIdentity()
-					mockServiceProvider.EXPECT().GetServicesForServiceIdentity(dstSvcIdentity).Return(svcIdentityToSvcMapping[dstSvcIdentity.String()]).AnyTimes()
+					mockProvider.EXPECT().GetServicesForServiceIdentity(dstSvcIdentity).Return(svcIdentityToSvcMapping[dstSvcIdentity.String()]).AnyTimes()
 				}
 			} else {
 				for svcIdentity, services := range svcIdentityToSvcMapping {
-					mockServiceProvider.EXPECT().GetServicesForServiceIdentity(svcIdentity).Return(services).AnyTimes()
+					mockProvider.EXPECT().GetServicesForServiceIdentity(svcIdentity).Return(services).AnyTimes()
 				}
 			}
 
 			// Mock service -> endpoint lookups
-			mockEndpointProvider.EXPECT().GetResolvableEndpointsForService(gomock.Any()).DoAndReturn(
+			mockProvider.EXPECT().GetResolvableEndpointsForService(gomock.Any()).DoAndReturn(
 				func(svc service.MeshService) ([]endpoint.Endpoint, error) {
 					return svcToEndpointsMap[svc.String()], nil
 				}).AnyTimes()

@@ -16,7 +16,6 @@ import (
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -41,12 +40,6 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
 
 	provider := kubeFake.NewFakeProvider()
-	endpointProviders := []endpoint.Provider{
-		provider,
-	}
-	serviceProviders := []service.Provider{
-		provider,
-	}
 
 	stop := make(chan struct{})
 
@@ -139,5 +132,5 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{}).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, mockMeshSpec, certManager,
-		mockPolicyController, stop, mockConfigurator, serviceProviders, endpointProviders, messaging.NewBroker(stop))
+		mockPolicyController, stop, mockConfigurator, provider, messaging.NewBroker(stop))
 }

@@ -14,7 +14,6 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -122,8 +121,7 @@ func setupTestServer(b *testing.B) {
 		policyController,
 		stop,
 		osmConfigurator,
-		[]service.Provider{kubeProvider},
-		[]endpoint.Provider{kubeProvider},
+		kubeProvider,
 		msgBroker,
 	)
 
