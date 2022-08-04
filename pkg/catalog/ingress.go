@@ -27,7 +27,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicies(meshServices []service.MeshServ
 	for _, meshSvc := range meshServices {
 		policy, err := mc.GetIngressTrafficPolicy(meshSvc)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error getting ingress traffic policy for service %s, skippint it", meshSvc)
+			log.Error().Err(err).Msgf("Error getting ingress traffic policy for service %s, skipping it", meshSvc)
 			continue
 		}
 		if policy != nil {

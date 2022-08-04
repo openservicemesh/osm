@@ -93,7 +93,7 @@ func (lb *listenerBuilder) DefaultOutboundListenerFilters() *listenerBuilder {
 	lb.listenerFilters = append(lb.listenerFilters,
 		&xds_listener.ListenerFilter{
 			// The OriginalDestination ListenerFilter is used to restore the original destination address
-			// as opposed to the listener's address upon iptables redirection.
+			// as opposed to the listener's address (due to iptables redirection).
 			// This enables  filter chain matching on the original destination address (ip, port).
 			Name: envoy.OriginalDstFilterName,
 			ConfigType: &xds_listener.ListenerFilter_TypedConfig{
@@ -119,7 +119,7 @@ func (lb *listenerBuilder) DefaultInboundListenerFilters() *listenerBuilder {
 		},
 		&xds_listener.ListenerFilter{
 			// The OriginalDestination ListenerFilter is used to restore the original destination address
-			// as opposed to the listener's address upon iptables redirection.
+			// as opposed to the listener's address (due to iptables redirection).
 			// This enables  filter chain matching on the original destination address (ip, port).
 			Name: envoy.OriginalDstFilterName,
 			ConfigType: &xds_listener.ListenerFilter_TypedConfig{
@@ -132,7 +132,7 @@ func (lb *listenerBuilder) DefaultInboundListenerFilters() *listenerBuilder {
 	return lb
 }
 
-func (lb *listenerBuilder) Tracing(endpoint string) *listenerBuilder {
+func (lb *listenerBuilder) TracingEndpoint(endpoint string) *listenerBuilder {
 	lb.httpTracingEndpoint = endpoint
 	return lb
 }
@@ -464,7 +464,7 @@ func (hb *httpConnManagerBuilder) AddFilter(filter *xds_hcm.HttpFilter) *httpCon
 
 	// Guard against the case where multiple router filters are accidentally programmed.
 	// This panics to ensure this never happens in code.
-	if routerFilterIndex == -1 && filter.Name == envoy.HTTPRouterFilterName {
+	if routerFilterIndex != -1 && filter.Name == envoy.HTTPRouterFilterName {
 		log.Fatal().Msg("Multiple router filters not allowed")
 	}
 

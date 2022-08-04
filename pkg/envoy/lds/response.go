@@ -59,7 +59,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		outboundLis.EgressTrafficPolicy(egressPolicy)
 	}
 	if cfg.GetMeshConfig().Spec.Observability.Tracing.Enable {
-		outboundLis.Tracing(cfg.GetTracingEndpoint())
+		outboundLis.TracingEndpoint(cfg.GetTracingEndpoint())
 	}
 	if cfg.GetMeshConfig().Spec.FeatureFlags.EnableWASMStats {
 		outboundLis.WASMStatsHeaders(statsHeaders)
@@ -98,7 +98,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	inboundLis.TrafficTargets(trafficTargets)
 
 	if cfg.GetMeshConfig().Spec.Observability.Tracing.Enable {
-		inboundLis.Tracing(cfg.GetTracingEndpoint())
+		inboundLis.TracingEndpoint(cfg.GetTracingEndpoint())
 	}
 	if extAuthzConfig := cfg.GetInboundExternalAuthConfig(); extAuthzConfig.Enable {
 		inboundLis.ExtAuthzConfig(&extAuthzConfig)
