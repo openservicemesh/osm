@@ -452,6 +452,11 @@ func (hb *httpConnManagerBuilder) AddFilter(filter *xds_hcm.HttpFilter) *httpCon
 
 	hb.filters = append(hb.filters, filter)
 
+	// If there's only 1 filter, no additional checks required
+	if len(hb.filters) == 1 {
+		return hb
+	}
+
 	routerFilterIndex := -1
 	lastIndex := len(hb.filters) - 1
 
@@ -465,7 +470,7 @@ func (hb *httpConnManagerBuilder) AddFilter(filter *xds_hcm.HttpFilter) *httpCon
 	// Guard against the case where multiple router filters are accidentally programmed.
 	// This panics to ensure this never happens in code.
 	if routerFilterIndex != -1 && filter.Name == envoy.HTTPRouterFilterName {
-		log.Fatal().Msg("Multiple router filters not allowed")
+		panic("multiple router filters not allowed")
 	}
 
 	if routerFilterIndex != lastIndex {

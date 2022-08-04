@@ -334,3 +334,20 @@ func TestFilterBuilder(t *testing.T) {
 		})
 	}
 }
+
+func TestAddFilter(t *testing.T) {
+	a := assert.New(t)
+	hb := HTTPConnManagerBuilder()
+
+	hb.AddFilter(&xds_hcm.HttpFilter{Name: envoy.HTTPRouterFilterName})
+	hb.AddFilter(&xds_hcm.HttpFilter{Name: envoy.HTTPExtAuthzFilterName})
+
+	// Verify the HTTP router filter is always the last filter regardless
+	// of the order in which the filters are added
+	a.Equal(envoy.HTTPExtAuthzFilterName, hb.filters[0].Name)
+	a.Equal(envoy.HTTPRouterFilterName, hb.filters[1].Name)
+
+	// Verify adding router filter multiple times is disallowed
+	a.Panics(func() { hb.AddFilter(&xds_hcm.HttpFilter{Name: envoy.HTTPRouterFilterName}) },
+		"expected adding multiple router filters to panic")
+}
