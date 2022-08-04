@@ -49,7 +49,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		OutboundMeshTrafficPolicy(meshCatalog.GetOutboundMeshTrafficPolicy(proxy.Identity)).
 		ActiveHealthCheck(cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks)
 
-	if cfg.IsEgressEnabled() {
+	if cfg.GetMeshConfig().Spec.Traffic.EnableEgress {
 		outboundLis.PermissiveEgress(true)
 	} else {
 		egressPolicy, err := meshCatalog.GetEgressTrafficPolicy(proxy.Identity)
@@ -58,10 +58,10 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		}
 		outboundLis.EgressTrafficPolicy(egressPolicy)
 	}
-	if cfg.IsTracingEnabled() {
+	if cfg.GetMeshConfig().Spec.Observability.Tracing.Enable {
 		outboundLis.Tracing(cfg.GetTracingEndpoint())
 	}
-	if cfg.GetFeatureFlags().EnableWASMStats {
+	if cfg.GetMeshConfig().Spec.FeatureFlags.EnableWASMStats {
 		outboundLis.WASMStatsHeaders(statsHeaders)
 	}
 
@@ -97,13 +97,13 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 	inboundLis.TrafficTargets(trafficTargets)
 
-	if cfg.IsTracingEnabled() {
+	if cfg.GetMeshConfig().Spec.Observability.Tracing.Enable {
 		inboundLis.Tracing(cfg.GetTracingEndpoint())
 	}
 	if extAuthzConfig := cfg.GetInboundExternalAuthConfig(); extAuthzConfig.Enable {
 		inboundLis.ExtAuthzConfig(&extAuthzConfig)
 	}
-	if cfg.GetFeatureFlags().EnableWASMStats {
+	if cfg.GetMeshConfig().Spec.FeatureFlags.EnableWASMStats {
 		inboundLis.WASMStatsHeaders(statsHeaders)
 	}
 
