@@ -26,6 +26,7 @@ DOCKER_GO_BASE_IMAGE = golang:$(DOCKER_GO_VERSION)
 DOCKER_FINAL_BASE_IMAGE = gcr.io/distroless/static
 DOCKER_GO_BUILD_FLAGS =
 DOCKER_BUILDX_PLATFORM ?= linux/$(shell go env GOARCH)
+DOCKER_BUILDX_PLATFORM_OSM_CROSS ?= linux/amd64,linux/arm64
 # Value for the --output flag on docker buildx build.
 # https://docs.docker.com/engine/reference/commandline/buildx_build/#output
 DOCKER_BUILDX_OUTPUT ?= type=registry
@@ -229,7 +230,7 @@ docker-digests-osm: $(addprefix docker-digest-, $(OSM_TARGETS))
 docker-build: docker-build-osm docker-build-demo
 
 .PHONY: docker-build-cross-osm docker-build-cross-demo docker-build-cross
-docker-build-cross-osm: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
+docker-build-cross-osm: DOCKER_BUILDX_PLATFORM=$(DOCKER_BUILDX_PLATFORM_OSM_CROSS)
 docker-build-cross-osm: docker-build-osm
 docker-build-cross-demo: DOCKER_BUILDX_PLATFORM=linux/amd64,windows/amd64,linux/arm64
 docker-build-cross-demo: docker-build-demo

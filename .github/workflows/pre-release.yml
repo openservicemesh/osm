@@ -31,6 +31,7 @@ jobs:
       VERSION: ${{ needs.version.outputs.version }}
       BUILD_DATE: "$$(date +%Y-%m-%d-%H:%M)"
       FIPS: ${{ contains(matrix.tags, 'fips') && 1 || 0 }}
+      DOCKER_BUILDX_PLATFORM_OSM_CROSS: ${{ contains(matrix.tags, 'fips') && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
