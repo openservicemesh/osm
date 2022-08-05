@@ -264,18 +264,6 @@ const (
 	ProtocolTCPServerFirst = "tcp-server-first"
 )
 
-// HTTPProtocolVersion defines the HTTP protocol version to use
-const (
-	// ProtocolH2c refers to the H2C protocol
-	ProtocolH2C = "h2c"
-
-	// ProtocolHTTP2 refers to HTTP2 protocol
-	ProtocolHTTP2 = "http2"
-
-	// ProtocolHTTP1 refers to HTTP1 protocol
-	ProtocolHTTP1 = "http1"
-)
-
 // Operating systems.
 const (
 	// OSWindows is the name for Windows operating system.
