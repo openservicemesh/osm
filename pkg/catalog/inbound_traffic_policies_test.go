@@ -20,7 +20,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -2158,18 +2157,14 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockServiceProvider := service.NewMockProvider(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				policyController:   mockPolicyController,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-				serviceProviders:   []service.Provider{mockServiceProvider},
-				certManager:        fakeCertManager,
-				configurator:       mockCfg,
-				meshSpec:           mockMeshSpec,
+				kubeController:   mockKubeController,
+				policyController: mockPolicyController,
+				certManager:      fakeCertManager,
+				configurator:     mockCfg,
+				meshSpec:         mockMeshSpec,
 			}
 
 			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
@@ -2415,14 +2410,10 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockServiceProvider := service.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-				serviceProviders:   []service.Provider{mockServiceProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
 			}
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()

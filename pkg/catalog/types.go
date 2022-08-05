@@ -6,6 +6,7 @@ package catalog
 
 import (
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -23,11 +24,10 @@ var (
 
 // MeshCatalog is the struct for the service catalog
 type MeshCatalog struct {
-	endpointsProviders []endpoint.Provider
-	serviceProviders   []service.Provider
-	meshSpec           smi.MeshSpec
-	configurator       configurator.Configurator
-	certManager        *certificate.Manager
+	compute.Interface
+	meshSpec     smi.MeshSpec
+	configurator configurator.Configurator
+	certManager  *certificate.Manager
 
 	// This is the kubernetes client that operates async caches to avoid issuing synchronous
 	// calls through kubeClient and instead relies on background cache synchronization and local
@@ -41,6 +41,8 @@ type MeshCatalog struct {
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
+	compute.Interface
+
 	// ListOutboundServicesForIdentity list the services the given service identity is allowed to initiate outbound connections to
 	ListOutboundServicesForIdentity(identity.ServiceIdentity) []service.MeshService
 
@@ -49,9 +51,6 @@ type MeshCataloger interface {
 
 	// ListOutboundServiceIdentities lists the upstream service identities the given service identity are allowed to connect to
 	ListOutboundServiceIdentities(identity.ServiceIdentity) []identity.ServiceIdentity
-
-	// ListServiceIdentitiesForService lists the service identities associated with the given service
-	ListServiceIdentitiesForService(service.MeshService) []identity.ServiceIdentity
 
 	// ListAllowedUpstreamEndpointsForService returns the list of endpoints over which the downstream client identity
 	// is allowed access the upstream service

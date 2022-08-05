@@ -7,6 +7,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
+	"github.com/openservicemesh/osm/pkg/compute"
+
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -15,8 +17,7 @@ import (
 )
 
 // Ensure interface compliance
-var _ endpoint.Provider = (*client)(nil)
-var _ service.Provider = (*client)(nil)
+var _ compute.Interface = (*client)(nil)
 
 // NewClient returns a client that has all components necessary to connect to and maintain state of a Kubernetes cluster.
 func NewClient(kubeController k8s.Controller, cfg configurator.Configurator) *client { //nolint: revive // unexported-return

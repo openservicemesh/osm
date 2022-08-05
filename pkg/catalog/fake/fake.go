@@ -15,13 +15,12 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	kubeFake "github.com/openservicemesh/osm/pkg/compute/kube/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
-	kubeFake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
 	"github.com/openservicemesh/osm/pkg/service"
 	smiFake "github.com/openservicemesh/osm/pkg/smi/fake"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -38,13 +37,6 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 	stop := make(<-chan struct{})
 
 	provider := kubeFake.NewFakeProvider()
-
-	endpointProviders := []endpoint.Provider{
-		provider,
-	}
-	serviceProviders := []service.Provider{
-		provider,
-	}
 
 	osmNamespace := "-test-osm-namespace-"
 	osmMeshConfigName := "-test-osm-mesh-config-"
@@ -119,5 +111,5 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 	mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(nil).AnyTimes()
 
 	return catalog.NewMeshCatalog(mockKubeController, meshSpec, certManager,
-		mockPolicyController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
+		mockPolicyController, stop, cfg, provider, messaging.NewBroker(stop))
 }

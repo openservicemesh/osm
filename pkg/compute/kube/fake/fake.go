@@ -3,20 +3,15 @@ package fake
 import (
 	"fmt"
 
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-// Provider interface combines endpoint.Provider and service.Provider
-type Provider interface {
-	endpoint.Provider
-	service.Provider
-}
-
-// NewFakeProvider implements mesh.EndpointsProvider, which creates a test Kubernetes cluster/compute provider.
-func NewFakeProvider() Provider {
+// NewFakeProvider implements compute.Interface, which creates a test Kubernetes cluster/compute client.
+func NewFakeProvider() compute.Interface {
 	return fakeClient{
 		endpoints: map[string][]endpoint.Endpoint{
 			tests.BookstoreV1Service.String():   {tests.Endpoint},
