@@ -15,7 +15,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
-	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 const bugReportDescription = `
@@ -146,7 +145,7 @@ func (cmd *bugReportCmd) run() error {
 		}
 	} else {
 		for _, pod := range cmd.appPods {
-			p, err := k8s.NamespacedNameFrom(pod)
+			p, err := namespacedNameFrom(pod)
 			if err != nil {
 				fmt.Fprintf(cmd.stderr, "Pod name %s is not namespaced, skipping it", pod)
 				continue
@@ -155,7 +154,7 @@ func (cmd *bugReportCmd) run() error {
 		}
 
 		for _, deployment := range cmd.appDeployments {
-			d, err := k8s.NamespacedNameFrom(deployment)
+			d, err := namespacedNameFrom(deployment)
 			if err != nil {
 				fmt.Fprintf(cmd.stderr, "Deployment name %s is not namespaced, skipping it", deployment)
 				continue

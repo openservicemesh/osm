@@ -7,7 +7,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -125,7 +124,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			continue
 		}
 		// Create a route to access the upstream service via it's hostnames and upstream weighted clusters
-		httpHostNamesForServicePort := k8s.GetHostnamesForService(meshSvc, downstreamSvcAccount.Namespace == meshSvc.Namespace)
+		httpHostNamesForServicePort := mc.GetHostnamesForService(meshSvc, downstreamSvcAccount.Namespace == meshSvc.Namespace)
 		outboundTrafficPolicy := trafficpolicy.NewOutboundTrafficPolicy(meshSvc.FQDN(), httpHostNamesForServicePort)
 		if err := outboundTrafficPolicy.AddRoute(trafficpolicy.WildCardRouteMatch, retryPolicy, upstreamClusters...); err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).

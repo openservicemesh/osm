@@ -2,6 +2,7 @@ package kube
 
 import (
 	"context"
+	"errors"
 	"net"
 	"testing"
 
@@ -19,8 +20,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -301,95 +304,6 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 	})
 })
 
-func TestGetServicesForServiceIdentity(t *testing.T) {
-	testCases := []struct {
-		name        string
-		svcIdentity identity.ServiceIdentity
-		pods        []*corev1.Pod
-		services    []*corev1.Service
-		expected    []service.MeshService
-	}{
-		{
-			name:        "Returns the list of MeshServices matching the given identity",
-			svcIdentity: identity.ServiceIdentity("sa1.ns1"), // Matches pod ns1/p1
-			pods: []*corev1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "ns1",
-						Name:      "p1",
-						Labels: map[string]string{
-							"k1": "v1", // matches selector for service ns1/s1
-						},
-					},
-					Spec: corev1.PodSpec{
-						ServiceAccountName: "sa1",
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "ns1",
-						Name:      "p2",
-						Labels: map[string]string{
-							"k1": "v2", // does not match selector for service ns1/s1
-						},
-					},
-					Spec: corev1.PodSpec{
-						ServiceAccountName: "sa2",
-					},
-				},
-			},
-			services: []*corev1.Service{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "s1",
-						Namespace: "ns1",
-					},
-					Spec: corev1.ServiceSpec{
-						Selector: map[string]string{
-							"k1": "v1", // matches labels on pod ns1/p1
-						},
-						Ports: []corev1.ServicePort{{}},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "s2",
-						Namespace: "ns1",
-					},
-					Spec: corev1.ServiceSpec{
-						Selector: map[string]string{
-							"k1": "v2", // does not match labels on pod ns1/p1
-						},
-					},
-				},
-			},
-			expected: []service.MeshService{
-				{Namespace: "ns1", Name: "s1", Protocol: "http"}, // ns1/s1 matches pod ns1/p1 with service account ns1/sa1
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
-
-			mockKubeController := k8s.NewMockController(mockCtrl)
-			c := &client{
-				kubeController: mockKubeController,
-			}
-
-			mockKubeController.EXPECT().ListPods().Return(tc.pods)
-			mockKubeController.EXPECT().ListServices().Return(tc.services)
-			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(nil, nil).AnyTimes()
-
-			actual := c.GetServicesForServiceIdentity(tc.svcIdentity)
-			assert.ElementsMatch(tc.expected, actual)
-		})
-	}
-}
-
 func TestListEndpointsForIdentity(t *testing.T) {
 	testCases := []struct {
 		name                            string
@@ -466,6 +380,135 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			actual := provider.ListEndpointsForIdentity(tc.serviceAccount)
 			assert.NotNil(actual)
 			assert.ElementsMatch(actual, tc.expectedEndpoints)
+		})
+	}
+}
+
+func TestGetHostnamesForServicePort(t *testing.T) {
+	testCases := []struct {
+		name              string
+		service           service.MeshService
+		localNamespace    bool
+		expectedHostnames []string
+	}{
+		{
+			name:           "hostnames corresponding to a service in the same namespace",
+			service:        service.MeshService{Namespace: "ns1", Name: "s1", Port: 90},
+			localNamespace: true,
+			expectedHostnames: []string{
+				"s1",
+				"s1:90",
+				"s1.ns1",
+				"s1.ns1:90",
+				"s1.ns1.svc",
+				"s1.ns1.svc:90",
+				"s1.ns1.svc.cluster",
+				"s1.ns1.svc.cluster:90",
+				"s1.ns1.svc.cluster.local",
+				"s1.ns1.svc.cluster.local:90",
+			},
+		},
+		{
+			name:           "hostnames corresponding to a service in different namespace",
+			service:        service.MeshService{Namespace: "ns1", Name: "s1", Port: 90},
+			localNamespace: false,
+			expectedHostnames: []string{
+				"s1.ns1",
+				"s1.ns1:90",
+				"s1.ns1.svc",
+				"s1.ns1.svc:90",
+				"s1.ns1.svc.cluster",
+				"s1.ns1.svc.cluster:90",
+				"s1.ns1.svc.cluster.local",
+				"s1.ns1.svc.cluster.local:90",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			actual := (&client{}).GetHostnamesForService(tc.service, tc.localNamespace)
+			assert.ElementsMatch(actual, tc.expectedHostnames)
+			assert.Len(actual, len(tc.expectedHostnames))
+		})
+	}
+}
+
+func TestIsMetricsEnabled(t *testing.T) {
+	testCases := []struct {
+		name        string
+		informerOpt informers.InformerCollectionOption
+
+		pod           *corev1.Pod
+		expectEnabled bool
+		expectErr     bool
+	}{
+		{
+			name: "pod without prometheus scraping annotation",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: nil,
+				},
+			},
+			expectEnabled: false,
+		},
+		{
+			name: "pod with prometheus scraping annotation set to true",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						constants.PrometheusScrapeAnnotation: "true",
+					},
+				},
+			},
+			expectEnabled: true,
+		},
+		{
+			name: "pod with prometheus scraping annotation set to false",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						constants.PrometheusScrapeAnnotation: "false",
+					},
+				},
+			},
+			expectEnabled: false,
+		},
+		{
+			name: "pod with incorrect prometheus scraping annotation",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						constants.PrometheusScrapeAnnotation: "no",
+					},
+				},
+			},
+			expectEnabled: false,
+			expectErr:     true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			k := k8s.NewMockController(mockCtrl)
+			if tc.pod != nil {
+				k.EXPECT().GetPodForProxy(gomock.Any()).Return(tc.pod, nil)
+			} else {
+				k.EXPECT().GetPodForProxy(gomock.Any()).Return(nil, errors.New("not found"))
+			}
+			c := NewClient(k, nil)
+
+			actual, err := c.IsMetricsEnabled(&envoy.Proxy{})
+			assert.Equal(tc.expectEnabled, actual)
+			if tc.expectErr {
+				assert.Error(err)
+			} else {
+				assert.NoError(err)
+			}
 		})
 	}
 }

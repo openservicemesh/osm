@@ -65,8 +65,8 @@ const (
 	ServiceAccounts InformerKey = "ServiceAccounts"
 )
 
-// client is the type used to represent the k8s client for the native k8s resources
-type client struct {
+// Client is the type used to represent the k8s client for the native k8s resources
+type Client struct {
 	policyClient policyv1alpha1Client.Interface
 	informers    *informers.InformerCollection
 	msgBroker    *messaging.Broker
@@ -110,4 +110,6 @@ type Controller interface {
 	GetPodForProxy(*envoy.Proxy) (*v1.Pod, error)
 
 	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
+
+	ServiceToMeshServices(svc corev1.Service) []service.MeshService
 }

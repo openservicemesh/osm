@@ -5,6 +5,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -94,4 +95,33 @@ func (f fakeClient) GetResolvableEndpointsForService(svc service.MeshService) []
 		return nil
 	}
 	return endpoints
+}
+
+func (f fakeClient) IsMetricsEnabled(*envoy.Proxy) (bool, error) {
+	return true, nil
+}
+
+// GetHostnamesForService returns the hostnames over which the service is accessible
+func (f fakeClient) GetHostnamesForService(svc service.MeshService, localNamespace bool) []string {
+	var hostnames []string
+
+	if localNamespace {
+		hostnames = append(hostnames, []string{
+			svc.Name,                                 // service
+			fmt.Sprintf("%s:%d", svc.Name, svc.Port), // service:port
+		}...)
+	}
+
+	hostnames = append(hostnames, []string{
+		fmt.Sprintf("%s.%s", svc.Name, svc.Namespace),                                // service.namespace
+		fmt.Sprintf("%s.%s:%d", svc.Name, svc.Namespace, svc.Port),                   // service.namespace:port
+		fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace),                            // service.namespace.svc
+		fmt.Sprintf("%s.%s.svc:%d", svc.Name, svc.Namespace, svc.Port),               // service.namespace.svc:port
+		fmt.Sprintf("%s.%s.svc.cluster", svc.Name, svc.Namespace),                    // service.namespace.svc.cluster
+		fmt.Sprintf("%s.%s.svc.cluster:%d", svc.Name, svc.Namespace, svc.Port),       // service.namespace.svc.cluster:port
+		fmt.Sprintf("%s.%s.svc.cluster.local", svc.Name, svc.Namespace),              // service.namespace.svc.cluster.local
+		fmt.Sprintf("%s.%s.svc.cluster.local:%d", svc.Name, svc.Namespace, svc.Port), // service.namespace.svc.cluster.local:port
+	}...)
+
+	return hostnames
 }

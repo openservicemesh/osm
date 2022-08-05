@@ -69,9 +69,6 @@ type MeshCataloger interface {
 	// GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity.
 	GetEgressTrafficPolicy(identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error)
 
-	// GetKubeController returns the kube controller instance handling the current cluster
-	GetKubeController() k8s.Controller
-
 	// GetOutboundMeshTrafficPolicy returns the outbound mesh traffic policy for the given downstream identity
 	GetOutboundMeshTrafficPolicy(identity.ServiceIdentity) *trafficpolicy.OutboundMeshTrafficPolicy
 

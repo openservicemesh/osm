@@ -11,6 +11,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	. "github.com/onsi/ginkgo"
@@ -20,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -297,14 +299,14 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 func TestKubernetesServicesToMeshServices(t *testing.T) {
 	testCases := []struct {
 		name                 string
-		k8sServices          []v1.Service
-		k8sEndpoints         v1.Endpoints
+		k8sServices          []*v1.Service
+		k8sEndpoints         *v1.Endpoints
 		expectedMeshServices []service.MeshService
 		subdomainFilter      string
 	}{
 		{
 			name: "k8s services to mesh services",
-			k8sServices: []v1.Service{
+			k8sServices: []*v1.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns1",
@@ -349,7 +351,7 @@ func TestKubernetesServicesToMeshServices(t *testing.T) {
 		},
 		{
 			name: "k8s services to mesh services (subdomain filter)",
-			k8sServices: []v1.Service{
+			k8sServices: []*v1.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns1",
@@ -363,7 +365,7 @@ func TestKubernetesServicesToMeshServices(t *testing.T) {
 					},
 				},
 			},
-			k8sEndpoints: v1.Endpoints{
+			k8sEndpoints: &v1.Endpoints{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "s1-headless",
 					Namespace: "ns1",
@@ -398,13 +400,21 @@ func TestKubernetesServicesToMeshServices(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
-			mockKubeController := k8s.NewMockController(mockCtrl)
+			stop := make(chan struct{})
+			defer close(stop)
+			var objs []runtime.Object
+			for _, svc := range tc.k8sServices {
+				objs = append(objs, svc)
+			}
+			if tc.k8sEndpoints != nil {
+				objs = append(objs, tc.k8sEndpoints)
+			}
 
-			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&tc.k8sEndpoints, nil).Times(len(tc.k8sServices))
+			ic, err := informers.NewInformerCollection("test", stop, informers.WithKubeClient(testclient.NewSimpleClientset(objs...)))
+			assert.NoError(err)
+			k8sClient := k8s.NewClient(ic, nil, nil)
 
-			actual := kubernetesServicesToMeshServices(mockKubeController, tc.k8sServices, tc.subdomainFilter)
+			actual := kubernetesServicesToMeshServices(k8sClient, tc.k8sServices, tc.subdomainFilter)
 			assert.ElementsMatch(tc.expectedMeshServices, actual)
 		})
 	}

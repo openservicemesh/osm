@@ -203,7 +203,7 @@ func main() {
 	// This component will be watching resources in the config.openservicemesh.io API group
 	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
 
-	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
+	k8sClient := k8s.NewClient(informerCollection, policyClient, msgBroker)
 
 	meshSpec := smi.NewSMIClient(informerCollection, osmNamespace, k8sClient, msgBroker)
 

@@ -37,11 +37,6 @@ func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certMa
 	return mc
 }
 
-// GetKubeController returns the kube controller instance handling the current cluster
-func (mc *MeshCatalog) GetKubeController() k8s.Controller {
-	return mc.kubeController
-}
-
 // GetTrustDomain returns the currently configured trust domain, ie: cluster.local
 func (mc *MeshCatalog) GetTrustDomain() string {
 	return mc.certManager.GetTrustDomain()
