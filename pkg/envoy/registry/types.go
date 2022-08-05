@@ -3,8 +3,6 @@ package registry
 import (
 	"sync"
 
-	"github.com/cskr/pubsub"
-
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -18,7 +16,6 @@ type ProxyRegistry struct {
 	ProxyServiceMapper
 
 	msgBroker *messaging.Broker
-	pubsub    *pubsub.PubSub
 
 	mu               sync.Mutex
 	connectedProxies map[int64]*envoy.Proxy

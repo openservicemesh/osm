@@ -1,8 +1,6 @@
 package registry
 
 import (
-	"github.com/cskr/pubsub"
-
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -13,8 +11,6 @@ func NewProxyRegistry(mapper ProxyServiceMapper, msgBroker *messaging.Broker) *P
 		ProxyServiceMapper: mapper,
 		msgBroker:          msgBroker,
 		connectedProxies:   make(map[int64]*envoy.Proxy),
-		pubsub:             pubsub.New(0),
-		// ch 							: make(chan *envoy.Proxy, 10),
 	}
 }
 
@@ -23,7 +19,7 @@ func (pr *ProxyRegistry) RegisterProxy(proxy *envoy.Proxy) {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 	pr.connectedProxies[proxy.GetConnectionID()] = proxy
-	log.Debug().Str("proxy", proxy.String()).Msg("Registered new proxy")
+	log.Debug().Str("proxy", proxy.String()).Msgf("Registered proxy %s from stream %d", proxy.String(), proxy.GetConnectionID())
 }
 
 // GetConnectedProxy loads a connected proxy from the registry.
@@ -38,6 +34,7 @@ func (pr *ProxyRegistry) UnregisterProxy(connectionID int64) {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 	delete(pr.connectedProxies, connectionID)
+	log.Debug().Msgf("Unregistered proxy from stream %d", connectionID)
 }
 
 // GetConnectedProxyCount counts the number of connected proxies

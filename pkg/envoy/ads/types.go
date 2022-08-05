@@ -8,7 +8,6 @@ import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -43,10 +42,9 @@ type Server struct {
 	// ---
 	// SnapshotCache implementation structrues below
 	// Used to maintain a unique ID per stream. Must be accessed with the atomic package.
-	streamCount  int64
-	cacheEnabled bool
-	ch           cachev3.SnapshotCache
-	srv          serverv3.Server
+	nextStreamID  int64
+	cacheEnabled  bool
+	snapshotCache cachev3.SnapshotCache
 	// When snapshot cache is enabled, we (currently) don't keep track of proxy information, however different
 	// config versions have to be provided to the cache as we keep adding snapshots. The following map
 	// tracks at which version we are at given a proxy UUID

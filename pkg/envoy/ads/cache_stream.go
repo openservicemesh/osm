@@ -68,5 +68,5 @@ func (s *Server) RecordFullSnapshot(proxy *envoy.Proxy, snapshotResources map[st
 	defer s.configVerMutex.Unlock()
 	s.configVersion[proxy.UUID.String()]++
 
-	return s.ch.SetSnapshot(context.TODO(), proxy.UUID.String(), snapshot)
+	return s.snapshotCache.SetSnapshot(context.TODO(), proxy.UUID.String(), snapshot)
 }
