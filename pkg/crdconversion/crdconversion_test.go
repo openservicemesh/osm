@@ -10,7 +10,6 @@ import (
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
@@ -96,7 +95,6 @@ func TestUpdateCrdConfiguration(t *testing.T) {
 func TestNewConversionWebhook(t *testing.T) {
 	assert := tassert.New(t)
 	crdClient := fake.NewSimpleClientset()
-	kubeClient := k8sfake.NewSimpleClientset()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -104,6 +102,6 @@ func TestNewConversionWebhook(t *testing.T) {
 	osmNamespace := "-osm-namespace-"
 	enablesReconciler := false
 
-	actualErr := NewConversionWebhook(context.Background(), kubeClient, crdClient.ApiextensionsV1(), fakeCertManager, osmNamespace, enablesReconciler)
+	actualErr := NewConversionWebhook(context.Background(), crdClient.ApiextensionsV1(), fakeCertManager, osmNamespace, enablesReconciler)
 	assert.NotNil(actualErr)
 }

@@ -247,7 +247,7 @@ func BuildEgressRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpo
 	return routeConfigs
 }
 
-//NewRouteConfigurationStub creates the route configuration placeholder
+// NewRouteConfigurationStub creates the route configuration placeholder
 func NewRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfiguration {
 	routeConfiguration := xds_route.RouteConfiguration{
 		Name: routeConfigName,

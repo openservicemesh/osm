@@ -7,7 +7,6 @@ import (
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -38,7 +37,7 @@ var apiKindToPath = map[string]string{
 var conversionReviewVersions = []string{"v1beta1", "v1"}
 
 // NewConversionWebhook starts a new web server handling requests from the CRD's
-func NewConversionWebhook(ctx context.Context, kubeClient kubernetes.Interface, crdClient apiclient.ApiextensionsV1Interface, certManager *certificate.Manager, osmNamespace string, enableReconciler bool) error {
+func NewConversionWebhook(ctx context.Context, crdClient apiclient.ApiextensionsV1Interface, certManager *certificate.Manager, osmNamespace string, enableReconciler bool) error {
 	srv, err := webhook.NewServer(constants.OSMBootstrapName, osmNamespace, constants.CRDConversionWebhookPort, certManager, map[string]http.HandlerFunc{
 		meshConfigConverterPath:            serveMeshConfigConversion,
 		trafficAccessConverterPath:         serveTrafficAccessConversion,
