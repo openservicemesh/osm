@@ -13,16 +13,13 @@ This guide describes the process to create a GitHub Release for this project.
 Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the following steps.
 
 - [Release Guide](#release-guide)
-  - [Create release branches](#create-release-branches)
+  - [Create a release branch](#create-a-release-branch)
   - [Add changes to be backported](#add-changes-to-be-backported)
-  - [Create FIPS patch branch and generate fips.go files](#create-fips-patch-branch-and-generate-fipsgo-files)
   - [Create and push the pre-release Git tag](#create-and-push-the-pre-release-git-tag)
-  - [Create and push the FIPS pre-release Git tag](#create-and-push-the-fips-pre-release-git-tag)
+    - [A note about FIPS](#a-note-about-fips)
   - [Update release branch with patches and versioning changes](#update-release-branch-with-patches-and-versioning-changes)
-  - [Update FIPS release branch with patches](#update-fips-release-branch-with-patches)
   - [Create and push the release Git tag](#create-and-push-the-release-git-tag)
   - [Add release notes](#add-release-notes)
-  - [Create and push the FIPS release Git tag](#create-and-push-the-fips-release-git-tag)
   - [Update documentation and docs.openservicemesh.io website](#update-documentation-and-docsopenservicemeshio-website)
     - [1. Create the release specific branch in osm-docs repo](#1-create-the-release-specific-branch-in-osm-docs-repo)
     - [2. Update version references to the latest version for the given Major.Minor version](#2-update-version-references-to-the-latest-version-for-the-given-majorminor-version)
@@ -32,64 +29,26 @@ Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the 
   - [Make version changes on main branch](#make-version-changes-on-main-branch)
   - [Workflow Diagram](#workflow-diagram)
 
-## Create release branches
+## Create a release branch
 
 Look for a branch on the upstream repo named `release-vX.Y`, where `X` and `Y` correspond to the major and minor version of the semver tag to be used for the new release. If the branch already exists, skip to the next step.
 
 Identify the base commit in the `main` branch for the release and cut a release branch off `main`.
-```shell
+```console
 $ git checkout -b release-<version> <commit-id> # ex: git checkout -b release-v0.4 0d05587
 ```
 > Note: Care must be taken to ensure the release branch is created from a commit meant for the release. If unsure about the commit to use to create the release branch, please open an issue in the `osm` repo and a maintainer will assist you with this.
 
 Push the release branch to the upstream repo (NOT forked), identified here by the `upstream` remote.
-```shell
-$ git push upstream release-<version> # ex: git push upstream release-v0.4
-```
-
-Next, do the same for a branch named `release-vX.Y-fips`. Again, if the branch already exists, skip to the next step. Make sure the base commit for the fips branch is the same as the regular release branch.
-
-Identify the base commit in the `main` branch for the release and cut a release branch off `main`.
-```shell
-$ git checkout -b release-<version>-fips <commit-id> # ex: git checkout -b release-v0.4-fips 0d05587
-```
-
-Push the FIPS release branch to the upstream repo (NOT forked), identified here by the `upstream` remote.
-```shell
+```console
 $ git push upstream release-<version> # ex: git push upstream release-v0.4
 ```
 
 ## Add changes to be backported
 
-Create a new branch off of the release branch to maintain updates specific to the new version. Let's call it the patch branch. The patch branch should NOT be created in the upstream repo.
+Create a new branch off of the release branch to maintain updates specific to the new version. Let's call it the patch branch. The patch branch should not be created in the upstream repo.
 
 If there are other commits on the `main` branch to be included in the release (such as for successive release candidates or patch releases), cherry-pick those onto the patch branch.
-
-## Create FIPS patch branch and generate fips.go files
-
-Once you've cherry-picked all of the necessary changes onto your patch branch, create a new, FIPS-specific branch with the HEAD of your patch branch as your base:
-
-```shell
-$ git status
-On branch <patch-branch>
-...
-$ git checkout -b <patch-branch>-fips
-```
-
-This branch will be the base of all of the FIPS release artifacts that will be created later. Be careful not to mix up the FIPS patch branches with the
-main patch branch. Before switching back to the main patch branch; you'll need to create one commit in order to generate the appropriate files for the
-FIPS version of OSM. To do this, run `make codegen-fips` and commit the result
-
-```shell
-$ git status
-On branch <patch-branch>-fips
-...
-$ make codegen-fips
-...
-$ git commit -sam "...."
-```
-
-Once you've made that commit and pushed your FIPS patch branch to your fork (NOT the upstream repo), return to the main patch branch for the next steps.
 
 ## Create and push the pre-release Git tag
 
@@ -97,13 +56,13 @@ The pre-release Git tag publishes the OSM control plane images to the `openservi
 
 The pre-release Git tag is of the form `pre-rel-<release-version>`, e.g. `pre-rel-v0.4.0`.
 
-```shell
+```console
 $ PRE_RELEASE_VERSION=<pre-release-version> # ex: PRE_RELEASE_VERSION=pre-rel-v0.4.0
 $ git tag "$PRE_RELEASE_VERSION"
 $ git push upstream "$PRE_RELEASE_VERSION"
 ```
 
-Once the pre-release Git tag has been pushed, wait for the Pre-release Github workflow to complete (this is a good time to [start the FIPS version of this process](#create-and-push-the-fips-pre-release-git-tag)). Upon workflow completion, retrieve the image digests for the given release. The image digests are logged in the "Image digests" step of the Pre-release workflow.
+Once the pre-release Git tag has been pushed, wait for the Pre-release Github workflow to complete. Upon workflow completion, retrieve the image digests for the given release. The image digests are logged in the "Image digests" step of the Pre-release workflow.
 
 The image digest logs contain the sha256 image digest for each control plane image as follows:
 ```
@@ -114,20 +73,9 @@ osm-crds: sha256:359a4a6b031d0f72848d6bedc742b34b60323ebc5d5001071c0695130b694ef
 osm-bootstrap: sha256:fd159fdb965cc0d3d7704afaf673862b5e92257925fc3f6345810f98bb6246f8
 ```
 
-## Create and push the FIPS pre-release Git tag
+### A note about FIPS
 
-Similarly, there is a FIPs pre-release git tag that does the same thing as the main version, just for FIPS artifacts. The image digests published here are necessary later.
-
-The pre-release Git tag is of the form `pre-rel-<release-version>-fips`, e.g. `pre-rel-v0.4.0-fips`.
-
-```shell
-$ PRE_RELEASE_VERSION=<pre-release-version>-fips # ex: PRE_RELEASE_VERSION=pre-rel-v0.4.0-fips
-$ git tag "$PRE_RELEASE_VERSION"
-$ git push upstream "$PRE_RELEASE_VERSION"
-```
-
-Once the FIPS pre-release Git tag has been pushed, make sure the FIPS pre-release Github workflow succeeds. There are no image digest to record here because we won't be
-publishing a separate FIPS version of the OSM helm chart. Users can override the image tags in the Helm values if they'd like to use the FIPS version of OSM.
+The previous step will create and push AMD64-based Docker images for the FIPS version of the OSM control plane to DockerHub. Because GitHub Actions doesn't support remote hosted ARM runners, FIPS ARM images for OSM will only be available via Microsoft Artifact Registry.
 
 ## Update release branch with patches and versioning changes
 
@@ -142,13 +90,7 @@ Create a new commit on the patch branch to update the hardcoded version informat
 
 Once patches and version information have been updated on the patch branch off of the release branch, create a pull request from the patch branch to the release branch. When creating your pull request, generate the release checklist for the description by adding the following to the PR URL: `?expand=1&template=release_pull_request_template.md`. Alternatively, copy the raw template from [release_pull_request_template.md](/.github/PULL_REQUEST_TEMPLATE/release_pull_request_template.md).
 
-Proceed to the next (non-FIPS) step once the pull request is approved and merged.
-
-## Update FIPS release branch with patches
-
-Switch back to your FIPS patch release branch with `git checkout <patch-branch>-fips`. If there are any changes or fixes you need to add based on the main branch, add them to the FIPS branch now. Once that's done, create a pull request from the FIPS patch branch to the FIPS release branch. When creating your pull request, generate the release checklist for the description by adding the following to the PR URL: `?expand=1&template=release_pull_request_template.md`. Alternatively, copy the raw template from [release_pull_request_template.md](/.github/PULL_REQUEST_TEMPLATE/release_pull_request_template.md).
-
-Proceed to the next (FIPS) step once the pull request is approved and merged.
+Proceed to the next step once the pull request is approved and merged.
 
 ## Create and push the release Git tag
 
@@ -157,7 +99,7 @@ Ensure your local copy of the release branch has the latest changes from the PR 
 Once the release is ready to be published, create and push a Git tag from the release branch to
 the main repo (not fork), identified here by the `upstream` remote.
 
-```shell
+```console
 $ export RELEASE_VERSION=<release-version> # ex: export RELEASE_VERSION=v0.4.0
 $ git tag "$RELEASE_VERSION"
 $ git push upstream "$RELEASE_VERSION"
@@ -171,22 +113,6 @@ upload the packaged binaries and checksums as release assets, build and push Doc
 ## Add release notes
 
 The release job runs the `scripts/release-notes.sh` script to generate release notes for the specific release tag. Update the `Notable Changes` and `Deprecation Notes` section based on notable feature additions, critical bug fixes, and deprecated functionality.
-
-## Create and push the FIPS release Git tag
-
-Ensure your local copy of the FIPS release branch has the latest changes from the PR merged above (run `git fetch upstream` to double check).
-
-Once the FIPS release is ready to be published, create and push a Git tag from the release branch to
-the main repo (not fork), identified here by the `upstream` remote.
-
-```shell
-$ export RELEASE_VERSION=<release-version>-fips # ex: export RELEASE_VERSION=v0.4.0
-$ git tag "$RELEASE_VERSION-fips"
-$ git push upstream "$RELEASE_VERSION-fips"
-```
-
-A special, [FIPS-specific GitHub Action](/.github/workflows/release-fips.yml) is triggered when the tag is pushed.
-It will publish a new GitHub release and upload the packaged binaries and checksums as release assets.
 
 ## Update documentation and docs.openservicemesh.io website
 

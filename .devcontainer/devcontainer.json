@@ -10,8 +10,8 @@
 	"context": "..",
 
 	// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
-	// "dockerFile": "../Dockerfile",
-	"dockerFile": "../Dockerfile.fips",
+	"dockerFile": "../Dockerfile",
+	// "dockerFile": "../Dockerfile.fips",
 
 	//"workspaceMount":"source=${localWorkspaceFolder},target=/go/src/github.com/openservicemesh/osm,type=bind,consistency=cached",
 
