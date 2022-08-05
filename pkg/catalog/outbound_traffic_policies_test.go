@@ -14,8 +14,8 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/policy"
-	"github.com/openservicemesh/osm/pkg/providers"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -580,13 +580,13 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
-			mockProvider := providers.NewMockProvider(mockCtrl)
+			mockProvider := compute.NewMockInterface(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
 
 			mc := MeshCatalog{
 				kubeController:   mockKubeController,
-				Provider:         mockProvider,
+				Interface:        mockProvider,
 				configurator:     mockCfg,
 				meshSpec:         mockMeshSpec,
 				policyController: mockPolicyController,

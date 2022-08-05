@@ -1,4 +1,4 @@
-package providers
+package compute
 
 import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -6,8 +6,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// Provider is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
-type Provider interface {
+// Interface is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
+type Interface interface {
 	// GetServicesForServiceIdentity retrieves the namespaced services for a given service identity
 	GetServicesForServiceIdentity(identity.ServiceIdentity) []service.MeshService
 

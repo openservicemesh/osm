@@ -33,6 +33,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
@@ -49,7 +50,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/policy"
-	"github.com/openservicemesh/osm/pkg/providers/kube"
 	"github.com/openservicemesh/osm/pkg/reconciler"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -230,7 +230,7 @@ func main() {
 		}
 	}
 
-	kubeProvider := kube.NewClient(k8sClient, cfg)
+	computeClient := kube.NewClient(k8sClient, cfg)
 
 	ingress.Initialize(kubeClient, k8sClient, stop, cfg, certManager, msgBroker)
 
@@ -243,7 +243,7 @@ func main() {
 		policyController,
 		stop,
 		cfg,
-		kubeProvider,
+		computeClient,
 		msgBroker,
 	)
 

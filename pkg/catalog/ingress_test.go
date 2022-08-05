@@ -10,10 +10,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
-	"github.com/openservicemesh/osm/pkg/providers"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -391,13 +391,13 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			mockProvider := providers.NewMockProvider(mockCtrl)
+			mockProvider := compute.NewMockInterface(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
 			mockKubeController := k8s.NewMockController(mockCtrl)
 
 			meshCatalog := &MeshCatalog{
-				Provider:         mockProvider,
+				Interface:        mockProvider,
 				configurator:     mockCfg,
 				policyController: mockPolicyController,
 				kubeController:   mockKubeController,
