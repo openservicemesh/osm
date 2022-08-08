@@ -8,6 +8,8 @@ import (
 	//
 	// Generated using the command:
 	// go list -mod=readonly github.com/envoyproxy/go-control-plane/envoy/...  | sort | awk '{printf "_ \"%s\"\n", $1}'
+	_ "github.com/envoyproxy/go-control-plane/contrib/envoy/extensions/filters/http/dynamo/v3"
+	_ "github.com/envoyproxy/go-control-plane/contrib/envoy/extensions/filters/network/client_ssl_auth/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
 	_ "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/annotations"
@@ -165,7 +167,6 @@ import (
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/csrf/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/decompressor/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/dynamic_forward_proxy/v3"
-	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/dynamo/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_proc/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/fault/v3"
@@ -197,7 +198,6 @@ import (
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/original_src/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/proxy_protocol/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
-	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/client_ssl_auth/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/connection_limit/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/direct_response/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/dubbo_proxy/router/v3"
