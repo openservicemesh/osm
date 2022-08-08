@@ -44,8 +44,7 @@ func (lb *listenerBuilder) buildIngressFilterChainFromTrafficMatch(trafficMatch 
 
 	hcmBuilder := HTTPConnManagerBuilder()
 	hcmBuilder.StatsPrefix(route.IngressRouteConfigName).
-		RouteConfigName(route.IngressRouteConfigName).
-		DefaultFilters()
+		RouteConfigName(route.IngressRouteConfigName)
 
 	if lb.httpTracingEndpoint != "" {
 		tracing, err := getHTTPTracingConfig(lb.httpTracingEndpoint)

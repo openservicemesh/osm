@@ -275,8 +275,7 @@ func (lb *listenerBuilder) buildInboundListener() *xds_listener.Listener {
 func (lb *listenerBuilder) buildOutboundHTTPFilter(routeConfigName string) (*xds_listener.Filter, error) {
 	hb := HTTPConnManagerBuilder()
 	hb.StatsPrefix(routeConfigName).
-		RouteConfigName(routeConfigName).
-		DefaultFilters()
+		RouteConfigName(routeConfigName)
 
 	if lb.httpTracingEndpoint != "" {
 		tracing, err := getHTTPTracingConfig(lb.httpTracingEndpoint)
@@ -418,10 +417,10 @@ func (hb *httpConnManagerBuilder) RouteConfigName(name string) *httpConnManagerB
 }
 
 // defaultFilters sets the default HTTP filters on the builder
-func (hb *httpConnManagerBuilder) DefaultFilters() *httpConnManagerBuilder {
-	hb.filters = append(hb.filters,
-		// HTTP RBAC filter - required to perform HTTP based RBAC per route
-		&xds_hcm.HttpFilter{
+func (hb *httpConnManagerBuilder) defaultFilters() []*xds_hcm.HttpFilter {
+	return []*xds_hcm.HttpFilter{
+		{
+			// HTTP RBAC filter - required to perform HTTP based RBAC per route
 			Name: envoy.HTTPRBACFilterName,
 			ConfigType: &xds_hcm.HttpFilter_TypedConfig{
 				TypedConfig: &any.Any{
@@ -429,8 +428,8 @@ func (hb *httpConnManagerBuilder) DefaultFilters() *httpConnManagerBuilder {
 				},
 			},
 		},
-		// HTTP local rate limit filter - required to perform local rate limiting
-		&xds_hcm.HttpFilter{
+		{
+			// HTTP local rate limit filter - required to perform local rate limiting
 			Name: envoy.HTTPLocalRateLimitFilterName,
 			ConfigType: &xds_hcm.HttpFilter_TypedConfig{
 				TypedConfig: protobuf.MustMarshalAny(
@@ -444,9 +443,7 @@ func (hb *httpConnManagerBuilder) DefaultFilters() *httpConnManagerBuilder {
 				),
 			},
 		},
-	)
-
-	return hb
+	}
 }
 
 // AddFilter adds the given HttpFilter to the builder's filter list.
@@ -496,6 +493,7 @@ func (hb *httpConnManagerBuilder) Build() (*xds_listener.Filter, error) {
 			},
 		}
 	}
+	hb.filters = append(hb.defaultFilters(), hb.filters...)
 	hb.filters = append(hb.filters, hb.routerFilter)
 
 	connManager := &xds_hcm.HttpConnectionManager{

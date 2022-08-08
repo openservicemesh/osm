@@ -36,7 +36,6 @@ func TestHTTPConnManagerBuilder(t *testing.T) {
 			buildFunc: func(b *httpConnManagerBuilder) {
 				b.StatsPrefix("foo").
 					RouteConfigName("bar").
-					DefaultFilters().
 					AddFilter(&xds_hcm.HttpFilter{Name: "f1"}).
 					AddFilter(&xds_hcm.HttpFilter{Name: "f2"}).
 					LocalReplyConfig(&xds_hcm.LocalReplyConfig{}).
@@ -259,7 +258,7 @@ func TestFilterBuilder(t *testing.T) {
 						TCPRouteMatches: nil,
 					},
 				}, "cluster.local").
-					httpConnManager().DefaultFilters()
+					httpConnManager()
 			},
 			expectedNetworkFilters: []string{envoy.L4RBACFilterName},
 			expectedHTTPFilters:    []string{envoy.HTTPRBACFilterName, envoy.HTTPLocalRateLimitFilterName, envoy.HTTPRouterFilterName},
