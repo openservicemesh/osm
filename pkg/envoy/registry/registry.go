@@ -46,13 +46,16 @@ func (pr *ProxyRegistry) GetConnectedProxyCount() int {
 }
 
 // ListConnectedProxies lists the Envoy proxies already connected and the time they first connected.
-func (pr *ProxyRegistry) ListConnectedProxies() []*envoy.Proxy {
+func (pr *ProxyRegistry) ListConnectedProxies() map[string]*envoy.Proxy {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 
-	proxies := make([]*envoy.Proxy, 0, len(pr.connectedProxies))
+	proxies := make(map[string]*envoy.Proxy, len(pr.connectedProxies))
 	for _, p := range pr.connectedProxies {
-		proxies = append(proxies, p)
+		// A proxy could connect twice quickly and not register the disconnect, so we return the proxy with the higher connection ID.
+		if prior := proxies[p.UUID.String()]; prior == nil || prior.GetConnectionID() < p.GetConnectionID() {
+			proxies[p.UUID.String()] = p
+		}
 	}
 	return proxies
 }

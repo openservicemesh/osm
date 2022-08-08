@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strconv"
 	"time"
+
+	envoy "github.com/openservicemesh/osm/pkg/envoy"
 )
 
 const (
@@ -42,8 +44,11 @@ func (ds DebugConfig) getProxies() http.Handler {
 func (ds DebugConfig) printProxies(w http.ResponseWriter) {
 	// This function is needed to convert the list of connected proxies to
 	// the type (map) required by the printProxies function.
-	proxies := ds.proxyRegistry.ListConnectedProxies()
-
+	proxyMap := ds.proxyRegistry.ListConnectedProxies()
+	proxies := make([]*envoy.Proxy, 0, len(proxyMap))
+	for _, proxy := range proxyMap {
+		proxies = append(proxies, proxy)
+	}
 	sort.Slice(proxies, func(i, j int) bool {
 		return proxies[i].Identity.String() < proxies[j].Identity.String()
 	})
