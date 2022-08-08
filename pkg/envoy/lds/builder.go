@@ -264,10 +264,10 @@ func (lb *listenerBuilder) buildInboundListener() *xds_listener.Listener {
 		Address:          lb.address,
 		TrafficDirection: lb.trafficDirection,
 		ListenerFilters:  lb.listenerFilters,
+		FilterChains:     lb.buildInboundFilterChains(),
 		AccessLog:        envoy.GetAccessLog(),
 	}
 
-	l.FilterChains = lb.buildInboundFilterChains()
 	return l
 }
 
