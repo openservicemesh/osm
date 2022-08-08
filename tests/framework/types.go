@@ -140,7 +140,7 @@ type InstallOsmOpt func(*InstallOSMOpts)
 // CleanupType identifies what triggered the cleanup
 type CleanupType string
 
-//DockerConfig and other configs are docker-specific container registry secret structures.
+// DockerConfig and other configs are docker-specific container registry secret structures.
 // Most of it is taken or referenced from kubectl source itself
 type DockerConfig map[string]DockerConfigEntry
 

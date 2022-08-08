@@ -83,9 +83,10 @@ func (rwc *RouteWeightedClusters) TotalClustersWeight() int {
 	return totalWeight
 }
 
-// AddRoute adds a route to an OutboundTrafficPolicy given an HTTP route match and weighted cluster. If a Route with the given HTTP route match
-//	already exists, an error will be returned. If a Route with the given HTTP route match does not exist,
-//	a Route with the given HTTP route match and weighted clusters will be added to the Routes on the OutboundTrafficPolicy
+// AddRoute adds a route to an OutboundTrafficPolicy given an HTTP route match and weighted cluster.
+// If a Route with the given HTTP route match already exists, an error will be returned.
+// If a Route with the given HTTP route match does not exist,
+// a Route with the given HTTP route match and weighted clusters will be added to the Routes on the OutboundTrafficPolicy
 func (out *OutboundTrafficPolicy) AddRoute(httpRouteMatch HTTPRouteMatch, retryPolicy *policyv1alpha1.RetryPolicySpec, weightedClusters ...service.WeightedCluster) error {
 	wc := mapset.NewSet()
 	for _, c := range weightedClusters {
@@ -137,7 +138,7 @@ func MergeInboundPolicies(original []*InboundTrafficPolicy, latest ...*InboundTr
 }
 
 // MergeRules merges the give slices of rules such that there is one Rule for a Route with all allowed service accounts listed in the
-//	returned slice of rules
+// returned slice of rules
 func MergeRules(originalRules, latestRules []*Rule) []*Rule {
 	for _, latest := range latestRules {
 		foundRoute := false
@@ -156,8 +157,8 @@ func MergeRules(originalRules, latestRules []*Rule) []*Rule {
 }
 
 // mergeRoutesWeightedClusters merges two slices of RouteWeightedClusters and returns a slice where there is one RouteWeightedCluster
-//	for any HTTPRouteMatch. Where there is an overlap in HTTPRouteMatch between the originalRoutes and latestRoutes, the WeightedClusters
-//  will be unioned as there can only be one set of WeightedClusters per HTTPRouteMatch.
+// for any HTTPRouteMatch. Where there is an overlap in HTTPRouteMatch between the originalRoutes and latestRoutes, the WeightedClusters
+// will be unioned as there can only be one set of WeightedClusters per HTTPRouteMatch.
 func mergeRoutesWeightedClusters(originalRoutes, latestRoutes []*RouteWeightedClusters) []*RouteWeightedClusters {
 	for _, latest := range latestRoutes {
 		foundRoute := false
