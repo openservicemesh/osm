@@ -447,7 +447,7 @@ func (hb *httpConnManagerBuilder) defaultFilters() []*xds_hcm.HttpFilter {
 }
 
 // AddFilter adds the given HttpFilter to the builder's filter list.
-// It ensures the HTTP router filter is always the last filter in the list, which
+// It ensures the HTTP router filter is always added only once, which
 // is a requirement in Envoy.
 func (hb *httpConnManagerBuilder) AddFilter(filter *xds_hcm.HttpFilter) *httpConnManagerBuilder {
 	if filter == nil {
@@ -455,9 +455,6 @@ func (hb *httpConnManagerBuilder) AddFilter(filter *xds_hcm.HttpFilter) *httpCon
 	}
 
 	if filter.Name == envoy.HTTPRouterFilterName {
-		if hb.routerFilter != nil {
-			panic("multiple router filters not allowed")
-		}
 		hb.routerFilter = filter
 		return hb
 	}

@@ -345,7 +345,7 @@ func TestAddFilter(t *testing.T) {
 	a.Equal(envoy.HTTPExtAuthzFilterName, hb.filters[0].Name)
 	a.Equal(envoy.HTTPRouterFilterName, hb.routerFilter.Name)
 
-	// Verify adding router filter multiple times is disallowed
-	a.Panics(func() { hb.AddFilter(&xds_hcm.HttpFilter{Name: envoy.HTTPRouterFilterName}) },
-		"expected adding multiple router filters to panic")
+	// Verify adding router filter multiple times doesn
+	hb.AddFilter(&xds_hcm.HttpFilter{Name: envoy.HTTPRouterFilterName})
+	a.Equal(envoy.HTTPRouterFilterName, hb.routerFilter.Name)
 }
