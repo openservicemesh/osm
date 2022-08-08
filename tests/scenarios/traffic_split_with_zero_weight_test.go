@@ -23,7 +23,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -230,10 +229,6 @@ func TestRDSRespose(t *testing.T) {
 			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
-			proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-				return []service.MeshService{tests.BookstoreV1Service}, nil
-			}), nil)
-
 			outboundTestPort := 8888 // Port used for the outbound services in this test
 			inboundTestPort := 80    // Port used for the inbound services in this test
 			expectedInboundMeshPolicy := &trafficpolicy.InboundMeshTrafficPolicy{HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{inboundTestPort: tc.expectedInboundPolicies}}
@@ -243,10 +238,11 @@ func TestRDSRespose(t *testing.T) {
 			mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().GetMeshConfig().AnyTimes()
+			mockCatalog.EXPECT().GetServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
 			cm := tresorFake.NewFake(1 * time.Hour)
 
-			resources, err := rds.NewResponse(mockCatalog, proxy, nil, cm, proxyRegistry)
+			resources, err := rds.NewResponse(mockCatalog, proxy, nil, cm, nil)
 			assert.Nil(err)
 			assert.NotNil(resources)
 

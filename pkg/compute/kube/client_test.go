@@ -617,3 +617,213 @@ func TestIsMetricsEnabled(t *testing.T) {
 		})
 	}
 }
+
+func TestGetServicesForProxy(t *testing.T) {
+	goodUUID := uuid.New()
+	badUUID := uuid.New()
+	testCases := []struct {
+		name      string
+		endpoints identity.ServiceIdentity
+		pods      []*corev1.Pod
+		proxy     *envoy.Proxy
+		services  []*corev1.Service
+		expected  []service.MeshService
+		expectErr bool
+	}{
+		{
+			name:  "Returns the list of MeshServices matching the given pod",
+			proxy: envoy.NewProxy(envoy.KindSidecar, goodUUID, identity.New("sa1", "ns1"), &net.IPAddr{}, 1),
+			pods: []*corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "p1",
+						Labels: map[string]string{
+							constants.EnvoyUniqueIDLabelName: goodUUID.String(),
+							"k1":                             "v1", // matches selector for service ns1/s1
+						},
+					},
+					Spec: corev1.PodSpec{
+						ServiceAccountName: "sa1",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "p2",
+						Labels: map[string]string{
+							constants.EnvoyUniqueIDLabelName: badUUID.String(),
+							"k1":                             "v2", // does not match selector for service ns1/s1
+						},
+					},
+					Spec: corev1.PodSpec{
+						ServiceAccountName: "sa1",
+					},
+				},
+			},
+			services: []*corev1.Service{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "s1",
+						Namespace: "ns1",
+					},
+					Spec: corev1.ServiceSpec{
+						Selector: map[string]string{
+							"k1": "v1",
+						},
+						Ports: []corev1.ServicePort{{}},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "s2",
+						Namespace: "ns1",
+					},
+					Spec: corev1.ServiceSpec{
+						Selector: map[string]string{
+							"k2": "v2", // does not match labels on pod ns1/p1
+						},
+						Ports: []corev1.ServicePort{{}},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{Namespace: "ns1", Name: "s1", Protocol: "http"}, // ns1/s1 matches pod ns1/p1 with service account ns1/sa1
+			},
+		},
+		{
+			name:  "No matching services found",
+			proxy: envoy.NewProxy(envoy.KindSidecar, goodUUID, identity.New("sa1", "ns1"), &net.IPAddr{}, 1),
+			pods: []*corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "p2",
+						Labels: map[string]string{
+							constants.EnvoyUniqueIDLabelName: goodUUID.String(),
+							"k3":                             "v1", // matches for service ns1/s1
+						},
+					},
+					Spec: corev1.PodSpec{
+						ServiceAccountName: "sa1",
+					},
+				},
+			},
+			services: []*corev1.Service{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "s1",
+						Namespace: "ns1",
+					},
+					Spec: corev1.ServiceSpec{
+						Selector: map[string]string{
+							"k1": "v1", // matches labels on pod ns1/p1
+						},
+						Ports: []corev1.ServicePort{{}},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "s2",
+						Namespace: "ns1",
+					},
+					Spec: corev1.ServiceSpec{
+						Selector: map[string]string{
+							"k2": "v2", // does not match labels on pod ns1/p1
+						},
+						Ports: []corev1.ServicePort{{}},
+					},
+				},
+			},
+		},
+		{
+			name:  "Error: pod not found",
+			proxy: envoy.NewProxy(envoy.KindSidecar, goodUUID, identity.New("sa1", "n1"), &net.IPAddr{}, 1),
+			pods: []*corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "p2",
+						Labels: map[string]string{
+							constants.EnvoyUniqueIDLabelName: badUUID.String(),
+							"k1":                             "v1", // matches for service ns1/s1
+							"k2":                             "v2", // does not match selector for service ns1/s2
+						},
+					},
+					Spec: corev1.PodSpec{
+						ServiceAccountName: "sa2",
+					},
+				},
+			},
+			services: []*corev1.Service{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "s1",
+						Namespace: "ns1",
+					},
+					Spec: corev1.ServiceSpec{
+						Selector: map[string]string{
+							"k1": "v1", // matches labels on pod ns1/p1
+						},
+						Ports: []corev1.ServicePort{{}},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "s2",
+						Namespace: "ns1",
+					},
+					Spec: corev1.ServiceSpec{
+						Selector: map[string]string{
+							"k2": "v2", // does not match labels on pod ns1/p1
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			stop := make(chan struct{})
+			defer close(stop)
+
+			objs := make([]runtime.Object, 0, len(tc.pods)+len(tc.services))
+
+			namespaces := make(map[string]interface{})
+			for _, pod := range tc.pods {
+				objs = append(objs, pod)
+				namespaces[pod.Namespace] = true
+			}
+			for _, svc := range tc.services {
+				objs = append(objs, svc)
+				namespaces[svc.Namespace] = true
+			}
+			for ns := range namespaces {
+				objs = append(objs, &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: ns,
+						Labels: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: "test-mesh",
+						},
+					},
+				})
+			}
+			testClient := testclient.NewSimpleClientset(objs...)
+			ic, err := informers.NewInformerCollection("test-mesh", stop, informers.WithKubeClient(testClient))
+			assert.NoError(err)
+			c := &client{
+				kubeController: k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, messaging.NewBroker(stop)),
+			}
+			actual, err := c.GetServicesForProxy(tc.proxy)
+			assert.ElementsMatch(tc.expected, actual)
+			if tc.expectErr {
+				assert.Error(err)
+			} else {
+				assert.NoError(err)
+			}
+		})
+	}
+}

@@ -96,6 +96,21 @@ func (mr *MockInterfaceMockRecorder) GetResolvableEndpointsForService(arg0 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResolvableEndpointsForService", reflect.TypeOf((*MockInterface)(nil).GetResolvableEndpointsForService), arg0)
 }
 
+// GetServicesForProxy mocks base method.
+func (m *MockInterface) GetServicesForProxy(arg0 *envoy.Proxy) ([]service.MeshService, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServicesForProxy", arg0)
+	ret0, _ := ret[0].([]service.MeshService)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetServicesForProxy indicates an expected call of GetServicesForProxy.
+func (mr *MockInterfaceMockRecorder) GetServicesForProxy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesForProxy", reflect.TypeOf((*MockInterface)(nil).GetServicesForProxy), arg0)
+}
+
 // GetServicesForServiceIdentity mocks base method.
 func (m *MockInterface) GetServicesForServiceIdentity(arg0 identity.ServiceIdentity) []service.MeshService {
 	m.ctrl.T.Helper()

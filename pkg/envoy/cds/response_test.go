@@ -2,6 +2,7 @@ package cds
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -28,7 +29,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -71,10 +71,6 @@ func TestNewResponse(t *testing.T) {
 		},
 	}
 
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return []service.MeshService{testMeshSvc}, nil
-	}), nil)
-
 	expectedOutboundMeshPolicy := &trafficpolicy.OutboundMeshTrafficPolicy{
 		ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
 			{
@@ -103,6 +99,7 @@ func TestNewResponse(t *testing.T) {
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
 	mockCatalog.EXPECT().IsMetricsEnabled(proxy).Return(true, nil).AnyTimes()
 	mockCatalog.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
+	mockCatalog.EXPECT().GetServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
 	podlabels := map[string]string{
 		constants.AppLabel:               testMeshSvc.Name,
@@ -116,7 +113,7 @@ func TestNewResponse(t *testing.T) {
 	_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), newPod1, metav1.CreateOptions{})
 	assert.Nil(err)
 
-	resp, err := NewResponse(mockCatalog, proxy, nil, nil, proxyRegistry)
+	resp, err := NewResponse(mockCatalog, proxy, nil, nil, nil)
 	assert.Nil(err)
 
 	// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
@@ -408,27 +405,21 @@ func TestNewResponse(t *testing.T) {
 }
 
 func TestNewResponseListServicesError(t *testing.T) {
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, fmt.Errorf("some error")
-	}), nil)
 	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxy.Identity).Return(nil).AnyTimes()
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
+	meshCatalog.EXPECT().GetServicesForProxy(proxy).Return(nil, errors.New("no services found")).AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, nil, proxyRegistry)
+	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil)
 	tassert.Error(t, err)
 	tassert.Nil(t, resp)
 }
 
 func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}), nil)
-
 	proxyUUID := uuid.New()
 	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
 
@@ -440,18 +431,15 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	meshCatalog.EXPECT().GetEgressTrafficPolicy(proxyIdentity).Return(nil, fmt.Errorf("some error")).Times(1)
 	meshCatalog.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
+	meshCatalog.EXPECT().GetServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, nil, proxyRegistry)
+	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil)
 	tassert.NoError(t, err)
 	tassert.Empty(t, resp)
 }
 
 func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}), nil)
-
 	proxyUUID := uuid.New()
 	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
 
@@ -467,8 +455,9 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 		},
 	}, nil).Times(1)
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
+	meshCatalog.EXPECT().GetServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, nil, proxyRegistry)
+	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil)
 	tassert.NoError(t, err)
 	tassert.Len(t, resp, 1)
 	tassert.Equal(t, resp[0].(*xds_cluster.Cluster).Name, "my-cluster")

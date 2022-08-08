@@ -1,7 +1,6 @@
 package lds
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -22,7 +21,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -84,6 +82,7 @@ func TestNewResponse(t *testing.T) {
 			},
 		},
 	}).AnyTimes()
+	provider.EXPECT().GetServicesForProxy(proxy).Return([]service.MeshService{tests.BookbuyerService}, nil).AnyTimes()
 
 	meshCatalog := catalog.NewMeshCatalog(
 		mockMeshSpec,
@@ -94,21 +93,8 @@ func TestNewResponse(t *testing.T) {
 		messaging.NewBroker(stop),
 	)
 
-	// test scenario that listing proxy services returns an error
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, fmt.Errorf("dummy error")
-	}), nil)
-
 	cm := tresorFake.NewFake(1 * time.Hour)
-	resources, err := NewResponse(meshCatalog, proxy, nil, cm, proxyRegistry)
-	assert.NotNil(err)
-	assert.Nil(resources)
-
-	proxyRegistry = registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return []service.MeshService{tests.BookbuyerService}, nil
-	}), nil)
-
-	resources, err = NewResponse(meshCatalog, proxy, nil, cm, proxyRegistry)
+	resources, err := NewResponse(meshCatalog, proxy, nil, cm, nil)
 	assert.Empty(err)
 	assert.NotNil(resources)
 	// There are 3 listeners configured based on the configuration:

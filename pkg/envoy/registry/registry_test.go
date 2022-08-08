@@ -17,7 +17,7 @@ import (
 )
 
 var _ = Describe("Test catalog proxy register/unregister", func() {
-	proxyRegistry := NewProxyRegistry(nil, nil)
+	proxyRegistry := NewProxyRegistry()
 	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil, 1)
 
 	It("Proxy is valid", func() {
@@ -49,7 +49,7 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 
 func TestRegisterUnregister(t *testing.T) {
 	assert := tassert.New(t)
-	proxyRegistry := NewProxyRegistry(nil, nil)
+	proxyRegistry := NewProxyRegistry()
 
 	proxyUUID := uuid.New()
 	var i int64
@@ -75,7 +75,7 @@ func BenchmarkRegistryAdd(b *testing.B) {
 	}
 
 	for n := 0; n < b.N; n++ {
-		proxyRegistry := NewProxyRegistry(nil, nil)
+		proxyRegistry := NewProxyRegistry()
 		total := 10000
 
 		for j := 0; j < total; j++ {
@@ -94,7 +94,7 @@ func BenchmarkRegistryGetCount(b *testing.B) {
 		b.Logf("Failed to set log level to error: %s", err)
 	}
 
-	proxyRegistry := NewProxyRegistry(nil, nil)
+	proxyRegistry := NewProxyRegistry()
 	total := 10000
 
 	wg := sync.WaitGroup{}

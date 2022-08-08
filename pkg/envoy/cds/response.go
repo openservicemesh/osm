@@ -14,7 +14,7 @@ import (
 )
 
 // NewResponse creates a new Cluster Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	var clusters []*xds_cluster.Cluster
 	meshConfig := meshCatalog.GetMeshConfig()
 
@@ -25,7 +25,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Build local clusters based on allowed inbound traffic policies
-	proxyServices, err := proxyRegistry.ListProxyServices(proxy)
+	proxyServices, err := meshCatalog.GetServicesForProxy(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
 			Str("proxy", proxy.String()).Msg("Error looking up MeshServices associated with proxy")
