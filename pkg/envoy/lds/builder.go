@@ -478,6 +478,9 @@ func (hb *httpConnManagerBuilder) Tracing(config *xds_hcm.HttpConnectionManager_
 
 // Build builds the HttpConnectionManager filter from the builder config
 func (hb *httpConnManagerBuilder) Build() (*xds_listener.Filter, error) {
+	httpFilters := hb.defaultFilters()
+	httpFilters = append(httpFilters, hb.filters...)
+
 	// NOTE: router filter must always be the last filter in the list
 	if hb.routerFilter == nil {
 		// Router filter - required to perform HTTP connection management
@@ -490,13 +493,12 @@ func (hb *httpConnManagerBuilder) Build() (*xds_listener.Filter, error) {
 			},
 		}
 	}
-	hb.filters = append(hb.defaultFilters(), hb.filters...)
-	hb.filters = append(hb.filters, hb.routerFilter)
+	httpFilters = append(httpFilters, hb.routerFilter)
 
 	connManager := &xds_hcm.HttpConnectionManager{
 		StatPrefix:  hb.statsPrefix,
 		CodecType:   xds_hcm.HttpConnectionManager_AUTO,
-		HttpFilters: hb.filters,
+		HttpFilters: httpFilters,
 		RouteSpecifier: &xds_hcm.HttpConnectionManager_Rds{
 			Rds: &xds_hcm.Rds{
 				ConfigSource:    envoy.GetADSConfigSource(),
