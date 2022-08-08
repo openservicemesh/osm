@@ -11,6 +11,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -380,6 +382,113 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			actual := provider.ListEndpointsForIdentity(tc.serviceAccount)
 			assert.NotNil(actual)
 			assert.ElementsMatch(actual, tc.expectedEndpoints)
+		})
+	}
+}
+
+func TestGetServicesForServiceIdentity(t *testing.T) {
+	testCases := []struct {
+		name        string
+		svcIdentity identity.ServiceIdentity
+		pods        []*corev1.Pod
+		services    []*corev1.Service
+		expected    []service.MeshService
+	}{
+		{
+			name:        "Returns the list of MeshServices matching the given identity",
+			svcIdentity: identity.ServiceIdentity("sa1.ns1"), // Matches pod ns1/p1
+			pods: []*corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "p1",
+						Labels: map[string]string{
+							"k1": "v1", // matches selector for service ns1/s1
+						},
+					},
+					Spec: corev1.PodSpec{
+						ServiceAccountName: "sa1",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "p2",
+						Labels: map[string]string{
+							"k1": "v2", // does not match selector for service ns1/s1
+						},
+					},
+					Spec: corev1.PodSpec{
+						ServiceAccountName: "sa2",
+					},
+				},
+			},
+			services: []*corev1.Service{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "s1",
+						Namespace: "ns1",
+					},
+					Spec: corev1.ServiceSpec{
+						Selector: map[string]string{
+							"k1": "v1", // matches labels on pod ns1/p1
+						},
+						Ports: []corev1.ServicePort{{}},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "s2",
+						Namespace: "ns1",
+					},
+					Spec: corev1.ServiceSpec{
+						Selector: map[string]string{
+							"k1": "v2", // does not match labels on pod ns1/p1
+						},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{Namespace: "ns1", Name: "s1", Protocol: "http"}, // ns1/s1 matches pod ns1/p1 with service account ns1/sa1
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			stop := make(chan struct{})
+			defer close(stop)
+
+			objs := make([]runtime.Object, 0, len(tc.pods)+len(tc.services))
+
+			namespaces := make(map[string]interface{})
+			for _, pod := range tc.pods {
+				objs = append(objs, pod)
+				namespaces[pod.Namespace] = nil
+			}
+			for _, svc := range tc.services {
+				objs = append(objs, svc)
+				namespaces[svc.Namespace] = nil
+			}
+			for ns := range namespaces {
+				objs = append(objs, &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: ns,
+						Labels: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: "test-mesh",
+						},
+					},
+				})
+			}
+			testClient := testclient.NewSimpleClientset(objs...)
+			ic, err := informers.NewInformerCollection("test-mesh", stop, informers.WithKubeClient(testClient))
+			assert.NoError(err)
+			c := &client{
+				kubeController: k8s.NewClient(ic, nil, messaging.NewBroker(stop)),
+			}
+			actual := c.GetServicesForServiceIdentity(tc.svcIdentity)
+			assert.ElementsMatch(tc.expected, actual)
 		})
 	}
 }
