@@ -56,7 +56,11 @@ type MeshCataloger interface {
 	// is allowed access the upstream service
 	ListAllowedUpstreamEndpointsForService(identity.ServiceIdentity, service.MeshService) []endpoint.Endpoint
 
+	// GetIngressTrafficPolicies returns a list of IngressTrafficPolicy objects for the given MeshService list
+	GetIngressTrafficPolicies([]service.MeshService) []*trafficpolicy.IngressTrafficPolicy
+
 	// GetIngressTrafficPolicy returns the ingress traffic policy for the given mesh service
+	// TODO: deprecate in favor of GetIngressTrafficPolicies
 	GetIngressTrafficPolicy(service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error)
 
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service identity

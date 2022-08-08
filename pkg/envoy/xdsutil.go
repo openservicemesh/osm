@@ -215,7 +215,7 @@ func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstream
 	tlsConfig := &xds_auth.UpstreamTlsContext{
 		CommonTlsContext: commonTLSContext,
 
-		// The Sni field is going to be used to do FilterChainMatch in getInboundMeshHTTPFilterChain()
+		// The Sni field is going to be used to do FilterChainMatch in buildInboundHTTPFilterChain()
 		// The "Sni" field below of an incoming request will be matched against a list of server names
 		// in FilterChainMatch.ServerNames
 		Sni: upstreamSvc.ServerName(),

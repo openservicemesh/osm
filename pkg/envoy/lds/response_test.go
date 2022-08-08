@@ -74,14 +74,22 @@ func TestNewResponse(t *testing.T) {
 	configClient := configFake.NewSimpleClientset()
 	meshCatalog := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
 
-	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().GetTracingEndpoint().Return("some-endpoint").AnyTimes()
-	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
 	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
 		Enable: false,
 	}).AnyTimes()
-	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
+	mockConfigurator.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{
+		Spec: configv1alpha2.MeshConfigSpec{
+			Traffic: configv1alpha2.TrafficSpec{
+				EnablePermissiveTrafficPolicyMode: false,
+				EnableEgress:                      true,
+			},
+			Observability: configv1alpha2.ObservabilitySpec{
+				Tracing: configv1alpha2.TracingSpec{
+					Enable: false,
+				},
+			},
+		},
+	}).AnyTimes()
 
 	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
 		EnableWASMStats:    false,

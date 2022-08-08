@@ -32,7 +32,7 @@ func (lb *listenerBuilder) getEgressFilterChainsForMatches(matches []*trafficpol
 		switch match.DestinationProtocol {
 		case constants.ProtocolHTTP:
 			// HTTP protocol --> HTTPConnectionManager filter
-			if filterChain, err := lb.getEgressHTTPFilterChain(*match); err != nil {
+			if filterChain, err := lb.buildEgressHTTPFilterChain(*match); err != nil {
 				log.Error().Err(err).Msgf("Error building egress HTTP filter chain for port [%d]", match.DestinationPort)
 			} else {
 				filterChains = append(filterChains, filterChain)
@@ -40,7 +40,7 @@ func (lb *listenerBuilder) getEgressFilterChainsForMatches(matches []*trafficpol
 
 		case constants.ProtocolTCP, constants.ProtocolHTTPS, constants.ProtocolTCPServerFirst:
 			// TCP or HTTPS protocol --> TCPProxy filter
-			if filterChain, err := lb.getEgressTCPFilterChain(*match); err != nil {
+			if filterChain, err := lb.buildEgressTCPFilterChain(*match); err != nil {
 				log.Error().Err(err).Msgf("Error building egress filter chain for match [%v]", *match)
 			} else {
 				filterChains = append(filterChains, filterChain)
@@ -51,8 +51,8 @@ func (lb *listenerBuilder) getEgressFilterChainsForMatches(matches []*trafficpol
 	return filterChains
 }
 
-func (lb *listenerBuilder) getEgressHTTPFilterChain(match trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
-	filter, err := lb.getOutboundHTTPFilter(route.GetEgressRouteConfigNameForPort(match.DestinationPort))
+func (lb *listenerBuilder) buildEgressHTTPFilterChain(match trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
+	filter, err := lb.buildOutboundHTTPFilter(route.GetEgressRouteConfigNameForPort(match.DestinationPort))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error building HTTP filter chain for destination port [%d]", match.DestinationPort)
 		return nil, err
@@ -70,7 +70,7 @@ func (lb *listenerBuilder) getEgressHTTPFilterChain(match trafficpolicy.TrafficM
 	}, nil
 }
 
-func (lb *listenerBuilder) getEgressTCPFilterChain(match trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) buildEgressTCPFilterChain(match trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
 		StatPrefix:       fmt.Sprintf("%s.%d", egressTCPProxyStatPrefix, match.DestinationPort),
 		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: match.Cluster},

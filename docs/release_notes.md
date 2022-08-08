@@ -1,5 +1,12 @@
 # Release Notes
 
+## Release v1.3.0
+
+### Notable changes
+
+### Breaking changes
+- `EgressPolicy` can only be used when global mesh-wide Egress passthrough is disabled. When global passthrough Egress is enabled, EgressPolicy will not be enforced.
+
 ## Release v1.2.0
 
 ### Notable changes

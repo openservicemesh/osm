@@ -20,6 +20,24 @@ const (
 	singeIPPrefixLen = "/32"
 )
 
+// GetIngressTrafficPolicies returns a list of IngressTrafficPolicy objects for the given MeshService list
+func (mc *MeshCatalog) GetIngressTrafficPolicies(meshServices []service.MeshService) []*trafficpolicy.IngressTrafficPolicy {
+	var policies []*trafficpolicy.IngressTrafficPolicy
+
+	for _, meshSvc := range meshServices {
+		policy, err := mc.GetIngressTrafficPolicy(meshSvc)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting ingress traffic policy for service %s, skipping it", meshSvc)
+			continue
+		}
+		if policy != nil {
+			policies = append(policies, policy)
+		}
+	}
+
+	return policies
+}
+
 // GetIngressTrafficPolicy returns the ingress traffic policy for the given mesh service
 // Depending on if the IngressBackend API is enabled, the policies will be generated either from the IngressBackend
 // or Kubernetes Ingress API.

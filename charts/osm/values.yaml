@@ -470,6 +470,7 @@ osm:
     enableWASMStats: true
     # -- Enable OSM's Egress policy API.
     # When enabled, fine grained control over Egress (external) traffic is enforced
+    # DEPRECATED. To use EgressPolicy, disable global mesh-wide egress using '--set osm.enableEgress=false'.
     enableEgressPolicy: true
     # -- Enable async proxy-service mapping
     enableAsyncProxyServiceMapping: false

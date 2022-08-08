@@ -9,7 +9,7 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	xds_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
+	xds_http_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/golang/protobuf/ptypes/any"
@@ -136,7 +136,7 @@ func getLocalRateLimitFilterConfig(config *policyv1alpha1.HTTPLocalRateLimitSpec
 		return nil, fmt.Errorf("invalid unit %q for HTTP request rate limiting", config.Unit)
 	}
 
-	rl := &xds_local_ratelimit.LocalRateLimit{
+	rl := &xds_http_local_ratelimit.LocalRateLimit{
 		StatPrefix: httpLocalRateLimiterStatsPrefix,
 		TokenBucket: &xds_type.TokenBucket{
 			MaxTokens:     config.Requests + config.Burst,
