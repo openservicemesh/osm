@@ -68,7 +68,7 @@ func (lb *listenerBuilder) buildInboundHTTPFilterChain(trafficMatch *trafficpoli
 	}
 
 	// Build filters
-	fb := lb.FilterBuilder().
+	fb := lb.getFilterBuilder().
 		StatsPrefix(trafficMatch.Name)
 
 	// Network RBAC

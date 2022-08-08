@@ -82,7 +82,7 @@ func (lb *listenerBuilder) PermissiveEgress(enable bool) *listenerBuilder {
 	return lb
 }
 
-func (lb *listenerBuilder) FilterBuilder() *filterBuilder {
+func (lb *listenerBuilder) getFilterBuilder() *filterBuilder {
 	if lb.filBuilder == nil {
 		lb.filBuilder = getFilterBuilder()
 	}
