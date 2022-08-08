@@ -9,7 +9,6 @@ import (
 	hashstructure "github.com/mitchellh/hashstructure/v2"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
 )
