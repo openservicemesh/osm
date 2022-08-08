@@ -43,9 +43,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		ProxyIdentity(proxy.Identity).
 		Address(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort).
 		TrafficDirection(xds_core.TrafficDirection_OUTBOUND).
-		DefaultOutboundListenerFilters().
-		PermissiveMesh(cfg.IsPermissiveTrafficPolicyMode()).
-		PermissiveEgress(cfg.IsEgressEnabled()).
+		PermissiveMesh(cfg.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode).
 		OutboundMeshTrafficPolicy(meshCatalog.GetOutboundMeshTrafficPolicy(proxy.Identity)).
 		ActiveHealthCheck(cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks)
 
@@ -85,7 +83,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		Address(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort).
 		TrafficDirection(xds_core.TrafficDirection_INBOUND).
 		DefaultInboundListenerFilters().
-		PermissiveMesh(cfg.IsPermissiveTrafficPolicyMode()).
+		PermissiveMesh(cfg.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode).
 		InboundMeshTrafficPolicy(meshCatalog.GetInboundMeshTrafficPolicy(proxy.Identity, svcList)).
 		IngressTrafficPolicies(meshCatalog.GetIngressTrafficPolicies(svcList)).
 		ActiveHealthCheck(cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks).

@@ -89,7 +89,7 @@ func (lb *listenerBuilder) FilterBuilder() *filterBuilder {
 	return lb.filterBuilder
 }
 
-func (lb *listenerBuilder) DefaultOutboundListenerFilters() *listenerBuilder {
+func (lb *listenerBuilder) defaultOutboundListenerFilters() *listenerBuilder {
 	lb.listenerFilters = append(lb.listenerFilters,
 		&xds_listener.ListenerFilter{
 			// The OriginalDestination ListenerFilter is used to restore the original destination address
@@ -168,6 +168,32 @@ func (lb *listenerBuilder) SidecarSpec(sidecarSpec configv1alpha2.SidecarSpec) *
 }
 
 func (lb *listenerBuilder) Build() (*xds_listener.Listener, error) {
+	var l *xds_listener.Listener
+	switch lb.trafficDirection {
+	case xds_core.TrafficDirection_OUTBOUND:
+		l = lb.buildOutboundListener()
+
+	case xds_core.TrafficDirection_INBOUND:
+		l = lb.buildInboundListener()
+
+	default:
+		return nil, fmt.Errorf("listener %s: unsupported traffic direction %s", l.Name, l.TrafficDirection)
+	}
+
+	if len(l.FilterChains) == 0 && l.DefaultFilterChain == nil {
+		// Programming a listener with no filter chains is an error.
+		// It is possible for the listener to have no filter chains if
+		// there are no configurations that permit traffic through this proxy.
+		// In this case, return a nil filter chain so that it doesn't get programmed.
+		return nil, nil
+	}
+
+	return l, nil
+}
+
+func (lb *listenerBuilder) buildOutboundListener() *xds_listener.Listener {
+	lb.defaultOutboundListenerFilters()
+
 	l := &xds_listener.Listener{
 		Name:             lb.name,
 		Address:          lb.address,
@@ -177,27 +203,15 @@ func (lb *listenerBuilder) Build() (*xds_listener.Listener, error) {
 	}
 
 	var outboundTrafficMatches []*trafficpolicy.TrafficMatch // used to configure FilterDisabled match predicate
-	switch l.TrafficDirection {
-	case xds_core.TrafficDirection_OUTBOUND:
-		l.FilterChains = append(l.FilterChains, lb.buildOutboundFilterChains()...)
-		if lb.outboundMeshTrafficPolicy != nil {
-			outboundTrafficMatches = append(outboundTrafficMatches, lb.outboundMeshTrafficPolicy.TrafficMatches...)
-		}
 
-	case xds_core.TrafficDirection_INBOUND:
-		l.FilterChains = append(l.FilterChains, lb.buildInboundFilterChains()...)
-
-	default:
-		return nil, fmt.Errorf("listener %s: unsupported traffic direction %s", l.Name, l.TrafficDirection)
+	l.FilterChains = lb.buildOutboundFilterChains()
+	if lb.outboundMeshTrafficPolicy != nil {
+		outboundTrafficMatches = append(outboundTrafficMatches, lb.outboundMeshTrafficPolicy.TrafficMatches...)
 	}
 
 	if lb.permissiveEgress {
 		// Enable permissive (global) egress to unknown destinations
-		egressFilterChain, err := getDefaultPassthroughFilterChain()
-		if err != nil {
-			return nil, fmt.Errorf("listener %s: error building permissive egress filter chain: %w", l.Name, err)
-		}
-		l.DefaultFilterChain = egressFilterChain
+		l.DefaultFilterChain = getDefaultPassthroughFilterChain()
 	} else if lb.egressTrafficPolicy != nil {
 		// Build Egress policy filter chains
 		l.FilterChains = append(l.FilterChains, lb.getEgressFilterChainsForMatches(lb.egressTrafficPolicy.TrafficMatches)...)
@@ -209,49 +223,52 @@ func (lb *listenerBuilder) Build() (*xds_listener.Listener, error) {
 		filterDisableMatchPredicate = getFilterMatchPredicateForTrafficMatches(outboundTrafficMatches)
 	}
 
-	if l.TrafficDirection == xds_core.TrafficDirection_OUTBOUND {
-		l.ListenerFilters = append(l.ListenerFilters,
-			// Configure match predicate for ports serving server-first protocols (ex. mySQL, postgreSQL etc.).
-			// Ports corresponding to server-first protocols, where the server initiates the first byte of a connection, will
-			// cause the HttpInspector ListenerFilter to timeout because it waits for data from the client to inspect the protocol.
-			// Such ports will set the protocol to 'tcp-server-first' in an Egress policy.
-			// The 'FilterDisabled' field configures the match predicate.
-			&xds_listener.ListenerFilter{
-				// To inspect TLS metadata, such as the transport protocol and SNI
-				Name: envoy.TLSInspectorFilterName,
-				ConfigType: &xds_listener.ListenerFilter_TypedConfig{
-					TypedConfig: &any.Any{
-						TypeUrl: envoy.TLSInspectorFilterTypeURL,
-					},
+	l.ListenerFilters = append(l.ListenerFilters,
+		// Configure match predicate for ports serving server-first protocols (ex. mySQL, postgreSQL etc.).
+		// Ports corresponding to server-first protocols, where the server initiates the first byte of a connection, will
+		// cause the HttpInspector ListenerFilter to timeout because it waits for data from the client to inspect the protocol.
+		// Such ports will set the protocol to 'tcp-server-first' in an Egress policy.
+		// The 'FilterDisabled' field configures the match predicate.
+		&xds_listener.ListenerFilter{
+			// To inspect TLS metadata, such as the transport protocol and SNI
+			Name: envoy.TLSInspectorFilterName,
+			ConfigType: &xds_listener.ListenerFilter_TypedConfig{
+				TypedConfig: &any.Any{
+					TypeUrl: envoy.TLSInspectorFilterTypeURL,
 				},
-				FilterDisabled: filterDisableMatchPredicate,
 			},
-			&xds_listener.ListenerFilter{
-				// To inspect if the application protocol is HTTP based
-				Name: envoy.HTTPInspectorFilterName,
-				ConfigType: &xds_listener.ListenerFilter_TypedConfig{
-					TypedConfig: &any.Any{
-						TypeUrl: envoy.HTTPInspectorFilterTypeURL,
-					},
+			FilterDisabled: filterDisableMatchPredicate,
+		},
+		&xds_listener.ListenerFilter{
+			// To inspect if the application protocol is HTTP based
+			Name: envoy.HTTPInspectorFilterName,
+			ConfigType: &xds_listener.ListenerFilter_TypedConfig{
+				TypedConfig: &any.Any{
+					TypeUrl: envoy.HTTPInspectorFilterTypeURL,
 				},
-				FilterDisabled: filterDisableMatchPredicate,
 			},
-		)
+			FilterDisabled: filterDisableMatchPredicate,
+		},
+	)
 
-		// ListenerFilter can timeout for server-first protocols. In such cases, continue the processing of the connection
-		// and fallback to the default filter chain.
-		l.ContinueOnListenerFiltersTimeout = true
+	// ListenerFilter can timeout for server-first protocols. In such cases, continue the processing of the connection
+	// and fallback to the default filter chain.
+	l.ContinueOnListenerFiltersTimeout = true
+
+	return l
+}
+
+func (lb *listenerBuilder) buildInboundListener() *xds_listener.Listener {
+	l := &xds_listener.Listener{
+		Name:             lb.name,
+		Address:          lb.address,
+		TrafficDirection: lb.trafficDirection,
+		ListenerFilters:  lb.listenerFilters,
+		AccessLog:        envoy.GetAccessLog(),
 	}
 
-	if len(l.FilterChains) == 0 && l.DefaultFilterChain == nil {
-		// Programming a listener with no filter chains is an error.
-		// It is possible for the outbound listener to have no filter chains if
-		// there are no allowed upstreams for this proxy and egress is disabled.
-		// In this case, return a nil filter chain so that it doesn't get programmed.
-		return nil, nil
-	}
-
-	return l, nil
+	l.FilterChains = lb.buildInboundFilterChains()
+	return l
 }
 
 // buildOutboundHTTPFilter returns an HTTP connection manager network filter used to filter outbound HTTP traffic for the given route configuration
@@ -400,7 +417,7 @@ func (hb *httpConnManagerBuilder) RouteConfigName(name string) *httpConnManagerB
 	return hb
 }
 
-// DefaultFilters sets the default HTTP filters on the builder
+// defaultFilters sets the default HTTP filters on the builder
 func (hb *httpConnManagerBuilder) DefaultFilters() *httpConnManagerBuilder {
 	hb.filters = append(hb.filters,
 		// HTTP RBAC filter - required to perform HTTP based RBAC per route

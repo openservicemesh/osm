@@ -14,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/protobuf"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -58,16 +59,10 @@ func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_l
 
 // getDefaultPassthroughFilterChain returns a filter chain that matches any traffic, allowing such
 // traffic to be proxied to its original destination via the OutboundPassthroughCluster.
-func getDefaultPassthroughFilterChain() (*xds_listener.FilterChain, error) {
+func getDefaultPassthroughFilterChain() *xds_listener.FilterChain {
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
 		StatPrefix:       fmt.Sprintf("%s.%s", egressTCPProxyStatPrefix, envoy.OutboundPassthroughCluster),
 		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: envoy.OutboundPassthroughCluster},
-	}
-	marshalledTCPProxy, err := anypb.New(tcpProxy)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
-			Msgf("Error marshalling TcpProxy object for egress HTTPS filter chain")
-		return nil, err
 	}
 
 	return &xds_listener.FilterChain{
@@ -75,10 +70,10 @@ func getDefaultPassthroughFilterChain() (*xds_listener.FilterChain, error) {
 		Filters: []*xds_listener.Filter{
 			{
 				Name:       envoy.TCPProxyFilterName,
-				ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledTCPProxy},
+				ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: protobuf.MustMarshalAny(tcpProxy)},
 			},
 		},
-	}, nil
+	}
 }
 
 // getFilterMatchPredicateForTrafficMatches returns a ListenerFilterChainMatchPredicate corresponding to server-first ports.
