@@ -270,7 +270,7 @@ func (v *EnvoyConfigVerifier) findOutboundFilterChainForService(svc *corev1.Serv
 		dstIPRanges.Add(svc.Spec.ClusterIP)
 	}
 
-	meshServices, err := v.getDstMeshServicesForSvcPod(*svc)
+	meshServices, err := v.getDstMeshServicesForK8sSvc(*svc)
 	if len(meshServices) == 0 || err != nil {
 		return fmt.Errorf("endpoints not found for service %s/%s, err: %w", svc.Namespace, svc.Name, err)
 	}
@@ -460,7 +460,7 @@ func (v *EnvoyConfigVerifier) verifyDestination() Result {
 	return result
 }
 
-func (v *EnvoyConfigVerifier) getDstMeshServicesForSvcPod(svc corev1.Service) ([]service.MeshService, error) {
+func (v *EnvoyConfigVerifier) getDstMeshServicesForK8sSvc(svc corev1.Service) ([]service.MeshService, error) {
 	endpoints, err := v.kubeClient.CoreV1().Endpoints(svc.Namespace).Get(context.Background(), svc.Name, metav1.GetOptions{})
 	if err != nil || endpoints == nil {
 		return nil, err
@@ -564,7 +564,7 @@ func (v *EnvoyConfigVerifier) findInboundFilterChainForService(svc *corev1.Servi
 		return nil
 	}
 
-	meshServices, err := v.getDstMeshServicesForSvcPod(*svc)
+	meshServices, err := v.getDstMeshServicesForK8sSvc(*svc)
 	if len(meshServices) == 0 || err != nil {
 		return fmt.Errorf("endpoints not found for service %s/%s, err: %w", svc.Namespace, svc.Name, err)
 	}
@@ -620,7 +620,7 @@ func (v *EnvoyConfigVerifier) findHTTPRouteForService(svc *corev1.Service, route
 		return nil
 	}
 
-	meshServices, err := v.getDstMeshServicesForSvcPod(*svc)
+	meshServices, err := v.getDstMeshServicesForK8sSvc(*svc)
 	if len(meshServices) == 0 || err != nil {
 		return fmt.Errorf("endpoints not found for service %s/%s, err: %s", svc.Namespace, svc.Name, err)
 	}
@@ -650,7 +650,7 @@ func (v *EnvoyConfigVerifier) findClusterForService(svc *corev1.Service, cluster
 		return nil
 	}
 
-	meshServices, err := v.getDstMeshServicesForSvcPod(*svc)
+	meshServices, err := v.getDstMeshServicesForK8sSvc(*svc)
 	if len(meshServices) == 0 || err != nil {
 		return fmt.Errorf("endpoints not found for service %s/%s, err: %w", svc.Namespace, svc.Name, err)
 	}

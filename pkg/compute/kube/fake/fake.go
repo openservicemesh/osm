@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/openservicemesh/osm/pkg/compute"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -103,25 +104,5 @@ func (f fakeClient) IsMetricsEnabled(*envoy.Proxy) (bool, error) {
 
 // GetHostnamesForService returns the hostnames over which the service is accessible
 func (f fakeClient) GetHostnamesForService(svc service.MeshService, localNamespace bool) []string {
-	var hostnames []string
-
-	if localNamespace {
-		hostnames = append(hostnames, []string{
-			svc.Name,                                 // service
-			fmt.Sprintf("%s:%d", svc.Name, svc.Port), // service:port
-		}...)
-	}
-
-	hostnames = append(hostnames, []string{
-		fmt.Sprintf("%s.%s", svc.Name, svc.Namespace),                                // service.namespace
-		fmt.Sprintf("%s.%s:%d", svc.Name, svc.Namespace, svc.Port),                   // service.namespace:port
-		fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace),                            // service.namespace.svc
-		fmt.Sprintf("%s.%s.svc:%d", svc.Name, svc.Namespace, svc.Port),               // service.namespace.svc:port
-		fmt.Sprintf("%s.%s.svc.cluster", svc.Name, svc.Namespace),                    // service.namespace.svc.cluster
-		fmt.Sprintf("%s.%s.svc.cluster:%d", svc.Name, svc.Namespace, svc.Port),       // service.namespace.svc.cluster:port
-		fmt.Sprintf("%s.%s.svc.cluster.local", svc.Name, svc.Namespace),              // service.namespace.svc.cluster.local
-		fmt.Sprintf("%s.%s.svc.cluster.local:%d", svc.Name, svc.Namespace, svc.Port), // service.namespace.svc.cluster.local:port
-	}...)
-
-	return hostnames
+	return kube.NewClient(nil, nil).GetHostnamesForService(svc, localNamespace)
 }

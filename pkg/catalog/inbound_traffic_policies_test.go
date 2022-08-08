@@ -19,8 +19,7 @@ import (
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/constants"
 
-	"github.com/openservicemesh/osm/pkg/compute"
-	"github.com/openservicemesh/osm/pkg/compute/kube"
+	kubeFake "github.com/openservicemesh/osm/pkg/compute/kube/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -680,7 +679,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Name:      "split1",
 					},
 					Spec: split.TrafficSplitSpec{
-						Service: "s1-apex.ns1.svc.cluster.local",
+						Service: "s1-apex",
 						Backends: []split.TrafficSplitBackend{
 							{
 								Service: "s1",
@@ -880,7 +879,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Name:      "split1",
 					},
 					Spec: split.TrafficSplitSpec{
-						Service: "s1-apex.ns1.svc.cluster.local",
+						Service: "s1-apex",
 						Backends: []split.TrafficSplitBackend{
 							{
 								Service: "s1",
@@ -1463,7 +1462,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Name:      "split1",
 					},
 					Spec: split.TrafficSplitSpec{
-						Service: "s1.ns1.svc.cluster.local",
+						Service: "s1",
 						Backends: []split.TrafficSplitBackend{
 							{
 								Service: "s1",
@@ -1616,7 +1615,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Name:      "split1",
 					},
 					Spec: split.TrafficSplitSpec{
-						Service: "s2-apex.ns1.svc.cluster.local",
+						Service: "s2-apex",
 						Backends: []split.TrafficSplitBackend{
 							{
 								Service: "s1",
@@ -2158,7 +2157,6 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			fakeCertManager := tresorFake.NewFake(1 * time.Hour)
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockComputeClient := compute.NewMockInterface(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
@@ -2168,7 +2166,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				certManager:      fakeCertManager,
 				configurator:     mockCfg,
 				meshSpec:         mockMeshSpec,
-				Interface:        mockComputeClient,
+				Interface:        kubeFake.NewFakeProvider(),
 			}
 
 			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
@@ -2176,10 +2174,6 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			mockMeshSpec.EXPECT().ListTrafficTargets(gomock.Any()).Return(tc.trafficTargets).AnyTimes()
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return(tc.httpRouteGroups).AnyTimes()
 			tc.prepare(mockMeshSpec, tc.trafficSplits)
-
-			for _, svc := range mc.getUpstreamServicesIncludeApex(tc.upstreamServices) {
-				mockComputeClient.EXPECT().GetHostnamesForService(svc, true).Return(kube.NewClient(nil, nil).GetHostnamesForService(svc, true)).AnyTimes()
-			}
 
 			actual := mc.GetInboundMeshTrafficPolicy(tc.upstreamIdentity, tc.upstreamServices)
 
