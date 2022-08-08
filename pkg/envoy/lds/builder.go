@@ -83,10 +83,10 @@ func (lb *listenerBuilder) PermissiveEgress(enable bool) *listenerBuilder {
 }
 
 func (lb *listenerBuilder) FilterBuilder() *filterBuilder {
-	if lb.filterBuilder == nil {
-		lb.filterBuilder = FilterBuilder()
+	if lb.filBuilder == nil {
+		lb.filBuilder = getFilterBuilder()
 	}
-	return lb.filterBuilder
+	return lb.filBuilder
 }
 
 func (lb *listenerBuilder) defaultOutboundListenerFilters() *listenerBuilder {
@@ -309,7 +309,7 @@ func (lb *listenerBuilder) buildInboundFilterChains() []*xds_listener.FilterChai
 }
 
 // FilterBuilder returns an instance used to build filters
-func FilterBuilder() *filterBuilder { //nolint: revive // unexported-return
+func getFilterBuilder() *filterBuilder { //nolint: revive // unexported-return
 	return &filterBuilder{}
 }
 
@@ -337,7 +337,7 @@ func (fb *filterBuilder) TCPGlobalRateLimit(rl *policyv1alpha1.TCPGlobalRateLimi
 	return fb
 }
 
-func (fb *filterBuilder) HTTPConnManager() *httpConnManagerBuilder {
+func (fb *filterBuilder) httpConnManager() *httpConnManagerBuilder {
 	if fb.hcmBuilder == nil {
 		fb.hcmBuilder = HTTPConnManagerBuilder()
 	}
@@ -444,16 +444,6 @@ func (hb *httpConnManagerBuilder) DefaultFilters() *httpConnManagerBuilder {
 				),
 			},
 		},
-		// Router filter - required to perform HTTP connection management
-		// *Note: the router filter must always be the last filter in the list
-		&xds_hcm.HttpFilter{
-			Name: envoy.HTTPRouterFilterName,
-			ConfigType: &xds_hcm.HttpFilter_TypedConfig{
-				TypedConfig: &any.Any{
-					TypeUrl: envoy.HTTPRouterFilterTypeURL,
-				},
-			},
-		},
 	)
 
 	return hb
@@ -467,34 +457,15 @@ func (hb *httpConnManagerBuilder) AddFilter(filter *xds_hcm.HttpFilter) *httpCon
 		return hb
 	}
 
-	hb.filters = append(hb.filters, filter)
-
-	// If there's only 1 filter, no additional checks required
-	if len(hb.filters) == 1 {
+	if filter.Name == envoy.HTTPRouterFilterName {
+		if hb.routerFilter != nil {
+			panic("multiple router filters not allowed")
+		}
+		hb.routerFilter = filter
 		return hb
 	}
 
-	routerFilterIndex := -1
-	lastIndex := len(hb.filters) - 1
-
-	for i, f := range hb.filters {
-		if f.Name == envoy.HTTPRouterFilterName {
-			routerFilterIndex = i
-			break
-		}
-	}
-
-	// Guard against the case where multiple router filters are accidentally programmed.
-	// This panics to ensure this never happens in code.
-	if routerFilterIndex != -1 && filter.Name == envoy.HTTPRouterFilterName {
-		panic("multiple router filters not allowed")
-	}
-
-	if routerFilterIndex != lastIndex {
-		routerFilter := hb.filters[routerFilterIndex]
-		hb.filters = append(hb.filters[:routerFilterIndex], hb.filters[routerFilterIndex+1])
-		hb.filters = append(hb.filters, routerFilter)
-	}
+	hb.filters = append(hb.filters, filter)
 
 	return hb
 }
@@ -513,6 +484,20 @@ func (hb *httpConnManagerBuilder) Tracing(config *xds_hcm.HttpConnectionManager_
 
 // Build builds the HttpConnectionManager filter from the builder config
 func (hb *httpConnManagerBuilder) Build() (*xds_listener.Filter, error) {
+	// NOTE: router filter must always be the last filter in the list
+	if hb.routerFilter == nil {
+		// Router filter - required to perform HTTP connection management
+		hb.routerFilter = &xds_hcm.HttpFilter{
+			Name: envoy.HTTPRouterFilterName,
+			ConfigType: &xds_hcm.HttpFilter_TypedConfig{
+				TypedConfig: &any.Any{
+					TypeUrl: envoy.HTTPRouterFilterTypeURL,
+				},
+			},
+		}
+	}
+	hb.filters = append(hb.filters, hb.routerFilter)
+
 	connManager := &xds_hcm.HttpConnectionManager{
 		StatPrefix:  hb.statsPrefix,
 		CodecType:   xds_hcm.HttpConnectionManager_AUTO,

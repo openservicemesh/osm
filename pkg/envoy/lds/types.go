@@ -38,7 +38,7 @@ type listenerBuilder struct {
 	extAuthzConfig            *auth.ExtAuthConfig
 	activeHealthCheck         bool
 	sidecarSpec               configv1alpha2.SidecarSpec
-	filterBuilder             *filterBuilder
+	filBuilder                *filterBuilder
 
 	listenerFilters []*xds_listener.ListenerFilter
 }
@@ -49,6 +49,7 @@ type httpConnManagerBuilder struct {
 	filters          []*xds_hcm.HttpFilter
 	tracing          *xds_hcm.HttpConnectionManager_Tracing
 	localReplyConfig *xds_hcm.LocalReplyConfig
+	routerFilter     *xds_hcm.HttpFilter
 }
 
 type tcpProxyBuilder struct {

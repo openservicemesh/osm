@@ -86,7 +86,7 @@ func (lb *listenerBuilder) buildInboundHTTPFilterChain(trafficMatch *trafficpoli
 		fb.TCPGlobalRateLimit(trafficMatch.RateLimit.Global.TCP)
 	}
 
-	fb.HTTPConnManager().StatsPrefix(route.GetInboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort)).
+	fb.httpConnManager().StatsPrefix(route.GetInboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort)).
 		RouteConfigName(route.GetInboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort)).
 		DefaultFilters()
 
@@ -95,19 +95,19 @@ func (lb *listenerBuilder) buildInboundHTTPFilterChain(trafficMatch *trafficpoli
 		if err != nil {
 			return nil, fmt.Errorf("error building inbound http filter chain: %w", err)
 		}
-		fb.HTTPConnManager().Tracing(tracing)
+		fb.httpConnManager().Tracing(tracing)
 	}
 	if lb.extAuthzConfig != nil && lb.extAuthzConfig.Enable {
-		fb.HTTPConnManager().AddFilter(getExtAuthzHTTPFilter(lb.extAuthzConfig))
+		fb.httpConnManager().AddFilter(getExtAuthzHTTPFilter(lb.extAuthzConfig))
 	}
 	if lb.wasmStatsHeaders != nil {
 		wasmFilters, wasmLocalReplyConfig, err := getWASMStatsConfig(lb.wasmStatsHeaders)
 		if err != nil {
 			return nil, fmt.Errorf("error building inbound http filter chain: %w", err)
 		}
-		fb.HTTPConnManager().LocalReplyConfig(wasmLocalReplyConfig)
+		fb.httpConnManager().LocalReplyConfig(wasmLocalReplyConfig)
 		for _, f := range wasmFilters {
-			fb.HTTPConnManager().AddFilter(f)
+			fb.httpConnManager().AddFilter(f)
 		}
 	}
 	if lb.activeHealthCheck {
@@ -115,7 +115,7 @@ func (lb *listenerBuilder) buildInboundHTTPFilterChain(trafficMatch *trafficpoli
 		if err != nil {
 			return nil, fmt.Errorf("error building inbound http filter chain: %w", err)
 		}
-		fb.HTTPConnManager().AddFilter(healthCheckFilter)
+		fb.httpConnManager().AddFilter(healthCheckFilter)
 	}
 
 	// Build the inbound filters
@@ -171,7 +171,7 @@ func (lb *listenerBuilder) buildInboundTCPFilterChain(trafficMatch *trafficpolic
 	}
 
 	// Build filters
-	fb := FilterBuilder().
+	fb := getFilterBuilder().
 		StatsPrefix(trafficMatch.Name)
 
 	fb.TCPProxy().
@@ -378,7 +378,7 @@ func (lb *listenerBuilder) buildOutboundHTTPFilterChain(trafficMatch trafficpoli
 
 func (lb *listenerBuilder) buildOutboundTCPFilterChain(trafficMatch trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
 	// Build filters
-	fb := FilterBuilder().
+	fb := getFilterBuilder().
 		StatsPrefix(trafficMatch.Name)
 	fb.TCPProxy().
 		StatsPrefix(trafficMatch.Name).

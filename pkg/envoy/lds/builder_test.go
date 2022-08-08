@@ -49,7 +49,6 @@ func TestHTTPConnManagerBuilder(t *testing.T) {
 				a.True(contains(hcm.HttpFilters, envoy.HTTPLocalRateLimitFilterName))
 				a.True(contains(hcm.HttpFilters, "f1"))
 				a.True(contains(hcm.HttpFilters, "f2"))
-				a.Equal(envoy.HTTPRouterFilterName, hcm.HttpFilters[len(hcm.HttpFilters)-1].Name)
 				a.ElementsMatch(&xds_hcm.LocalReplyConfig{}, hcm.LocalReplyConfig)
 				a.Equal(&xds_hcm.HttpConnectionManager_Tracing{}, hcm.Tracing)
 				a.True(hcm.GenerateRequestId.Value)
@@ -260,7 +259,7 @@ func TestFilterBuilder(t *testing.T) {
 						TCPRouteMatches: nil,
 					},
 				}, "cluster.local").
-					HTTPConnManager().DefaultFilters()
+					httpConnManager().DefaultFilters()
 			},
 			expectedNetworkFilters: []string{envoy.L4RBACFilterName},
 			expectedHTTPFilters:    []string{envoy.HTTPRBACFilterName, envoy.HTTPLocalRateLimitFilterName, envoy.HTTPRouterFilterName},
@@ -310,7 +309,7 @@ func TestFilterBuilder(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
-			fb := FilterBuilder()
+			fb := getFilterBuilder()
 			tc.prep(fb)
 
 			filters, err := fb.Build()
@@ -345,7 +344,7 @@ func TestAddFilter(t *testing.T) {
 	// Verify the HTTP router filter is always the last filter regardless
 	// of the order in which the filters are added
 	a.Equal(envoy.HTTPExtAuthzFilterName, hb.filters[0].Name)
-	a.Equal(envoy.HTTPRouterFilterName, hb.filters[1].Name)
+	a.Equal(envoy.HTTPRouterFilterName, hb.routerFilter.Name)
 
 	// Verify adding router filter multiple times is disallowed
 	a.Panics(func() { hb.AddFilter(&xds_hcm.HttpFilter{Name: envoy.HTTPRouterFilterName}) },
