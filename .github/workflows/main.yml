@@ -116,7 +116,7 @@ jobs:
     name: Go build (FIPS)
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/oss/go/microsoft/golang:1.17-fips-cbl-mariner2.0
+      image: mcr.microsoft.com/oss/go/microsoft/golang:1.19-fips-cbl-mariner2.0
       env:
         FIPS: 1
         GNUPGHOME: /root/.gnupg
@@ -165,7 +165,7 @@ jobs:
     name: Go test (FIPS)
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/oss/go/microsoft/golang:1.17-fips-cbl-mariner2.0
+      image: mcr.microsoft.com/oss/go/microsoft/golang:1.19-fips-cbl-mariner2.0
       env:
         GNUPGHOME: /root/.gnupg
         GOFIPS: 1

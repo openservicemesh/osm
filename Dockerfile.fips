@@ -1,6 +1,6 @@
 
 #build stage
-FROM mcr.microsoft.com/oss/go/microsoft/golang:1.17-fips-cbl-mariner2.0 AS builder
+FROM mcr.microsoft.com/oss/go/microsoft/golang:1.19-fips-cbl-mariner2.0 AS builder
 
 RUN yum update -y
 RUN yum install -y make git gcc gcc-c++ glibc-devel openssl-devel bash ca-certificates
