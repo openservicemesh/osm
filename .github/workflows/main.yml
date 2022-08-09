@@ -137,7 +137,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Go Build
-        run: make build-ci
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          make build-ci
 
   unittest:
     name: Go test
