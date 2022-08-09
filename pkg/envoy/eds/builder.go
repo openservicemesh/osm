@@ -3,6 +3,7 @@ package eds
 import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
@@ -16,6 +17,30 @@ const (
 	localClusterPriority  = uint32(0)
 	remoteClusterPriority = uint32(1)
 )
+
+type endpointsBuilder struct {
+	upstreamSvcEndpoints map[service.MeshService][]endpoint.Endpoint
+}
+
+func newEndpointsBuilder() *endpointsBuilder {
+	return &endpointsBuilder{
+		upstreamSvcEndpoints: make(map[service.MeshService][]endpoint.Endpoint),
+	}
+}
+
+func (b *endpointsBuilder) AddEndpoints(svc service.MeshService, endpoints []endpoint.Endpoint) {
+	b.upstreamSvcEndpoints[svc] = endpoints
+}
+
+// Build generate Envoy endpoint resources based on stored endpoints
+func (b *endpointsBuilder) Build() []types.Resource {
+	var edsResources []types.Resource
+
+	for svc, endpoints := range b.upstreamSvcEndpoints {
+		edsResources = append(edsResources, newClusterLoadAssignment(svc, endpoints))
+	}
+	return edsResources
+}
 
 // newClusterLoadAssignment returns the cluster load assignments for the given service and its endpoints
 func newClusterLoadAssignment(svc service.MeshService, serviceEndpoints []endpoint.Endpoint) *xds_endpoint.ClusterLoadAssignment {
