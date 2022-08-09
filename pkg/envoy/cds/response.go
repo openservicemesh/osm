@@ -53,7 +53,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Add an outbound passthrough cluster for egress if global mesh-wide Egress is enabled
-	if cfg.IsEgressEnabled() {
+	if cfg.GetMeshConfig().Spec.Traffic.EnableEgress {
 		clusters = append(clusters, outboundPassthroughCluser)
 	}
 
@@ -65,7 +65,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Add an outbound tracing cluster (from localhost to tracing sink)
-	if cfg.IsTracingEnabled() {
+	if cfg.GetMeshConfig().Spec.Observability.Tracing.Enable {
 		clusters = append(clusters, getTracingCluster(cfg))
 	}
 

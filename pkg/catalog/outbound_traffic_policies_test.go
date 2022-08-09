@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
@@ -594,8 +594,14 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			}
 
 			// Mock calls to k8s client caches
-			mockCfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).AnyTimes()
-			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{}).AnyTimes()
+			mockCfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+				Spec: v1alpha2.MeshConfigSpec{
+					Traffic: v1alpha2.TrafficSpec{
+						EnablePermissiveTrafficPolicyMode: tc.permissiveMode,
+					},
+				},
+			}).AnyTimes()
+
 			mockProvider.EXPECT().ListServices().Return(allMeshServices).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
 			// Mock conditional traffic split for service

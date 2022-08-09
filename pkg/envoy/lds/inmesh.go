@@ -12,18 +12,16 @@ import (
 	xds_network_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/local_ratelimit/v3"
 	xds_global_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/ratelimit/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/service"
-
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 

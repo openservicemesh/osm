@@ -17,8 +17,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -234,11 +232,7 @@ func TestRDSRespose(t *testing.T) {
 			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-				EnableWASMStats: false,
-			}).AnyTimes()
+			mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 			proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 				return []service.MeshService{tests.BookstoreV1Service}, nil

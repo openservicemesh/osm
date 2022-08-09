@@ -257,7 +257,7 @@ func main() {
 	}
 
 	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), osmNamespace, cfg, certManager, k8sClient, msgBroker)
+	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, cfg.GetMeshConfig().Spec.Observability.EnableDebugServer, osmNamespace, cfg, certManager, k8sClient, msgBroker)
 	if err := xdsServer.Start(ctx, cancel, constants.ADSServerPort, adsCert); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}

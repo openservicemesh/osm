@@ -14,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // NewResponse creates a new Listener Discovery Response.
@@ -25,7 +26,9 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	var ldsResources []types.Resource
 
 	var statsHeaders map[string]string
-	if featureflags := cfg.GetFeatureFlags(); featureflags.EnableWASMStats {
+	meshConfig := cfg.GetMeshConfig()
+
+	if meshConfig.Spec.FeatureFlags.EnableWASMStats {
 		statsHeaders = proxy.StatsHeaders()
 	}
 
@@ -42,11 +45,11 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		ProxyIdentity(proxy.Identity).
 		Address(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort).
 		TrafficDirection(xds_core.TrafficDirection_OUTBOUND).
-		PermissiveMesh(cfg.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode).
+		PermissiveMesh(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode).
 		OutboundMeshTrafficPolicy(meshCatalog.GetOutboundMeshTrafficPolicy(proxy.Identity)).
-		ActiveHealthCheck(cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks)
+		ActiveHealthCheck(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks)
 
-	if cfg.GetMeshConfig().Spec.Traffic.EnableEgress {
+	if meshConfig.Spec.Traffic.EnableEgress {
 		outboundLis.PermissiveEgress(true)
 	} else {
 		egressPolicy, err := meshCatalog.GetEgressTrafficPolicy(proxy.Identity)
@@ -55,10 +58,10 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		}
 		outboundLis.EgressTrafficPolicy(egressPolicy)
 	}
-	if cfg.GetMeshConfig().Spec.Observability.Tracing.Enable {
-		outboundLis.TracingEndpoint(cfg.GetTracingEndpoint())
+	if meshConfig.Spec.Observability.Tracing.Enable {
+		outboundLis.TracingEndpoint(utils.GetTracingEndpoint(meshConfig))
 	}
-	if cfg.GetMeshConfig().Spec.FeatureFlags.EnableWASMStats {
+	if meshConfig.Spec.FeatureFlags.EnableWASMStats {
 		outboundLis.WASMStatsHeaders(statsHeaders)
 	}
 
@@ -82,11 +85,11 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		Address(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort).
 		TrafficDirection(xds_core.TrafficDirection_INBOUND).
 		DefaultInboundListenerFilters().
-		PermissiveMesh(cfg.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode).
+		PermissiveMesh(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode).
 		InboundMeshTrafficPolicy(meshCatalog.GetInboundMeshTrafficPolicy(proxy.Identity, svcList)).
 		IngressTrafficPolicies(meshCatalog.GetIngressTrafficPolicies(svcList)).
-		ActiveHealthCheck(cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks).
-		SidecarSpec(cfg.GetMeshConfig().Spec.Sidecar)
+		ActiveHealthCheck(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks).
+		SidecarSpec(meshConfig.Spec.Sidecar)
 
 	trafficTargets, err := meshCatalog.ListInboundTrafficTargetsWithRoutes(proxy.Identity)
 	if err != nil {
@@ -94,13 +97,13 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 	inboundLis.TrafficTargets(trafficTargets)
 
-	if cfg.GetMeshConfig().Spec.Observability.Tracing.Enable {
-		inboundLis.TracingEndpoint(cfg.GetTracingEndpoint())
+	if meshConfig.Spec.Observability.Tracing.Enable {
+		inboundLis.TracingEndpoint(utils.GetTracingEndpoint(meshConfig))
 	}
-	if extAuthzConfig := cfg.GetInboundExternalAuthConfig(); extAuthzConfig.Enable {
+	if extAuthzConfig := utils.ExternalAuthConfigFromMeshConfig(meshConfig); extAuthzConfig.Enable {
 		inboundLis.ExtAuthzConfig(&extAuthzConfig)
 	}
-	if cfg.GetMeshConfig().Spec.FeatureFlags.EnableWASMStats {
+	if meshConfig.Spec.FeatureFlags.EnableWASMStats {
 		inboundLis.WASMStatsHeaders(statsHeaders)
 	}
 

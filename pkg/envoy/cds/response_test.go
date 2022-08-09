@@ -58,6 +58,14 @@ func TestNewResponse(t *testing.T) {
 
 	meshConfig := configv1alpha2.MeshConfig{
 		Spec: configv1alpha2.MeshConfigSpec{
+			Traffic: configv1alpha2.TrafficSpec{
+				EnableEgress: true,
+			},
+			Observability: configv1alpha2.ObservabilitySpec{
+				Tracing: configv1alpha2.TracingSpec{
+					Enable: true,
+				},
+			},
 			Sidecar: configv1alpha2.SidecarSpec{
 				TLSMinProtocolVersion: "TLSv1_2",
 				TLSMaxProtocolVersion: "TLSv1_3",
@@ -95,12 +103,6 @@ func TestNewResponse(t *testing.T) {
 	mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(expectedInboundMeshPolicy).AnyTimes()
 	mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(tests.BookbuyerServiceIdentity).Return(expectedOutboundMeshPolicy).AnyTimes()
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
-	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
-	mockConfigurator.EXPECT().IsTracingEnabled().Return(true).AnyTimes()
-	mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()
-	mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{}).AnyTimes()
 	mockCatalog.EXPECT().IsMetricsEnabled(proxy).Return(true, nil).AnyTimes()
 	mockConfigurator.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
 
@@ -417,7 +419,7 @@ func TestNewResponseListServicesError(t *testing.T) {
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	cfg := configurator.NewMockConfigurator(ctrl)
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxy.Identity).Return(nil).AnyTimes()
-	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+	cfg.EXPECT().GetMeshConfig().AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
 	tassert.Error(t, err)
@@ -441,9 +443,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxyIdentity).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetEgressTrafficPolicy(proxyIdentity).Return(nil, fmt.Errorf("some error")).Times(1)
 	meshCatalog.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
-	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
-	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
-	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+	cfg.EXPECT().GetMeshConfig().AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
 	tassert.NoError(t, err)
@@ -471,9 +471,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 			{Name: "my-cluster"}, // the test ensures this duplicate is removed
 		},
 	}, nil).Times(1)
-	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
-	cfg.EXPECT().IsTracingEnabled().Return(false).Times(1)
-	cfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+	cfg.EXPECT().GetMeshConfig().AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
 	tassert.NoError(t, err)

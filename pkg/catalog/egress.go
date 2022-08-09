@@ -27,7 +27,7 @@ const (
 
 // GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity
 func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error) {
-	if !mc.configurator.GetFeatureFlags().EnableEgressPolicy {
+	if !mc.configurator.GetMeshConfig().Spec.FeatureFlags.EnableEgressPolicy {
 		return nil, nil
 	}
 

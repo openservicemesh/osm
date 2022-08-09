@@ -46,7 +46,6 @@ func TestGetEgressHTTPFilterChain(t *testing.T) {
 			lb := &listenerBuilder{
 				permissiveEgress: false, // Egress policy enabled
 			}
-
 			match := trafficpolicy.TrafficMatch{
 				DestinationPort: tc.destinationPort,
 			}
@@ -142,7 +141,6 @@ func TestGetEgressTCPFilterChain(t *testing.T) {
 			}
 
 			actual, err := lb.buildEgressTCPFilterChain(tc.trafficMatch)
-
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedFilterChainMatch, actual.FilterChainMatch)
 			assert.Len(actual.Filters, 1) // Single TCPProxy filter

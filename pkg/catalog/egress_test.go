@@ -452,7 +452,11 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 				policyController: mockPolicyController,
 			}
 
-			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableEgressPolicy: true}).Times(1)
+			mockCfg.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{
+				Spec: configv1alpha2.MeshConfigSpec{
+					FeatureFlags: configv1alpha2.FeatureFlags{EnableEgressPolicy: true},
+				},
+			}).Times(1)
 
 			actual, err := mc.GetEgressTrafficPolicy(testSourceIdentity)
 			assert.Equal(tc.expectError, err != nil)

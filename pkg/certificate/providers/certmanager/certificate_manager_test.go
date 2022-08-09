@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"testing"
-	"time"
 
 	tassert "github.com/stretchr/testify/assert"
 
@@ -33,8 +32,7 @@ var (
 )
 
 const (
-	validity = 1 * time.Hour
-	keySize  = 2048
+	keySize = 2048
 )
 
 func TestCertificateFromCertificateRequest(t *testing.T) {
@@ -53,7 +51,7 @@ func TestCertificateFromCertificateRequest(t *testing.T) {
 	rootKey, err := certificate.DecodePEMPrivateKey(rootKeyPEM)
 	assert.Nil(err)
 
-	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 	cm, err := New(
 		fakeClient,

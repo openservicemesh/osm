@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
-
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 )
 
 const (
@@ -98,4 +98,14 @@ func TestMetricsHandler(t *testing.T) {
 	})
 	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 0` + "\n"))
 	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 0` + "\n"))
+}
+
+func TestGetMeshConfigCacheKey(t *testing.T) {
+	c := Client{
+		meshConfigName: "configName",
+		osmNamespace:   "namespaceName",
+	}
+	expected := "namespaceName/configName"
+	actual := c.getMeshConfigCacheKey()
+	tassert.Equal(t, expected, actual)
 }

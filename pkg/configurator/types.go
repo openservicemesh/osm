@@ -2,14 +2,9 @@
 package configurator
 
 import (
-	"time"
-
-	corev1 "k8s.io/api/core/v1"
-
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
-	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -24,79 +19,8 @@ type Client struct {
 	meshConfigName string
 }
 
-// Configurator is the controller interface for K8s namespaces
+// Configurator is an interface for interacting with the Mesh Config, and the namespace it resides in.
 type Configurator interface {
-	// GetMeshConfig returns the MeshConfig resource corresponding to the control plane
-	GetMeshConfig() configv1alpha2.MeshConfig
-
-	// GetOSMNamespace returns the namespace in which OSM controller pod resides
+	GetMeshConfig() v1alpha2.MeshConfig
 	GetOSMNamespace() string
-
-	// GetMeshConfigJSON returns the MeshConfig in pretty JSON (human readable)
-	GetMeshConfigJSON() (string, error)
-
-	// IsPermissiveTrafficPolicyMode determines whether we are in "allow-all" mode or SMI policy (block by default) mode
-	IsPermissiveTrafficPolicyMode() bool
-
-	// IsEgressEnabled determines whether egress is globally enabled in the mesh or not
-	IsEgressEnabled() bool
-
-	// IsDebugServerEnabled determines whether osm debug HTTP server is enabled
-	IsDebugServerEnabled() bool
-
-	// IsTracingEnabled returns whether tracing is enabled
-	IsTracingEnabled() bool
-
-	// GetTracingHost is the host to which we send tracing spans
-	GetTracingHost() string
-
-	// GetTracingPort returns the tracing listener port
-	GetTracingPort() uint32
-
-	// GetTracingEndpoint returns the collector endpoint
-	GetTracingEndpoint() string
-
-	// GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
-	GetMaxDataPlaneConnections() int
-
-	// GetOsmLogLevel returns the configured OSM log level
-	GetOSMLogLevel() string
-
-	// GetEnvoyLogLevel returns the envoy log level
-	GetEnvoyLogLevel() string
-
-	// GetEnvoyImage returns the envoy image
-	GetEnvoyImage() string
-
-	// GetEnvoyWindowsImage returns the envoy windows image
-	GetEnvoyWindowsImage() string
-
-	// GetInitContainerImage returns the init container image
-	GetInitContainerImage() string
-
-	// GetServiceCertValidityPeriod returns the validity duration for service certificates
-	GetServiceCertValidityPeriod() time.Duration
-
-	// GetIngressGatewayCertValidityPeriod returns the validity duration for the Ingress
-	// Gateway certificate, default value if not specified
-	GetIngressGatewayCertValidityPeriod() time.Duration
-
-	// GetCertKeyBitSize returns the certificate key bit size
-	GetCertKeyBitSize() int
-
-	// IsPrivilegedInitContainer determines whether init containers should be privileged
-	IsPrivilegedInitContainer() bool
-
-	// GetConfigResyncInterval returns the duration for resync interval.
-	// If error or non-parsable value, returns 0 duration
-	GetConfigResyncInterval() time.Duration
-
-	// GetProxyResources returns the `Resources` configured for proxies, if any
-	GetProxyResources() corev1.ResourceRequirements
-
-	// GetInboundExternalAuthConfig returns the External Authentication configuration for incoming traffic, if any
-	GetInboundExternalAuthConfig() auth.ExtAuthConfig
-
-	// GetFeatureFlags returns OSM's feature flags
-	GetFeatureFlags() configv1alpha2.FeatureFlags
 }

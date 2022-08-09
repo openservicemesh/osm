@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -2170,7 +2171,13 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			}
 
 			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
-			mockCfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode)
+			mockCfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+				Spec: v1alpha2.MeshConfigSpec{
+					Traffic: v1alpha2.TrafficSpec{
+						EnablePermissiveTrafficPolicyMode: tc.permissiveMode,
+					},
+				},
+			}).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficTargets(gomock.Any()).Return(tc.trafficTargets).AnyTimes()
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return(tc.httpRouteGroups).AnyTimes()
 			tc.prepare(mockMeshSpec, tc.trafficSplits)

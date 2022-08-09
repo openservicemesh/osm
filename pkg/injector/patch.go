@@ -21,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.AdmissionRequest, proxyUUID uuid.UUID) ([]byte, error) {
@@ -151,16 +152,17 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 func (wh *mutatingWebhook) verifyPrerequisites(podOS string) error {
 	isWindows := strings.EqualFold(podOS, constants.OSWindows)
 
+	mc := wh.configurator.GetMeshConfig()
 	// Verify that the required images are configured
-	if image := wh.configurator.GetEnvoyImage(); !isWindows && image == "" {
+	if image := utils.GetEnvoyImage(mc); !isWindows && image == "" {
 		// Linux pods require Envoy Linux image
 		return fmt.Errorf("MeshConfig sidecar.envoyImage not set")
 	}
-	if image := wh.configurator.GetEnvoyWindowsImage(); isWindows && image == "" {
+	if image := utils.GetEnvoyWindowsImage(mc); isWindows && image == "" {
 		// Windows pods require Envoy Windows image
 		return fmt.Errorf("MeshConfig sidecar.envoyWindowsImage not set")
 	}
-	if image := wh.configurator.GetInitContainerImage(); !isWindows && image == "" {
+	if image := utils.GetInitContainerImage(mc); !isWindows && image == "" {
 		// Linux pods require init container image
 		return fmt.Errorf("MeshConfig sidecar.initContainerImage not set")
 	}
@@ -209,7 +211,7 @@ func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, names
 	networkInterfaceExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.NetworkInterfaceExclusionList
 
 	// Add the init container to the pod spec
-	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer(), wh.osmContainerPullPolicy, networkInterfaceExclusionList)
+	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.GetMeshConfig().Spec.Sidecar.EnablePrivilegedInitContainer, wh.osmContainerPullPolicy, networkInterfaceExclusionList)
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 
 	return nil

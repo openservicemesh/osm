@@ -53,7 +53,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		clusterConfigForServicePort := &trafficpolicy.MeshClusterConfig{
 			Name:                          meshSvc.EnvoyClusterName(),
 			Service:                       meshSvc,
-			EnableEnvoyActiveHealthChecks: mc.configurator.GetFeatureFlags().EnableEnvoyActiveHealthChecks,
+			EnableEnvoyActiveHealthChecks: mc.configurator.GetMeshConfig().Spec.FeatureFlags.EnableEnvoyActiveHealthChecks,
 			UpstreamTrafficSetting: mc.policyController.GetUpstreamTrafficSetting(
 				policy.UpstreamTrafficSettingGetOpt{MeshService: &meshSvc}),
 		}
@@ -144,7 +144,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 // ListOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
-	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+	if mc.configurator.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode {
 		return mc.ListServices()
 	}
 
