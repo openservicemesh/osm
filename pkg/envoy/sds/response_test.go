@@ -67,16 +67,10 @@ func TestGetRootCert(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	// This is used to dynamically set expectations for each test in the list of table driven tests
-	type dynamicMock struct {
-		mockCatalog *catalog.MockMeshCataloger
-	}
-
 	type testCase struct {
 		name            string
 		sdsCert         secrets.SDSCert
 		serviceIdentity identity.ServiceIdentity
-		prepare         func(d *dynamicMock)
 
 		// expectations
 		expectedSANs []string
@@ -93,8 +87,6 @@ func TestGetRootCert(t *testing.T) {
 			},
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 
-			prepare: func(d *dynamicMock) {},
-
 			// expectations
 			expectedSANs: nil,
 			expectError:  false,
@@ -110,17 +102,6 @@ func TestGetRootCert(t *testing.T) {
 			},
 			serviceIdentity: identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 
-			prepare: func(d *dynamicMock) {
-				associatedSvcAccounts := []identity.ServiceIdentity{
-					identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-2"}.ToServiceIdentity(),
-					identity.K8sServiceAccount{Name: "sa-3", Namespace: "ns-2"}.ToServiceIdentity(),
-				}
-				d.mockCatalog.EXPECT().ListServiceIdentitiesForService(service.MeshService{
-					Name:      "service-2",
-					Namespace: "ns-2",
-				}).Return(associatedSvcAccounts).Times(1)
-			},
-
 			// expectations
 			expectedSANs: []string{"sa-2.ns-2.cluster.local", "sa-3.ns-2.cluster.local"},
 			expectError:  false,
@@ -134,36 +115,26 @@ func TestGetRootCert(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			cert := &certificate.Certificate{}
-			fakeCertManager, err := certificate.FakeCertManager()
-			if err != nil {
-				t.Error(err)
-			}
 
-			// Initialize the dynamic mocks
-			d := dynamicMock{
-				mockCatalog: catalog.NewMockMeshCataloger(mockCtrl),
-			}
+			builder := NewBuilder()
+			builder.SetProxyCert(cert)
 
-			// Prepare the dynamic mock expectations for each test case
-			if tc.prepare != nil {
-				tc.prepare(&d)
-			}
+			meshService, err := tc.sdsCert.GetMeshService()
+			assert.Equal(err, nil, fmt.Sprintf("Error retrieving mesh service: %s", err))
 
-			s := &sdsImpl{
-				serviceIdentity: tc.serviceIdentity,
-				certManager:     fakeCertManager,
-
-				// these points to the dynamic mocks which gets updated for each test
-				meshCatalog: d.mockCatalog,
-			}
+			serviceIdentitiesForServices := make(map[service.MeshService][]identity.ServiceIdentity)
+			serviceIdentitiesForServices[*meshService] = []identity.ServiceIdentity{tc.serviceIdentity}
+			builder.SetServiceIdentitiesForService(serviceIdentitiesForServices)
 
 			// test the function
-			sdsSecret, err := s.getRootCert(cert, tc.sdsCert)
+			sdsSecret, err := builder.buildRootCertSecret(tc.sdsCert)
 			assert.Equal(err != nil, tc.expectError)
 
 			if err != nil {
 				actualSANs := subjectAltNamesToStr(sdsSecret.GetValidationContext().GetMatchTypedSubjectAltNames())
 				assert.ElementsMatch(actualSANs, tc.expectedSANs)
+				// Check trusted CA
+				assert.NotNil(sdsSecret.GetValidationContext().GetTrustedCa().GetInlineBytes())
 			}
 		})
 	}
@@ -195,8 +166,10 @@ func TestGetServiceCert(t *testing.T) {
 				PrivateKey: tc.privKey,
 			}
 
+			builder := NewBuilder()
+			builder.SetProxyCert(cert)
 			// Test the function
-			sdsSecret, err := getServiceCertSecret(cert, tc.certName)
+			sdsSecret, err := builder.buildServiceCertSecret(tc.certName) // getServiceCertSecret(cert, tc.certName)
 
 			assert.Equal(err != nil, tc.expectError)
 			assert.NotNil(sdsSecret)
@@ -206,15 +179,10 @@ func TestGetServiceCert(t *testing.T) {
 	}
 }
 
-func TestGetSDSSecrets(t *testing.T) {
+func TestSDSBuilder(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-
-	fakeCertManager, err := certificate.FakeCertManager()
-	if err != nil {
-		t.Error(err)
-	}
 
 	cert := &certificate.Certificate{
 		CertChain:  []byte("foo"),
@@ -337,19 +305,16 @@ func TestGetSDSSecrets(t *testing.T) {
 				tc.prepare(&d)
 			}
 
-			s := &sdsImpl{
-				serviceIdentity: tc.serviceIdentity,
-				certManager:     fakeCertManager,
-
-				// these points to the dynamic mocks which gets updated for each test
-				meshCatalog: d.mockCatalog,
-				TrustDomain: "cluster.local",
-			}
+			builder := NewBuilder()
+			builder.SetRequestedCerts(tc.requestedCerts)
 
 			proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("sa-1", "ns-1"), nil, 1)
+			builder.SetProxy(proxy).SetProxyCert(cert).SetTrustDomain("cluster.local")
 
-			// test the function
-			sdsSecrets := s.getSDSSecrets(cert, tc.requestedCerts, proxy)
+			serviceIdentitiesForServices := getServiceIdentitiesForOutboundServices(tc.requestedCerts, d.mockCatalog)
+			builder.SetServiceIdentitiesForService(serviceIdentitiesForServices)
+
+			sdsSecrets := builder.Build()
 			assert.Len(sdsSecrets, tc.expectedSecretCount)
 
 			if tc.expectedSecretCount <= 0 {
@@ -373,6 +338,80 @@ func TestGetSDSSecrets(t *testing.T) {
 			case secrets.ServiceCertType:
 				assert.NotNil(sdsSecret.GetTlsCertificate().GetCertificateChain().GetInlineBytes())
 				assert.NotNil(sdsSecret.GetTlsCertificate().GetPrivateKey().GetInlineBytes())
+			}
+		})
+	}
+}
+
+// Input requestedCerts []string, meshCatalog catalog.MeshCataloger
+// output map[service.MeshService][]identity.ServiceIdentity
+// confirm meshCatalog call for secrets.RootCertTypeForMTLSOutbound
+func TestGetServiceIdentitiesForServices(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	proxySvcAccount := identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}
+
+	// This is used to dynamically set expectations for each test in the list of table driven tests
+	type dynamicMock struct {
+		mockCatalog *catalog.MockMeshCataloger
+	}
+
+	type testCase struct {
+		name                      string
+		requestedCerts            []string
+		prepare                   func(d *dynamicMock)
+		expectedService           service.MeshService
+		expectedServiceIdentities []identity.ServiceIdentity
+	}
+
+	testCases := []testCase{
+		// Test case 1: test service identities are retrieved for requested root certs for outbound MTLS -------------------------------
+		{
+			name:           "test service identities are retrieved for requested root certs for outbound MTLS",
+			requestedCerts: []string{secrets.SDSCert{Name: proxySvcAccount.String(), CertType: secrets.RootCertTypeForMTLSOutbound}.String()},
+			prepare: func(d *dynamicMock) {
+				d.mockCatalog.EXPECT().ListServiceIdentitiesForService(service.MeshService{
+					Name:      "sa-1",
+					Namespace: "ns-1",
+				}).Return([]identity.ServiceIdentity{
+					identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
+				}).Times(1)
+			},
+			expectedService:           service.MeshService{Name: "sa-1", Namespace: "ns-1"},
+			expectedServiceIdentities: []identity.ServiceIdentity{identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity()},
+		},
+		// Test case 1 end  -------------------------------
+
+		// Test case 2: test service identities aren't retrieved for requested certs that aren't for outbound MTLS -------------------------------
+		{
+			requestedCerts:            []string{secrets.SDSCert{Name: proxySvcAccount.String(), CertType: secrets.ServiceCertType}.String(), secrets.SDSCert{Name: proxySvcAccount.String(), CertType: secrets.RootCertTypeForMTLSInbound}.String()},
+			prepare:                   func(d *dynamicMock) {},
+			expectedService:           service.MeshService{},
+			expectedServiceIdentities: nil,
+		},
+		// Test case 2 end  -------------------------------
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			assert := tassert.New(t)
+
+			// Initialize the dynamic mocks
+			d := dynamicMock{
+				mockCatalog: catalog.NewMockMeshCataloger(mockCtrl),
+			}
+
+			// Prepare the dynamic mock expectations for each test case
+			if tc.prepare != nil {
+				tc.prepare(&d)
+			}
+
+			serviceIdentities := getServiceIdentitiesForOutboundServices(tc.requestedCerts, d.mockCatalog)
+			if len(serviceIdentities) != 0 {
+				assert.Equal(serviceIdentities[tc.expectedService], tc.expectedServiceIdentities)
 			}
 		})
 	}
