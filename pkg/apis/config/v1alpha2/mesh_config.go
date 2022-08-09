@@ -212,7 +212,10 @@ type FeatureFlags struct {
 	// EnableWASMStats defines if WASM Stats are enabled.
 	EnableWASMStats bool `json:"enableWASMStats"`
 
-	// EnableEgressPolicy defines if OSM's Egress policy is enabled.
+	// EnableEgressPolicy defines if OSM's EgressPolicy API is enabled.
+	// DEPRECATED, do not use.
+	// Disable mesh-wide global egress by setting 'spec.traffic.enableEgress'
+	// to 'false' to implicitly enable the usage of EgressPolicy API.
 	EnableEgressPolicy bool `json:"enableEgressPolicy"`
 
 	// EnableSnapshotCacheMode defines if XDS server starts with snapshot cache.

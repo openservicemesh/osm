@@ -94,7 +94,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.enforceSingleMesh | bool | `true` | Enforce only deploying one mesh in the cluster |
 | osm.envoyLogLevel | string | `"error"` | Log level for the Envoy proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error` |
 | osm.featureFlags.enableAsyncProxyServiceMapping | bool | `false` | Enable async proxy-service mapping |
-| osm.featureFlags.enableEgressPolicy | bool | `true` | Enable OSM's Egress policy API. When enabled, fine grained control over Egress (external) traffic is enforced DEPRECATED. To use EgressPolicy, disable global mesh-wide egress using '--set osm.enableEgress=false'. |
+| osm.featureFlags.enableEgressPolicy | bool | `true` | Enable OSM's Egress policy API. When enabled, fine grained control over Egress (external) traffic is enforced DEPRECATED, do not use. To use EgressPolicy API, disable global mesh-wide egress using '--set osm.enableEgress=false'. |
 | osm.featureFlags.enableEnvoyActiveHealthChecks | bool | `false` | Enable Envoy active health checks |
 | osm.featureFlags.enableIngressBackendPolicy | bool | `true` | Enables OSM's IngressBackend policy API. When enabled, OSM will use the IngressBackend API allow ingress traffic to mesh backends |
 | osm.featureFlags.enableMeshRootCertificate | bool | `false` | Enable the MeshRootCertificate to configure the OSM certificate provider |

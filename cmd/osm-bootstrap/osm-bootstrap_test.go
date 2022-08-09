@@ -78,7 +78,6 @@ var testPresetMeshConfigMap = &corev1.ConfigMap{
 },
 "featureFlags": {
 	"enableWASMStats": false,
-	"enableEgressPolicy": true,
 	"enableAsyncProxyServiceMapping": false,
 	"enableIngressBackendPolicy": true,
 	"enableEnvoyActiveHealthChecks": true,

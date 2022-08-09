@@ -84,8 +84,7 @@ func setupTestServer(b *testing.B) {
 				},
 			},
 			FeatureFlags: configv1alpha2.FeatureFlags{
-				EnableWASMStats:    false,
-				EnableEgressPolicy: false,
+				EnableWASMStats: false,
 			},
 		},
 	}
