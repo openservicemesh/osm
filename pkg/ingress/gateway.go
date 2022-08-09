@@ -18,10 +18,10 @@ import (
 )
 
 // provisionIngressGatewayCert does the following:
-// 1. If an ingress gateway certificate spec is specified in the MeshConfig resource, issues a certificate
-//    for it and stores it in the referenced secret.
-// 2. Starts a goroutine to watch for changes to the MeshConfig resource and certificate rotation, and
-//    updates/removes the certificate and secret as necessary.
+//  1. If an ingress gateway certificate spec is specified in the MeshConfig resource, issues a certificate
+//     for it and stores it in the referenced secret.
+//  2. Starts a goroutine to watch for changes to the MeshConfig resource and certificate rotation, and
+//     updates/removes the certificate and secret as necessary.
 func (c *client) provisionIngressGatewayCert(stop <-chan struct{}) error {
 	defaultCertSpec := c.cfg.GetMeshConfig().Spec.Certificate.IngressGateway
 	if defaultCertSpec != nil {

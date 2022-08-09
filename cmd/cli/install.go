@@ -57,6 +57,7 @@ const (
 
 // chartTGZSource is the `helm package`d representation of the default Helm chart.
 // Its value is embedded at build time.
+//
 //go:embed chart.tgz
 var chartTGZSource []byte
 

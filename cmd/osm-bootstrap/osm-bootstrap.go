@@ -330,8 +330,9 @@ func (b *bootstrap) ensureMeshConfig() error {
 }
 
 // initiatilizeKubernetesEventsRecorder initializes the generic Kubernetes event recorder and associates it with
+//
 //	the osm-bootstrap pod resource. The events recorder allows the osm-bootstap to publish Kubernets events to
-// 	report fatal errors with initializing this application. These events will show up in the output of `kubectl get events`
+//	report fatal errors with initializing this application. These events will show up in the output of `kubectl get events`
 func (b *bootstrap) initiatilizeKubernetesEventsRecorder() error {
 	bootstrapPod, err := b.getBootstrapPod()
 	if err != nil {
