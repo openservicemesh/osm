@@ -230,14 +230,14 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 				OldObj: &configv1alpha2.MeshConfig{
 					Spec: configv1alpha2.MeshConfigSpec{
 						FeatureFlags: configv1alpha2.FeatureFlags{
-							EnableEgressPolicy: true,
+							EnableWASMStats: true,
 						},
 					},
 				},
 				NewObj: &configv1alpha2.MeshConfig{
 					Spec: configv1alpha2.MeshConfigSpec{
 						FeatureFlags: configv1alpha2.FeatureFlags{
-							EnableEgressPolicy: false,
+							EnableWASMStats: false,
 						},
 					},
 				},
