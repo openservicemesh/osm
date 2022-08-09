@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
@@ -50,7 +51,7 @@ func NewServer(name, namespace string, port int, cm *certificate.Manager, handle
 				defer s.mu.Unlock()
 				return &s.cert, nil
 			},
-			MinVersion: tls.VersionTLS13,
+			MinVersion: constants.MinTLSVersion,
 		},
 	}
 	// set the certificate once, which will also call onCertChange.
