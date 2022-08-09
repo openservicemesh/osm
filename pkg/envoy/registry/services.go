@@ -46,9 +46,9 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *envoy.Proxy) ([]service.Me
 	return meshServices, nil
 }
 
-func kubernetesServicesToMeshServices(kubeController k8s.Controller, kubernetesServices []v1.Service, subdomainFilter string) (meshServices []service.MeshService) {
+func kubernetesServicesToMeshServices(kubeController k8s.Controller, kubernetesServices []*v1.Service, subdomainFilter string) (meshServices []service.MeshService) {
 	for _, svc := range kubernetesServices {
-		for _, meshSvc := range k8s.ServiceToMeshServices(kubeController, svc) {
+		for _, meshSvc := range kubeController.ServiceToMeshServices(*svc) {
 			if meshSvc.Subdomain() == subdomainFilter || meshSvc.Subdomain() == "" {
 				meshServices = append(meshServices, meshSvc)
 			}
@@ -66,7 +66,7 @@ func listServiceNames(meshServices []service.MeshService) (serviceNames []string
 
 // listServicesForPod lists Kubernetes services whose selectors match pod labels
 func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []service.MeshService {
-	var serviceList []v1.Service
+	var serviceList []*v1.Service
 	svcList := kubeController.ListServices()
 
 	for _, svc := range svcList {
@@ -80,7 +80,7 @@ func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []service.Me
 		}
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(pod.Labels)) {
-			serviceList = append(serviceList, *svc)
+			serviceList = append(serviceList, svc)
 		}
 	}
 

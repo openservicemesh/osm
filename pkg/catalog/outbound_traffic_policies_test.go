@@ -15,6 +15,7 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/policy"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -76,7 +77,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 		},
 	}
 
-	svcIdentityToSvcMapping := map[string][]service.MeshService{
+	svcIdentityToSvcMapping := map[identity.ServiceIdentity][]service.MeshService{
 		"sa1.ns1": {meshSvc1P1, meshSvc1P2},
 		"sa2.ns2": {meshSvc2}, // Client `downstreamIdentity` cannot access this upstream
 		"sa3.ns3": {meshSvc3, meshSvc3V1, meshSvc3V2, meshSvc4, meshSvc5},
@@ -142,7 +143,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			Namespace: "ns3",
 		},
 		Spec: split.TrafficSplitSpec{
-			Service: "s3.ns3.svc.cluster.local",
+			Service: "s3",
 			Backends: []split.TrafficSplitBackend{
 				{
 					Service: "s3-v1",
@@ -616,14 +617,11 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				types.NamespacedName{Namespace: meshSvc3V2.Namespace, Name: meshSvc3V2.Name}, meshSvc3.Port).Return(meshSvc3V2.TargetPort, nil).AnyTimes()
 
 			// Mock ServiceIdentity -> Service lookups executed when TrafficTargets are evaluated
-			if !tc.permissiveMode {
-				for _, target := range trafficTargets {
-					dstSvcIdentity := identity.K8sServiceAccount{Namespace: target.Spec.Destination.Namespace, Name: target.Spec.Destination.Name}.ToServiceIdentity()
-					mockProvider.EXPECT().GetServicesForServiceIdentity(dstSvcIdentity).Return(svcIdentityToSvcMapping[dstSvcIdentity.String()]).AnyTimes()
-				}
-			} else {
-				for svcIdentity, services := range svcIdentityToSvcMapping {
-					mockProvider.EXPECT().GetServicesForServiceIdentity(svcIdentity).Return(services).AnyTimes()
+			for svcIdentity, services := range svcIdentityToSvcMapping {
+				mockProvider.EXPECT().GetServicesForServiceIdentity(svcIdentity).Return(services).AnyTimes()
+				for _, service := range services {
+					mockProvider.EXPECT().GetHostnamesForService(service, downstreamIdentity.ToK8sServiceAccount().Namespace == service.Namespace).
+						Return(kube.NewClient(nil, nil).GetHostnamesForService(service, downstreamIdentity.ToK8sServiceAccount().Namespace == service.Namespace)).AnyTimes()
 				}
 			}
 

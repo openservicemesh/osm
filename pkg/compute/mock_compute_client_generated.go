@@ -9,6 +9,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
+	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
 )
@@ -34,6 +35,20 @@ func NewMockInterface(ctrl *gomock.Controller) *MockInterface {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockInterface) EXPECT() *MockInterfaceMockRecorder {
 	return m.recorder
+}
+
+// GetHostnamesForService mocks base method.
+func (m *MockInterface) GetHostnamesForService(arg0 service.MeshService, arg1 bool) []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostnamesForService", arg0, arg1)
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// GetHostnamesForService indicates an expected call of GetHostnamesForService.
+func (mr *MockInterfaceMockRecorder) GetHostnamesForService(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostnamesForService", reflect.TypeOf((*MockInterface)(nil).GetHostnamesForService), arg0, arg1)
 }
 
 // GetResolvableEndpointsForService mocks base method.
@@ -62,6 +77,21 @@ func (m *MockInterface) GetServicesForServiceIdentity(arg0 identity.ServiceIdent
 func (mr *MockInterfaceMockRecorder) GetServicesForServiceIdentity(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesForServiceIdentity", reflect.TypeOf((*MockInterface)(nil).GetServicesForServiceIdentity), arg0)
+}
+
+// IsMetricsEnabled mocks base method.
+func (m *MockInterface) IsMetricsEnabled(arg0 *envoy.Proxy) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsMetricsEnabled", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsMetricsEnabled indicates an expected call of IsMetricsEnabled.
+func (mr *MockInterfaceMockRecorder) IsMetricsEnabled(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMetricsEnabled", reflect.TypeOf((*MockInterface)(nil).IsMetricsEnabled), arg0)
 }
 
 // ListEndpointsForIdentity mocks base method.

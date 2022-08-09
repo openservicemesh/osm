@@ -16,7 +16,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/cli/verifier"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 const verifyConnectivityDescription = `
@@ -92,7 +91,7 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 			}
 			verifyCmd.meshConfig = meshConfig
 
-			srcName, err := k8s.NamespacedNameFrom(fromPod)
+			srcName, err := namespacedNameFrom(fromPod)
 			if err != nil {
 				return fmt.Errorf("--from-pod must be a namespaced name of the form <namespace>/<name>, got %s", fromPod)
 			}
@@ -106,7 +105,7 @@ func newVerifyConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.Command
 			}
 
 			if toPod != "" {
-				dstName, err := k8s.NamespacedNameFrom(toPod)
+				dstName, err := namespacedNameFrom(toPod)
 				if err != nil {
 					return fmt.Errorf("--to-pod must be a namespaced name of the form <namespace>/<name>, got %s", toPod)
 				}

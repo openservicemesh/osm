@@ -25,17 +25,12 @@ const (
 
 	// HTTPRouteGroupKind is the kind specified for the HTTP route rules in an SMI Traffictarget policy
 	HTTPRouteGroupKind = "HTTPRouteGroup"
-
-	// We have a few different k8s clients. This identifies these in logs.
-	kubernetesClientName = "MeshSpec"
 )
 
 // NewSMIClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
 func NewSMIClient(informerCollection *informers.InformerCollection, osmNamespace string, kubeController k8s.Controller, msgBroker *messaging.Broker) *Client {
 	client := Client{
-		providerIdent:  kubernetesClientName,
 		informers:      informerCollection,
-		osmNamespace:   osmNamespace,
 		kubeController: kubeController,
 	}
 
@@ -87,7 +82,7 @@ func FilterTrafficSplit(trafficSplit *smiSplit.TrafficSplit, options ...TrafficS
 
 	// If apex service filter option is set, ignore traffic splits whose apex service does not match
 	if o.ApexService.Name != "" && (o.ApexService.Namespace != trafficSplit.Namespace ||
-		o.ApexService.Name != k8s.GetServiceFromHostname(o.KubeController, trafficSplit.Spec.Service)) {
+		o.ApexService.Name != trafficSplit.Spec.Service) {
 		return nil
 	}
 

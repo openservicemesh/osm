@@ -202,7 +202,7 @@ func main() {
 	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
-	kubeController := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker, k8s.Namespaces)
+	kubeController := k8s.NewClient(informerCollection, policyClient, msgBroker, k8s.Namespaces)
 
 	certOpts, err := getCertOptions()
 	if err != nil {

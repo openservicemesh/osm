@@ -198,6 +198,20 @@ func (mr *MockControllerMockRecorder) ListServices() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*MockController)(nil).ListServices))
 }
 
+// ServiceToMeshServices mocks base method.
+func (m *MockController) ServiceToMeshServices(arg0 v1.Service) []service.MeshService {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ServiceToMeshServices", arg0)
+	ret0, _ := ret[0].([]service.MeshService)
+	return ret0
+}
+
+// ServiceToMeshServices indicates an expected call of ServiceToMeshServices.
+func (mr *MockControllerMockRecorder) ServiceToMeshServices(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceToMeshServices", reflect.TypeOf((*MockController)(nil).ServiceToMeshServices), arg0)
+}
+
 // UpdateStatus mocks base method.
 func (m *MockController) UpdateStatus(arg0 interface{}) (v10.Object, error) {
 	m.ctrl.T.Helper()

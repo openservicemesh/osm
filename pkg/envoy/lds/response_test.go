@@ -21,7 +21,6 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
@@ -100,9 +99,6 @@ func TestNewResponse(t *testing.T) {
 	assert.Empty(err)
 	assert.NotNil(proxy)
 	assert.NotNil(pod)
-
-	mockController := meshCatalog.GetKubeController().(*k8s.MockController)
-	mockController.EXPECT().GetPodForProxy(proxy).Return(pod, nil)
 
 	// test scenario that listing proxy services returns an error
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {

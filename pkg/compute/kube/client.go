@@ -1,13 +1,17 @@
 package kube
 
 import (
+	"fmt"
 	"net"
+	"strconv"
 
 	mapset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/openservicemesh/osm/pkg/compute"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -156,7 +160,7 @@ func (c *client) getServicesByLabels(podLabels map[string]string, targetNamespac
 		}
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(podLabels)) {
-			finalList = append(finalList, k8s.ServiceToMeshServices(c.kubeController, *svc)...)
+			finalList = append(finalList, c.kubeController.ServiceToMeshServices(*svc)...)
 		}
 	}
 
@@ -201,7 +205,7 @@ func (c *client) GetResolvableEndpointsForService(svc service.MeshService) []end
 func (c *client) ListServices() []service.MeshService {
 	var services []service.MeshService
 	for _, svc := range c.kubeController.ListServices() {
-		services = append(services, k8s.ServiceToMeshServices(c.kubeController, *svc)...)
+		services = append(services, c.kubeController.ServiceToMeshServices(*svc)...)
 	}
 	return services
 }
@@ -221,4 +225,43 @@ func (c *client) ListServiceIdentitiesForService(svc service.MeshService) []iden
 	}
 
 	return serviceIdentities
+}
+
+// IsMetricsEnabled checks if prometheus metrics scraping are enabled on this pod.
+func (c *client) IsMetricsEnabled(proxy *envoy.Proxy) (bool, error) {
+	pod, err := c.kubeController.GetPodForProxy(proxy)
+	if err != nil {
+		return false, err
+	}
+	val, ok := pod.Annotations[constants.PrometheusScrapeAnnotation]
+	if !ok {
+		return false, nil
+	}
+
+	return strconv.ParseBool(val)
+}
+
+// GetHostnamesForService returns the hostnames over which the service is accessible
+func (c *client) GetHostnamesForService(svc service.MeshService, localNamespace bool) []string {
+	var hostnames []string
+
+	if localNamespace {
+		hostnames = append(hostnames, []string{
+			svc.Name,                                 // service
+			fmt.Sprintf("%s:%d", svc.Name, svc.Port), // service:port
+		}...)
+	}
+
+	hostnames = append(hostnames, []string{
+		fmt.Sprintf("%s.%s", svc.Name, svc.Namespace),                                // service.namespace
+		fmt.Sprintf("%s.%s:%d", svc.Name, svc.Namespace, svc.Port),                   // service.namespace:port
+		fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace),                            // service.namespace.svc
+		fmt.Sprintf("%s.%s.svc:%d", svc.Name, svc.Namespace, svc.Port),               // service.namespace.svc:port
+		fmt.Sprintf("%s.%s.svc.cluster", svc.Name, svc.Namespace),                    // service.namespace.svc.cluster
+		fmt.Sprintf("%s.%s.svc.cluster:%d", svc.Name, svc.Namespace, svc.Port),       // service.namespace.svc.cluster:port
+		fmt.Sprintf("%s.%s.svc.cluster.local", svc.Name, svc.Namespace),              // service.namespace.svc.cluster.local
+		fmt.Sprintf("%s.%s.svc.cluster.local:%d", svc.Name, svc.Namespace, svc.Port), // service.namespace.svc.cluster.local:port
+	}...)
+
+	return hostnames
 }

@@ -2,6 +2,7 @@ package compute
 
 import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -26,4 +27,8 @@ type Interface interface {
 	// GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service FQDN is resolved under
 	// the scope of the provider
 	GetResolvableEndpointsForService(service.MeshService) []endpoint.Endpoint
+
+	IsMetricsEnabled(*envoy.Proxy) (bool, error)
+
+	GetHostnamesForService(svc service.MeshService, localNamespace bool) []string
 }
