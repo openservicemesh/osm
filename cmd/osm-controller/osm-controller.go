@@ -19,7 +19,6 @@ import (
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensionsClientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -262,8 +261,6 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
 
-	clientset := extensionsClientset.NewForConfigOrDie(kubeConfig)
-
 	if err := validator.NewValidatingWebhook(ctx, validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, certManager, kubeClient, policyController); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
 	}
@@ -273,7 +270,7 @@ func main() {
 	// Initialize OSM's http service server
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Health/Liveness probes
-	funcProbes := []health.Probes{xdsServer, smi.HealthChecker{DiscoveryClient: clientset.Discovery()}}
+	funcProbes := []health.Probes{xdsServer}
 	httpServer.AddHandlers(map[string]http.Handler{
 		constants.OSMControllerReadinessPath: health.ReadinessHandler(funcProbes, nil),
 		constants.OSMControllerLivenessPath:  health.LivenessHandler(funcProbes, nil),
