@@ -50,7 +50,7 @@ func (httpProbe HTTPProbe) Probe() (int, error) {
 		transport := &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
-				MinVersion:         constants.MinTLSVersion,
+				MinVersion:         tls.VersionTLS13,
 			},
 		}
 		client.Transport = transport

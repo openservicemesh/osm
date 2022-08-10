@@ -13,7 +13,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []byte, ca []byte) (grpc.ServerOption, error) {
@@ -36,7 +35,7 @@ func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []b
 		ClientAuth:         tls.RequireAndVerifyClientCert,
 		Certificates:       []tls.Certificate{certif},
 		ClientCAs:          certPool,
-		MinVersion:         constants.MinTLSVersion,
+		MinVersion:         tls.VersionTLS13,
 	}
 	return grpc.Creds(credentials.NewTLS(&tlsConfig)), nil
 }
