@@ -398,6 +398,13 @@ spec:
                                 X-RateLimit-Limit, X-RateLimit-Remaining, and X-RateLimit-Reset on responses to clients
                                 when the rate limit service is consulted for a request. Defaults to false.
                               type: boolean
+                            responseStatusCode:
+                              description: ResponseStatusCode (optional) defines the HTTP status code to use for responses to rate
+                                limited requests. Code must be in the 400-599 (inclusive) error range. If not specified,
+                                a default of 429 (Too Many Requests) is used.
+                              type: integer
+                              minimum: 400
+                              maximum: 599
                 httpRoutes:
                   description: HTTPRoutes defines the list of HTTP routes settings for the upstream host.
                     Settings are applied at a per route level.
