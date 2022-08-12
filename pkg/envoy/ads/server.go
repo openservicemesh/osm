@@ -32,6 +32,9 @@ const (
 
 	// workerPoolSize is the default number of workerpool workers (0 is GOMAXPROCS)
 	workerPoolSize = 0
+
+	// xdsServerCertificateCommonName is the name of the certificate for the ADS server
+	xdsServerCertificateCommonName = "ads"
 )
 
 // NewADSServer creates a new Aggregated Discovery Service server
@@ -70,21 +73,26 @@ func (s *Server) withXdsLogMutex(f func()) {
 
 // Start starts the ADS server
 func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int, adsCert *certificate.Certificate) error {
-	grpcServer, lis, err := utils.NewGrpc(ServerType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetTrustedCAs())
+	grpcServer, lis, err := utils.NewGrpc(ServerType, port, xdsServerCertificateCommonName, s.certManager)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrStartingADSServer)).
-			Msg("Error starting ADS server")
+			Msg("Error creating ADS server")
 		return err
 	}
 
 	if s.cacheEnabled {
 		s.snapshotCache = cachev3.NewSnapshotCache(false, cachev3.IDHash{}, &scLogger{})
-		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, serverv3.NewServer(ctx, s.snapshotCache, s))
+		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer.GetServer(), serverv3.NewServer(ctx, s.snapshotCache, s))
 	} else {
-		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s)
+		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer.GetServer(), s)
 	}
 
-	go utils.GrpcServe(ctx, grpcServer, lis, cancel, ServerType, nil)
+	err = grpcServer.GrpcServe(ctx, cancel, lis, nil)
+	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrStartingADSServer)).
+			Msg("Error starting ADS server")
+		return err
+	}
 
 	if s.cacheEnabled {
 		// Start broadcast listener thread when cache is enabled and we are ready to start handling
