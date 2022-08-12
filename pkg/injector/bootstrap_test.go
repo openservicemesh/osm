@@ -1,17 +1,31 @@
 package injector
 
 import (
+	"context"
+	"fmt"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	tassert "github.com/stretchr/testify/assert"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	fakeKube "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/models"
 )
 
@@ -321,3 +335,216 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		})
 	})
 })
+
+func TestListBootstrapSecrets(t *testing.T) {
+	fakeClient := fakeKube.NewSimpleClientset()
+	fakeCertManager := tresorFake.NewFake(1 * time.Hour)
+
+	testCases := []struct {
+		name       string
+		secrets    []*corev1.Secret
+		expSecrets []*corev1.Secret
+	}{
+		{
+			name: "get bootstrap secrets from k8s secrets",
+			secrets: []*corev1.Secret{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      constants.DefaultCABundleSecretName,
+						Namespace: "testNamespace",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      bootstrapSecretPrefix + "proxyUUID",
+						Namespace: "testNamespace",
+					},
+				},
+			},
+			expSecrets: []*corev1.Secret{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      bootstrapSecretPrefix + "proxyUUID",
+						Namespace: "testNamespace",
+					},
+				},
+			},
+		},
+		{
+			name: "no bootstrap secrets in k8s secrets",
+			secrets: []*corev1.Secret{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      constants.DefaultCABundleSecretName,
+						Namespace: "testNamespace",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "notBootstrapSecret",
+						Namespace: "testNamespace",
+					},
+				},
+			},
+			expSecrets: []*corev1.Secret{},
+		},
+	}
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
+			assert := tassert.New(t)
+			informerCollection, err := informers.NewInformerCollection("testNamespace", nil, informers.WithKubeClient(fakeClient))
+			assert.Nil(err)
+
+			b := NewBootstrapSecretRotator(context.Background(), fakeClient, informerCollection, fakeCertManager, time.Duration(1))
+			for _, s := range tc.secrets {
+				err = informerCollection.Add(informers.InformerKeySecret, s, t)
+				assert.Nil(err)
+			}
+
+			actual := b.listBootstrapSecrets()
+			assert.ElementsMatch(tc.expSecrets, actual)
+		})
+	}
+}
+
+func TestRotateBootstrapSecrets(t *testing.T) {
+	assert := tassert.New(t)
+
+	testNs := "testNamespace"
+	proxyUUID := uuid.New().String()
+	caCrt := pem.RootCertificate("zz")
+	pk := pem.PrivateKey("yy")
+	certChain := pem.Certificate("xx")
+	secrets := []*corev1.Secret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      bootstrapSecretPrefix + proxyUUID,
+				Namespace: testNs,
+			},
+			Data: map[string][]byte{
+				"ca.crt":  caCrt,
+				"tls.crt": certChain,
+				"tls.key": pk,
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "notBootstrapSecret",
+				Namespace: testNs,
+			},
+			Data: map[string][]byte{
+				"ca.crt":  caCrt,
+				"tls.crt": certChain,
+				"tls.key": pk,
+			},
+		},
+	}
+
+	testCases := []struct {
+		name      string
+		cert      *certificate.Certificate
+		expSecret corev1.Secret
+	}{
+		{
+			name: "no bootstrap secret to update",
+			cert: &certificate.Certificate{
+				CommonName: certificate.CommonName(proxyUUID + ".test.cert"),
+				IssuingCA:  caCrt,
+				PrivateKey: pk,
+				CertChain:  certChain,
+				CertType:   certificate.Internal,
+			},
+			expSecret: corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bootstrapSecretPrefix + proxyUUID,
+					Namespace: testNs,
+				},
+				Data: map[string][]byte{
+					"ca.crt":  caCrt,
+					"tls.crt": certChain,
+					"tls.key": pk,
+				},
+				Type: "kubernetes.io/tls",
+			},
+		},
+		{
+			name: "update bootstrap secret with new cert",
+			cert: &certificate.Certificate{
+				CommonName: certificate.CommonName(proxyUUID + ".test.cert"),
+				IssuingCA:  caCrt,
+				CertChain:  pem.Certificate("x"),
+				PrivateKey: pem.PrivateKey("y"),
+				CertType:   certificate.Internal,
+			},
+			expSecret: corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bootstrapSecretPrefix + proxyUUID,
+					Namespace: testNs,
+				},
+				Data: map[string][]byte{
+					"ca.crt":  caCrt,
+					"tls.crt": pem.Certificate("x"),
+					"tls.key": pem.PrivateKey("y"),
+				},
+				Type: "kubernetes.io/tls",
+			},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
+			fakeClient := fakeKube.NewSimpleClientset()
+			// add secrets to kubeClient
+			_, err := fakeClient.CoreV1().Secrets(testNs).Create(context.Background(), &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bootstrapSecretPrefix + proxyUUID,
+					Namespace: testNs,
+				},
+				Data: map[string][]byte{
+					"ca.crt":  caCrt,
+					"tls.crt": certChain,
+					"tls.key": pk,
+				},
+			}, metav1.CreateOptions{})
+			assert.Nil(err)
+			_, err = fakeClient.CoreV1().Secrets(testNs).Create(context.Background(), &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "notBootstrapSecret",
+					Namespace: testNs,
+				},
+				Data: map[string][]byte{
+					"ca.crt":  caCrt,
+					"tls.crt": certChain,
+					"tls.key": pk,
+				},
+			}, metav1.CreateOptions{})
+			assert.Nil(err)
+
+			informerCollection, err := informers.NewInformerCollection(testNs, nil, informers.WithKubeClient(fakeClient))
+			assert.Nil(err)
+
+			// add secrets to informer
+			for _, s := range secrets {
+				err = informerCollection.Add(informers.InformerKeySecret, s, t)
+				assert.Nil(err)
+			}
+
+			manager := &certificate.Manager{
+				SigningIssuer:    &certificate.IssuerMetadata{ID: "id1", Issuer: &certificate.FakeIssuer{ID: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
+				ValidatingIssuer: &certificate.IssuerMetadata{ID: "id1", Issuer: &certificate.FakeIssuer{ID: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake2.domain.com"},
+			}
+			manager.Cache.Store(tc.cert.CommonName, tc.cert)
+
+			b := NewBootstrapSecretRotator(context.Background(), fakeClient, informerCollection, manager, time.Duration(1))
+
+			b.rotateBootstrapSecrets()
+			secrets, err := b.kubeClient.CoreV1().Secrets(testNs).List(b.context, metav1.ListOptions{})
+			assert.Nil(err)
+			for _, secret := range secrets.Items {
+				if strings.Contains(secret.Name, bootstrapSecretPrefix) {
+					assert.Equal(tc.expSecret, secret)
+				}
+			}
+		})
+	}
+}

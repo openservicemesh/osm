@@ -21,7 +21,7 @@ var (
 type fakeMRCClient struct{}
 
 func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error) {
-	return &fakeIssuer{}, pem.RootCertificate("rootCA"), nil
+	return &FakeIssuer{}, pem.RootCertificate("rootCA"), nil
 }
 
 // List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
@@ -101,23 +101,24 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 	return ch, nil
 }
 
-type fakeIssuer struct {
+// FakeIssuer implements Issuer interface
+type FakeIssuer struct {
 	err bool
-	id  string
+	ID  string
 }
 
 // IssueCertificate is a testing helper to satisfy the certificate client interface
-func (i *fakeIssuer) IssueCertificate(options IssueOptions) (*Certificate, error) {
+func (i *FakeIssuer) IssueCertificate(options IssueOptions) (*Certificate, error) {
 	if i.err {
-		return nil, fmt.Errorf("%s failed", i.id)
+		return nil, fmt.Errorf("%s failed", i.ID)
 	}
 	return &Certificate{
 		CommonName: options.CommonName(),
 		Expiration: time.Now().Add(options.ValidityDuration),
 		// simply used to distinguish the private/public key from other issuers
-		IssuingCA:  pem.RootCertificate(i.id),
-		TrustedCAs: pem.RootCertificate(i.id),
-		PrivateKey: pem.PrivateKey(i.id),
+		IssuingCA:  pem.RootCertificate(i.ID),
+		TrustedCAs: pem.RootCertificate(i.ID),
+		PrivateKey: pem.PrivateKey(i.ID),
 	}, nil
 }
 

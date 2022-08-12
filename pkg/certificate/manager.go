@@ -90,7 +90,7 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 				}
 			}
 
-			if m.signingIssuer != nil && m.validatingIssuer != nil {
+			if m.SigningIssuer != nil && m.ValidatingIssuer != nil {
 				once.Do(func() {
 					wg.Done()
 				})
@@ -130,25 +130,25 @@ func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
 			return err
 		}
 
-		c := &issuer{Issuer: client, ID: mrc.Name, CertificateAuthority: ca, TrustDomain: mrc.Spec.TrustDomain}
+		c := &IssuerMetadata{Issuer: client, ID: mrc.Name, CertificateAuthority: ca, TrustDomain: mrc.Spec.TrustDomain}
 		switch {
 		case mrc.Status.State == constants.MRCStateActive:
 			m.mu.Lock()
-			m.signingIssuer = c
-			m.validatingIssuer = c
+			m.SigningIssuer = c
+			m.ValidatingIssuer = c
 			m.mu.Unlock()
 		case mrc.Status.State == constants.MRCStateIssuingRollback || mrc.Status.State == constants.MRCStateIssuingRollout:
 			m.mu.Lock()
-			m.signingIssuer = c
+			m.SigningIssuer = c
 			m.mu.Unlock()
 		case mrc.Status.State == constants.MRCStateValidatingRollback || mrc.Status.State == constants.MRCStateValidatingRollout:
 			m.mu.Lock()
-			m.validatingIssuer = c
+			m.ValidatingIssuer = c
 			m.mu.Unlock()
 		default:
 			m.mu.Lock()
-			m.signingIssuer = c
-			m.validatingIssuer = c
+			m.SigningIssuer = c
+			m.ValidatingIssuer = c
 			m.mu.Unlock()
 		}
 	case MRCEventUpdated:
@@ -163,7 +163,7 @@ func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
 func (m *Manager) GetTrustDomain() string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return m.signingIssuer.TrustDomain
+	return m.SigningIssuer.TrustDomain
 }
 
 // shouldRotate determines whether a certificate should be rotated.
@@ -188,8 +188,8 @@ func (m *Manager) shouldRotate(c *Certificate) bool {
 	}
 
 	m.mu.Lock()
-	validatingIssuer := m.validatingIssuer
-	signingIssuer := m.signingIssuer
+	validatingIssuer := m.ValidatingIssuer
+	signingIssuer := m.SigningIssuer
 	m.mu.Unlock()
 
 	// During root certificate rotation the Issuers will change. If the Manager's Issuers are
@@ -211,7 +211,7 @@ func (m *Manager) checkAndRotate() {
 	// A certificate can also have been rotated already, leaving the list of issued certs stale, and we re-rotate.
 	// the latter is not a bug, but a source of inefficiency.
 	certs := map[string]*Certificate{}
-	m.cache.Range(func(keyIface interface{}, certInterface interface{}) bool {
+	m.Cache.Range(func(keyIface interface{}, certInterface interface{}) bool {
 		key := keyIface.(string)
 		certs[key] = certInterface.(*Certificate)
 		return true // continue the iteration
@@ -257,7 +257,7 @@ func (m *Manager) getValidityDurationForCertType(ct certType) time.Duration {
 // getFromCache returns the certificate with the specified cn from cache if it exists.
 // Note: getFromCache might return an expired or invalid certificate.
 func (m *Manager) getFromCache(key string) *Certificate {
-	certInterface, exists := m.cache.Load(key)
+	certInterface, exists := m.Cache.Load(key)
 	if !exists {
 		return nil
 	}
@@ -295,8 +295,8 @@ func (m *Manager) issueCertificate(options IssueOptions) (*Certificate, error) {
 	}
 
 	m.mu.Lock()
-	validatingIssuer := m.validatingIssuer
-	signingIssuer := m.signingIssuer
+	validatingIssuer := m.ValidatingIssuer
+	signingIssuer := m.SigningIssuer
 	m.mu.Unlock()
 
 	start := time.Now()
@@ -337,13 +337,13 @@ func (m *Manager) issueCertificate(options IssueOptions) (*Certificate, error) {
 // ReleaseCertificate is called when a cert will no longer be needed and should be removed from the system.
 func (m *Manager) ReleaseCertificate(key string) {
 	log.Trace().Msgf("Releasing certificate %s", key)
-	m.cache.Delete(key)
+	m.Cache.Delete(key)
 }
 
 // ListIssuedCertificates implements CertificateDebugger interface and returns the list of issued certificates.
 func (m *Manager) ListIssuedCertificates() []*Certificate {
 	var certs []*Certificate
-	m.cache.Range(func(cnInterface interface{}, certInterface interface{}) bool {
+	m.Cache.Range(func(cnInterface interface{}, certInterface interface{}) bool {
 		certs = append(certs, certInterface.(*Certificate))
 		return true // continue the iteration
 	})

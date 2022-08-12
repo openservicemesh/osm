@@ -144,6 +144,9 @@ const (
 
 	// ErrRotatingCert indicates a certificate could not be rotated
 	ErrRotatingCert
+
+	// ErrUpdatingBootstrapSecret indicates a bootstrap secret could not be updated
+	ErrUpdatingBootstrapSecret
 )
 
 // Range 4100-4150 reserved for PubSub system

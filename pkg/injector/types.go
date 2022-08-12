@@ -3,12 +3,16 @@
 package injector
 
 import (
+	"context"
+	"time"
+
 	mapset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -32,4 +36,14 @@ type mutatingWebhook struct {
 type Config struct {
 	// ListenPort defines the port on which the sidecar injector listens
 	ListenPort int
+}
+
+// BootstrapSecretRotator is the type used to represent
+// the information needed for bootstrap secret rotation
+type BootstrapSecretRotator struct {
+	kubeClient         kubernetes.Interface
+	informerCollection *informers.InformerCollection
+	context            context.Context
+	certManager        *certificate.Manager
+	checkInterval      time.Duration
 }

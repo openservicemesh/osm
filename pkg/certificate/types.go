@@ -7,9 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/sync/singleflight"
-
 	"github.com/cskr/pubsub"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
@@ -93,7 +92,8 @@ type Issuer interface {
 	IssueCertificate(IssueOptions) (*Certificate, error)
 }
 
-type issuer struct {
+// IssuerMetadata represents the metadata for cert-manager issuers
+type IssuerMetadata struct {
 	Issuer
 	ID          string
 	TrustDomain string
@@ -105,16 +105,17 @@ type issuer struct {
 type Manager struct {
 	// Cache for all the certificates issued
 	// Types: map[certificate.CommonName]*certificate.Certificate
-	cache sync.Map
+	Cache sync.Map
 
 	ingressCertValidityDuration func() time.Duration
 	// TODO(#4711): define serviceCertValidityDuration in the MRC
 	serviceCertValidityDuration func() time.Duration
 
-	mu            sync.Mutex // mu syncrhonizes acces to the below resources.
-	signingIssuer *issuer
-	// equal to signingIssuer if there is no additional public cert issuer.
-	validatingIssuer *issuer
+	mu sync.Mutex // mu syncrhonizes acces to the below resources.
+	// SigningIssuer represents the signing key IssuerMetadata
+	SigningIssuer *IssuerMetadata
+	// equal to SigningIssuer if there is no additional public cert IssuerMetadata.
+	ValidatingIssuer *IssuerMetadata
 
 	group singleflight.Group
 

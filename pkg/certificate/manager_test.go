@@ -23,8 +23,8 @@ func TestShouldRotate(t *testing.T) {
 	testCases := []struct {
 		name             string
 		cert             *Certificate
-		managerKeyIssuer *issuer
-		managerPubIssuer *issuer
+		managerKeyIssuer *IssuerMetadata
+		managerPubIssuer *IssuerMetadata
 		expectedRotation bool
 	}{
 		{
@@ -34,8 +34,8 @@ func TestShouldRotate(t *testing.T) {
 				signingIssuerID:    "1",
 				validatingIssuerID: "1",
 			},
-			managerKeyIssuer: &issuer{ID: "1"},
-			managerPubIssuer: &issuer{ID: "1"},
+			managerKeyIssuer: &IssuerMetadata{ID: "1"},
+			managerPubIssuer: &IssuerMetadata{ID: "1"},
 			expectedRotation: true,
 		},
 		{
@@ -45,8 +45,8 @@ func TestShouldRotate(t *testing.T) {
 				signingIssuerID:    "1",
 				validatingIssuerID: "2",
 			},
-			managerKeyIssuer: &issuer{ID: "2"},
-			managerPubIssuer: &issuer{ID: "1"},
+			managerKeyIssuer: &IssuerMetadata{ID: "2"},
+			managerPubIssuer: &IssuerMetadata{ID: "1"},
 			expectedRotation: true,
 		},
 		{
@@ -56,8 +56,8 @@ func TestShouldRotate(t *testing.T) {
 				signingIssuerID:    "1",
 				validatingIssuerID: "1",
 			},
-			managerKeyIssuer: &issuer{ID: "1"},
-			managerPubIssuer: &issuer{ID: "1"},
+			managerKeyIssuer: &IssuerMetadata{ID: "1"},
+			managerPubIssuer: &IssuerMetadata{ID: "1"},
 			expectedRotation: false,
 		},
 	}
@@ -66,8 +66,8 @@ func TestShouldRotate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			manager.signingIssuer = tc.managerKeyIssuer
-			manager.validatingIssuer = tc.managerPubIssuer
+			manager.SigningIssuer = tc.managerKeyIssuer
+			manager.ValidatingIssuer = tc.managerPubIssuer
 
 			rotate := manager.shouldRotate(tc.cert)
 			assert.Equal(tc.expectedRotation, rotate)
@@ -110,7 +110,7 @@ func TestReleaseCertificate(t *testing.T) {
 	}
 
 	manager := &Manager{}
-	manager.cache.Store(cn, cert)
+	manager.Cache.Store(cn, cert)
 
 	testCases := []struct {
 		name     string
@@ -154,8 +154,8 @@ func TestListIssuedCertificate(t *testing.T) {
 	expectedCertificates := []*Certificate{cert, anotherCert}
 
 	manager := &Manager{}
-	manager.cache.Store(cn, cert)
-	manager.cache.Store(anotherCn, anotherCert)
+	manager.Cache.Store(cn, cert)
+	manager.Cache.Store(anotherCn, anotherCert)
 
 	cs := manager.ListIssuedCertificates()
 	assert.Len(cs, 2)
@@ -188,8 +188,8 @@ func TestIssueCertificate(t *testing.T) {
 		cm := &Manager{
 			serviceCertValidityDuration: getServiceValidityDuration,
 			// The root certificate signing all newly issued certificates
-			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
-			validatingIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake2.domain.com"},
+			SigningIssuer:    &IssuerMetadata{ID: "id1", Issuer: &FakeIssuer{ID: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
+			ValidatingIssuer: &IssuerMetadata{ID: "id1", Issuer: &FakeIssuer{ID: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake2.domain.com"},
 			pubsub:           pubsub.New(0),
 		}
 		// single signingIssuer, not cached
@@ -209,8 +209,8 @@ func TestIssueCertificate(t *testing.T) {
 
 		// single key issuer, old version cached
 		// TODO: could use informer logic to test mrc updates instead of just manually making changes.
-		cm.signingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2"), TrustDomain: "fake2.domain.com"}
-		cm.validatingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2")}
+		cm.SigningIssuer = &IssuerMetadata{ID: "id2", Issuer: &FakeIssuer{ID: "id2"}, CertificateAuthority: pem.RootCertificate("id2"), TrustDomain: "fake2.domain.com"}
+		cm.ValidatingIssuer = &IssuerMetadata{ID: "id2", Issuer: &FakeIssuer{ID: "id2"}, CertificateAuthority: pem.RootCertificate("id2")}
 
 		cert3, err := cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.Equal(CommonName("fake-cert-cn.fake2.domain.com"), cert3.GetCommonName())
@@ -226,8 +226,8 @@ func TestIssueCertificate(t *testing.T) {
 		cm := &Manager{
 			serviceCertValidityDuration: getServiceValidityDuration,
 			// The root certificate signing all newly issued certificates
-			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
-			validatingIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2"), TrustDomain: "fake2.domain.com"},
+			SigningIssuer:    &IssuerMetadata{ID: "id1", Issuer: &FakeIssuer{ID: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
+			ValidatingIssuer: &IssuerMetadata{ID: "id2", Issuer: &FakeIssuer{ID: "id2"}, CertificateAuthority: pem.RootCertificate("id2"), TrustDomain: "fake2.domain.com"},
 			pubsub:           pubsub.New(0),
 		}
 
@@ -258,7 +258,7 @@ func TestIssueCertificate(t *testing.T) {
 		assert.Equal(CommonName("fake-cert-cn.fake1.domain.com"), cert1.GetCommonName())
 
 		// cached, but signingIssuer is old
-		cm.signingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2"), TrustDomain: "fake2.domain.com"}
+		cm.signingIssuer = &issuer{ID: "id2", Issuer: &FakeIssuer{ID: "id2"}, CertificateAuthority: pem.RootCertificate("id2"), TrustDomain: "fake2.domain.com"}
 		cert4, err := cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.NoError(err)
 		assert.NotEqual(cert3, cert4)
@@ -269,7 +269,7 @@ func TestIssueCertificate(t *testing.T) {
 		assert.Equal(CommonName("fake-cert-cn.fake2.domain.com"), cert4.GetCommonName())
 
 		// cached, but validatingIssuer is old
-		cm.validatingIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}, CertificateAuthority: pem.RootCertificate("id3"), TrustDomain: "fake3.domain.com"}
+		cm.validatingIssuer = &issuer{ID: "id3", Issuer: &FakeIssuer{ID: "id3"}, CertificateAuthority: pem.RootCertificate("id3"), TrustDomain: "fake3.domain.com"}
 		cert5, err := cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.NoError(err)
 		assert.NotEqual(cert4, cert5)
@@ -284,8 +284,8 @@ func TestIssueCertificate(t *testing.T) {
 		cm := &Manager{
 			serviceCertValidityDuration: getServiceValidityDuration,
 			// The root certificate signing all newly issued certificates
-			signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}, CertificateAuthority: pem.RootCertificate("id1")},
-			validatingIssuer: &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2", err: true}, CertificateAuthority: pem.RootCertificate("id2")},
+			SigningIssuer:    &IssuerMetadata{ID: "id1", Issuer: &FakeIssuer{ID: "id1", err: true}, CertificateAuthority: pem.RootCertificate("id1")},
+			ValidatingIssuer: &IssuerMetadata{ID: "id2", Issuer: &FakeIssuer{ID: "id2", err: true}, CertificateAuthority: pem.RootCertificate("id2")},
 			pubsub:           pubsub.New(0),
 		}
 
@@ -295,7 +295,7 @@ func TestIssueCertificate(t *testing.T) {
 		assert.EqualError(err, "id1 failed")
 
 		// bad validatingIssuer (should still succeed)
-		cm.signingIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}, CertificateAuthority: pem.RootCertificate("id3")}
+		cm.signingIssuer = &issuer{ID: "id3", Issuer: &FakeIssuer{ID: "id3"}, CertificateAuthority: pem.RootCertificate("id3")}
 		cert, err = cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.NoError(err)
 		assert.Equal(cert.signingIssuerID, "id3")
@@ -310,7 +310,7 @@ func TestIssueCertificate(t *testing.T) {
 		assert.NotNil(cert)
 
 		// bad signing cert on an existing cached cert, because the signingIssuer is new
-		cm.signingIssuer = &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}, CertificateAuthority: pem.RootCertificate("id1")}
+		cm.signingIssuer = &issuer{ID: "id1", Issuer: &FakeIssuer{ID: "id1", err: true}, CertificateAuthority: pem.RootCertificate("id1")}
 		cert, err = cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.EqualError(err, "id1 failed")
 		assert.Nil(cert)
@@ -323,8 +323,8 @@ func TestHandleMRCEvent(t *testing.T) {
 		mrcClient            MRCClient
 		mrcEvent             MRCEvent
 		wantErr              bool
-		wantSigningIssuer    issuer
-		wantValidatingIssuer issuer
+		wantSigningIssuer    IssuerMetadata
+		wantValidatingIssuer IssuerMetadata
 	}{
 		{
 			name:      "success",
@@ -376,8 +376,8 @@ func TestHandleMRCEvent(t *testing.T) {
 					},
 				},
 			},
-			wantSigningIssuer:    issuer{Issuer: &fakeIssuer{}, ID: "my-mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
-			wantValidatingIssuer: issuer{Issuer: &fakeIssuer{}, ID: "my-mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			wantSigningIssuer:    IssuerMetadata{Issuer: &FakeIssuer{}, ID: "my-mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
+			wantValidatingIssuer: IssuerMetadata{Issuer: &FakeIssuer{}, ID: "my-mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
 		},
 	}
 
@@ -393,8 +393,8 @@ func TestHandleMRCEvent(t *testing.T) {
 				assert.Error(err)
 			}
 
-			assert.Equal(tt.wantSigningIssuer, *m.signingIssuer)
-			assert.Equal(tt.wantValidatingIssuer, *m.validatingIssuer)
+			assert.Equal(tt.wantSigningIssuer, *m.SigningIssuer)
+			assert.Equal(tt.wantValidatingIssuer, *m.ValidatingIssuer)
 		})
 	}
 }
@@ -407,8 +407,8 @@ func TestSubscribeRotations(t *testing.T) {
 	cm := &Manager{
 		serviceCertValidityDuration: func() time.Duration { return time.Hour },
 		// The root certificate signing all newly issued certificates
-		signingIssuer:    &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
-		validatingIssuer: &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
+		SigningIssuer:    &IssuerMetadata{ID: "id1", Issuer: &FakeIssuer{ID: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
+		ValidatingIssuer: &IssuerMetadata{ID: "id1", Issuer: &FakeIssuer{ID: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
 		pubsub:           pubsub.New(0),
 	}
 
@@ -440,7 +440,7 @@ func TestSubscribeRotations(t *testing.T) {
 	}()
 
 	// swap the issuer which will trigger a rotation
-	cm.signingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2"), TrustDomain: "fake2.domain.com"}
+	cm.SigningIssuer = &IssuerMetadata{ID: "id2", Issuer: &FakeIssuer{ID: "id2"}, CertificateAuthority: pem.RootCertificate("id2"), TrustDomain: "fake2.domain.com"}
 	cm.checkAndRotate()
 
 	wg.Wait()
