@@ -15,7 +15,7 @@ policy; pkg/policy/mock_client_generated.go; github.com/openservicemesh/osm/pkg/
 catalog; pkg/catalog/mock_catalog_generated.go; github.com/openservicemesh/osm/pkg/catalog; MeshCataloger
 
 # pkg/debugger
-debugger; pkg/debugger/mock_debugger_generated.go; github.com/openservicemesh/osm/pkg/debugger; CertificateManagerDebugger,MeshCatalogDebugger,XDSDebugger
+debugger; pkg/debugger/mock_debugger_generated.go; github.com/openservicemesh/osm/pkg/debugger; MeshCatalogDebugger,XDSDebugger
 
 # pkg/health
 health; pkg/health/mock_probes_generated.go; github.com/openservicemesh/osm/pkg/health; Probes

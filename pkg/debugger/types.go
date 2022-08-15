@@ -24,7 +24,7 @@ var log = logger.New("debugger")
 
 // DebugConfig implements the DebugServer interface.
 type DebugConfig struct {
-	certDebugger        CertificateManagerDebugger
+	certDebugger        *certificate.Manager
 	xdsDebugger         XDSDebugger
 	meshCatalogDebugger MeshCatalogDebugger
 	proxyRegistry       *registry.ProxyRegistry
@@ -33,12 +33,6 @@ type DebugConfig struct {
 	kubeController      k8s.Controller
 	configurator        configurator.Configurator
 	msgBroker           *messaging.Broker
-}
-
-// CertificateManagerDebugger is an interface with methods for debugging certificate issuance.
-type CertificateManagerDebugger interface {
-	// ListIssuedCertificates returns the current list of certificates in OSM's cache.
-	ListIssuedCertificates() []*certificate.Certificate
 }
 
 // MeshCatalogDebugger is an interface with methods for debugging Mesh Catalog.

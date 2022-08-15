@@ -1,6 +1,7 @@
 package certificate
 
 import (
+	"fmt"
 	time "time"
 
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
@@ -28,6 +29,10 @@ func (c *Certificate) newMergedWithRoot(root pem.RootCertificate) *Certificate {
 	buf = append(buf, root...)
 	cert.TrustedCAs = buf
 	return &cert
+}
+
+func (c *Certificate) String() string {
+	return fmt.Sprintf("cert: CommonName: %s, SerialNumber: %s, Expiration: %s", c.CommonName, c.SerialNumber, c.Expiration)
 }
 
 // GetCommonName returns the Common Name of the certificate
