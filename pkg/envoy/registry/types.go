@@ -18,10 +18,5 @@ type ProxyRegistry struct {
 	msgBroker *messaging.Broker
 
 	mu               sync.Mutex
-	connectedProxies map[string]*envoy.Proxy
-}
-
-// A simple interface to release certificates. Created to abstract the certificate.Manager struct for testing purposes.
-type certificateReleaser interface {
-	ReleaseCertificate(key string)
+	connectedProxies map[int64]*envoy.Proxy
 }

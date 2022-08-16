@@ -78,10 +78,8 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int,
 	}
 
 	if s.cacheEnabled {
-		s.ch = cachev3.NewSnapshotCache(false, cachev3.IDHash{}, &scLogger{})
-		s.srv = serverv3.NewServer(ctx, s.ch, &Callbacks{})
-
-		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s.srv)
+		s.snapshotCache = cachev3.NewSnapshotCache(false, cachev3.IDHash{}, &scLogger{})
+		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, serverv3.NewServer(ctx, s.snapshotCache, s))
 	} else {
 		xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s)
 	}
@@ -91,7 +89,7 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int,
 	if s.cacheEnabled {
 		// Start broadcast listener thread when cache is enabled and we are ready to start handling
 		// proxy broadcast updates
-		go s.broadcastListener()
+		go s.watchForUpdates(ctx)
 	}
 
 	s.ready = true

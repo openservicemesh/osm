@@ -248,7 +248,6 @@ func main() {
 
 	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
 	proxyRegistry := registry.NewProxyRegistry(proxyMapper, msgBroker)
-	go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
 
 	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, certificate.Internal)
 	if err != nil {

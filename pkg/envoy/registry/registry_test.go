@@ -9,6 +9,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	tassert "github.com/stretchr/testify/assert"
+
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -16,7 +18,7 @@ import (
 
 var _ = Describe("Test catalog proxy register/unregister", func() {
 	proxyRegistry := NewProxyRegistry(nil, nil)
-	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil)
+	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil, 1)
 
 	It("Proxy is valid", func() {
 		Expect(proxy).ToNot((BeNil()))
@@ -33,13 +35,11 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 
 			connectedProxies := proxyRegistry.ListConnectedProxies()
 			Expect(len(connectedProxies)).To(Equal(1))
-
-			_, ok := connectedProxies[proxy.UUID.String()]
-			Expect(ok).To(BeTrue())
+			Expect(connectedProxies).To(ContainElement(proxy))
 		})
 
 		It("one proxy disconnected from OSM", func() {
-			proxyRegistry.UnregisterProxy(proxy)
+			proxyRegistry.UnregisterProxy(1)
 
 			connectedProxies := proxyRegistry.ListConnectedProxies()
 			Expect(len(connectedProxies)).To(Equal(0))
@@ -48,36 +48,25 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 })
 
 func TestRegisterUnregister(t *testing.T) {
-	if err := logger.SetLogLevel("error"); err != nil {
-		t.Logf("Failed to set log level to error: %s", err)
-	}
-
+	assert := tassert.New(t)
 	proxyRegistry := NewProxyRegistry(nil, nil)
-	total := 10000
 
-	wg := sync.WaitGroup{}
-	wg.Add(total)
-	for j := 0; j < total; j++ {
-		proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil)
-
-		innerWg := sync.WaitGroup{}
-		innerWg.Add(1)
-		go func() {
-			proxyRegistry.RegisterProxy(proxy)
-			innerWg.Done()
-		}()
-
-		go func() {
-			innerWg.Wait()
-			proxyRegistry.UnregisterProxy(proxy)
-			wg.Done()
-		}()
+	proxyUUID := uuid.New()
+	var i int64
+	for i = 0; i < 10; i++ {
+		proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("foo", "bar"), nil, i)
+		assert.Nil(proxyRegistry.GetConnectedProxy(i))
+		proxyRegistry.RegisterProxy(proxy)
+		assert.Equal(proxy, proxyRegistry.GetConnectedProxy(i))
 	}
 
-	wg.Wait()
-	if proxyRegistry.GetConnectedProxyCount() != 0 {
-		t.Errorf("Expected 0 proxies, got %d", proxyRegistry.GetConnectedProxyCount())
+	assert.Equal(10, proxyRegistry.GetConnectedProxyCount())
+
+	for i = 0; i < 10; i++ {
+		proxyRegistry.UnregisterProxy(i)
+		assert.Nil(proxyRegistry.GetConnectedProxy(i))
 	}
+	assert.Equal(0, proxyRegistry.GetConnectedProxyCount())
 }
 
 func BenchmarkRegistryAdd(b *testing.B) {
@@ -89,26 +78,11 @@ func BenchmarkRegistryAdd(b *testing.B) {
 		proxyRegistry := NewProxyRegistry(nil, nil)
 		total := 10000
 
-		wg := sync.WaitGroup{}
-		wg.Add(total)
 		for j := 0; j < total; j++ {
-			proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil)
-
-			innerWg := sync.WaitGroup{}
-			innerWg.Add(1)
-			go func() {
-				proxyRegistry.RegisterProxy(proxy)
-				innerWg.Done()
-			}()
-
-			go func() {
-				innerWg.Wait()
-				proxyRegistry.UnregisterProxy(proxy)
-				wg.Done()
-			}()
+			proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil, int64(j))
+			proxyRegistry.RegisterProxy(proxy)
+			proxyRegistry.UnregisterProxy(int64(j))
 		}
-
-		wg.Wait()
 		if proxyRegistry.GetConnectedProxyCount() != 0 {
 			b.Errorf("Expected %d proxies, got %d", 0, proxyRegistry.GetConnectedProxyCount())
 		}
@@ -128,7 +102,7 @@ func BenchmarkRegistryGetCount(b *testing.B) {
 	for j := 0; j < total; j++ {
 		go func() {
 			proxyRegistry.RegisterProxy(
-				envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil))
+				envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil, 1))
 			wg.Done()
 		}()
 	}

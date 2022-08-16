@@ -152,7 +152,7 @@ func setupTestServer(b *testing.B) {
 		b.Fatalf("Failed to create service: %v", err)
 	}
 
-	proxy = envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil)
+	proxy = envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil, 1)
 
 	adsServer = NewADSServer(mc, proxyRegistry, true, tests.Namespace, osmConfigurator, certManager, kubeController, nil)
 }

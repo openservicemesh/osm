@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -47,7 +48,8 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	// This is the Envoy proxy that just connected to the control plane.
 	// NOTE: This is step 1 of the registration. At this point we do not yet have context on the Pod.
 	//       Details on which Pod this Envoy is fronting will arrive via xDS in the NODE_ID string.
-	proxy := envoy.NewProxy(kind, uuid, si, utils.GetIPFromContext(server.Context()))
+	streamID := atomic.AddInt64(&s.nextStreamID, 1)
+	proxy := envoy.NewProxy(kind, uuid, si, utils.GetIPFromContext(server.Context()), streamID)
 
 	if err := s.recordPodMetadata(proxy); err == errServiceAccountMismatch {
 		// Service Account mismatch
@@ -57,7 +59,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	s.proxyRegistry.RegisterProxy(proxy)
 
-	defer s.proxyRegistry.UnregisterProxy(proxy)
+	defer s.proxyRegistry.UnregisterProxy(streamID)
 
 	quit := make(chan struct{})
 	requests := make(chan *xds_discovery.DiscoveryRequest)

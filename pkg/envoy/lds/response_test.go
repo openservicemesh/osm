@@ -61,7 +61,7 @@ func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, *v1.Pod, error) {
 		}
 	}
 
-	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil), newPod1, nil
+	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1), newPod1, nil
 }
 
 func TestNewResponse(t *testing.T) {
