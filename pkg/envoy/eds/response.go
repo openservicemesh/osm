@@ -10,7 +10,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
@@ -18,7 +17,7 @@ import (
 )
 
 // NewResponse creates a new Endpoint Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	meshSvcEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
 
 	builder := newEndpointsBuilder()

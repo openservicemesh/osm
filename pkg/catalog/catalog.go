@@ -5,8 +5,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/compute"
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -14,18 +12,16 @@ import (
 )
 
 // NewMeshCatalog creates a new service catalog
-func NewMeshCatalog(kubeController k8s.Controller, meshSpec smi.MeshSpec, certManager *certificate.Manager,
+func NewMeshCatalog(meshSpec smi.MeshSpec, certManager *certificate.Manager,
 	policyController policy.Controller, stop <-chan struct{},
-	cfg configurator.Configurator, computeInterface compute.Interface,
+	computeInterface compute.Interface,
 	msgBroker *messaging.Broker) *MeshCatalog {
 	mc := &MeshCatalog{
 		Interface:        computeInterface,
 		meshSpec:         meshSpec,
 		policyController: policyController,
-		configurator:     cfg,
-		certManager:      certManager,
 
-		kubeController: kubeController,
+		certManager: certManager,
 	}
 
 	// Start the Resync ticker to tick based on the resync interval.

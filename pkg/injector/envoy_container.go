@@ -7,14 +7,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
-func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS string) (podSecurityContext *corev1.SecurityContext, envoyContainer string) {
+func getPlatformSpecificSpecComponents(meshConfig v1alpha2.MeshConfig, podOS string) (podSecurityContext *corev1.SecurityContext, envoyContainer string) {
 	if strings.EqualFold(podOS, constants.OSWindows) {
 		podSecurityContext = &corev1.SecurityContext{
 			WindowsOptions: &corev1.WindowsSecurityContextOptions{
@@ -24,7 +24,7 @@ func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS stri
 				}(),
 			},
 		}
-		envoyContainer = utils.GetEnvoyWindowsImage(cfg.GetMeshConfig())
+		envoyContainer = utils.GetEnvoyWindowsImage(meshConfig)
 	} else {
 		podSecurityContext = &corev1.SecurityContext{
 			AllowPrivilegeEscalation: pointer.BoolPtr(false),
@@ -33,17 +33,17 @@ func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS stri
 				return &uid
 			}(),
 		}
-		envoyContainer = utils.GetEnvoyImage(cfg.GetMeshConfig())
+		envoyContainer = utils.GetEnvoyImage(meshConfig)
 	}
 	return
 }
 
-func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator, originalHealthProbes models.HealthProbes, podOS string) corev1.Container {
+func getEnvoySidecarContainerSpec(pod *corev1.Pod, meshConfig v1alpha2.MeshConfig, originalHealthProbes models.HealthProbes, podOS string) corev1.Container {
 	// cluster ID will be used as an identifier to the tracing sink
 	clusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, pod.Namespace)
-	securityContext, containerImage := getPlatformSpecificSpecComponents(cfg, podOS)
+	securityContext, containerImage := getPlatformSpecificSpecComponents(meshConfig, podOS)
 
-	logLevel := cfg.GetMeshConfig().Spec.Sidecar.LogLevel
+	logLevel := meshConfig.Spec.Sidecar.LogLevel
 	if logLevel == "" {
 		logLevel = constants.DefaultEnvoyLogLevel
 	}
@@ -59,7 +59,7 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 			MountPath: bootstrap.EnvoyProxyConfigPath,
 		}},
 		Command:   []string{"envoy"},
-		Resources: cfg.GetMeshConfig().Spec.Sidecar.Resources,
+		Resources: meshConfig.Spec.Sidecar.Resources,
 		Args: []string{
 			"--log-level", logLevel,
 			"--config-path", strings.Join([]string{bootstrap.EnvoyProxyConfigPath, bootstrap.EnvoyBootstrapConfigFile}, "/"),

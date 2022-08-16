@@ -21,7 +21,6 @@ import (
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -67,7 +66,7 @@ const (
 )
 
 // BuildInboundMeshRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
-func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy, cfg configurator.Configurator, trustDomain string) []*xds_route.RouteConfiguration {
+func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy, wasmStatsEnabled bool, trustDomain string) []*xds_route.RouteConfiguration {
 	var routeConfigs []*xds_route.RouteConfiguration
 
 	// An Envoy RouteConfiguration will exist for each HTTP upstream port.
@@ -81,7 +80,7 @@ func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*traf
 			applyInboundVirtualHostConfig(virtualHost, config)
 			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
 		}
-		if featureFlags := cfg.GetMeshConfig().Spec.FeatureFlags; featureFlags.EnableWASMStats {
+		if wasmStatsEnabled {
 			for k, v := range proxy.StatsHeaders() {
 				routeConfig.ResponseHeadersToAdd = append(routeConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
 					Header: &core.HeaderValue{

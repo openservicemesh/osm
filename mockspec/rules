@@ -22,6 +22,3 @@ health; pkg/health/mock_probes_generated.go; github.com/openservicemesh/osm/pkg/
 
 # pkg/compute
 compute; pkg/compute/mock_compute_client_generated.go; github.com/openservicemesh/osm/pkg/compute; Interface
-
-# pkg/configurator
-configurator; pkg/configurator/mock_client_generated.go; github.com/openservicemesh/osm/pkg/configurator; Configurator

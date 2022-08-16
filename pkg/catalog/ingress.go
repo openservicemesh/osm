@@ -84,7 +84,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 						CurrentStatus: "error",
 						Reason:        fmt.Sprintf("endpoints not found for service %s/%s", source.Namespace, source.Name),
 					}
-					if _, err := mc.kubeController.UpdateStatus(&ingressBackendWithStatus); err != nil {
+					if _, err := mc.UpdateIngressBackendStatus(&ingressBackendWithStatus); err != nil {
 						log.Error().Err(err).Msg("Error updating status for IngressBackend")
 					}
 					return nil, fmt.Errorf("Could not list endpoints of the source service %s/%s specified in the IngressBackend %s/%s",
@@ -156,7 +156,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		CurrentStatus: "committed",
 		Reason:        "successfully committed by the system",
 	}
-	if _, err := mc.kubeController.UpdateStatus(&ingressBackendWithStatus); err != nil {
+	if _, err := mc.UpdateIngressBackendStatus(&ingressBackendWithStatus); err != nil {
 		log.Error().Err(err).Msg("Error updating status for IngressBackend")
 	}
 

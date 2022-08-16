@@ -51,7 +51,7 @@ func BenchmarkDoValidation(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
-	k8sClient := k8s.NewClient(informerCollection, policyClient, msgBroker)
+	k8sClient := k8s.NewClient("osm-ns", informerCollection, policyClient, msgBroker)
 	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
 	kv := &policyValidator{
 		policyClient: policyController,

@@ -1,7 +1,6 @@
 package ads
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -13,22 +12,17 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
-	"github.com/openservicemesh/osm/pkg/metricsstore"
-
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -36,60 +30,26 @@ import (
 var _ = Describe("Test ADS response functions", func() {
 	defer GinkgoRecover()
 
-	var (
-		mockCtrl         *gomock.Controller
-		mockConfigurator *configurator.MockConfigurator
-	)
-
-	mockCtrl = gomock.NewController(GinkgoT())
-	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+	mockCtrl := gomock.NewController(GinkgoT())
 	fakeCertManager, err := certificate.FakeCertManager()
 	Expect(err).ToNot(HaveOccurred())
-	// --- setup
-	kubeClient := testclient.NewSimpleClientset()
-	configClient := configFake.NewSimpleClientset()
-
-	namespace := tests.Namespace
 	proxyUUID := uuid.New()
-	proxyService := service.MeshService{
-		Name:      tests.BookstoreV1ServiceName,
-		Namespace: namespace,
-	}
 	proxySvcAccount := tests.BookstoreServiceAccount
-	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
-	labels := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
-	mc := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
 	}), nil)
-
-	// Create a Pod
-	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()), tests.BookstoreServiceAccountName, tests.PodLabels)
-	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
-	_, err = kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
-	It("should have created a pod", func() {
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	svc := tests.NewServiceFixture(proxyService.Name, namespace, labels)
-	_, err = kubeClient.CoreV1().Services(namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
-	It("should have created a service", func() {
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	// Create Bookstore apex Service, since the fake catalog has a traffic split applied, needs to be
-	// able to be looked up
-	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, nil)
-	if _, err := kubeClient.CoreV1().Services(tests.BookstoreApexService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
-		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
-	}
 
 	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil, 1)
 
 	Context("Proxy is valid", func() {
 		Expect(proxy).ToNot((BeNil()))
 	})
+
+	provider := compute.NewMockInterface(mockCtrl)
+	provider.EXPECT().IsMetricsEnabled(gomock.Any()).Return(true, nil).AnyTimes()
+
+	mc := catalogFake.NewFakeMeshCatalog(provider)
 
 	Context("Test sendAllResponses()", func() {
 
@@ -99,7 +59,7 @@ var _ = Describe("Test ADS response functions", func() {
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		kubectrlMock := k8s.NewMockController(mockCtrl)
 
-		mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+		provider.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 			Spec: v1alpha2.MeshConfigSpec{
 				Observability: v1alpha2.ObservabilitySpec{
 					EnableDebugServer: true,
@@ -110,14 +70,14 @@ var _ = Describe("Test ADS response functions", func() {
 		metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, fakeCertManager, kubectrlMock, nil)
+			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, fakeCertManager, kubectrlMock, nil)
 
 			Expect(s).ToNot(BeNil())
 
 			// Set subscribed resources for SDS
 			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))
 
-			err := s.sendResponse(proxy, &server, nil, mockConfigurator, envoy.XDSResponseOrder...)
+			err := s.sendResponse(proxy, &server, nil, envoy.XDSResponseOrder...)
 			Expect(err).To(BeNil())
 			Expect(actualResponses).ToNot(BeNil())
 			Expect(len(*actualResponses)).To(Equal(5))
@@ -176,7 +136,7 @@ var _ = Describe("Test ADS response functions", func() {
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		kubectrlMock := k8s.NewMockController(mockCtrl)
 
-		mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+		provider.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 			Spec: v1alpha2.MeshConfigSpec{
 				Observability: v1alpha2.ObservabilitySpec{
 					EnableDebugServer: true,
@@ -185,14 +145,14 @@ var _ = Describe("Test ADS response functions", func() {
 		}).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, fakeCertManager, kubectrlMock, nil)
+			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, fakeCertManager, kubectrlMock, nil)
 
 			Expect(s).ToNot(BeNil())
 
 			// Set subscribed resources
 			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))
 
-			err := s.sendResponse(proxy, &server, nil, mockConfigurator, envoy.TypeSDS)
+			err := s.sendResponse(proxy, &server, nil, envoy.TypeSDS)
 			Expect(err).To(BeNil())
 			Expect(actualResponses).ToNot(BeNil())
 			Expect(len(*actualResponses)).To(Equal(1))

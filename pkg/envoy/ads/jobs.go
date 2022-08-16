@@ -28,7 +28,7 @@ func (proxyJob *proxyResponseJob) GetDoneCh() <-chan struct{} {
 
 // Run implementation for `server.sendResponse` job
 func (proxyJob *proxyResponseJob) Run() {
-	err := (*proxyJob.xdsServer).sendResponse(proxyJob.proxy, proxyJob.adsStream, proxyJob.request, proxyJob.xdsServer.cfg, proxyJob.typeURIs...)
+	err := (*proxyJob.xdsServer).sendResponse(proxyJob.proxy, proxyJob.adsStream, proxyJob.request, proxyJob.typeURIs...)
 	if err != nil {
 		log.Error().Err(err).Str("proxy", proxyJob.proxy.String()).Msgf("Failed to create and send %v update to proxy", proxyJob.typeURIs)
 	}

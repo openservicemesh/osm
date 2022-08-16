@@ -4,19 +4,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
-func getInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string,
+func getInitContainerSpec(containerName string, meshConfig v1alpha2.MeshConfig, outboundIPRangeExclusionList []string,
 	outboundIPRangeInclusionList []string, outboundPortExclusionList []int,
 	inboundPortExclusionList []int, enablePrivilegedInitContainer bool, pullPolicy corev1.PullPolicy, networkInterfaceExclusionList []string) corev1.Container {
-	proxyMode := cfg.GetMeshConfig().Spec.Sidecar.LocalProxyMode
+	proxyMode := meshConfig.Spec.Sidecar.LocalProxyMode
 	iptablesInitCommand := generateIptablesCommands(proxyMode, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, networkInterfaceExclusionList)
 
 	return corev1.Container{
 		Name:            containerName,
-		Image:           utils.GetInitContainerImage(cfg.GetMeshConfig()),
+		Image:           utils.GetInitContainerImage(meshConfig),
 		ImagePullPolicy: pullPolicy,
 		SecurityContext: &corev1.SecurityContext{
 			Privileged: &enablePrivilegedInitContainer,

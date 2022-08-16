@@ -14,7 +14,7 @@ func (mc *MeshCatalog) ListAllowedUpstreamEndpointsForService(downstreamIdentity
 		return nil
 	}
 
-	if mc.configurator.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode {
+	if mc.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode {
 		return outboundEndpoints
 	}
 

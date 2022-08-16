@@ -10,8 +10,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
-
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -844,12 +843,12 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
 			// Initialize test objects
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockCfg := configurator.NewMockConfigurator(mockCtrl)
+			provider := compute.NewMockInterface(mockCtrl)
 			meshCatalog := MeshCatalog{
-				meshSpec:     mockMeshSpec,
-				configurator: mockCfg,
+				meshSpec:  mockMeshSpec,
+				Interface: provider,
 			}
-			mockCfg.EXPECT().GetMeshConfig().AnyTimes()
+			provider.EXPECT().GetMeshConfig().AnyTimes()
 
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()

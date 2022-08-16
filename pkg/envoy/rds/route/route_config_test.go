@@ -8,7 +8,6 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -17,11 +16,9 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/envoy"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -209,12 +206,8 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
-			mockCfg := configurator.NewMockConfigurator(mockCtrl)
-			mockCfg.EXPECT().GetMeshConfig().AnyTimes()
 
-			actual := BuildInboundMeshRouteConfiguration(tc.inbound.HTTPRouteConfigsPerPort, nil, mockCfg, "cluster.local")
+			actual := BuildInboundMeshRouteConfiguration(tc.inbound.HTTPRouteConfigsPerPort, nil, false, "cluster.local")
 
 			if tc.expectedRouteConfigFields == nil {
 				assert.Nil(actual)
@@ -292,19 +285,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 	for _, tc := range statsWASMTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
-
-			mockCfg := configurator.NewMockConfigurator(mockCtrl)
-
-			mockCfg.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{
-				Spec: configv1alpha2.MeshConfigSpec{
-					FeatureFlags: configv1alpha2.FeatureFlags{
-						EnableWASMStats: tc.wasmEnabled,
-					},
-				},
-			}).AnyTimes()
-			actual := BuildInboundMeshRouteConfiguration(testInbound.HTTPRouteConfigsPerPort, &envoy.Proxy{}, mockCfg, "cluster.local")
+			actual := BuildInboundMeshRouteConfiguration(testInbound.HTTPRouteConfigsPerPort, &envoy.Proxy{}, tc.wasmEnabled, "cluster.local")
 			for _, routeConfig := range actual {
 				assert.Len(routeConfig.ResponseHeadersToAdd, tc.expectedResponseHeaderLen)
 			}

@@ -13,7 +13,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -24,10 +23,10 @@ import (
 var _ compute.Interface = (*client)(nil)
 
 // NewClient returns a client that has all components necessary to connect to and maintain state of a Kubernetes cluster.
-func NewClient(kubeController k8s.Controller, cfg configurator.Configurator) *client { //nolint: revive // unexported-return
+func NewClient(kubeController k8s.Controller) *client { //nolint: revive // unexported-return
 	return &client{
-		kubeController:   kubeController,
-		meshConfigurator: cfg,
+		PassthroughInterface: kubeController,
+		kubeController:       kubeController,
 	}
 }
 
@@ -118,7 +117,7 @@ func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 	svcSet := mapset.NewSet() // mapset is used to avoid duplicate elements in the output list
 
 	svcAccount := svcIdentity.ToK8sServiceAccount()
-
+	fmt.Println("c.kubeController.ListPods() ", svcIdentity, c.kubeController.ListPods())
 	for _, pod := range c.kubeController.ListPods() {
 		if pod.Namespace != svcAccount.Namespace {
 			continue
@@ -127,9 +126,10 @@ func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 		if pod.Spec.ServiceAccountName != svcAccount.Name {
 			continue
 		}
-
+		fmt.Println("\n\npod.Spec.ServiceAccountName ", pod.Spec.ServiceAccountName)
 		podLabels := pod.ObjectMeta.Labels
 		meshServicesForPod := c.getServicesByLabels(podLabels, pod.Namespace)
+		fmt.Println("which had the following services: ", meshServicesForPod)
 		for _, svc := range meshServicesForPod {
 			if added := svcSet.Add(svc); added {
 				meshServices = append(meshServices, svc)

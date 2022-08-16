@@ -1,6 +1,8 @@
 package catalog
 
 import (
+	"fmt"
+
 	mapset "github.com/deckarep/golang-set"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -53,7 +55,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		clusterConfigForServicePort := &trafficpolicy.MeshClusterConfig{
 			Name:                          meshSvc.EnvoyClusterName(),
 			Service:                       meshSvc,
-			EnableEnvoyActiveHealthChecks: mc.configurator.GetMeshConfig().Spec.FeatureFlags.EnableEnvoyActiveHealthChecks,
+			EnableEnvoyActiveHealthChecks: mc.GetMeshConfig().Spec.FeatureFlags.EnableEnvoyActiveHealthChecks,
 			UpstreamTrafficSetting: mc.policyController.GetUpstreamTrafficSetting(
 				policy.UpstreamTrafficSettingGetOpt{MeshService: &meshSvc}),
 		}
@@ -78,7 +80,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 					Namespace: meshSvc.Namespace, // Backends belong to the same namespace as the apex service
 					Name:      backend.Service,
 				}
-				targetPort, err := mc.kubeController.GetTargetPortForServicePort(
+				targetPort, err := mc.GetTargetPortForServicePort(
 					types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
 				if err != nil {
 					log.Error().Err(err).Msgf("Error fetching target port for leaf service %s, ignoring it", backendMeshSvc)
@@ -144,13 +146,14 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 // ListOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
-	if mc.configurator.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode {
+	if mc.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode {
 		return mc.ListServices()
 	}
 
 	svcAccount := serviceIdentity.ToK8sServiceAccount()
 	serviceSet := mapset.NewSet()
 	var allowedServices []service.MeshService
+	fmt.Println("mc.meshSpec.ListTrafficTargets() ::: ", mc.meshSpec.ListTrafficTargets())
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
 			if source.Name != svcAccount.Name || source.Namespace != svcAccount.Namespace {

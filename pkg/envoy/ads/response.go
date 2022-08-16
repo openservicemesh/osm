@@ -11,7 +11,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -29,12 +28,12 @@ func (s *Server) getTypeResources(proxy *envoy.Proxy, request *xds_discovery.Dis
 		return nil, errUnknownTypeURL
 	}
 
-	if s.cfg.GetMeshConfig().Spec.Observability.EnableDebugServer {
+	if s.catalog.GetMeshConfig().Spec.Observability.EnableDebugServer {
 		s.trackXDSLog(proxy.GetName(), typeURI)
 	}
 
 	// Invoke XDS handler
-	resources, err := handler(s.catalog, proxy, request, s.cfg, s.certManager, s.proxyRegistry)
+	resources, err := handler(s.catalog, proxy, request, s.certManager, s.proxyRegistry)
 	if err != nil {
 		xdsPathTimeTrack(startedAt, typeURI, proxy, false)
 		return nil, errCreatingResponse
@@ -48,7 +47,7 @@ func (s *Server) getTypeResources(proxy *envoy.Proxy, request *xds_discovery.Dis
 // for, and will have them sent to the proxy server.
 // If no DiscoveryRequest is passed, an empty one for the TypeURI is created
 // TODO(draychev): Convert to variadic function: https://github.com/openservicemesh/osm/issues/3127
-func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, typeURIsToSend ...envoy.TypeURI) error {
+func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, request *xds_discovery.DiscoveryRequest, typeURIsToSend ...envoy.TypeURI) error {
 	thereWereErrors := false
 
 	// A nil request indicates a change on mesh configuration, OSM will trigger an update

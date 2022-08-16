@@ -3,13 +3,11 @@ package injector
 import (
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -60,17 +58,14 @@ func TestGetPlatformSpecificSpecComponents(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			mockCfg := configurator.NewMockConfigurator(mockCtrl)
-			mockCfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+			meshConfig := v1alpha2.MeshConfig{
 				Spec: v1alpha2.MeshConfigSpec{
 					Sidecar: v1alpha2.SidecarSpec{
 						EnvoyImage:        linuxImage,
 						EnvoyWindowsImage: windowsImage,
-					}}})
+					}}}
 
-			defer mockCtrl.Finish()
-			gotPodSecurityContext, gotEnvoyContainer := getPlatformSpecificSpecComponents(mockCfg, tt.args.podOS)
+			gotPodSecurityContext, gotEnvoyContainer := getPlatformSpecificSpecComponents(meshConfig, tt.args.podOS)
 
 			assert.Equal(tt.wantPodSecurityContext, gotPodSecurityContext)
 			assert.Equal(tt.wantEnvoyContainer, gotEnvoyContainer)

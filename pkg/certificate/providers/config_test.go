@@ -19,18 +19,17 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	fakeConfigClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 func TestGetCertificateManager(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
+	k8sMock := k8s.NewMockController(mockCtrl)
+	k8sMock.EXPECT().GetMeshConfig().AnyTimes()
 
 	type testCase struct {
 		name        string
@@ -39,24 +38,20 @@ func TestGetCertificateManager(t *testing.T) {
 		// params
 		kubeClient        kubernetes.Interface
 		restConfig        *rest.Config
-		cfg               configurator.Configurator
 		providerNamespace string
 		options           Options
-		msgBroker         *messaging.Broker
 	}
 	testCases := []testCase{
 		{
 			name:              "tresor as the certificate manager",
 			options:           TresorOptions{SecretName: "osm-ca-bundle"},
 			providerNamespace: "osm-system",
-			cfg:               mockConfigurator,
 			kubeClient:        fake.NewSimpleClientset(),
 		},
 		{
 			name:              "tresor with no secret",
 			options:           TresorOptions{},
 			providerNamespace: "osm-system",
-			cfg:               mockConfigurator,
 			kubeClient:        fake.NewSimpleClientset(),
 			expectError:       true,
 		},
@@ -64,7 +59,6 @@ func TestGetCertificateManager(t *testing.T) {
 			name:              "certManager as the certificate manager",
 			kubeClient:        fake.NewSimpleClientset(),
 			restConfig:        &rest.Config{},
-			cfg:               mockConfigurator,
 			providerNamespace: "osm-system",
 			options:           CertManagerOptions{IssuerName: "test-name", IssuerKind: "ClusterIssuer", IssuerGroup: "cert-manager.io"},
 		},
@@ -82,7 +76,6 @@ func TestGetCertificateManager(t *testing.T) {
 				VaultPort:     8200,
 				VaultProtocol: "http",
 			},
-			cfg: mockConfigurator,
 		},
 		{
 			name: "Valid Vault protocol using vault secret",
@@ -104,7 +97,6 @@ func TestGetCertificateManager(t *testing.T) {
 					"token": []byte("secret"),
 				},
 			}),
-			cfg: mockConfigurator,
 		},
 		{
 			name: "Not a valid Vault protocol",
@@ -123,7 +115,6 @@ func TestGetCertificateManager(t *testing.T) {
 				IssuerKind:  "test-kind",
 				IssuerGroup: "cert-manager.io",
 			},
-			cfg:         mockConfigurator,
 			expectError: true,
 		},
 	}
@@ -141,7 +132,7 @@ func TestGetCertificateManager(t *testing.T) {
 				getCA = oldCA
 			}()
 
-			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker, 1*time.Hour, "cluster.local")
+			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, k8sMock, 1*time.Hour, "cluster.local")
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)
@@ -160,8 +151,8 @@ func TestGetCertificateManager(t *testing.T) {
 
 func TestGetCertificateManagerFromMRC(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
+	k8sMock := k8s.NewMockController(mockCtrl)
+	k8sMock.EXPECT().GetMeshConfig().AnyTimes()
 
 	type testCase struct {
 		name        string
@@ -171,17 +162,14 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 		kubeClient        kubernetes.Interface
 		configClient      configClientset.Interface
 		restConfig        *rest.Config
-		cfg               configurator.Configurator
 		providerNamespace string
 		options           Options
-		msgBroker         *messaging.Broker
 	}
 	testCases := []testCase{
 		{
 			name:              "tresor as the certificate manager",
 			options:           TresorOptions{SecretName: "osm-ca-bundle"},
 			providerNamespace: "osm-system",
-			cfg:               mockConfigurator,
 			kubeClient:        fake.NewSimpleClientset(),
 			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
@@ -209,7 +197,6 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 			name:              "tresor with no secret",
 			options:           TresorOptions{},
 			providerNamespace: "osm-system",
-			cfg:               mockConfigurator,
 			kubeClient:        fake.NewSimpleClientset(),
 			expectError:       true,
 			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
@@ -238,7 +225,6 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 			name:              "certManager as the certificate manager",
 			kubeClient:        fake.NewSimpleClientset(),
 			restConfig:        &rest.Config{},
-			cfg:               mockConfigurator,
 			providerNamespace: "osm-system",
 			options:           CertManagerOptions{IssuerName: "test-name", IssuerKind: "ClusterIssuer", IssuerGroup: "cert-manager.io"},
 			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
@@ -294,7 +280,6 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				VaultProtocol: "http",
 				VaultToken:    "vault-token",
 			},
-			cfg:        mockConfigurator,
 			kubeClient: fake.NewSimpleClientset(),
 			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
@@ -362,7 +347,6 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					State: constants.MRCStateActive,
 				},
 			}),
-			cfg: mockConfigurator,
 		},
 		{
 			name: "Not a valid Vault protocol",
@@ -374,7 +358,6 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				VaultProtocol: "hi",
 			},
 			expectError: true,
-			cfg:         mockConfigurator,
 			kubeClient:  fake.NewSimpleClientset(),
 			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
@@ -402,7 +385,6 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				IssuerKind:  "test-kind",
 				IssuerGroup: "cert-manager.io",
 			},
-			cfg:        mockConfigurator,
 			kubeClient: fake.NewSimpleClientset(),
 			configClient: fakeConfigClientset.NewSimpleClientset(&v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
@@ -443,7 +425,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 			assert.NoError(err)
 			assert.NotNil(ic)
 
-			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.cfg, tc.providerNamespace, tc.options, tc.msgBroker, ic, 1*time.Hour)
+			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, k8sMock, ic, 1*time.Hour)
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)

@@ -12,10 +12,8 @@ import (
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -392,15 +390,11 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			mockProvider := compute.NewMockInterface(mockCtrl)
-			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
-			mockKubeController := k8s.NewMockController(mockCtrl)
 
 			meshCatalog := &MeshCatalog{
 				Interface:        mockProvider,
-				configurator:     mockCfg,
 				policyController: mockPolicyController,
-				kubeController:   mockKubeController,
 			}
 
 			// Note: if AnyTimes() is used with a mock function, it implies the function may or may not be called
@@ -408,7 +402,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			mockPolicyController.EXPECT().GetIngressBackendPolicy(tc.meshSvc).Return(tc.ingressBackend).AnyTimes()
 			mockProvider.EXPECT().ListEndpointsForService(ingressSourceSvc).Return(ingressBackendSvcEndpoints).AnyTimes()
 			mockProvider.EXPECT().ListEndpointsForService(sourceSvcWithoutEndpoints).Return(nil).AnyTimes()
-			mockKubeController.EXPECT().UpdateStatus(gomock.Any()).Return(nil, nil).AnyTimes()
+			mockProvider.EXPECT().UpdateIngressBackendStatus(gomock.Any()).Return(nil, nil).AnyTimes()
 
 			actual, err := meshCatalog.GetIngressTrafficPolicy(tc.meshSvc)
 			assert.Equal(tc.expectError, err != nil)

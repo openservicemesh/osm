@@ -18,12 +18,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
-
-	kubeFake "github.com/openservicemesh/osm/pkg/compute/kube/fake"
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -2157,21 +2156,20 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 
 			fakeCertManager := tresorFake.NewFake(1 * time.Hour)
 
-			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
-			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockK8s := k8s.NewMockController(mockCtrl)
+			provider := kube.NewClient(mockK8s)
+
 			mc := MeshCatalog{
-				kubeController:   mockKubeController,
 				policyController: mockPolicyController,
 				certManager:      fakeCertManager,
-				configurator:     mockCfg,
 				meshSpec:         mockMeshSpec,
-				Interface:        kubeFake.NewFakeProvider(),
+				Interface:        provider,
 			}
 
 			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
-			mockCfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+			mockK8s.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 				Spec: v1alpha2.MeshConfigSpec{
 					Traffic: v1alpha2.TrafficSpec{
 						EnablePermissiveTrafficPolicyMode: tc.permissiveMode,
@@ -2417,12 +2415,10 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController: mockKubeController,
-				meshSpec:       mockMeshSpec,
+				meshSpec: mockMeshSpec,
 			}
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()

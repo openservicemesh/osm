@@ -4,12 +4,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/golang/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 var _ = Describe("Test functions creating Envoy bootstrap configuration", func() {
@@ -22,20 +19,17 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	runAsNonRootFalse := false
 	runAsUserID := int64(0)
 
-	mockCtrl := gomock.NewController(GinkgoT())
-
 	Context("test getInitContainerSpec()", func() {
 		It("Creates init container without ip range exclusion list", func() {
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+			mc := v1alpha2.MeshConfig{
 				Spec: v1alpha2.MeshConfigSpec{
 					Sidecar: v1alpha2.SidecarSpec{
 						InitContainerImage: containerImage,
-						LocalProxyMode:     configv1alpha2.LocalProxyModeLocalhost,
+						LocalProxyMode:     v1alpha2.LocalProxyModeLocalhost,
 					},
 				},
-			}).AnyTimes()
-			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, nil, false, corev1.PullAlways, nil)
+			}
+			actual := getInitContainerSpec(containerName, mc, nil, nil, nil, nil, false, corev1.PullAlways, nil)
 
 			expected := corev1.Container{
 				Name:            "-container-name-",
@@ -102,16 +96,15 @@ EOF
 			Expect(actual).To(Equal(expected))
 		})
 		It("Sets podIP DNAT rule if set in meshconfig", func() {
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+			mc := v1alpha2.MeshConfig{
 				Spec: v1alpha2.MeshConfigSpec{
 					Sidecar: v1alpha2.SidecarSpec{
 						InitContainerImage: containerImage,
-						LocalProxyMode:     configv1alpha2.LocalProxyModePodIP,
+						LocalProxyMode:     v1alpha2.LocalProxyModePodIP,
 					},
 				},
-			}).AnyTimes()
-			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, nil, false, corev1.PullAlways, nil)
+			}
+			actual := getInitContainerSpec(containerName, mc, nil, nil, nil, nil, false, corev1.PullAlways, nil)
 
 			expected := corev1.Container{
 				Name:            "-container-name-",

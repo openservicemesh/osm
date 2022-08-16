@@ -130,7 +130,7 @@ func TestKubernetesServicesToMeshServices(t *testing.T) {
 
 			ic, err := informers.NewInformerCollection("test", stop, informers.WithKubeClient(testclient.NewSimpleClientset(objs...)))
 			assert.NoError(err)
-			k8sClient := k8s.NewClient(ic, nil, nil)
+			k8sClient := k8s.NewClient("ns", ic, nil, nil)
 
 			actual := kubernetesServicesToMeshServices(k8sClient, tc.k8sServices, tc.subdomainFilter)
 			assert.ElementsMatch(tc.expectedMeshServices, actual)

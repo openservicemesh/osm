@@ -33,7 +33,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
@@ -199,10 +198,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
 	}
 
-	// This component will be watching resources in the config.openservicemesh.io API group
-	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
-
-	k8sClient := k8s.NewClient(informerCollection, policyClient, msgBroker)
+	k8sClient := k8s.NewClient(osmNamespace, informerCollection, policyClient, msgBroker)
 
 	meshSpec := smi.NewSMIClient(informerCollection, osmNamespace, k8sClient, msgBroker)
 
@@ -214,34 +210,32 @@ func main() {
 	// Intitialize certificate manager/provider
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
-		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
-			certOpts, msgBroker, informerCollection, 5*time.Second)
+		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace,
+			certOpts, k8sClient, informerCollection, 5*time.Second)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error fetching certificate manager of kind %s from MRC", certProviderKind)
 		}
 	} else {
-		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace,
-			certOpts, msgBroker, 5*time.Second, trustDomain)
+		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, osmNamespace,
+			certOpts, k8sClient, 5*time.Second, trustDomain)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error fetching certificate manager of kind %s", certProviderKind)
 		}
 	}
 
-	computeClient := kube.NewClient(k8sClient, cfg)
+	computeClient := kube.NewClient(k8sClient)
 
-	ingress.Initialize(kubeClient, k8sClient, stop, cfg, certManager, msgBroker)
+	ingress.Initialize(kubeClient, k8sClient, stop, certManager, msgBroker)
 
 	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
 
 	meshCatalog := catalog.NewMeshCatalog(
-		k8sClient,
 		meshSpec,
 		certManager,
 		policyController,
 		stop,
-		cfg,
 		computeClient,
 		msgBroker,
 	)
@@ -255,7 +249,7 @@ func main() {
 	}
 
 	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, cfg.GetMeshConfig().Spec.Observability.EnableDebugServer, osmNamespace, cfg, certManager, k8sClient, msgBroker)
+	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, k8sClient.GetMeshConfig().Spec.Observability.EnableDebugServer, osmNamespace, certManager, k8sClient, msgBroker)
 	if err := xdsServer.Start(ctx, cancel, constants.ADSServerPort, adsCert); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
@@ -289,7 +283,7 @@ func main() {
 
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
-	debugConfig := debugger.NewDebugConfig(certManager, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
+	debugConfig := debugger.NewDebugConfig(certManager, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, k8sClient, msgBroker)
 	go debugConfig.StartDebugServerConfigListener(stop)
 
 	// Start the k8s pod watcher that updates corresponding k8s secrets

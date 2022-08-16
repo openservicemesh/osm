@@ -19,7 +19,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -129,7 +128,6 @@ func TestCreatePatch(t *testing.T) {
 
 			client := fake.NewSimpleClientset()
 			mockCtrl := gomock.NewController(t)
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockNsController := k8s.NewMockController(mockCtrl)
 			mockNsController.EXPECT().GetNamespace(namespace).Return(tc.namespace).AnyTimes()
 			_, err := client.CoreV1().Namespaces().Create(context.TODO(), tc.namespace, metav1.CreateOptions{})
@@ -139,11 +137,10 @@ func TestCreatePatch(t *testing.T) {
 				kubeClient:          client,
 				kubeController:      mockNsController,
 				certManager:         tresorFake.NewFake(1 * time.Hour),
-				configurator:        mockConfigurator,
 				nonInjectNamespaces: mapset.NewSet(),
 			}
 
-			mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+			mockNsController.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 				Spec: v1alpha2.MeshConfigSpec{
 					Sidecar: v1alpha2.SidecarSpec{
 						EnvoyWindowsImage:  "envoy-linux-image",
@@ -229,14 +226,12 @@ func TestCreatePatch(t *testing.T) {
 		assert := tassert.New(t)
 		client := fake.NewSimpleClientset()
 		mockCtrl := gomock.NewController(t)
-		mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 		mockNsController := k8s.NewMockController(mockCtrl)
 
 		wh := &mutatingWebhook{
 			kubeClient:          client,
 			kubeController:      mockNsController,
 			certManager:         tresorFake.NewFake(1 * time.Hour),
-			configurator:        mockConfigurator,
 			nonInjectNamespaces: mapset.NewSet(),
 		}
 
@@ -247,7 +242,7 @@ func TestCreatePatch(t *testing.T) {
 				Name: namespace,
 			},
 		}).AnyTimes()
-		mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{}).AnyTimes()
+		mockNsController.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{}).AnyTimes()
 
 		pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, constants.OSLinux)
 
@@ -314,13 +309,13 @@ func TestVerifyPrerequisites(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			assert := tassert.New(t)
-			mockCfg := configurator.NewMockConfigurator(mockCtrl)
+			mockK8s := k8s.NewMockController(mockCtrl)
 
 			wh := &mutatingWebhook{
-				configurator: mockCfg,
+				kubeController: mockK8s,
 			}
 
-			mockCfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+			mockK8s.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 				Spec: v1alpha2.MeshConfigSpec{
 					Sidecar: v1alpha2.SidecarSpec{
 						EnvoyWindowsImage:  tc.windowsImage,

@@ -8,20 +8,20 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 // NewResponse creates a new Cluster Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
 	var clusters []*xds_cluster.Cluster
+	meshConfig := meshCatalog.GetMeshConfig()
 
 	// Build upstream clusters based on allowed outbound traffic policies
 	outboundMeshTrafficPolicy := meshCatalog.GetOutboundMeshTrafficPolicy(proxy.Identity)
 	if outboundMeshTrafficPolicy != nil {
-		clusters = append(clusters, upstreamClustersFromClusterConfigs(proxy.Identity, outboundMeshTrafficPolicy.ClustersConfigs, cfg.GetMeshConfig().Spec.Sidecar)...)
+		clusters = append(clusters, upstreamClustersFromClusterConfigs(proxy.Identity, outboundMeshTrafficPolicy.ClustersConfigs, meshConfig.Spec.Sidecar)...)
 	}
 
 	// Build local clusters based on allowed inbound traffic policies
@@ -53,7 +53,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Add an outbound passthrough cluster for egress if global mesh-wide Egress is enabled
-	if cfg.GetMeshConfig().Spec.Traffic.EnableEgress {
+	if meshConfig.Spec.Traffic.EnableEgress {
 		clusters = append(clusters, outboundPassthroughCluser)
 	}
 
@@ -65,8 +65,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Add an outbound tracing cluster (from localhost to tracing sink)
-	if cfg.GetMeshConfig().Spec.Observability.Tracing.Enable {
-		clusters = append(clusters, getTracingCluster(cfg))
+	if meshConfig.Spec.Observability.Tracing.Enable {
+		clusters = append(clusters, getTracingCluster(meshConfig))
 	}
 
 	return removeDups(clusters), nil
