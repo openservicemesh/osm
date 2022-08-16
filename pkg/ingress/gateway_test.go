@@ -160,9 +160,10 @@ func TestProvisionIngressGatewayCert(t *testing.T) {
 
 			var originalSecret *corev1.Secret
 			if tc.expectCertRotation {
-				time.Sleep(time.Second) // sleep an extra second to allow this to propagate.
-				originalSecret, err = fakeClient.CoreV1().Secrets(testSecret.Namespace).Get(context.TODO(), testSecret.Name, metav1.GetOptions{})
-				a.Nil(err)
+				a.Eventually(func() bool {
+					originalSecret, err = fakeClient.CoreV1().Secrets(testSecret.Namespace).Get(context.TODO(), testSecret.Name, metav1.GetOptions{})
+					return err == nil
+				}, maxSecretPollTime, secretPollInterval, "Secret found, unexpected!")
 			}
 
 			if tc.updatedMeshConfig != nil {
