@@ -37,6 +37,12 @@ const (
 	CertificateIssuanceFailure = "FatalCertificateIssuanceFailure"
 )
 
+// Kubernetes Event reasons
+const (
+	// CertificateRotationFailure signifies that a certificate failed to rotate
+	CertificateRotationFailure = "CertificateRotationFailure"
+)
+
 // PubSubMessage represents a common messages abstraction to pass through the PubSub interface
 type PubSubMessage struct {
 	Kind   Kind

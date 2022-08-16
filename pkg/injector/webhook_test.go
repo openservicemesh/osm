@@ -587,8 +587,10 @@ var _ = Describe("Testing Injector Functions", func() {
 
 		actualErr := NewMutatingWebhook(context.Background(), kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, cfg, "")
 		Expect(actualErr).NotTo(HaveOccurred())
-		_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
-		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() error {
+			_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
+			return err
+		}, 3*time.Second).Should(BeNil())
 		close(stop)
 	})
 

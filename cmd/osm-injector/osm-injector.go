@@ -228,7 +228,7 @@ func main() {
 
 	// Initialize the sidecar injector webhook
 	if err := injector.NewMutatingWebhook(ctx, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, osmVersion, webhookTimeout, enableReconciler, cfg, corev1.PullPolicy(osmContainerPullPolicy)); err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, fmt.Sprintf("Error creating sidecar injector webhook: %s", err))
 	}
 
 	version.SetMetric()

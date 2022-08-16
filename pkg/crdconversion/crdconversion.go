@@ -37,8 +37,8 @@ var apiKindToPath = map[string]string{
 var conversionReviewVersions = []string{"v1beta1", "v1"}
 
 // NewConversionWebhook starts a new web server handling requests from the CRD's
-func NewConversionWebhook(ctx context.Context, crdClient apiclient.ApiextensionsV1Interface, certManager *certificate.Manager, osmNamespace string, enableReconciler bool) error {
-	srv, err := webhook.NewServer(constants.OSMBootstrapName, osmNamespace, constants.CRDConversionWebhookPort, certManager, map[string]http.HandlerFunc{
+func NewConversionWebhook(ctx context.Context, crdClient apiclient.ApiextensionsV1Interface, certManager *certificate.Manager, osmNamespace string) error {
+	srv := webhook.NewServer(constants.OSMBootstrapName, osmNamespace, constants.CRDConversionWebhookPort, certManager, map[string]http.HandlerFunc{
 		meshConfigConverterPath:            serveMeshConfigConversion,
 		trafficAccessConverterPath:         serveTrafficAccessConversion,
 		httpRouteGroupConverterPath:        serveHTTPRouteGroupConversion,
@@ -48,17 +48,13 @@ func NewConversionWebhook(ctx context.Context, crdClient apiclient.Apiextensions
 		ingressBackendsPolicyConverterPath: serveIngressBackendsPolicyConversion,
 		retryPolicyConverterPath:           serveRetryPolicyConversion,
 	}, func(cert *certificate.Certificate) error {
-		return patchCrds(cert, crdClient, osmNamespace, enableReconciler)
+		return patchCrds(cert, crdClient, osmNamespace)
 	})
-	if err != nil {
-		return err
-	}
 
-	go srv.Run(ctx)
-	return nil
+	return srv.Run(ctx)
 }
 
-func patchCrds(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace string, enableReconciler bool) error {
+func patchCrds(cert *certificate.Certificate, crdClient apiclient.ApiextensionsV1Interface, osmNamespace string) error {
 	for crdName, crdConversionPath := range apiKindToPath {
 		if err := updateCrdConfiguration(cert, crdClient, osmNamespace, crdName, crdConversionPath); err != nil {
 			log.Error().Err(err).Msgf("Error updating conversion webhook configuration for crd : %s", crdName)

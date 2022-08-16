@@ -58,7 +58,7 @@ func NewMutatingWebhook(ctx context.Context, kubeClient kubernetes.Interface, ce
 	// because of the specifics of MutatingWebhookConfiguration template in this repository.
 
 	// Start the MutatingWebhook web server
-	srv, err := webhook.NewServer(constants.OSMInjectorName, osmNamespace, constants.InjectorWebhookPort, certManager, map[string]http.HandlerFunc{
+	srv := webhook.NewServer(constants.OSMInjectorName, osmNamespace, constants.InjectorWebhookPort, certManager, map[string]http.HandlerFunc{
 		webhookCreatePod: http.HandlerFunc(wh.podCreationHandler),
 	},
 		func(cert *certificate.Certificate) error {
@@ -67,11 +67,8 @@ func NewMutatingWebhook(ctx context.Context, kubeClient kubernetes.Interface, ce
 			}
 			return nil
 		})
-	if err != nil {
-		return err
-	}
-	go srv.Run(ctx)
-	return nil
+
+	return srv.Run(ctx)
 }
 
 func (wh *mutatingWebhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionRequestBody []byte) (requestForNamespace string, admissionResp admissionv1.AdmissionReview) {
