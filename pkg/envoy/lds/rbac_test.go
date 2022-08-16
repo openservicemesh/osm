@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
 
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -97,17 +94,6 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 }
 
 func TestBuildInboundRBACPolicies(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	proxySvcAccount := identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}
-
-	lb := &listenerBuilder{
-		meshCatalog:     mockCatalog,
-		serviceIdentity: proxySvcAccount.ToServiceIdentity(),
-	}
-
 	testCases := []struct {
 		name           string
 		trafficTargets []trafficpolicy.TrafficTargetWithRoutes
@@ -165,11 +151,8 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			// Mock catalog calls
-			mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(proxySvcAccount.ToServiceIdentity()).Return(tc.trafficTargets, nil).Times(1)
-
 			// Test the RBAC policies
-			policy, err := lb.buildInboundRBACPolicies()
+			policy, err := buildInboundRBACPolicies(tc.trafficTargets, "")
 
 			assert.Equal(tc.expectErr, err != nil)
 			assert.Equal(xds_rbac.RBAC_ALLOW, policy.Rules.Action)
@@ -180,82 +163,6 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 				actualPolicyKeys = append(actualPolicyKeys, key)
 			}
 			assert.ElementsMatch(tc.expectedPolicyKeys, actualPolicyKeys)
-		})
-	}
-}
-
-func TestBuildRBACFilter(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	proxySvcAccount := identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity()
-
-	lb := &listenerBuilder{
-		meshCatalog:     mockCatalog,
-		serviceIdentity: proxySvcAccount,
-	}
-
-	testCases := []struct {
-		name           string
-		trafficTargets []trafficpolicy.TrafficTargetWithRoutes
-
-		expectErr bool
-	}{
-		{
-			// Test 1
-			name: "traffic target without TCP routes",
-			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
-				{
-					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1"),
-					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2"),
-						identity.ServiceIdentity("sa-3.ns-3"),
-					},
-					TCPRouteMatches: nil,
-				},
-			},
-
-			expectErr: false, // no error
-		},
-
-		{
-			// Test 2
-			name: "traffic target with TCP routes",
-			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
-				{
-					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1"),
-					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2"),
-						identity.ServiceIdentity("sa-3.ns-3"),
-					},
-				},
-				{
-					Name:        "ns-1/test-2",
-					Destination: identity.ServiceIdentity("sa-1.ns-1"),
-					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-4.ns-2"),
-					},
-				},
-			},
-
-			expectErr: false, // no error
-		},
-	}
-
-	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			assert := tassert.New(t)
-
-			// Mock catalog calls
-			mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(proxySvcAccount).Return(tc.trafficTargets, nil).Times(1)
-
-			rbacFilter, err := lb.buildRBACFilter()
-			assert.Equal(err != nil, tc.expectErr)
-
-			assert.Equal(envoy.L4RBACFilterName, rbacFilter.Name)
 		})
 	}
 }

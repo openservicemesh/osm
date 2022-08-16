@@ -7,7 +7,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -17,12 +16,12 @@ import (
 // GetOutboundMeshTrafficPolicy returns the outbound mesh traffic policy for the given downstream identity
 //
 // The function works as follows:
-// 1. If permissive mode is enabled, builds outbound mesh traffic policies to reach every upstream service
-//    discovered using service discovery, using wildcard routes.
-// 2. In SMI mode, builds outbound mesh traffic policies to reach every upstream service corresponding
-//    to every upstream service account that this downstream is authorized to access using SMI TrafficTarget
-//    policies.
-// 3. Process TraficSplit policies and update the weights for the upstream services based on the policies.
+//  1. If permissive mode is enabled, builds outbound mesh traffic policies to reach every upstream service
+//     discovered using service discovery, using wildcard routes.
+//  2. In SMI mode, builds outbound mesh traffic policies to reach every upstream service corresponding
+//     to every upstream service account that this downstream is authorized to access using SMI TrafficTarget
+//     policies.
+//  3. Process TraficSplit policies and update the weights for the upstream services based on the policies.
 //
 // The route configurations are consolidated per port, such that upstream services using the same port are a part
 // of the same route configuration. This is required to avoid route conflicts that can occur when the same hostname
@@ -42,7 +41,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		// IP range must not have duplicates, use a mapset to only add unique IP ranges
 		var destinationIPRanges []string
 		destinationIPSet := mapset.NewSet()
-		for _, endp := range mc.getDNSResolvableServiceEndpoints(meshSvc) {
+		for _, endp := range mc.GetResolvableEndpointsForService(meshSvc) {
 			ipCIDR := endp.IP.String() + "/32"
 			if added := destinationIPSet.Add(ipCIDR); added {
 				destinationIPRanges = append(destinationIPRanges, ipCIDR)
@@ -54,7 +53,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		clusterConfigForServicePort := &trafficpolicy.MeshClusterConfig{
 			Name:                          meshSvc.EnvoyClusterName(),
 			Service:                       meshSvc,
-			EnableEnvoyActiveHealthChecks: mc.configurator.GetFeatureFlags().EnableEnvoyActiveHealthChecks,
+			EnableEnvoyActiveHealthChecks: mc.configurator.GetMeshConfig().Spec.FeatureFlags.EnableEnvoyActiveHealthChecks,
 			UpstreamTrafficSetting: mc.policyController.GetUpstreamTrafficSetting(
 				policy.UpstreamTrafficSettingGetOpt{MeshService: &meshSvc}),
 		}
@@ -125,7 +124,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			continue
 		}
 		// Create a route to access the upstream service via it's hostnames and upstream weighted clusters
-		httpHostNamesForServicePort := k8s.GetHostnamesForService(meshSvc, downstreamSvcAccount.Namespace == meshSvc.Namespace)
+		httpHostNamesForServicePort := mc.GetHostnamesForService(meshSvc, downstreamSvcAccount.Namespace == meshSvc.Namespace)
 		outboundTrafficPolicy := trafficpolicy.NewOutboundTrafficPolicy(meshSvc.FQDN(), httpHostNamesForServicePort)
 		if err := outboundTrafficPolicy.AddRoute(trafficpolicy.WildCardRouteMatch, retryPolicy, upstreamClusters...); err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
@@ -145,8 +144,8 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 // ListOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
-	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		return mc.listMeshServices()
+	if mc.configurator.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode {
+		return mc.ListServices()
 	}
 
 	svcAccount := serviceIdentity.ToK8sServiceAccount()
@@ -164,7 +163,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 				Namespace: t.Spec.Destination.Namespace,
 			}
 
-			for _, destService := range mc.getServicesForServiceIdentity(sa.ToServiceIdentity()) {
+			for _, destService := range mc.GetServicesForServiceIdentity(sa.ToServiceIdentity()) {
 				if added := serviceSet.Add(destService); added {
 					allowedServices = append(allowedServices, destService)
 				}

@@ -849,8 +849,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				meshSpec:     mockMeshSpec,
 				configurator: mockCfg,
 			}
-
-			mockCfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+			mockCfg.EXPECT().GetMeshConfig().AnyTimes()
 
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()

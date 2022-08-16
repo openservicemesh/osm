@@ -3,7 +3,6 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
@@ -17,7 +16,6 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -27,14 +25,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// NewKubernetesController returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewKubernetesController(informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) Controller {
-	return newClient(informerCollection, policyClient, msgBroker, selectInformers...)
-}
-
-func newClient(informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *client {
+// NewClient returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
+func NewClient(informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *Client {
 	// Initialize client object
-	c := &client{
+	c := &Client{
 		informers:    informerCollection,
 		msgBroker:    msgBroker,
 		policyClient: policyClient,
@@ -62,18 +56,13 @@ func newClient(informerCollection *osminformers.InformerCollection, policyClient
 }
 
 // Initializes Namespace monitoring
-func (c *client) initNamespaceMonitor() {
+func (c *Client) initNamespaceMonitor() {
 	// Add event handler to informer
-	nsEventTypes := EventTypes{
-		Add:    announcements.NamespaceAdded,
-		Update: announcements.NamespaceUpdated,
-		Delete: announcements.NamespaceDeleted,
-	}
-	c.informers.AddEventHandler(osminformers.InformerKeyNamespace, GetEventHandlerFuncs(nil, nsEventTypes, c.msgBroker))
+	c.informers.AddEventHandler(osminformers.InformerKeyNamespace, GetEventHandlerFuncs(nil, c.msgBroker))
 }
 
 // Function to filter K8s meta Objects by OSM's isMonitoredNamespace
-func (c *client) shouldObserve(obj interface{}) bool {
+func (c *Client) shouldObserve(obj interface{}) bool {
 	object, ok := obj.(metav1.Object)
 	if !ok {
 		return false
@@ -82,50 +71,30 @@ func (c *client) shouldObserve(obj interface{}) bool {
 }
 
 // Initializes Service monitoring
-func (c *client) initServicesMonitor() {
-	svcEventTypes := EventTypes{
-		Add:    announcements.ServiceAdded,
-		Update: announcements.ServiceUpdated,
-		Delete: announcements.ServiceDeleted,
-	}
-	c.informers.AddEventHandler(osminformers.InformerKeyService, GetEventHandlerFuncs(c.shouldObserve, svcEventTypes, c.msgBroker))
+func (c *Client) initServicesMonitor() {
+	c.informers.AddEventHandler(osminformers.InformerKeyService, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
 
 // Initializes Service Account monitoring
-func (c *client) initServiceAccountsMonitor() {
-	svcEventTypes := EventTypes{
-		Add:    announcements.ServiceAccountAdded,
-		Update: announcements.ServiceAccountUpdated,
-		Delete: announcements.ServiceAccountDeleted,
-	}
-	c.informers.AddEventHandler(osminformers.InformerKeyServiceAccount, GetEventHandlerFuncs(c.shouldObserve, svcEventTypes, c.msgBroker))
+func (c *Client) initServiceAccountsMonitor() {
+	c.informers.AddEventHandler(osminformers.InformerKeyServiceAccount, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
 
-func (c *client) initPodMonitor() {
-	podEventTypes := EventTypes{
-		Add:    announcements.PodAdded,
-		Update: announcements.PodUpdated,
-		Delete: announcements.PodDeleted,
-	}
-	c.informers.AddEventHandler(osminformers.InformerKeyPod, GetEventHandlerFuncs(c.shouldObserve, podEventTypes, c.msgBroker))
+func (c *Client) initPodMonitor() {
+	c.informers.AddEventHandler(osminformers.InformerKeyPod, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
 
-func (c *client) initEndpointMonitor() {
-	eptEventTypes := EventTypes{
-		Add:    announcements.EndpointAdded,
-		Update: announcements.EndpointUpdated,
-		Delete: announcements.EndpointDeleted,
-	}
-	c.informers.AddEventHandler(osminformers.InformerKeyEndpoints, GetEventHandlerFuncs(c.shouldObserve, eptEventTypes, c.msgBroker))
+func (c *Client) initEndpointMonitor() {
+	c.informers.AddEventHandler(osminformers.InformerKeyEndpoints, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
 
 // IsMonitoredNamespace returns a boolean indicating if the namespace is among the list of monitored namespaces
-func (c client) IsMonitoredNamespace(namespace string) bool {
+func (c *Client) IsMonitoredNamespace(namespace string) bool {
 	return c.informers.IsMonitoredNamespace(namespace)
 }
 
 // ListMonitoredNamespaces returns all namespaces that the mesh is monitoring.
-func (c client) ListMonitoredNamespaces() ([]string, error) {
+func (c *Client) ListMonitoredNamespaces() ([]string, error) {
 	var namespaces []string
 
 	for _, ns := range c.informers.List(osminformers.InformerKeyNamespace) {
@@ -140,7 +109,7 @@ func (c client) ListMonitoredNamespaces() ([]string, error) {
 }
 
 // GetService retrieves the Kubernetes Services resource for the given MeshService
-func (c client) GetService(svc service.MeshService) *corev1.Service {
+func (c *Client) GetService(svc service.MeshService) *corev1.Service {
 	// client-go cache uses <namespace>/<name> as key
 	svcIf, exists, err := c.informers.GetByKey(osminformers.InformerKeyService, svc.NamespacedKey())
 	if exists && err == nil {
@@ -151,7 +120,7 @@ func (c client) GetService(svc service.MeshService) *corev1.Service {
 }
 
 // ListServices returns a list of services that are part of monitored namespaces
-func (c client) ListServices() []*corev1.Service {
+func (c *Client) ListServices() []*corev1.Service {
 	var services []*corev1.Service
 
 	for _, serviceInterface := range c.informers.List(osminformers.InformerKeyService) {
@@ -166,7 +135,7 @@ func (c client) ListServices() []*corev1.Service {
 }
 
 // ListServiceAccounts returns a list of service accounts that are part of monitored namespaces
-func (c client) ListServiceAccounts() []*corev1.ServiceAccount {
+func (c *Client) ListServiceAccounts() []*corev1.ServiceAccount {
 	var serviceAccounts []*corev1.ServiceAccount
 
 	for _, serviceInterface := range c.informers.List(osminformers.InformerKeyServiceAccount) {
@@ -181,7 +150,7 @@ func (c client) ListServiceAccounts() []*corev1.ServiceAccount {
 }
 
 // GetNamespace returns a Namespace resource if found, nil otherwise.
-func (c client) GetNamespace(ns string) *corev1.Namespace {
+func (c *Client) GetNamespace(ns string) *corev1.Namespace {
 	nsIf, exists, err := c.informers.GetByKey(osminformers.InformerKeyNamespace, ns)
 	if exists && err == nil {
 		ns := nsIf.(*corev1.Namespace)
@@ -193,7 +162,7 @@ func (c client) GetNamespace(ns string) *corev1.Namespace {
 // ListPods returns a list of pods part of the mesh
 // Kubecontroller does not currently segment pod notifications, hence it receives notifications
 // for all k8s Pods.
-func (c client) ListPods() []*corev1.Pod {
+func (c *Client) ListPods() []*corev1.Pod {
 	var pods []*corev1.Pod
 
 	for _, podInterface := range c.informers.List(osminformers.InformerKeyPod) {
@@ -208,7 +177,7 @@ func (c client) ListPods() []*corev1.Pod {
 
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
 // or error if the API errored out.
-func (c client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error) {
+func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error) {
 	ep, exists, err := c.informers.GetByKey(osminformers.InformerKeyEndpoints, svc.NamespacedKey())
 	if err != nil {
 		return nil, err
@@ -220,7 +189,7 @@ func (c client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error)
 }
 
 // ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
-func (c client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
+func (c *Client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
 	var svcAccounts []identity.K8sServiceAccount
 
 	k8sSvc := c.GetService(svc)
@@ -252,21 +221,9 @@ func (c client) ListServiceIdentitiesForService(svc service.MeshService) ([]iden
 	return svcAccounts, nil
 }
 
-// IsMetricsEnabled returns true if the pod in the mesh is correctly annotated for prometheus scrapping
-func IsMetricsEnabled(pod *corev1.Pod) bool {
-	isScrapingEnabled := false
-	prometheusScrapeAnnotation, ok := pod.Annotations[constants.PrometheusScrapeAnnotation]
-	if !ok {
-		return isScrapingEnabled
-	}
-
-	isScrapingEnabled, _ = strconv.ParseBool(prometheusScrapeAnnotation)
-	return isScrapingEnabled
-}
-
 // UpdateStatus updates the status subresource for the given resource and GroupVersionKind
 // The resource within the 'interface{}' must be a pointer to the underlying resource
-func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
+func (c *Client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 	switch t := resource.(type) {
 	case *policyv1alpha1.IngressBackend:
 		obj := resource.(*policyv1alpha1.IngressBackend)
@@ -283,7 +240,7 @@ func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 
 // ServiceToMeshServices translates a k8s service with one or more ports to one or more
 // MeshService objects per port.
-func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshService {
+func (c *Client) ServiceToMeshServices(svc corev1.Service) []service.MeshService {
 	var meshServices []service.MeshService
 
 	for _, portSpec := range svc.Spec.Ports {
@@ -374,7 +331,8 @@ func GetTargetPortFromEndpoints(endpointName string, endpoints corev1.Endpoints)
 	return
 }
 
-func (c client) GetPodForProxy(proxy *envoy.Proxy) (*v1.Pod, error) {
+// GetPodForProxy returns the pod that the given proxy is attached to, based on the UUID and service identity.
+func (c *Client) GetPodForProxy(proxy *envoy.Proxy) (*v1.Pod, error) {
 	proxyUUID, svcAccount := proxy.UUID.String(), proxy.Identity.ToK8sServiceAccount()
 	log.Trace().Msgf("Looking for pod with label %q=%q", constants.EnvoyUniqueIDLabelName, proxyUUID)
 	podList := c.ListPods()
@@ -430,7 +388,7 @@ func (c client) GetPodForProxy(proxy *envoy.Proxy) (*v1.Pod, error) {
 
 // GetTargetPortForServicePort returns the TargetPort corresponding to the Port used by clients
 // to communicate with it.
-func (c client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, port uint16) (uint16, error) {
+func (c *Client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, port uint16) (uint16, error) {
 	// Lookup the k8s service corresponding to the given service name.
 	// The k8s service is necessary to lookup the TargetPort from the Endpoint whose name
 	// matches the name of the port on the k8s Service object.
@@ -470,4 +428,9 @@ func (c client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, 
 	}
 
 	return 0, fmt.Errorf("error finding port name %s for endpoint %s", portName, namespacedSvc)
+}
+
+// IsHeadlessService determines whether or not a corev1.Service is a headless service
+func IsHeadlessService(svc corev1.Service) bool {
+	return len(svc.Spec.ClusterIP) == 0 || svc.Spec.ClusterIP == corev1.ClusterIPNone
 }

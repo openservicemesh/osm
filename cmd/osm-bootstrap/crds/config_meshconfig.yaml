@@ -267,6 +267,7 @@ spec:
                       type: boolean
                     enableEgressPolicy:
                       type: boolean
+                      description: DEPRECATED, do not use. Set 'taffic.enableEgress' to 'false' to use EgressPolicy API.
                     enableMulticlusterMode:
                       type: boolean
                       description: DEPRECATED, no longer used

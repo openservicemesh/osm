@@ -9,7 +9,7 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	xds_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
+	xds_http_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/golang/protobuf/ptypes/any"
@@ -81,7 +81,7 @@ func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*traf
 			applyInboundVirtualHostConfig(virtualHost, config)
 			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
 		}
-		if featureFlags := cfg.GetFeatureFlags(); featureFlags.EnableWASMStats {
+		if featureFlags := cfg.GetMeshConfig().Spec.FeatureFlags; featureFlags.EnableWASMStats {
 			for k, v := range proxy.StatsHeaders() {
 				routeConfig.ResponseHeadersToAdd = append(routeConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
 					Header: &core.HeaderValue{
@@ -136,7 +136,7 @@ func getLocalRateLimitFilterConfig(config *policyv1alpha1.HTTPLocalRateLimitSpec
 		return nil, fmt.Errorf("invalid unit %q for HTTP request rate limiting", config.Unit)
 	}
 
-	rl := &xds_local_ratelimit.LocalRateLimit{
+	rl := &xds_http_local_ratelimit.LocalRateLimit{
 		StatPrefix: httpLocalRateLimiterStatsPrefix,
 		TokenBucket: &xds_type.TokenBucket{
 			MaxTokens:     config.Requests + config.Burst,
@@ -247,7 +247,7 @@ func BuildEgressRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpo
 	return routeConfigs
 }
 
-//NewRouteConfigurationStub creates the route configuration placeholder
+// NewRouteConfigurationStub creates the route configuration placeholder
 func NewRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfiguration {
 	routeConfiguration := xds_route.RouteConfiguration{
 		Name: routeConfigName,

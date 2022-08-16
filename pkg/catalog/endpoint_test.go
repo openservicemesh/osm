@@ -13,6 +13,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -139,22 +141,26 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockServiceProvider := service.NewMockProvider(mockCtrl)
+			mockProvider := compute.NewMockInterface(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-				serviceProviders:   []service.Provider{mockServiceProvider},
-				configurator:       mockConfigurator,
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
+				Interface:      mockProvider,
+				configurator:   mockConfigurator,
 			}
 
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).AnyTimes()
+			mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+				Spec: v1alpha2.MeshConfigSpec{
+					Traffic: v1alpha2.TrafficSpec{
+						EnablePermissiveTrafficPolicyMode: tc.permissiveMode,
+					},
+				},
+			}).AnyTimes()
 
 			for svc, endpoints := range tc.outboundServiceEndpoints {
-				mockEndpointProvider.EXPECT().ListEndpointsForService(svc).Return(endpoints).AnyTimes()
+				mockProvider.EXPECT().ListEndpointsForService(svc).Return(endpoints).AnyTimes()
 			}
 
 			if tc.permissiveMode {
@@ -165,14 +171,12 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()
 
-			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-
 			for sa, services := range tc.outboundServices {
 				for _, svc := range services {
 					k8sService := tests.NewServiceFixture(svc.Name, svc.Namespace, map[string]string{})
 					mockKubeController.EXPECT().GetService(svc).Return(k8sService).AnyTimes()
 				}
-				mockServiceProvider.EXPECT().GetServicesForServiceIdentity(sa).Return(services).AnyTimes()
+				mockProvider.EXPECT().GetServicesForServiceIdentity(sa).Return(services).AnyTimes()
 			}
 
 			var pods []*v1.Pod
@@ -202,7 +206,7 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 			for sa, services := range tc.outboundServices {
 				for _, svc := range services {
 					podEndpoints := tc.outboundServiceEndpoints[svc]
-					mockEndpointProvider.EXPECT().ListEndpointsForIdentity(sa).Return(podEndpoints).AnyTimes()
+					mockProvider.EXPECT().ListEndpointsForIdentity(sa).Return(podEndpoints).AnyTimes()
 				}
 			}
 

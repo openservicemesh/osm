@@ -851,7 +851,7 @@ func (td *OsmTestData) InstallNginxIngress() (string, error) {
 }
 
 // RandomNameWithPrefix generates a random string with the given prefix.
-// 	If the prefix is empty, the default prefix "test" will be used
+// If the prefix is empty, the default prefix "test" will be used
 func RandomNameWithPrefix(prefix string) string {
 	if prefix == "" || len(prefix) > 100 {
 		prefix = "test"

@@ -11,7 +11,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -33,7 +32,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 	var trafficTargets []*access.TrafficTarget
 	routeConfigPerPort := make(map[int][]*trafficpolicy.InboundTrafficPolicy)
 
-	permissiveMode := mc.configurator.IsPermissiveTrafficPolicyMode()
+	permissiveMode := mc.configurator.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode
 	if !permissiveMode {
 		// Pre-computing the list of TrafficTarget optimizes to avoid repeated
 		// cache lookups for each upstream service.
@@ -127,7 +126,7 @@ func (mc *MeshCatalog) getInboundTrafficPoliciesForUpstream(upstreamSvc service.
 
 	if permissiveMode {
 		// Add a wildcard HTTP route that allows any downstream client to access the upstream service
-		hostnames := k8s.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
+		hostnames := mc.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
 		inboundPolicyForUpstreamSvc = trafficpolicy.NewInboundTrafficPolicy(upstreamSvc.FQDN(), hostnames, upstreamTrafficSetting)
 		localCluster := service.WeightedCluster{
 			ClusterName: service.ClusterName(upstreamSvc.EnvoyLocalClusterName()),
@@ -150,7 +149,7 @@ func (mc *MeshCatalog) getInboundTrafficPoliciesForUpstream(upstreamSvc service.
 
 func (mc *MeshCatalog) buildInboundHTTPPolicyFromTrafficTarget(upstreamSvc service.MeshService, trafficTargets []*access.TrafficTarget,
 	upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) *trafficpolicy.InboundTrafficPolicy {
-	hostnames := k8s.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
+	hostnames := mc.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
 	inboundPolicy := trafficpolicy.NewInboundTrafficPolicy(upstreamSvc.FQDN(), hostnames, upstreamTrafficSetting)
 
 	localCluster := service.WeightedCluster{
@@ -202,7 +201,7 @@ func (mc *MeshCatalog) getRoutingRulesFromTrafficTarget(trafficTarget access.Tra
 }
 
 // routesFromRules takes a set of traffic target rules and the namespace of the traffic target and returns a list of
-//	http route matches (trafficpolicy.HTTPRouteMatch)
+// http route matches (trafficpolicy.HTTPRouteMatch)
 func (mc *MeshCatalog) routesFromRules(rules []access.TrafficTargetRule, trafficTargetNamespace string) ([]trafficpolicy.HTTPRouteMatch, error) {
 	var routes []trafficpolicy.HTTPRouteMatch
 
@@ -287,18 +286,12 @@ func (mc *MeshCatalog) getUpstreamServicesIncludeApex(upstreamServices []service
 		}
 
 		for _, split := range mc.meshSpec.ListTrafficSplits(smi.WithTrafficSplitBackendService(svc)) {
-			svcName := k8s.GetServiceFromHostname(mc.kubeController, split.Spec.Service)
-			subdomain := k8s.GetSubdomainFromHostname(mc.kubeController, split.Spec.Service)
 			apexMeshService := service.MeshService{
 				Namespace:  svc.Namespace,
-				Name:       svcName,
+				Name:       split.Spec.Service,
 				Port:       svc.Port,
 				TargetPort: svc.TargetPort,
 				Protocol:   svc.Protocol,
-			}
-
-			if subdomain != "" {
-				apexMeshService.Name = fmt.Sprintf("%s.%s", subdomain, svcName)
 			}
 
 			if newlyAdded := svcSet.Add(apexMeshService); newlyAdded {

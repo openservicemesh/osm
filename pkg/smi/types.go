@@ -20,9 +20,7 @@ var (
 
 // Client is a type that implements the smi.MeshSpec interface related to Kubernetes SMI resources
 type Client struct {
-	providerIdent  string
 	informers      *informers.InformerCollection
-	osmNamespace   string
 	kubeController k8s.Controller
 }
 

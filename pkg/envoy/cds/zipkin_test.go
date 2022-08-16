@@ -20,8 +20,7 @@ var _ = Describe("Test CDS Tracing Configuration", func() {
 
 	Context("Test getTracingCluster()", func() {
 		It("Returns Tracing cluster config", func() {
-			mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).Times(1)
-			mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).Times(1)
+			mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 			actual := *getTracingCluster(mockConfigurator)
 			Expect(actual.Name).To(Equal(constants.EnvoyTracingCluster))

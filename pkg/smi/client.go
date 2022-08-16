@@ -10,7 +10,6 @@ import (
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
@@ -26,17 +25,12 @@ const (
 
 	// HTTPRouteGroupKind is the kind specified for the HTTP route rules in an SMI Traffictarget policy
 	HTTPRouteGroupKind = "HTTPRouteGroup"
-
-	// We have a few different k8s clients. This identifies these in logs.
-	kubernetesClientName = "MeshSpec"
 )
 
 // NewSMIClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
 func NewSMIClient(informerCollection *informers.InformerCollection, osmNamespace string, kubeController k8s.Controller, msgBroker *messaging.Broker) *Client {
 	client := Client{
-		providerIdent:  kubernetesClientName,
 		informers:      informerCollection,
-		osmNamespace:   osmNamespace,
 		kubeController: kubeController,
 	}
 
@@ -47,33 +41,10 @@ func NewSMIClient(informerCollection *informers.InformerCollection, osmNamespace
 		}
 		return informerCollection.IsMonitoredNamespace(object.GetNamespace())
 	}
-	splitEventTypes := k8s.EventTypes{
-		Add:    a.TrafficSplitAdded,
-		Update: a.TrafficSplitUpdated,
-		Delete: a.TrafficSplitDeleted,
-	}
-	informerCollection.AddEventHandler(informers.InformerKeyTrafficSplit, k8s.GetEventHandlerFuncs(shouldObserve, splitEventTypes, msgBroker))
-
-	routeGroupEventTypes := k8s.EventTypes{
-		Add:    a.RouteGroupAdded,
-		Update: a.RouteGroupUpdated,
-		Delete: a.RouteGroupDeleted,
-	}
-	informerCollection.AddEventHandler(informers.InformerKeyHTTPRouteGroup, k8s.GetEventHandlerFuncs(shouldObserve, routeGroupEventTypes, msgBroker))
-
-	tcpRouteEventTypes := k8s.EventTypes{
-		Add:    a.TCPRouteAdded,
-		Update: a.TCPRouteUpdated,
-		Delete: a.TCPRouteDeleted,
-	}
-	informerCollection.AddEventHandler(informers.InformerKeyTCPRoute, k8s.GetEventHandlerFuncs(shouldObserve, tcpRouteEventTypes, msgBroker))
-
-	trafficTargetEventTypes := k8s.EventTypes{
-		Add:    a.TrafficTargetAdded,
-		Update: a.TrafficTargetUpdated,
-		Delete: a.TrafficTargetDeleted,
-	}
-	informerCollection.AddEventHandler(informers.InformerKeyTrafficTarget, k8s.GetEventHandlerFuncs(shouldObserve, trafficTargetEventTypes, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyTrafficSplit, k8s.GetEventHandlerFuncs(shouldObserve, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyHTTPRouteGroup, k8s.GetEventHandlerFuncs(shouldObserve, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyTCPRoute, k8s.GetEventHandlerFuncs(shouldObserve, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyTrafficTarget, k8s.GetEventHandlerFuncs(shouldObserve, msgBroker))
 
 	return &client
 }
@@ -111,7 +82,7 @@ func FilterTrafficSplit(trafficSplit *smiSplit.TrafficSplit, options ...TrafficS
 
 	// If apex service filter option is set, ignore traffic splits whose apex service does not match
 	if o.ApexService.Name != "" && (o.ApexService.Namespace != trafficSplit.Namespace ||
-		o.ApexService.Name != k8s.GetServiceFromHostname(o.KubeController, trafficSplit.Spec.Service)) {
+		o.ApexService.Name != trafficSplit.Spec.Service) {
 		return nil
 	}
 

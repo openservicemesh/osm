@@ -14,12 +14,11 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
-	"github.com/openservicemesh/osm/pkg/providers/kube"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 
@@ -56,7 +55,7 @@ func setupTestServer(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
-	kubeController := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
+	kubeController := k8s.NewClient(informerCollection, policyClient, msgBroker)
 	policyController := policy.NewPolicyController(informerCollection, kubeController, msgBroker)
 	osmConfigurator = configurator.NewConfigurator(informerCollection, tests.OsmNamespace, tests.OsmMeshConfigName, msgBroker)
 	kubeProvider := kube.NewClient(kubeController, osmConfigurator)
@@ -85,8 +84,7 @@ func setupTestServer(b *testing.B) {
 				},
 			},
 			FeatureFlags: configv1alpha2.FeatureFlags{
-				EnableWASMStats:    false,
-				EnableEgressPolicy: false,
+				EnableWASMStats: false,
 			},
 		},
 	}
@@ -122,8 +120,7 @@ func setupTestServer(b *testing.B) {
 		policyController,
 		stop,
 		osmConfigurator,
-		[]service.Provider{kubeProvider},
-		[]endpoint.Provider{kubeProvider},
+		kubeProvider,
 		msgBroker,
 	)
 
@@ -187,7 +184,6 @@ func BenchmarkSendXDSResponse(b *testing.B) {
 					b.Fatalf("Failed to send response: %s", err)
 				}
 			}
-			b.StopTimer()
 		})
 	}
 }

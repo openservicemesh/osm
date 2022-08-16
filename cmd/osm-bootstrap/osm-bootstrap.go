@@ -242,7 +242,7 @@ func main() {
 	}
 
 	// Initialize the crd conversion webhook server to support the conversion of OSM's CRDs
-	if err := crdconversion.NewConversionWebhook(ctx, kubeClient, crdClient, certManager, osmNamespace, enableReconciler); err != nil {
+	if err := crdconversion.NewConversionWebhook(ctx, crdClient, certManager, osmNamespace, enableReconciler); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating crd conversion webhook")
 	}
 
@@ -327,8 +327,8 @@ func (b *bootstrap) ensureMeshConfig() error {
 }
 
 // initiatilizeKubernetesEventsRecorder initializes the generic Kubernetes event recorder and associates it with
-//	the osm-bootstrap pod resource. The events recorder allows the osm-bootstap to publish Kubernets events to
-// 	report fatal errors with initializing this application. These events will show up in the output of `kubectl get events`
+// the osm-bootstrap pod resource. The events recorder allows the osm-bootstap to publish Kubernets events to
+// report fatal errors with initializing this application. These events will show up in the output of `kubectl get events`
 func (b *bootstrap) initiatilizeKubernetesEventsRecorder() error {
 	bootstrapPod, err := b.getBootstrapPod()
 	if err != nil {

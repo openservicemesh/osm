@@ -11,6 +11,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
 	"github.com/openservicemesh/osm/pkg/models"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS string) (podSecurityContext *corev1.SecurityContext, envoyContainer string) {
@@ -23,7 +24,7 @@ func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS stri
 				}(),
 			},
 		}
-		envoyContainer = cfg.GetEnvoyWindowsImage()
+		envoyContainer = utils.GetEnvoyWindowsImage(cfg.GetMeshConfig())
 	} else {
 		podSecurityContext = &corev1.SecurityContext{
 			AllowPrivilegeEscalation: pointer.BoolPtr(false),
@@ -32,7 +33,7 @@ func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS stri
 				return &uid
 			}(),
 		}
-		envoyContainer = cfg.GetEnvoyImage()
+		envoyContainer = utils.GetEnvoyImage(cfg.GetMeshConfig())
 	}
 	return
 }
@@ -42,6 +43,10 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 	clusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, pod.Namespace)
 	securityContext, containerImage := getPlatformSpecificSpecComponents(cfg, podOS)
 
+	logLevel := cfg.GetMeshConfig().Spec.Sidecar.LogLevel
+	if logLevel == "" {
+		logLevel = constants.DefaultEnvoyLogLevel
+	}
 	return corev1.Container{
 		Name:            constants.EnvoyContainerName,
 		Image:           containerImage,
@@ -54,9 +59,9 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 			MountPath: bootstrap.EnvoyProxyConfigPath,
 		}},
 		Command:   []string{"envoy"},
-		Resources: cfg.GetProxyResources(),
+		Resources: cfg.GetMeshConfig().Spec.Sidecar.Resources,
 		Args: []string{
-			"--log-level", cfg.GetEnvoyLogLevel(),
+			"--log-level", logLevel,
 			"--config-path", strings.Join([]string{bootstrap.EnvoyProxyConfigPath, bootstrap.EnvoyBootstrapConfigFile}, "/"),
 			"--service-cluster", clusterID,
 		},

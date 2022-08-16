@@ -3,20 +3,17 @@ package fake
 import (
 	"fmt"
 
+	"github.com/openservicemesh/osm/pkg/compute"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-// Provider interface combines endpoint.Provider and service.Provider
-type Provider interface {
-	endpoint.Provider
-	service.Provider
-}
-
-// NewFakeProvider implements mesh.EndpointsProvider, which creates a test Kubernetes cluster/compute provider.
-func NewFakeProvider() Provider {
+// NewFakeProvider implements compute.Interface, which creates a test Kubernetes cluster/compute client.
+func NewFakeProvider() compute.Interface {
 	return fakeClient{
 		endpoints: map[string][]endpoint.Endpoint{
 			tests.BookstoreV1Service.String():   {tests.Endpoint},
@@ -99,4 +96,13 @@ func (f fakeClient) GetResolvableEndpointsForService(svc service.MeshService) []
 		return nil
 	}
 	return endpoints
+}
+
+func (f fakeClient) IsMetricsEnabled(*envoy.Proxy) (bool, error) {
+	return true, nil
+}
+
+// GetHostnamesForService returns the hostnames over which the service is accessible
+func (f fakeClient) GetHostnamesForService(svc service.MeshService, localNamespace bool) []string {
+	return kube.NewClient(nil, nil).GetHostnamesForService(svc, localNamespace)
 }

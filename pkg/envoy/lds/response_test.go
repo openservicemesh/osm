@@ -21,9 +21,7 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 
-	"github.com/openservicemesh/osm/pkg/auth"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -74,27 +72,27 @@ func TestNewResponse(t *testing.T) {
 	configClient := configFake.NewSimpleClientset()
 	meshCatalog := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
 
-	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().GetTracingEndpoint().Return("some-endpoint").AnyTimes()
-	mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
-	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
-		Enable: false,
-	}).AnyTimes()
-	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
-
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableWASMStats:    false,
-		EnableEgressPolicy: true,
+	mockConfigurator.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{
+		Spec: configv1alpha2.MeshConfigSpec{
+			Traffic: configv1alpha2.TrafficSpec{
+				EnablePermissiveTrafficPolicyMode: false,
+				EnableEgress:                      true,
+			},
+			Observability: configv1alpha2.ObservabilitySpec{
+				Tracing: configv1alpha2.TracingSpec{
+					Enable: false,
+				},
+			},
+			FeatureFlags: configv1alpha2.FeatureFlags{
+				EnableEgressPolicy: true,
+			},
+		},
 	}).AnyTimes()
 
 	proxy, pod, err := getProxy(kubeClient)
 	assert.Empty(err)
 	assert.NotNil(proxy)
 	assert.NotNil(pod)
-
-	mockController := meshCatalog.GetKubeController().(*k8s.MockController)
-	mockController.EXPECT().GetPodForProxy(proxy).Return(pod, nil)
 
 	// test scenario that listing proxy services returns an error
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {

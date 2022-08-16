@@ -11,7 +11,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -26,17 +25,13 @@ func TestGetRetryPolicy(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockServiceProvider := service.NewMockProvider(mockCtrl)
-	mockEndpointsProvider := endpoint.NewMockProvider(mockCtrl)
 	mockCfg := configurator.NewMockConfigurator(mockCtrl)
 	mockPolicyController := policy.NewMockController(mockCtrl)
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mc := &MeshCatalog{
-		serviceProviders:   []service.Provider{mockServiceProvider},
-		endpointsProviders: []endpoint.Provider{mockEndpointsProvider},
-		configurator:       mockCfg,
-		policyController:   mockPolicyController,
-		kubeController:     mockKubeController,
+		configurator:     mockCfg,
+		policyController: mockPolicyController,
+		kubeController:   mockKubeController,
 	}
 	retrySrc := identity.ServiceIdentity("sa1.ns")
 
@@ -236,7 +231,13 @@ func TestGetRetryPolicy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha2.FeatureFlags{EnableRetryPolicy: tc.retryPolicyFlag}).Times(1)
+			mockCfg.EXPECT().GetMeshConfig().Return(
+				v1alpha2.MeshConfig{
+					Spec: v1alpha2.MeshConfigSpec{
+						FeatureFlags: v1alpha2.FeatureFlags{EnableRetryPolicy: tc.retryPolicyFlag},
+					},
+				},
+			).AnyTimes()
 			mockPolicyController.EXPECT().ListRetryPolicies(gomock.Any()).Return(tc.retryCRDs).Times(1)
 
 			res := mc.getRetryPolicy(retrySrc, tc.destSvc)

@@ -24,6 +24,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const (
@@ -54,7 +55,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 		MRCProviderGenerator: MRCProviderGenerator{
 			kubeClient:      kubeClient,
 			kubeConfig:      kubeConfig,
-			KeyBitSize:      cfg.GetCertKeyBitSize(),
+			KeyBitSize:      utils.GetCertKeyBitSize(cfg.GetMeshConfig()),
 			caExtractorFunc: getCA,
 		},
 		mrc: &v1alpha2.MeshRootCertificate{
@@ -76,7 +77,13 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 		mrcClient.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
 	}
 
-	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, checkInterval)
+	return certificate.NewManager(
+		ctx,
+		mrcClient,
+		func() time.Duration { return utils.GetServiceCertValidityPeriod(cfg.GetMeshConfig()) },
+		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(cfg.GetMeshConfig()) },
+		checkInterval,
+	)
 }
 
 // NewCertificateManagerFromMRC returns a new certificate manager.
@@ -90,7 +97,7 @@ func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Int
 		MRCProviderGenerator: MRCProviderGenerator{
 			kubeClient:      kubeClient,
 			kubeConfig:      kubeConfig,
-			KeyBitSize:      cfg.GetCertKeyBitSize(),
+			KeyBitSize:      utils.GetCertKeyBitSize(cfg.GetMeshConfig()),
 			caExtractorFunc: getCA,
 		},
 		informerCollection: ic,
@@ -100,7 +107,13 @@ func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Int
 		mrcClient.MRCProviderGenerator.DefaultVaultToken = vaultOption.VaultToken
 	}
 
-	return certificate.NewManager(ctx, mrcClient, cfg.GetServiceCertValidityPeriod, cfg.GetIngressGatewayCertValidityPeriod, checkInterval)
+	return certificate.NewManager(
+		ctx,
+		mrcClient,
+		func() time.Duration { return utils.GetServiceCertValidityPeriod(cfg.GetMeshConfig()) },
+		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(cfg.GetMeshConfig()) },
+		checkInterval,
+	)
 }
 
 // GetCertIssuerForMRC returns a certificate.Issuer generated from the provided MRC.

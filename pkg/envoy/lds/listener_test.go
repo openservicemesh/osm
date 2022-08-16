@@ -3,62 +3,21 @@ package lds
 import (
 	"testing"
 
-	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	tassert "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
-	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-// Tests TestGetFilterForService checks that a proper filter type is properly returned
-// for given config parameters and service
+func TestBuildPrometheusListener(t *testing.T) {
+	a := assert.New(t)
 
-var _ = Describe("Construct inbound listeners", func() {
-	var (
-		mockCtrl         *gomock.Controller
-		mockConfigurator *configurator.MockConfigurator
-	)
-
-	mockCtrl = gomock.NewController(GinkgoT())
-	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-
-	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()
-	mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
-
-	Context("Test creation of inbound listener", func() {
-		It("Tests the inbound listener config", func() {
-			listener := newInboundListener()
-			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort)))
-			Expect(listener.AccessLog).NotTo(BeEmpty())
-			Expect(len(listener.ListenerFilters)).To(Equal(2)) // TlsInspector, OriginalDestination listener filter
-			Expect(listener.ListenerFilters[0].Name).To(Equal(envoy.TLSInspectorFilterName))
-			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_INBOUND))
-		})
-	})
-
-	Context("Test creation of Prometheus listener", func() {
-		It("Tests the Prometheus listener config", func() {
-			connManager := getPrometheusConnectionManager()
-			listener, _ := buildPrometheusListener(connManager)
-			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort)))
-			Expect(len(listener.ListenerFilters)).To(Equal(0)) //  no listener filters
-			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_INBOUND))
-		})
-	})
-})
+	connManager := getPrometheusConnectionManager()
+	listener, err := buildPrometheusListener(connManager)
+	a.NotNil(listener)
+	a.Nil(err)
+}
 
 func TestGetFilterMatchPredicateForPorts(t *testing.T) {
 	testCases := []struct {
@@ -115,10 +74,10 @@ func TestGetFilterMatchPredicateForPorts(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
+			a := assert.New(t)
 
 			actual := getFilterMatchPredicateForPorts(tc.ports)
-			assert.Equal(tc.expectedMatch, actual)
+			a.Equal(tc.expectedMatch, actual)
 		})
 	}
 }
@@ -164,54 +123,10 @@ func TestGetFilterMatchPredicateForTrafficMatches(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
+			a := assert.New(t)
 
 			actual := getFilterMatchPredicateForTrafficMatches(tc.matches)
-			assert.Equal(tc.expectedMatch, actual)
+			a.Equal(tc.expectedMatch, actual)
 		})
 	}
-}
-
-func TestNewOutboundListener(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	identity := identity.K8sServiceAccount{}.ToServiceIdentity()
-	meshCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	meshCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).Times(1)
-	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(identity).Return(&trafficpolicy.OutboundMeshTrafficPolicy{
-		TrafficMatches: []*trafficpolicy.TrafficMatch{
-			{
-				WeightedClusters: []service.WeightedCluster{{}},
-				DestinationIPRanges: []string{
-					"0.0.0.0/0",
-				},
-				DestinationPort:     1,
-				DestinationProtocol: constants.ProtocolTCPServerFirst,
-			},
-		},
-	}).Times(2)
-	cfg := configurator.NewMockConfigurator(mockCtrl)
-	cfg.EXPECT().IsEgressEnabled().Return(false).Times(1)
-	cfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableEgressPolicy: true,
-	}).Times(1)
-
-	lb := newListenerBuilder(meshCatalog, identity, cfg, nil, "cluster.local")
-
-	assert := tassert.New(t)
-	listener, err := lb.newOutboundListener()
-	assert.NoError(err)
-
-	assert.Len(listener.ListenerFilters, 3) // OriginalDst, TlsInspector, HttpInspector
-	assert.NotEmpty(listener.AccessLog)
-	assert.Equal(envoy.TLSInspectorFilterName, listener.ListenerFilters[1].Name)
-	assert.Equal(&xds_listener.ListenerFilterChainMatchPredicate{
-		Rule: &xds_listener.ListenerFilterChainMatchPredicate_DestinationPortRange{
-			DestinationPortRange: &xds_type.Int32Range{
-				Start: 1,
-				End:   2,
-			},
-		},
-	}, listener.ListenerFilters[1].FilterDisabled)
-	assert.Equal(envoy.HTTPInspectorFilterName, listener.ListenerFilters[2].Name)
-	assert.Equal(listener.ListenerFilters[1].FilterDisabled, listener.ListenerFilters[2].FilterDisabled)
 }

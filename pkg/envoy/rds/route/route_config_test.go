@@ -212,10 +212,8 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
+			mockCfg.EXPECT().GetMeshConfig().AnyTimes()
 
-			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-				EnableWASMStats: false,
-			}).AnyTimes()
 			actual := BuildInboundMeshRouteConfiguration(tc.inbound.HTTPRouteConfigsPerPort, nil, mockCfg, "cluster.local")
 
 			if tc.expectedRouteConfigFields == nil {
@@ -299,9 +297,13 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 
-			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-				EnableWASMStats: tc.wasmEnabled,
-			}).Times(1)
+			mockCfg.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{
+				Spec: configv1alpha2.MeshConfigSpec{
+					FeatureFlags: configv1alpha2.FeatureFlags{
+						EnableWASMStats: tc.wasmEnabled,
+					},
+				},
+			}).AnyTimes()
 			actual := BuildInboundMeshRouteConfiguration(testInbound.HTTPRouteConfigsPerPort, &envoy.Proxy{}, mockCfg, "cluster.local")
 			for _, routeConfig := range actual {
 				assert.Len(routeConfig.ResponseHeadersToAdd, tc.expectedResponseHeaderLen)

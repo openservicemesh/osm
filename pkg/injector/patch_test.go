@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -142,18 +143,16 @@ func TestCreatePatch(t *testing.T) {
 				nonInjectNamespaces: mapset.NewSet(),
 			}
 
-			mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return("envoy-linux-image").AnyTimes()
-			mockConfigurator.EXPECT().GetEnvoyImage().Return("envoy-windows-image").AnyTimes()
-			mockConfigurator.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
-
-			if tc.os == constants.OSLinux {
-				mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
-			}
-
-			mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
-			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
-			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).Times(1)
-			mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
+			mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+				Spec: v1alpha2.MeshConfigSpec{
+					Sidecar: v1alpha2.SidecarSpec{
+						EnvoyWindowsImage:  "envoy-linux-image",
+						EnvoyImage:         "envoy-windows-image",
+						InitContainerImage: "init-container-image",
+						Resources:          corev1.ResourceRequirements{},
+					},
+				},
+			}).AnyTimes()
 
 			pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, tc.os)
 
@@ -248,8 +247,7 @@ func TestCreatePatch(t *testing.T) {
 				Name: namespace,
 			},
 		}).AnyTimes()
-		mockConfigurator.EXPECT().GetEnvoyImage().Return("").AnyTimes()
-		mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
+		mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{}).AnyTimes()
 
 		pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, constants.OSLinux)
 
@@ -322,9 +320,15 @@ func TestVerifyPrerequisites(t *testing.T) {
 				configurator: mockCfg,
 			}
 
-			mockCfg.EXPECT().GetEnvoyImage().Return(tc.linuxImage).AnyTimes()
-			mockCfg.EXPECT().GetEnvoyWindowsImage().Return(tc.windowsImage).AnyTimes()
-			mockCfg.EXPECT().GetInitContainerImage().Return(tc.initImage).AnyTimes()
+			mockCfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+				Spec: v1alpha2.MeshConfigSpec{
+					Sidecar: v1alpha2.SidecarSpec{
+						EnvoyWindowsImage:  tc.windowsImage,
+						EnvoyImage:         tc.linuxImage,
+						InitContainerImage: tc.initImage,
+					},
+				},
+			}).AnyTimes()
 
 			err := wh.verifyPrerequisites(tc.podOS)
 			assert.Equal(tc.expectErr, err != nil)

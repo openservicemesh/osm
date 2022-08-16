@@ -15,12 +15,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/constants"
 
+	kubeFake "github.com/openservicemesh/osm/pkg/compute/kube/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -679,7 +680,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Name:      "split1",
 					},
 					Spec: split.TrafficSplitSpec{
-						Service: "s1-apex.ns1.svc.cluster.local",
+						Service: "s1-apex",
 						Backends: []split.TrafficSplitBackend{
 							{
 								Service: "s1",
@@ -879,7 +880,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Name:      "split1",
 					},
 					Spec: split.TrafficSplitSpec{
-						Service: "s1-apex.ns1.svc.cluster.local",
+						Service: "s1-apex",
 						Backends: []split.TrafficSplitBackend{
 							{
 								Service: "s1",
@@ -1462,7 +1463,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Name:      "split1",
 					},
 					Spec: split.TrafficSplitSpec{
-						Service: "s1.ns1.svc.cluster.local",
+						Service: "s1",
 						Backends: []split.TrafficSplitBackend{
 							{
 								Service: "s1",
@@ -1615,7 +1616,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Name:      "split1",
 					},
 					Spec: split.TrafficSplitSpec{
-						Service: "s2-apex.ns1.svc.cluster.local",
+						Service: "s2-apex",
 						Backends: []split.TrafficSplitBackend{
 							{
 								Service: "s1",
@@ -2158,22 +2159,25 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockServiceProvider := service.NewMockProvider(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				policyController:   mockPolicyController,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-				serviceProviders:   []service.Provider{mockServiceProvider},
-				certManager:        fakeCertManager,
-				configurator:       mockCfg,
-				meshSpec:           mockMeshSpec,
+				kubeController:   mockKubeController,
+				policyController: mockPolicyController,
+				certManager:      fakeCertManager,
+				configurator:     mockCfg,
+				meshSpec:         mockMeshSpec,
+				Interface:        kubeFake.NewFakeProvider(),
 			}
 
 			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
-			mockCfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode)
+			mockCfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+				Spec: v1alpha2.MeshConfigSpec{
+					Traffic: v1alpha2.TrafficSpec{
+						EnablePermissiveTrafficPolicyMode: tc.permissiveMode,
+					},
+				},
+			}).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficTargets(gomock.Any()).Return(tc.trafficTargets).AnyTimes()
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return(tc.httpRouteGroups).AnyTimes()
 			tc.prepare(mockMeshSpec, tc.trafficSplits)
@@ -2415,14 +2419,10 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockServiceProvider := service.NewMockProvider(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-				serviceProviders:   []service.Provider{mockServiceProvider},
+				kubeController: mockKubeController,
+				meshSpec:       mockMeshSpec,
 			}
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()

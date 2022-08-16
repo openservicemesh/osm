@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
@@ -564,8 +565,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
 		certManager := tresorFake.NewFake(1 * time.Hour)
-
-		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
+		cfg.EXPECT().GetMeshConfig().AnyTimes()
 
 		_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
@@ -583,7 +583,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		cfg := configurator.NewMockConfigurator(mockController)
 		certManager := tresorFake.NewFake(1 * time.Hour)
 
-		cfg.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
+		cfg.EXPECT().GetMeshConfig().AnyTimes()
 
 		actualErr := NewMutatingWebhook(context.Background(), kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, cfg, "")
 		Expect(actualErr).NotTo(HaveOccurred())
@@ -770,14 +770,20 @@ func TestPodCreationHandler(t *testing.T) {
 
 func TestWebhookMutate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	mockConfigurator.EXPECT().GetEnvoyImage().Return("envoy-linux-image").AnyTimes()
-	mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return("envoy-windows-image").AnyTimes()
-	mockConfigurator.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
+	cfg := configurator.NewMockConfigurator(mockCtrl)
+	cfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+		Spec: v1alpha2.MeshConfigSpec{
+			Sidecar: v1alpha2.SidecarSpec{
+				EnvoyImage:         "envoy-linux-image",
+				EnvoyWindowsImage:  "envoy-windows-image",
+				InitContainerImage: "init-container-image",
+			},
+		},
+	}).AnyTimes()
 
 	t.Run("invalid JSON", func(t *testing.T) {
 		wh := &mutatingWebhook{
-			configurator: mockConfigurator,
+			configurator: cfg,
 		}
 		req := &admissionv1.AdmissionRequest{
 			Object: runtime.RawExtension{Raw: []byte("{")},
@@ -799,7 +805,7 @@ func TestWebhookMutate(t *testing.T) {
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
 			kubeController:      kubeController,
-			configurator:        mockConfigurator,
+			configurator:        cfg,
 		}
 
 		req := &admissionv1.AdmissionRequest{
@@ -828,10 +834,15 @@ func TestWebhookMutate(t *testing.T) {
 		kubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true)
 
 		cfg := configurator.NewMockConfigurator(mockCtrl)
-		cfg.EXPECT().GetMeshConfig().AnyTimes()
-		cfg.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
-		cfg.EXPECT().GetEnvoyImage().Return("envoy-linux-image").AnyTimes()
-		cfg.EXPECT().GetEnvoyWindowsImage().Return("envoy-windows-image").AnyTimes()
+		cfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+			Spec: v1alpha2.MeshConfigSpec{
+				Sidecar: v1alpha2.SidecarSpec{
+					EnvoyImage:         "envoy-linux-image",
+					EnvoyWindowsImage:  "envoy-windows-image",
+					InitContainerImage: "init-container-image",
+				},
+			},
+		}).AnyTimes()
 
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
@@ -871,13 +882,15 @@ func TestWebhookMutate(t *testing.T) {
 		kubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true)
 
 		cfg := configurator.NewMockConfigurator(mockCtrl)
-		cfg.EXPECT().GetMeshConfig().AnyTimes()
-		cfg.EXPECT().IsPrivilegedInitContainer()
-		cfg.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
-		cfg.EXPECT().GetEnvoyImage().Return("envoy-linux-image").AnyTimes()
-		cfg.EXPECT().GetEnvoyWindowsImage().Return("envoy-windows-image").AnyTimes()
-		cfg.EXPECT().GetProxyResources()
-		cfg.EXPECT().GetEnvoyLogLevel()
+		cfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+			Spec: v1alpha2.MeshConfigSpec{
+				Sidecar: v1alpha2.SidecarSpec{
+					EnvoyImage:         "envoy-linux-image",
+					EnvoyWindowsImage:  "envoy-windows-image",
+					InitContainerImage: "init-container-image",
+				},
+			},
+		}).AnyTimes()
 
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),

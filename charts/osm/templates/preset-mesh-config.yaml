@@ -50,7 +50,6 @@ data:
       },
       "featureFlags": {
         "enableWASMStats": {{.Values.osm.featureFlags.enableWASMStats | mustToJson}},
-        "enableEgressPolicy": {{.Values.osm.featureFlags.enableEgressPolicy | mustToJson}},
         "enableSnapshotCacheMode": {{.Values.osm.featureFlags.enableSnapshotCacheMode | mustToJson}},
         "enableAsyncProxyServiceMapping": {{.Values.osm.featureFlags.enableAsyncProxyServiceMapping | mustToJson}},
         "enableIngressBackendPolicy": {{.Values.osm.featureFlags.enableIngressBackendPolicy | mustToJson}},

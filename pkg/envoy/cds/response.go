@@ -12,7 +12,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 // NewResponse creates a new Cluster Discovery Response.
@@ -54,19 +53,19 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Add an outbound passthrough cluster for egress if global mesh-wide Egress is enabled
-	if cfg.IsEgressEnabled() {
+	if cfg.GetMeshConfig().Spec.Traffic.EnableEgress {
 		clusters = append(clusters, outboundPassthroughCluser)
 	}
 
 	// Add an inbound prometheus cluster (from Prometheus to localhost)
-	if pod, err := meshCatalog.GetKubeController().GetPodForProxy(proxy); err != nil {
+	if enabled, err := meshCatalog.IsMetricsEnabled(proxy); err != nil {
 		log.Warn().Str("proxy", proxy.String()).Msg("Could not find pod for connecting proxy, no metadata was recorded")
-	} else if k8s.IsMetricsEnabled(pod) {
+	} else if enabled {
 		clusters = append(clusters, getPrometheusCluster())
 	}
 
 	// Add an outbound tracing cluster (from localhost to tracing sink)
-	if cfg.IsTracingEnabled() {
+	if cfg.GetMeshConfig().Spec.Observability.Tracing.Enable {
 		clusters = append(clusters, getTracingCluster(cfg))
 	}
 

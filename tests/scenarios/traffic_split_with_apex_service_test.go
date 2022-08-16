@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
 
@@ -44,12 +43,7 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	}), nil)
 
 	// ---[  Get the config from rds.NewResponse()  ]-------
-	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableWASMStats:    false,
-		EnableEgressPolicy: false,
-	}).AnyTimes()
+	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 	mc := tresorFake.NewFake(1 * time.Hour)
 	a.NotNil(a)

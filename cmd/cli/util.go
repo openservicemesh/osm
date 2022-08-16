@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -169,7 +170,7 @@ func getSupportedSmiInfoForMeshList(meshInfoList []meshInfo, clientSet kubernete
 	var meshSmiInfoList []meshSmiInfo
 
 	for _, mesh := range meshInfoList {
-		meshControllerPods := k8s.GetOSMControllerPods(clientSet, mesh.namespace)
+		meshControllerPods := getOSMControllerPods(clientSet, mesh.namespace)
 
 		meshSmiSupportedVersions := []string{"Unknown"}
 		if len(meshControllerPods.Items) > 0 {
@@ -261,4 +262,29 @@ func annotateErrorMessageWithActionableMessage(actionableMessage string, errMsgF
 	}
 
 	return fmt.Errorf(errMsgFormat+actionableMessage, args...)
+}
+
+// namespacedNameFrom returns the namespaced name for the given name if possible, otherwise an error
+func namespacedNameFrom(name string) (types.NamespacedName, error) {
+	var nsName types.NamespacedName
+
+	chunks := strings.Split(name, "/")
+	if len(chunks) != 2 {
+		return nsName, fmt.Errorf("%s is not a namespaced name", name)
+	}
+
+	nsName.Namespace = chunks[0]
+	nsName.Name = chunks[1]
+
+	return nsName, nil
+}
+
+// getOSMControllerPods returns a list of osm-controller pods in the namespace
+func getOSMControllerPods(clientSet kubernetes.Interface, ns string) *corev1.PodList {
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{constants.AppLabel: constants.OSMControllerName}}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	podList, _ := clientSet.CoreV1().Pods(ns).List(context.TODO(), listOptions)
+	return podList
 }

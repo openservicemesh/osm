@@ -17,7 +17,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/cli/verifier"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 const verifyIngressDescription = `
@@ -94,12 +93,12 @@ func newVerifyIngressConnectivityCmd(stdout io.Writer, stderr io.Writer) *cobra.
 
 			verifyIngressCmd.trafficAttr.IsIngress = true
 
-			srcName, err := k8s.NamespacedNameFrom(fromIngressService)
+			srcName, err := namespacedNameFrom(fromIngressService)
 			if err != nil {
 				return fmt.Errorf("--from-service must be a namespaced name of the form <namespace>/<name>, got %s", fromPod)
 			}
 			verifyIngressCmd.trafficAttr.SrcService = &srcName
-			dstName, err := k8s.NamespacedNameFrom(backendPod)
+			dstName, err := namespacedNameFrom(backendPod)
 			if err != nil {
 				return fmt.Errorf("--to-pod pod must be a namespaced name of the form <namespace>/<name>, got %s", toPod)
 			}

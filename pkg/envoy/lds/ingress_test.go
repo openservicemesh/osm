@@ -5,16 +5,12 @@ import (
 	"testing"
 
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/envoy"
 
-	"github.com/openservicemesh/osm/pkg/auth"
-	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -22,17 +18,20 @@ import (
 func TestGetIngressFilterChains(t *testing.T) {
 	testCases := []struct {
 		name                     string
-		ingressPolicy            *trafficpolicy.IngressTrafficPolicy
+		ingressPolicies          []*trafficpolicy.IngressTrafficPolicy
 		expectedFilterChainCount int
 	}{
 		{
 			name: "HTTP ingress",
-			ingressPolicy: &trafficpolicy.IngressTrafficPolicy{
-				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
-					{
-						Name:     "http-ingress",
-						Port:     80,
-						Protocol: "http",
+			ingressPolicies: []*trafficpolicy.IngressTrafficPolicy{
+				{
+					TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+						{
+							Name:           "http-ingress",
+							Port:           80,
+							Protocol:       "http",
+							SourceIPRanges: []string{"10.1.1.0/24"},
+						},
 					},
 				},
 			},
@@ -40,18 +39,20 @@ func TestGetIngressFilterChains(t *testing.T) {
 		},
 		{
 			name: "HTTPS ingress",
-			ingressPolicy: &trafficpolicy.IngressTrafficPolicy{
-				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
-					{
-						Name:     "https-ingress",
-						Port:     80,
-						Protocol: "https",
-					},
-					{
-						Name:        "https-ingress_with_sni",
-						Port:        80,
-						Protocol:    "https",
-						ServerNames: []string{"foo.bar.svc.cluster.local"},
+			ingressPolicies: []*trafficpolicy.IngressTrafficPolicy{
+				{
+					TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+						{
+							Name:     "https-ingress",
+							Port:     80,
+							Protocol: "https",
+						},
+						{
+							Name:        "https-ingress_with_sni",
+							Port:        80,
+							Protocol:    "https",
+							ServerNames: []string{"foo.bar.svc.cluster.local"},
+						},
 					},
 				},
 			},
@@ -59,7 +60,7 @@ func TestGetIngressFilterChains(t *testing.T) {
 		},
 		{
 			name:                     "no ingress",
-			ingressPolicy:            nil,
+			ingressPolicies:          nil,
 			expectedFilterChainCount: 0,
 		},
 	}
@@ -67,29 +68,14 @@ func TestGetIngressFilterChains(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
-
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-
 			lb := &listenerBuilder{
-				serviceIdentity: tests.BookstoreServiceIdentity,
-				cfg:             mockConfigurator,
-				meshCatalog:     mockCatalog,
+				proxyIdentity:          tests.BookstoreServiceIdentity,
+				ingressTrafficPolicies: tc.ingressPolicies,
+				httpTracingEndpoint:    "foo.com/bar",
+				extAuthzConfig:         &auth.ExtAuthConfig{Enable: true},
 			}
 
-			testSvc := tests.BookstoreV1Service
-
-			mockCatalog.EXPECT().GetIngressTrafficPolicy(testSvc).Return(tc.ingressPolicy, nil)
-			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-			mockConfigurator.EXPECT().GetTracingEndpoint().Return("test").AnyTimes()
-			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
-				Enable: false,
-			}).AnyTimes()
-			mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
-
-			actual := lb.getIngressFilterChains(testSvc)
+			actual := lb.buildIngressFilterChains()
 			assert.Len(actual, tc.expectedFilterChainCount)
 		})
 	}
@@ -163,23 +149,12 @@ func TestGetIngressFilterChainFromTrafficMatch(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
-
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 			lb := &listenerBuilder{
-				serviceIdentity: tests.BookstoreServiceIdentity,
-				cfg:             mockConfigurator,
+				proxyIdentity: tests.BookstoreServiceIdentity,
 			}
 
-			mockConfigurator.EXPECT().IsTracingEnabled().Return(false)
-			mockConfigurator.EXPECT().GetTracingEndpoint().Return("test")
-			mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
-				Enable: false,
-			})
-
-			actual, err := lb.getIngressFilterChainFromTrafficMatch(tc.trafficMatch, configv1alpha2.SidecarSpec{})
+			actual, err := lb.buildIngressFilterChainFromTrafficMatch(tc.trafficMatch)
 			assert.Equal(tc.expectError, err != nil)
 
 			if err == nil {

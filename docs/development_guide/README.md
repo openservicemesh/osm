@@ -1,5 +1,26 @@
 # Open Service Mesh Development Guide
 
+- [Open Service Mesh Development Guide](#open-service-mesh-development-guide)
+  - [Get Go-ing](#get-go-ing)
+  - [Get the dependencies](#get-the-dependencies)
+      - [Makefile](#makefile)
+  - [Create Environment Variables](#create-environment-variables)
+  - [Build and push OSM images](#build-and-push-osm-images)
+    - [Examples](#examples)
+  - [Code Formatting](#code-formatting)
+  - [Putting it all together (inner development loop)](#putting-it-all-together-inner-development-loop)
+    - [Making changes to OSM](#making-changes-to-osm)
+  - [Testing your changes](#testing-your-changes)
+      - [Unit Tests](#unit-tests)
+        - [Mocking](#mocking)
+      - [Integration Tests](#integration-tests)
+    - [End-to-End (e2e) Tests](#end-to-end-e2e-tests)
+      - [Simulation / Demo](#simulation--demo)
+      - [Profiling](#profiling)
+  - [Helm charts](#helm-charts)
+    - [Custom Resource Definitions](#custom-resource-definitions)
+    - [Updating Dependencies](#updating-dependencies)
+  
 Welcome to the Open Service Mesh development guide!
 Thank you for joining us on a journey to build an SMI-native lightweight service mesh. The first of our [core principles](https://github.com/openservicemesh/osm#core-principles) is to create a system, which is "simple to understand and contribute to." We hope that you would find the source code easy to understand. If not - we invite you to help us fulfill this principle. There is no PR too small!
 
@@ -63,7 +84,7 @@ OSM leverages [Envoy proxy](https://github.com/envoyproxy/envoy) as a data plane
 
 ## Get Go-ing
 
-This Open Service Mesh project uses [Go v1.17.0+](https://golang.org/). If you are not familiar with Go, spend some time with the excellent [Tour of Go](https://tour.golang.org/).
+This Open Service Mesh project uses [Go v1.19.0+](https://golang.org/). If you are not familiar with Go, spend some time with the excellent [Tour of Go](https://tour.golang.org/).
 
 ## Get the dependencies
 
@@ -102,19 +123,18 @@ Some of the scripts and build targets available expect an accessible container r
 Additionally, if using `demo/` scripts to deploy OSM's provided demo on your own K8s cluster, the same container registry configured in `.env` will be used to pull OSM images on your K8s cluster.
 
 ```console
-$ # K8S_NAMESPACE is the Namespace the control plane will be installed into
-$ export K8S_NAMESPACE=osm-system
+# K8S_NAMESPACE is the Namespace the control plane will be installed into
+export K8S_NAMESPACE=osm-system
 
-$ # CTR_REGISTRY is the URL of the container registry to use
-$ export CTR_REGISTRY=<your registry>
+# CTR_REGISTRY is the URL of the container registry to use
+export CTR_REGISTRY=<your registry>
 
-$ # If no authentication to push to the container registry is required, the following steps may be skipped.
+# If no authentication to push to the container registry is required, the following steps may be skipped.
+# For Azure Container Registry (ACR), the following command may be used: az acr credential show -n <your_registry_name> --query "passwords[0].value" | tr -d '"'
+export CTR_REGISTRY_PASSWORD=<your password>
 
-$ # For Azure Container Registry (ACR), the following command may be used: az acr credential show -n <your_registry_name> --query "passwords[0].value" | tr -d '"'
-$ export CTR_REGISTRY_PASSWORD=<your password>
-
-$ # Create docker secret in Kubernetes Namespace using following script:
-$ ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
+# Create docker secret in Kubernetes Namespace using following script:
+./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
 ```
 
@@ -163,6 +183,48 @@ used by this project is specified in `go.mod`. To ensure you have the same
 version installed, run `go install -mod=readonly golang.org/x/tools/cmd/goimports`. It's recommended that you set your IDE or
 other development tools to use `goimports`. Formatting is checked during CI by
 the `bin/fmt` script.
+
+## Putting it all together (inner development loop)
+
+Now that you have an overview of the various parts of the project such as build commands, environment variables and linting, we will give you a example 
+workflow for development.  Modify as need for your environment if using kind locally doesn't fit your use case.
+
+```bash
+# use default setup
+cp .env.example .env
+source .env
+
+# create a local kind cluster
+make kind-up
+
+# build osm control plane components and cli (includes changes to helm chart)
+make build-osm-all
+
+# deploy osm
+./bin/osm install --set=osm.image.registry="$CTR_REGISTRY" --set=osm.image.pullPolicy=Always --set=osm.controllerLogLevel=trace --verbose 
+```
+
+> **note**: you can set any of the OSM chart parameters in [values.yaml](/charts/osm/values.yaml) such as osm.image.registry on OSM install using `--set`. For example, if you need to customize the deployment tags you can use `--set=osm.image.registry="$CTR_TAG"`
+
+### Making changes to OSM 
+Make required changes to the OSM controller and deploy them.  You could do this for any server component, see more on the [Makefile](#makefile) for how to build individual containers.
+
+```bash
+# only builds controller (see below for all build commands)
+make docker-build-osm-controller
+kubectl rollout restart deployment osm-controller  
+```
+
+If you made changes to OSM cli or helm chart you might want to refresh your deployment:
+
+```bash
+# clean up and rebuild everything
+bin/osm uninstall mesh -f --mesh-name "$MESH_NAME" --delete-namespace -a
+make build-osm-all
+
+# redeploy 
+./bin/osm install --set=osm.image.registry="$CTR_REGISTRY" --set=osm.image.pullPolicy=Always --verbose 
+```
 
 ## Testing your changes
 

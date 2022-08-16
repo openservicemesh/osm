@@ -7,8 +7,8 @@ import (
 	"github.com/golang/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
@@ -23,20 +23,19 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	runAsUserID := int64(0)
 
 	mockCtrl := gomock.NewController(GinkgoT())
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 	Context("test getInitContainerSpec()", func() {
 		It("Creates init container without ip range exclusion list", func() {
-			mockConfigurator.EXPECT().GetInitContainerImage().Return(containerImage).Times(1)
-			mockConfigurator.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{
-				Spec: configv1alpha2.MeshConfigSpec{
-					Sidecar: configv1alpha2.SidecarSpec{
-						LocalProxyMode: configv1alpha2.LocalProxyModeLocalhost,
+			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+			mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+				Spec: v1alpha2.MeshConfigSpec{
+					Sidecar: v1alpha2.SidecarSpec{
+						InitContainerImage: containerImage,
+						LocalProxyMode:     configv1alpha2.LocalProxyModeLocalhost,
 					},
 				},
-			}).Times(1)
-			privileged := privilegedFalse
-			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, nil, privileged, corev1.PullAlways, nil)
+			}).AnyTimes()
+			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, nil, false, corev1.PullAlways, nil)
 
 			expected := corev1.Container{
 				Name:            "-container-name-",
@@ -103,16 +102,16 @@ EOF
 			Expect(actual).To(Equal(expected))
 		})
 		It("Sets podIP DNAT rule if set in meshconfig", func() {
-			mockConfigurator.EXPECT().GetInitContainerImage().Return(containerImage).Times(1)
-			mockConfigurator.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{
-				Spec: configv1alpha2.MeshConfigSpec{
-					Sidecar: configv1alpha2.SidecarSpec{
-						LocalProxyMode: configv1alpha2.LocalProxyModePodIP,
+			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+			mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+				Spec: v1alpha2.MeshConfigSpec{
+					Sidecar: v1alpha2.SidecarSpec{
+						InitContainerImage: containerImage,
+						LocalProxyMode:     configv1alpha2.LocalProxyModePodIP,
 					},
 				},
-			}).Times(1)
-			privileged := privilegedFalse
-			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, nil, privileged, corev1.PullAlways, nil)
+			}).AnyTimes()
+			actual := getInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, nil, false, corev1.PullAlways, nil)
 
 			expected := corev1.Container{
 				Name:            "-container-name-",

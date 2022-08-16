@@ -5,6 +5,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 func getInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string,
@@ -15,7 +16,7 @@ func getInitContainerSpec(containerName string, cfg configurator.Configurator, o
 
 	return corev1.Container{
 		Name:            containerName,
-		Image:           cfg.GetInitContainerImage(),
+		Image:           utils.GetInitContainerImage(cfg.GetMeshConfig()),
 		ImagePullPolicy: pullPolicy,
 		SecurityContext: &corev1.SecurityContext{
 			Privileged: &enablePrivilegedInitContainer,

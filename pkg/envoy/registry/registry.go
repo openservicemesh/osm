@@ -10,43 +10,56 @@ func NewProxyRegistry(mapper ProxyServiceMapper, msgBroker *messaging.Broker) *P
 	return &ProxyRegistry{
 		ProxyServiceMapper: mapper,
 		msgBroker:          msgBroker,
+		connectedProxies:   make(map[string]*envoy.Proxy),
 	}
 }
 
 // RegisterProxy registers a newly connected proxy.
 func (pr *ProxyRegistry) RegisterProxy(proxy *envoy.Proxy) {
-	pr.connectedProxies.Store(proxy.UUID.String(), proxy)
+	// TODO(#4950) check register request sequence before proceeding
+	uuid := proxy.UUID.String()
+	if pr.GetConnectedProxy(uuid) != nil {
+		log.Debug().Str("proxy", proxy.String()).Msgf("Proxy %s already registered", proxy.String())
+		return
+	}
+
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+	pr.connectedProxies[uuid] = proxy
 	log.Debug().Str("proxy", proxy.String()).Msg("Registered new proxy")
 }
 
 // GetConnectedProxy loads a connected proxy from the registry.
 func (pr *ProxyRegistry) GetConnectedProxy(uuid string) *envoy.Proxy {
-	p, ok := pr.connectedProxies.Load(uuid)
-	if !ok {
-		return nil
-	}
-	return p.(*envoy.Proxy)
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+	return pr.connectedProxies[uuid]
 }
 
 // UnregisterProxy unregisters the given proxy from the catalog.
-func (pr *ProxyRegistry) UnregisterProxy(p *envoy.Proxy) {
-	pr.connectedProxies.Delete(p.UUID.String())
-	log.Debug().Msgf("Unregistered proxy %s", p.String())
+func (pr *ProxyRegistry) UnregisterProxy(proxy *envoy.Proxy) {
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+	delete(pr.connectedProxies, proxy.UUID.String())
+	log.Debug().Msgf("Unregistered proxy %s", proxy.String())
 }
 
 // GetConnectedProxyCount counts the number of connected proxies
-// TODO(steeling): switch to a regular map with mutex so we can get the count without iterating the entire list.
 func (pr *ProxyRegistry) GetConnectedProxyCount() int {
-	return len(pr.ListConnectedProxies())
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+
+	return len(pr.connectedProxies)
 }
 
 // ListConnectedProxies lists the Envoy proxies already connected and the time they first connected.
 func (pr *ProxyRegistry) ListConnectedProxies() map[string]*envoy.Proxy {
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+
 	proxies := make(map[string]*envoy.Proxy)
-	pr.connectedProxies.Range(func(keyIface, propsIface interface{}) bool {
-		uuid := keyIface.(string)
-		proxies[uuid] = propsIface.(*envoy.Proxy)
-		return true // continue the iteration
-	})
+	for uuid, p := range pr.connectedProxies {
+		proxies[uuid] = p
+	}
 	return proxies
 }

@@ -10,18 +10,18 @@ import (
 	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 // Routine which fulfills listening to proxy broadcasts
 func (s *Server) broadcastListener() {
 	// Register for proxy config updates broadcasted by the message broker
 	proxyUpdatePubSub := s.msgBroker.GetProxyUpdatePubSub()
-	proxyUpdateChan := proxyUpdatePubSub.Sub(announcements.ProxyUpdate.String())
+	proxyUpdateChan := proxyUpdatePubSub.Sub(messaging.ProxyUpdateTopic)
 	defer s.msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
 
 	for {

@@ -19,7 +19,6 @@ import (
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensionsClientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -33,10 +32,10 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
-	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -50,9 +49,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/policy"
-	"github.com/openservicemesh/osm/pkg/providers/kube"
 	"github.com/openservicemesh/osm/pkg/reconciler"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/validator"
@@ -205,7 +202,7 @@ func main() {
 	// This component will be watching resources in the config.openservicemesh.io API group
 	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
 
-	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
+	k8sClient := k8s.NewClient(informerCollection, policyClient, msgBroker)
 
 	meshSpec := smi.NewSMIClient(informerCollection, osmNamespace, k8sClient, msgBroker)
 
@@ -232,10 +229,7 @@ func main() {
 		}
 	}
 
-	kubeProvider := kube.NewClient(k8sClient, cfg)
-
-	endpointsProviders := []endpoint.Provider{kubeProvider}
-	serviceProviders := []service.Provider{kubeProvider}
+	computeClient := kube.NewClient(k8sClient, cfg)
 
 	ingress.Initialize(kubeClient, k8sClient, stop, cfg, certManager, msgBroker)
 
@@ -248,8 +242,7 @@ func main() {
 		policyController,
 		stop,
 		cfg,
-		serviceProviders,
-		endpointsProviders,
+		computeClient,
 		msgBroker,
 	)
 
@@ -263,12 +256,10 @@ func main() {
 	}
 
 	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), osmNamespace, cfg, certManager, k8sClient, msgBroker)
+	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, cfg.GetMeshConfig().Spec.Observability.EnableDebugServer, osmNamespace, cfg, certManager, k8sClient, msgBroker)
 	if err := xdsServer.Start(ctx, cancel, constants.ADSServerPort, adsCert); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
-
-	clientset := extensionsClientset.NewForConfigOrDie(kubeConfig)
 
 	if err := validator.NewValidatingWebhook(ctx, validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, certManager, kubeClient, policyController); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
@@ -279,7 +270,7 @@ func main() {
 	// Initialize OSM's http service server
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Health/Liveness probes
-	funcProbes := []health.Probes{xdsServer, smi.HealthChecker{DiscoveryClient: clientset.Discovery()}}
+	funcProbes := []health.Probes{xdsServer}
 	httpServer.AddHandlers(map[string]http.Handler{
 		constants.OSMControllerReadinessPath: health.ReadinessHandler(funcProbes, nil),
 		constants.OSMControllerLivenessPath:  health.LivenessHandler(funcProbes, nil),

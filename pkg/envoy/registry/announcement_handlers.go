@@ -3,7 +3,6 @@ package registry
 import (
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -11,9 +10,8 @@ import (
 
 // ReleaseCertificateHandler releases certificates based on podDelete events
 func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificateReleaser, stop <-chan struct{}) {
-	kubePubSub := pr.msgBroker.GetKubeEventPubSub()
-	podDeleteChan := kubePubSub.Sub(announcements.PodDeleted.String())
-	defer pr.msgBroker.Unsub(kubePubSub, podDeleteChan)
+	podDeleteChan, unsub := pr.msgBroker.SubscribeKubeEvents(events.Pod.Deleted())
+	defer unsub()
 
 	for {
 		select {
@@ -35,8 +33,7 @@ func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificateReleas
 			}
 
 			proxyUUID := deletedPodObj.Labels[constants.EnvoyUniqueIDLabelName]
-			if proxyIface, ok := pr.connectedProxies.Load(proxyUUID); ok {
-				proxy := proxyIface.(*envoy.Proxy)
+			if proxy := pr.GetConnectedProxy(proxyUUID); proxy != nil {
 				log.Warn().Msgf("Pod with label %s: %s found in proxy registry; releasing certificate for proxy %s", constants.EnvoyUniqueIDLabelName, proxyUUID, proxy.Identity)
 				certManager.ReleaseCertificate(envoy.NewXDSCertCNPrefix(proxy.UUID, proxy.Kind(), proxy.Identity))
 			} else {

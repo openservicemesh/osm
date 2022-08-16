@@ -3,7 +3,6 @@ package debugger
 import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -15,12 +14,11 @@ func (d *DebugConfig) StartDebugServerConfigListener(stop chan struct{}) {
 	httpDebugServer := httpserver.NewHTTPServer(constants.DebugPort)
 	httpDebugServer.AddHandlers(d.GetHandlers())
 
-	kubePubSub := d.msgBroker.GetKubeEventPubSub()
-	meshCfgUpdateChan := kubePubSub.Sub(announcements.MeshConfigUpdated.String())
-	defer d.msgBroker.Unsub(kubePubSub, meshCfgUpdateChan)
+	meshCfgUpdateChan, unsub := d.msgBroker.SubscribeKubeEvents(events.MeshConfig.Updated())
+	defer unsub()
 
 	started := false
-	if d.configurator.IsDebugServerEnabled() {
+	if d.configurator.GetMeshConfig().Spec.Observability.EnableDebugServer {
 		if err := httpDebugServer.Start(); err != nil {
 			log.Error().Err(err).Msgf("error starting debug server")
 		}

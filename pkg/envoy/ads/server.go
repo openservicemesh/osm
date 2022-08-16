@@ -53,7 +53,7 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pro
 		xdsLog:         make(map[string]map[envoy.TypeURI][]time.Time),
 		workqueues:     workerpool.NewWorkerPool(workerPoolSize),
 		kubecontroller: kubecontroller,
-		cacheEnabled:   cfg.GetFeatureFlags().EnableSnapshotCacheMode,
+		cacheEnabled:   cfg.GetMeshConfig().Spec.FeatureFlags.EnableSnapshotCacheMode,
 		configVersion:  make(map[string]uint64),
 		msgBroker:      msgBroker,
 	}

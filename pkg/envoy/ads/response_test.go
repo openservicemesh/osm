@@ -16,11 +16,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 
-	"github.com/openservicemesh/osm/pkg/auth"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
@@ -57,8 +56,7 @@ var _ = Describe("Test ADS response functions", func() {
 		Namespace: namespace,
 	}
 	proxySvcAccount := tests.BookstoreServiceAccount
-
-	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
+	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
 	mc := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
@@ -101,17 +99,13 @@ var _ = Describe("Test ADS response functions", func() {
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		kubectrlMock := k8s.NewMockController(mockCtrl)
 
-		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
-		mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-			EnableWASMStats:    false,
-			EnableEgressPolicy: false,
+		mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+			Spec: v1alpha2.MeshConfigSpec{
+				Observability: v1alpha2.ObservabilitySpec{
+					EnableDebugServer: true,
+				},
+			},
 		}).AnyTimes()
-		mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
-
-		mc.GetKubeController().(*k8s.MockController).EXPECT().GetPodForProxy(proxy).Return(pod, nil).AnyTimes()
 
 		metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)
 
@@ -177,19 +171,17 @@ var _ = Describe("Test ADS response functions", func() {
 
 		certManager := tresorFake.NewFake(1 * time.Hour)
 		certCNPrefix := fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace)
-		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCNPrefix, certificate.Service)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		kubectrlMock := k8s.NewMockController(mockCtrl)
 
-		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
-		mockConfigurator.EXPECT().IsDebugServerEnabled().Return(true).AnyTimes()
-		mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
-			Enable: false,
+		mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+			Spec: v1alpha2.MeshConfigSpec{
+				Observability: v1alpha2.ObservabilitySpec{
+					EnableDebugServer: true,
+				},
+			},
 		}).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {

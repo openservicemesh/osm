@@ -9,7 +9,6 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -23,23 +22,9 @@ func NewConfigurator(informerCollection *informers.InformerCollection, osmNamesp
 		osmNamespace:   osmNamespace,
 		meshConfigName: meshConfigName,
 	}
-
-	// configure listener
-	meshConfigEventTypes := k8s.EventTypes{
-		Add:    announcements.MeshConfigAdded,
-		Update: announcements.MeshConfigUpdated,
-		Delete: announcements.MeshConfigDeleted,
-	}
-
-	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, k8s.GetEventHandlerFuncs(nil, meshConfigEventTypes, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, k8s.GetEventHandlerFuncs(nil, msgBroker))
 	informerCollection.AddEventHandler(informers.InformerKeyMeshConfig, c.metricsHandler())
-
-	meshRootCertificateEventTypes := k8s.EventTypes{
-		Add:    announcements.MeshRootCertificateAdded,
-		Update: announcements.MeshRootCertificateUpdated,
-		Delete: announcements.MeshRootCertificateDeleted,
-	}
-	informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, k8s.GetEventHandlerFuncs(nil, meshRootCertificateEventTypes, msgBroker))
+	informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, k8s.GetEventHandlerFuncs(nil, msgBroker))
 
 	return c
 }
@@ -99,8 +84,20 @@ func (c *Client) metricsHandler() cache.ResourceEventHandlerFuncs {
 			// Ensure metrics reflect however the rest of the control plane
 			// handles when the MeshConfig doesn't exist. If this happens not to
 			// be the "real" MeshConfig, handleMetrics() will simply ignore it.
-			config.Spec.FeatureFlags = c.GetFeatureFlags()
+			config.Spec.FeatureFlags = c.GetMeshConfig().Spec.FeatureFlags
 			handleMetrics(config)
 		},
 	}
+}
+
+// The functions in this file implement the configurator.Configurator interface
+
+// GetMeshConfig returns the MeshConfig resource corresponding to the control plane
+func (c *Client) GetMeshConfig() configv1alpha2.MeshConfig {
+	return c.getMeshConfig()
+}
+
+// GetOSMNamespace returns the namespace in which the OSM controller pod resides.
+func (c *Client) GetOSMNamespace() string {
+	return c.osmNamespace
 }

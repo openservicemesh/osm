@@ -11,7 +11,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -48,8 +47,9 @@ func TestReleaseCertificateHandler(t *testing.T) {
 		{
 			name: "The certificate is released when the corresponding pod is deleted",
 			eventFunc: func(m *messaging.Broker) {
-				m.GetKubeEventPubSub().Pub(events.PubSubMessage{
-					Kind:   announcements.PodDeleted,
+				m.PublishKubeEvent(events.PubSubMessage{
+					Kind:   events.Pod,
+					Type:   events.Deleted,
 					NewObj: nil,
 					OldObj: &v1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
@@ -58,7 +58,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 							},
 						},
 					},
-				}, announcements.PodDeleted.String())
+				})
 			},
 			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
 				a.Equal(1, cm.getReleasedCount(proxyCNPrefix))
@@ -67,8 +67,9 @@ func TestReleaseCertificateHandler(t *testing.T) {
 		{
 			name: "The certificate is not released when an unrelated pod is deleted",
 			eventFunc: func(m *messaging.Broker) {
-				m.GetKubeEventPubSub().Pub(events.PubSubMessage{
-					Kind:   announcements.PodDeleted,
+				m.PublishKubeEvent(events.PubSubMessage{
+					Kind:   events.Pod,
+					Type:   events.Deleted,
 					NewObj: nil,
 					OldObj: &v1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
@@ -77,7 +78,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 							},
 						},
 					},
-				}, announcements.PodDeleted.String())
+				})
 			},
 			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
 				a.Equal(cm.getReleasedCount(proxyCNPrefix), 0)
@@ -86,8 +87,9 @@ func TestReleaseCertificateHandler(t *testing.T) {
 		{
 			name: "The certificate is not released when an event other than PodDeleted is received",
 			eventFunc: func(m *messaging.Broker) {
-				m.GetKubeEventPubSub().Pub(events.PubSubMessage{
-					Kind:   announcements.PodAdded,
+				m.PublishKubeEvent(events.PubSubMessage{
+					Kind:   events.Pod,
+					Type:   events.Added,
 					NewObj: nil,
 					OldObj: &v1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
@@ -96,7 +98,7 @@ func TestReleaseCertificateHandler(t *testing.T) {
 							},
 						},
 					},
-				}, announcements.PodAdded.String())
+				})
 			},
 			assertFunc: func(a *assert.Assertions, cm *fakeCertReleaser) {
 				a.Equal(cm.getReleasedCount(proxyCNPrefix), 0)
