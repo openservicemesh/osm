@@ -42,7 +42,7 @@ done
 
 # ==== Deploy a curl client for testing
 ${k1} apply -f - <<EOF
-apiVersion: v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: curl
@@ -74,13 +74,16 @@ EOF
 
 # ==== 4. Create ServiceImport
 
+# create a dedicated namespace for the import service
+${k1} create ns mcs-bookstore
+
 # create a meta-service to get a valid local service IP
 ${k1} apply -f - <<EOF
 apiVersion: v1
 kind: Service
 metadata:
   name: mcs-bookstore
-  namespace: bookstore
+  namespace: mcs-bookstore
 spec:
   type: ClusterIP
   ports:
@@ -104,6 +107,9 @@ spec:
   - name: http
     protocol: TCP
     port: ${app_port}
+status:
+  clusters:
+  - cluster: ${c2}
 EOF
 
 # ==== 5. Expose service on c2 and get the IP addresses.
@@ -122,10 +128,10 @@ if [ -z "${remote_ip}" ]; then
 fi
 echo "Remote bookstore IP: ${remote_ip}"
 
-local_ip=$(${k1} get service bookstore -n bookstore -o jsonpath='{.spec.clusterIP}')
-
 # ==== 6. Create remote endpointSlice
 uid=$(${k1} get serviceimport bookstore -n bookstore -o jsonpath='{.metadata.uid}')
+
+# TODO(allenlsy): alternatively endpoint IP addresses can be remote pod IPs. To be confirmed.
 ${k1} apply -f - <<EOF
 apiVersion: discovery.k8s.io/v1
 kind: EndpointSlice
@@ -165,7 +171,6 @@ data:
       cache 30
       hosts {
         ${mcs_ip} bookstore.bookstore.svc.clusterset.local
-        ${local_ip} bookstore.bookstore.svc.clusterset.local
         fallthrough
       }
     }
