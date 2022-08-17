@@ -2,6 +2,7 @@ package ads
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -19,7 +20,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/envoy/sds"
-	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/utils"
@@ -33,7 +33,7 @@ const (
 	// workerPoolSize is the default number of workerpool workers (0 is GOMAXPROCS)
 	workerPoolSize = 0
 
-	// xdsServerCertificateCommonName is the name of the certificate for the ADS server
+	// xdsServerCertificateCommonName is the common name of the certificate for the ADS server
 	xdsServerCertificateCommonName = "ads"
 )
 
@@ -75,9 +75,7 @@ func (s *Server) withXdsLogMutex(f func()) {
 func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int, adsCert *certificate.Certificate) error {
 	grpcServer, lis, err := utils.NewGrpc(ServerType, port, xdsServerCertificateCommonName, s.certManager)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrStartingADSServer)).
-			Msg("Error creating ADS server")
-		return err
+		return fmt.Errorf("error starting ADS server: %w", err)
 	}
 
 	if s.cacheEnabled {
@@ -89,9 +87,7 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int,
 
 	err = grpcServer.GrpcServe(ctx, cancel, lis, nil)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrStartingADSServer)).
-			Msg("Error starting ADS server")
-		return err
+		return fmt.Errorf("error starting ADS server: %w", err)
 	}
 
 	if s.cacheEnabled {
