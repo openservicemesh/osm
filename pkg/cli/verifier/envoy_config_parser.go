@@ -66,7 +66,7 @@ type PodConfigGetter struct {
 // Get returns the parsed Envoy config dump
 func (g PodConfigGetter) Get() (*Config, error) {
 	query := "config_dump?include_eds"
-	configBytes, err := cli.GetEnvoyProxyConfig(g.kubeClient, g.restConfig, g.pod.Namespace, g.pod.Name, constants.EnvoyAdminPort, query)
+	configBytes, err := cli.ExecuteEnvoyAdminReq(g.kubeClient, g.restConfig, g.pod.Namespace, g.pod.Name, constants.EnvoyAdminPort, "GET", query)
 	if err != nil {
 		return nil, err
 	}
