@@ -163,12 +163,12 @@ func (b *BootstrapSecretRotator) rotateBootstrapSecrets() {
 					Msgf("Error rotating cert SerialNumber=%s", cert.GetSerialNumber())
 			}
 			// if the secret and issued cert are the same no need to update the secret
-			if reflect.DeepEqual(c.GetIssuingCA, secret.Data["ca.crt"]) && reflect.DeepEqual(c.PrivateKey, secret.Data["tls.key"]) && reflect.DeepEqual(c.CertChain, secret.Data["tls.crt"]) {
+			if reflect.DeepEqual(c.GetTrustedCAs, secret.Data["ca.crt"]) && reflect.DeepEqual(c.PrivateKey, secret.Data["tls.key"]) && reflect.DeepEqual(c.CertChain, secret.Data["tls.crt"]) {
 				continue
 			}
 			// TODO: check mapping
 			secretData := map[string][]byte{
-				"ca.crt":  cert.GetIssuingCA(),
+				"ca.crt":  cert.GetTrustedCAs(),
 				"tls.crt": cert.GetCertificateChain(),
 				"tls.key": cert.GetPrivateKey(),
 			}

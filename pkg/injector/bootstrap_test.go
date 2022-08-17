@@ -412,137 +412,80 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 
 	testNs := "testNamespace"
 	proxyUUID := uuid.New().String()
-	caCrt := pem.RootCertificate("zz")
-	pk := pem.PrivateKey("yy")
-	certChain := pem.Certificate("xx")
-	secrets := []*corev1.Secret{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      bootstrapSecretPrefix + proxyUUID,
-				Namespace: testNs,
-			},
-			Data: map[string][]byte{
-				"ca.crt":  caCrt,
-				"tls.crt": certChain,
-				"tls.key": pk,
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "notBootstrapSecret",
-				Namespace: testNs,
-			},
-			Data: map[string][]byte{
-				"ca.crt":  caCrt,
-				"tls.crt": certChain,
-				"tls.key": pk,
-			},
-		},
-	}
 
 	testCases := []struct {
-		name      string
-		cert      *certificate.Certificate
-		expSecret corev1.Secret
+		name     string
+		certName string
+		secrets  []*corev1.Secret
 	}{
 		{
-			name: "no bootstrap secret to update",
-			cert: &certificate.Certificate{
-				CommonName: certificate.CommonName(proxyUUID + ".test.cert"),
-				IssuingCA:  caCrt,
-				PrivateKey: pk,
-				CertChain:  certChain,
-				CertType:   certificate.Internal,
-			},
-			expSecret: corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      bootstrapSecretPrefix + proxyUUID,
-					Namespace: testNs,
+			name:     "update bootstrap secret with new cert",
+			certName: certificate.CommonName(proxyUUID + ".test.cert").String(),
+			secrets: []*corev1.Secret{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      bootstrapSecretPrefix + proxyUUID,
+						Namespace: testNs,
+					},
+					Data: map[string][]byte{
+						"ca.crt":  pem.RootCertificate("zz"),
+						"tls.crt": pem.Certificate("xx"),
+						"tls.key": pem.PrivateKey("yy"),
+					},
 				},
-				Data: map[string][]byte{
-					"ca.crt":  caCrt,
-					"tls.crt": certChain,
-					"tls.key": pk,
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "notBootstrapSecret",
+						Namespace: testNs,
+					},
 				},
-				Type: "kubernetes.io/tls",
-			},
-		},
-		{
-			name: "update bootstrap secret with new cert",
-			cert: &certificate.Certificate{
-				CommonName: certificate.CommonName(proxyUUID + ".test.cert"),
-				IssuingCA:  caCrt,
-				CertChain:  pem.Certificate("x"),
-				PrivateKey: pem.PrivateKey("y"),
-				CertType:   certificate.Internal,
-			},
-			expSecret: corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      bootstrapSecretPrefix + proxyUUID,
-					Namespace: testNs,
-				},
-				Data: map[string][]byte{
-					"ca.crt":  caCrt,
-					"tls.crt": pem.Certificate("x"),
-					"tls.key": pem.PrivateKey("y"),
-				},
-				Type: "kubernetes.io/tls",
 			},
 		},
 	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
-			fakeClient := fakeKube.NewSimpleClientset()
-			// add secrets to kubeClient
-			_, err := fakeClient.CoreV1().Secrets(testNs).Create(context.Background(), &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      bootstrapSecretPrefix + proxyUUID,
-					Namespace: testNs,
-				},
-				Data: map[string][]byte{
-					"ca.crt":  caCrt,
-					"tls.crt": certChain,
-					"tls.key": pk,
-				},
-			}, metav1.CreateOptions{})
-			assert.Nil(err)
-			_, err = fakeClient.CoreV1().Secrets(testNs).Create(context.Background(), &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "notBootstrapSecret",
-					Namespace: testNs,
-				},
-				Data: map[string][]byte{
-					"ca.crt":  caCrt,
-					"tls.crt": certChain,
-					"tls.key": pk,
-				},
-			}, metav1.CreateOptions{})
+			getCertValidityPeriod := func() time.Duration { return 5 * time.Second }
+			certManager, err := certificate.NewManager(context.Background(), &certificate.FakeMRCClient{}, getCertValidityPeriod, getCertValidityPeriod, 5*time.Second)
 			assert.Nil(err)
 
+			fakeClient := fakeKube.NewSimpleClientset()
 			informerCollection, err := informers.NewInformerCollection(testNs, nil, informers.WithKubeClient(fakeClient))
 			assert.Nil(err)
-
-			// add secrets to informer
-			for _, s := range secrets {
+			// add secrets to kubeClient and informer
+			for _, s := range tc.secrets {
+				_, err = fakeClient.CoreV1().Secrets(testNs).Create(context.Background(), s, metav1.CreateOptions{})
+				assert.Nil(err)
 				err = informerCollection.Add(informers.InformerKeySecret, s, t)
 				assert.Nil(err)
 			}
 
-			manager := &certificate.Manager{
-				SigningIssuer:    &certificate.IssuerMetadata{ID: "id1", Issuer: &certificate.FakeIssuer{ID: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake1.domain.com"},
-				ValidatingIssuer: &certificate.IssuerMetadata{ID: "id1", Issuer: &certificate.FakeIssuer{ID: "id1"}, CertificateAuthority: pem.RootCertificate("id1"), TrustDomain: "fake2.domain.com"},
-			}
-			manager.Cache.Store(tc.cert.CommonName, tc.cert)
-
-			b := NewBootstrapSecretRotator(context.Background(), fakeClient, informerCollection, manager, time.Duration(1))
-
-			b.rotateBootstrapSecrets()
-			secrets, err := b.kubeClient.CoreV1().Secrets(testNs).List(b.context, metav1.ListOptions{})
+			cert, err := certManager.IssueCertificate(tc.certName, certificate.Internal)
 			assert.Nil(err)
+
+			secretData := map[string][]byte{
+				"ca.crt":  cert.GetTrustedCAs(),
+				"tls.crt": cert.GetCertificateChain(),
+				"tls.key": cert.GetPrivateKey(),
+			}
+			updatedSecret := corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bootstrapSecretPrefix + proxyUUID,
+					Namespace: testNs,
+				},
+				Type: corev1.SecretTypeTLS,
+				Data: secretData,
+			}
+
+			bootstrapSecretRotator := NewBootstrapSecretRotator(context.Background(), fakeClient, informerCollection, certManager, time.Duration(1))
+			bootstrapSecretRotator.rotateBootstrapSecrets()
+
+			secrets, err := bootstrapSecretRotator.kubeClient.CoreV1().Secrets(testNs).List(bootstrapSecretRotator.context, metav1.ListOptions{})
+			assert.Nil(err)
+
 			for _, secret := range secrets.Items {
 				if strings.Contains(secret.Name, bootstrapSecretPrefix) {
-					assert.Equal(tc.expSecret, secret)
+					assert.Equal(updatedSecret, secret)
 				}
 			}
 		})

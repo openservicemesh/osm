@@ -92,8 +92,7 @@ type Issuer interface {
 	IssueCertificate(IssueOptions) (*Certificate, error)
 }
 
-// IssuerMetadata represents the metadata for cert-manager issuers
-type IssuerMetadata struct {
+type issuer struct {
 	Issuer
 	ID          string
 	TrustDomain string
@@ -103,19 +102,18 @@ type IssuerMetadata struct {
 
 // Manager represents all necessary information for the certificate managers.
 type Manager struct {
-	// Cache for all the certificates issued
+	// cache for all the certificates issued
 	// Types: map[certificate.CommonName]*certificate.Certificate
-	Cache sync.Map
+	cache sync.Map
 
 	ingressCertValidityDuration func() time.Duration
 	// TODO(#4711): define serviceCertValidityDuration in the MRC
 	serviceCertValidityDuration func() time.Duration
 
-	mu sync.Mutex // mu syncrhonizes acces to the below resources.
-	// SigningIssuer represents the signing key IssuerMetadata
-	SigningIssuer *IssuerMetadata
-	// equal to SigningIssuer if there is no additional public cert IssuerMetadata.
-	ValidatingIssuer *IssuerMetadata
+	mu            sync.Mutex // mu syncrhonizes acces to the below resources.
+	signingIssuer *issuer
+	// equal to signingIssuer if there is no additional public cert issuer.
+	validatingIssuer *issuer
 
 	group singleflight.Group
 

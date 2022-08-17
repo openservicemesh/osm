@@ -18,14 +18,16 @@ var (
 	validity = time.Hour
 )
 
-type fakeMRCClient struct{}
+// FakeMRCClient implements the MRCClient interface
+type FakeMRCClient struct{}
 
-func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error) {
-	return &FakeIssuer{}, pem.RootCertificate("rootCA"), nil
+// GetCertIssuerForMRC returns a fakeIssuer and pre-generated RootCertificate. It is intended to implement the certificate.MRCClient interface.
+func (c *FakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error) {
+	return &fakeIssuer{}, pem.RootCertificate("rootCA"), nil
 }
 
 // List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
-func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
+func (c *FakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 	// return single empty object in the list.
 	return []*v1alpha2.MeshRootCertificate{{
 		Spec: v1alpha2.MeshRootCertificateSpec{
@@ -34,7 +36,8 @@ func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 	}}, nil
 }
 
-func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
+// Watch returns a channel that has one MRCEventAdded. It is intended to implement the certificate.MRCClient interface.
+func (c *FakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 	ch := make(chan MRCEvent)
 	go func() {
 		ch <- MRCEvent{
@@ -101,24 +104,23 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 	return ch, nil
 }
 
-// FakeIssuer implements Issuer interface
-type FakeIssuer struct {
+type fakeIssuer struct {
 	err bool
-	ID  string
+	id  string
 }
 
 // IssueCertificate is a testing helper to satisfy the certificate client interface
-func (i *FakeIssuer) IssueCertificate(options IssueOptions) (*Certificate, error) {
+func (i *fakeIssuer) IssueCertificate(options IssueOptions) (*Certificate, error) {
 	if i.err {
-		return nil, fmt.Errorf("%s failed", i.ID)
+		return nil, fmt.Errorf("%s failed", i.id)
 	}
 	return &Certificate{
 		CommonName: options.CommonName(),
 		Expiration: time.Now().Add(options.ValidityDuration),
 		// simply used to distinguish the private/public key from other issuers
-		IssuingCA:  pem.RootCertificate(i.ID),
-		TrustedCAs: pem.RootCertificate(i.ID),
-		PrivateKey: pem.PrivateKey(i.ID),
+		IssuingCA:  pem.RootCertificate(i.id),
+		TrustedCAs: pem.RootCertificate(i.id),
+		PrivateKey: pem.PrivateKey(i.id),
 	}, nil
 }
 
@@ -127,7 +129,7 @@ func FakeCertManager() (*Manager, error) {
 	getCertValidityDuration := func() time.Duration { return validity }
 	cm, err := NewManager(
 		context.Background(),
-		&fakeMRCClient{},
+		&FakeMRCClient{},
 		getCertValidityDuration,
 		getCertValidityDuration,
 		1*time.Hour,
