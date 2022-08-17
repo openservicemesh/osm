@@ -58,7 +58,11 @@ func (m *manager) IssueCertificate(cn CommonName, validityPeriod time.Duration) 
 	start := time.Now()
 
 	if cert := m.getFromCache(cn); cert != nil {
-		return cert, nil
+		// check if cert needs to be rotated
+		rotate := cert.ShouldRotate()
+		if !rotate {
+			return cert, nil
+		}
 	}
 
 	cert, err := m.client.IssueCertificate(cn, validityPeriod)
