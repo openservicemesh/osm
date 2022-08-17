@@ -5,30 +5,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 )
 
 // Tests getCertificateHandler through HTTP handler returns a certificate stringified
 func TestGetCertHandler(t *testing.T) {
 	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	mock := NewMockCertificateManagerDebugger(mockCtrl)
 
 	ds := DebugConfig{
-		certDebugger: mock,
+		certDebugger: tresorFake.NewFake(time.Hour),
 	}
 
-	testCert, err := tresor.NewCA("commonName", 1*time.Hour, "Country", "Locale", "Org")
+	_, err := ds.certDebugger.IssueCertificate("commonName", certificate.Service)
 	assert.Nil(err)
-
-	// mock expected cert
-	mock.EXPECT().ListIssuedCertificates().Return([]*certificate.Certificate{
-		testCert,
-	})
 
 	handler := ds.getCertHandler()
 

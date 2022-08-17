@@ -3,7 +3,9 @@ package certificate
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
+	"strings"
 	"sync"
 	"time"
 
@@ -196,6 +198,7 @@ func (m *Manager) shouldRotate(c *Certificate) bool {
 			c.GetCommonName())
 		return true
 	}
+	log.Trace().Msgf("Cert %s should not be rotated with serial number %s and expiration %s", c.GetCommonName(), c.GetSerialNumber(), c.GetExpiration())
 	return false
 }
 
@@ -211,6 +214,10 @@ func (m *Manager) checkAndRotate() {
 	})
 
 	for key, cert := range certs {
+		// TODO(5000): remove this check
+		if err := m.CheckCacheMatch(cert); err != nil {
+			log.Warn().Msg(err.Error()) // don't log as a full error message
+		}
 		opts := []IssueOption{}
 		if key == cert.CommonName.String() {
 			opts = append(opts, FullCNProvided())
@@ -246,7 +253,7 @@ func (m *Manager) getFromCache(key string) *Certificate {
 		return nil
 	}
 	cert := certInterface.(*Certificate)
-	log.Trace().Msgf("Certificate found in cache SerialNumber=%s", cert.GetSerialNumber())
+	log.Trace().Msgf("Certificate %s found in cache SerialNumber=%s", key, cert.GetSerialNumber())
 	return cert
 }
 
@@ -347,4 +354,27 @@ func (m *Manager) SubscribeRotations(key string) (chan interface{}, func()) {
 		for range ch {
 		}
 	}
+}
+
+// CheckCacheMatch checks that the cert is the same cert present in the cache. it is currently only used for debugging
+// https://github.com/openservicemesh/osm/issues/5000
+// TODO(5000): delete this function once we fix the issue
+func (m *Manager) CheckCacheMatch(cert *Certificate) error {
+	if cert == nil {
+		return nil
+	}
+
+	// Currently, these don't get rotated, so we assume the cache is correct.
+	if cert.certType != Service {
+		return nil
+	}
+	key := strings.TrimSuffix(cert.CommonName.String(), "."+m.GetTrustDomain())
+	cachedCert := m.getFromCache(key)
+	if cachedCert == nil {
+		return fmt.Errorf("no certificate found in cache for %s", cert.CommonName)
+	}
+	if cert != cachedCert {
+		return fmt.Errorf("certificate %s does not match cached certificate %s, this may be due to a race around rotation, or a caching issue", cert, cachedCert)
+	}
+	return nil
 }

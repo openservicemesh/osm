@@ -47,7 +47,7 @@ func TestNewResponse(t *testing.T) {
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 
 	proxyUUID := uuid.New()
-	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil)
+	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
 
 	testMeshSvc := service.MeshService{
 		Namespace:  tests.BookbuyerService.Namespace,
@@ -413,7 +413,7 @@ func TestNewResponseListServicesError(t *testing.T) {
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, fmt.Errorf("some error")
 	}), nil)
-	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil)
+	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
@@ -433,7 +433,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	}), nil)
 
 	proxyUUID := uuid.New()
-	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil)
+	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
@@ -457,7 +457,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	}), nil)
 
 	proxyUUID := uuid.New()
-	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil)
+	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
