@@ -35,7 +35,6 @@ func TestNewResponse(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	policyCtrl := policy.NewMockController(mockCtrl)
-	// mockK8s := k8s.NewMockController(mockCtrl)
 	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
 	stop := make(chan struct{})

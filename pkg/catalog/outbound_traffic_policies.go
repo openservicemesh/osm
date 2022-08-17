@@ -1,8 +1,6 @@
 package catalog
 
 import (
-	"fmt"
-
 	mapset "github.com/deckarep/golang-set"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -153,7 +151,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	svcAccount := serviceIdentity.ToK8sServiceAccount()
 	serviceSet := mapset.NewSet()
 	var allowedServices []service.MeshService
-	fmt.Println("mc.meshSpec.ListTrafficTargets() ::: ", mc.meshSpec.ListTrafficTargets())
+
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
 			if source.Name != svcAccount.Name || source.Namespace != svcAccount.Namespace {

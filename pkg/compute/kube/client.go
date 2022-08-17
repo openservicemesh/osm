@@ -117,7 +117,7 @@ func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 	svcSet := mapset.NewSet() // mapset is used to avoid duplicate elements in the output list
 
 	svcAccount := svcIdentity.ToK8sServiceAccount()
-	fmt.Println("c.kubeController.ListPods() ", svcIdentity, c.kubeController.ListPods())
+
 	for _, pod := range c.kubeController.ListPods() {
 		if pod.Namespace != svcAccount.Namespace {
 			continue
@@ -126,10 +126,10 @@ func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 		if pod.Spec.ServiceAccountName != svcAccount.Name {
 			continue
 		}
-		fmt.Println("\n\npod.Spec.ServiceAccountName ", pod.Spec.ServiceAccountName)
+
 		podLabels := pod.ObjectMeta.Labels
 		meshServicesForPod := c.getServicesByLabels(podLabels, pod.Namespace)
-		fmt.Println("which had the following services: ", meshServicesForPod)
+
 		for _, svc := range meshServicesForPod {
 			if added := svcSet.Add(svc); added {
 				meshServices = append(meshServices, svc)
