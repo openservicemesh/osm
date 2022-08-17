@@ -13,31 +13,28 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-const getCmdDescription = `
-This command will get the Envoy proxy configuration for the given query and pod.
-The query is forwarded as is to the Envoy proxy sidecar.
+const setCmdDescription = `
+This command will set the Envoy proxy configuration for the given query and pod.
+The query is forwarded as is to the Envoy proxy sidecar as a POST request.
 Refer to https://www.envoyproxy.io/docs/envoy/latest/operations/admin for the
-list of supported GET queries.
+list of supported POST queries.
 `
 
-const getCmdExample = `
-# Get the proxy config dump for the given pod 'bookbuyer-5ccf77f46d-rc5mg' in the 'bookbuyer' namespace
-osm proxy get config_dump bookbuyer-5ccf77f46d-rc5mg -n bookbuyer
-
-# Get the cluster config for the given pod 'bookbuyer-5ccf77f46d-rc5mg' in the 'bookbuyer' namespace and output to file 'clusters.txt'
-osm proxy get clusters bookbuyer-5ccf77f46d-rc5mg -n bookbuyer -f clusters.txt
+const setCmdExample = `
+# Reset the proxy stats counters for the pod 'bookbuyer-5ccf77f46d-rc5mg' in the 'bookbuyer' namespace
+osm proxy set reset_counters bookbuyer-5ccf77f46d-rc5mg -n bookbuyer
 `
 
-func newProxyGetCmd(config *action.Configuration, out io.Writer) *cobra.Command {
+func newProxySetCmd(config *action.Configuration, out io.Writer) *cobra.Command {
 	adminCmd := &proxyAdminCmd{
 		out:        out,
 		sigintChan: make(chan os.Signal, 1),
 	}
 
 	cmd := &cobra.Command{
-		Use:   "get QUERY POD",
-		Short: "get query for proxy",
-		Long:  getCmdDescription,
+		Use:   "set QUERY POD",
+		Short: "set query for proxy",
+		Long:  setCmdDescription,
 		Args:  cobra.ExactArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
 			adminCmd.query = args[0]
@@ -53,9 +50,9 @@ func newProxyGetCmd(config *action.Configuration, out io.Writer) *cobra.Command 
 				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %w", err)
 			}
 			adminCmd.clientSet = clientset
-			return adminCmd.run("GET")
+			return adminCmd.run("POST")
 		},
-		Example: getCmdExample,
+		Example: setCmdExample,
 	}
 
 	//add mesh name flag
