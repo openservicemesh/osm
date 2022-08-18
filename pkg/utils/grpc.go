@@ -25,31 +25,31 @@ const (
 
 // Server is a construct to run gRPC servers
 type Server struct {
-	name     string
-	cm       *certificate.Manager
-	server   *grpc.Server
-	certName string
+	name           string
+	cm             *certificate.Manager
+	server         *grpc.Server
+	certCommonName string
 
 	mu     sync.Mutex
 	config tls.Config
 }
 
 // NewGrpc creates a new gRPC server
-func NewGrpc(serverType string, port int, certName string, cm *certificate.Manager) (*Server, net.Listener, error) {
-	log.Info().Msgf("Setting up %s gRPC server...", serverType)
+func NewGrpc(serverName string, port int, certCommonName string, cm *certificate.Manager) (*Server, net.Listener, error) {
+	log.Info().Msgf("Setting up %s gRPC server...", serverName)
 	addr := fmt.Sprintf(":%d", port)
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error starting %s gRPC server on %s", serverType, addr)
+		log.Error().Err(err).Msgf("Error starting %s gRPC server on %s", serverName, addr)
 		return nil, nil, err
 	}
 
-	log.Debug().Msgf("Parameters for %s gRPC server: MaxConcurrentStreams=%d;  KeepAlive=%+v", serverType, maxStreams, streamKeepAliveDuration)
+	log.Debug().Msgf("Parameters for %s gRPC server: MaxConcurrentStreams=%d;  KeepAlive=%+v", serverName, maxStreams, streamKeepAliveDuration)
 
 	s := &Server{
-		name:     serverType,
-		cm:       cm,
-		certName: certName,
+		name:           serverName,
+		cm:             cm,
+		certCommonName: certCommonName,
 	}
 
 	grpcOptions := []grpc.ServerOption{
@@ -62,7 +62,7 @@ func NewGrpc(serverType string, port int, certName string, cm *certificate.Manag
 	// #nosec G402: TLS MinVersion too low
 	tlsConfig := tls.Config{
 		InsecureSkipVerify: false,
-		ServerName:         serverType,
+		ServerName:         s.name,
 		ClientAuth:         tls.RequireAndVerifyClientCert,
 		MinVersion:         constants.MinTLSVersion,
 		GetConfigForClient: func(*tls.ClientHelloInfo) (*tls.Config, error) {
@@ -84,9 +84,9 @@ func (s *Server) GetServer() *grpc.Server {
 	return s.server
 }
 
-func (s *Server) initConfig() error {
+func (s *Server) updateConfig() error {
 	grpcCert, err := s.cm.IssueCertificate(
-		s.certName,
+		s.certCommonName,
 		certificate.Internal,
 		certificate.FullCNProvided())
 	if err != nil {
@@ -123,29 +123,30 @@ func (s *Server) initConfig() error {
 
 func (s *Server) watchCertRotations(ctx context.Context) error {
 	// listen for certificate rotation first, so we don't miss any events
-	certRotationChan, unsubscribeRotation := s.cm.SubscribeRotations(s.certName)
-	defer unsubscribeRotation()
+	certRotationChan, unsubscribeRotation := s.cm.SubscribeRotations(s.certCommonName)
 
-	// initial initConfig call creates the server certificate
-	if err := s.initConfig(); err != nil {
+	// initial updateConfig call creates the server certificate
+	if err := s.updateConfig(); err != nil {
 		// this is a fatal error on start, we can't continue without a cert
+		unsubscribeRotation()
 		return err
 	}
 
 	// Handle the rotations until the context is cancelled
 	go func() {
-		log.Info().Str("grpc", s.name).Str("cn", s.certName).Msg("Listening for certificate rotations")
+		log.Info().Str("grpc", s.name).Str("cn", s.certCommonName).Msg("Listening for certificate rotations")
+		defer unsubscribeRotation()
 		for {
 			select {
 			case <-certRotationChan:
-				log.Debug().Str("grpc", s.name).Str("cn", s.certName).Msg("Certificate rotation was initiated for grpc server")
-				if err := s.initConfig(); err != nil {
+				log.Debug().Str("grpc", s.name).Str("cn", s.certCommonName).Msg("Certificate rotation was initiated for grpc server")
+				if err := s.updateConfig(); err != nil {
 					events.GenericEventRecorder().ErrorEvent(err, events.CertificateIssuanceFailure, "Error rotating the certificate for grpc server")
 					continue
 				}
-				log.Info().Str("grpc", s.name).Str("cn", s.certName).Msg("Certificate rotated for grpc")
+				log.Info().Str("grpc", s.name).Str("cn", s.certCommonName).Msg("Certificate rotated for grpc")
 			case <-ctx.Done():
-				log.Info().Str("grpc", s.name).Str("cn", s.certName).Msg("Stop listening for certificate rotations")
+				log.Info().Str("grpc", s.name).Str("cn", s.certCommonName).Msg("Stop listening for certificate rotations")
 				return
 			}
 		}
