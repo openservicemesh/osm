@@ -28,13 +28,14 @@ import (
 )
 
 // NewClient returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewClient(osmNamespace string, informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *Client {
+func NewClient(osmNamespace, meshConfigName string, informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *Client {
 	// Initialize client object
 	c := &Client{
-		informers:    informerCollection,
-		msgBroker:    msgBroker,
-		policyClient: policyClient,
-		osmNamespace: osmNamespace,
+		informers:      informerCollection,
+		msgBroker:      msgBroker,
+		policyClient:   policyClient,
+		osmNamespace:   osmNamespace,
+		meshConfigName: meshConfigName,
 	}
 
 	// Initialize informers
@@ -442,17 +443,20 @@ func IsHeadlessService(svc corev1.Service) bool {
 	return len(svc.Spec.ClusterIP) == 0 || svc.Spec.ClusterIP == corev1.ClusterIPNone
 }
 
-// GetMeshConfig returns the MeshConfig resource corresponding to the control plane
+// GetMeshConfig returns the current MeshConfig
 func (c *Client) GetMeshConfig() configv1alpha2.MeshConfig {
-	var meshConfig configv1alpha2.MeshConfig
-	configs := c.informers.List(osminformers.InformerKeyMeshConfig)
-	if len(configs) != 1 {
-		log.Error().Msgf("Expected exactly one MeshConfig resource, got %d", len(configs))
+	key := types.NamespacedName{Namespace: c.osmNamespace, Name: c.meshConfigName}.String()
+	item, _, err := c.informers.GetByKey(informers.InformerKeyMeshConfig, key)
+	if item != nil {
+		return *item.(*configv1alpha2.MeshConfig)
 	}
-	for _, obj := range configs {
-		return *obj.(*configv1alpha2.MeshConfig)
+	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMeshConfigFetchFromCache)).Msgf("Error getting MeshConfig from cache with key %s", key)
+	} else {
+		log.Warn().Msgf("MeshConfig %s does not exist. Default config values will be used.", key)
 	}
-	return meshConfig
+
+	return configv1alpha2.MeshConfig{}
 }
 
 // GetOSMNamespace returns the namespace in which the OSM controller pod resides.

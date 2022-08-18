@@ -481,7 +481,7 @@ func TestGetServicesForServiceIdentity(t *testing.T) {
 			ic, err := informers.NewInformerCollection("test-mesh", stop, informers.WithKubeClient(testClient))
 			assert.NoError(err)
 			c := &client{
-				kubeController: k8s.NewClient("osm-ns", ic, nil, messaging.NewBroker(stop)),
+				kubeController: k8s.NewClient("osm-ns", tests.OsmMeshConfigName, ic, nil, messaging.NewBroker(stop)),
 			}
 			actual := c.GetServicesForServiceIdentity(tc.svcIdentity)
 			assert.ElementsMatch(tc.expected, actual)

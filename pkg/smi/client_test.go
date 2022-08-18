@@ -58,7 +58,7 @@ func bootstrapClient(stop chan struct{}, t *testing.T) (*Client, *fakeKubeClient
 		return nil, nil, err
 	}
 
-	kubernetesClient := k8s.NewClient("osm-ns", informerCollection, nil, msgBroker)
+	kubernetesClient := k8s.NewClient("osm-ns", tests.OsmMeshConfigName, informerCollection, nil, msgBroker)
 
 	fakeClientSet := &fakeKubeClientSet{
 		kubeClient:                kubeClient,

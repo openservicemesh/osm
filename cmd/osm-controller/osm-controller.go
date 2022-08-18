@@ -198,7 +198,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
 	}
 
-	k8sClient := k8s.NewClient(osmNamespace, informerCollection, policyClient, msgBroker)
+	k8sClient := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, policyClient, msgBroker)
 
 	meshSpec := smi.NewSMIClient(informerCollection, osmNamespace, k8sClient, msgBroker)
 

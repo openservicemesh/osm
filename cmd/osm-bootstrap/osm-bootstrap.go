@@ -223,7 +223,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
 	}
 
-	k8sClient := k8s.NewClient(osmNamespace, informerCollection, nil, msgBroker)
+	k8sClient := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, nil, msgBroker)
 
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
