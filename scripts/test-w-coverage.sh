@@ -16,6 +16,7 @@ go test -timeout 120s \
    -failfast \
    -race \
    -v \
+   -coverpkg=./pkg/... \
    -coverprofile=coverage.txt.with_generated_code \
    -covermode atomic $modules | tee testoutput.txt || { echo "go test returned non-zero"; exit 1; }
 
