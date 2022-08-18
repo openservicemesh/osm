@@ -7,23 +7,17 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 
-	. "github.com/onsi/ginkgo"
-
-	"github.com/golang/mock/gomock"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmfakeclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var (
-	mockCtrl         = gomock.NewController(GinkgoT())
-	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-	crNotReady       = &cmapi.CertificateRequest{
+	crNotReady = &cmapi.CertificateRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "osm-123",
 			Namespace: "osm-system",
@@ -50,8 +44,6 @@ func TestCertificateFromCertificateRequest(t *testing.T) {
 
 	rootKey, err := certificate.DecodePEMPrivateKey(rootKeyPEM)
 	assert.Nil(err)
-
-	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 	cm, err := New(
 		fakeClient,

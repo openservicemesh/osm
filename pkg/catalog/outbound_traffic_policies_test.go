@@ -18,10 +18,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/policy"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -579,22 +577,18 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockProvider := compute.NewMockInterface(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:   mockKubeController,
 				Interface:        mockProvider,
-				configurator:     mockCfg,
 				meshSpec:         mockMeshSpec,
 				policyController: mockPolicyController,
 			}
 
 			// Mock calls to k8s client caches
-			mockCfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+			mockProvider.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 				Spec: v1alpha2.MeshConfigSpec{
 					Traffic: v1alpha2.TrafficSpec{
 						EnablePermissiveTrafficPolicyMode: tc.permissiveMode,
@@ -617,9 +611,9 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					}
 					return nil
 				}).AnyTimes()
-			mockKubeController.EXPECT().GetTargetPortForServicePort(
+			mockProvider.EXPECT().GetTargetPortForServicePort(
 				types.NamespacedName{Namespace: meshSvc3V1.Namespace, Name: meshSvc3V1.Name}, meshSvc3.Port).Return(meshSvc3V1.TargetPort, nil).AnyTimes()
-			mockKubeController.EXPECT().GetTargetPortForServicePort(
+			mockProvider.EXPECT().GetTargetPortForServicePort(
 				types.NamespacedName{Namespace: meshSvc3V2.Namespace, Name: meshSvc3V2.Name}, meshSvc3.Port).Return(meshSvc3V2.TargetPort, nil).AnyTimes()
 
 			// Mock ServiceIdentity -> Service lookups executed when TrafficTargets are evaluated
@@ -627,7 +621,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				mockProvider.EXPECT().GetServicesForServiceIdentity(svcIdentity).Return(services).AnyTimes()
 				for _, service := range services {
 					mockProvider.EXPECT().GetHostnamesForService(service, downstreamIdentity.ToK8sServiceAccount().Namespace == service.Namespace).
-						Return(kube.NewClient(nil, nil).GetHostnamesForService(service, downstreamIdentity.ToK8sServiceAccount().Namespace == service.Namespace)).AnyTimes()
+						Return(kube.NewClient(nil).GetHostnamesForService(service, downstreamIdentity.ToK8sServiceAccount().Namespace == service.Namespace)).AnyTimes()
 				}
 			}
 

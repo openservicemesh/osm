@@ -25,7 +25,7 @@ type fakeMRCClient struct {
 }
 
 // NewFakeMRC allows for publishing events on to the watch channel to generate MRC events
-func NewFakeMRC() *fakeMRCClient {
+func NewFakeMRC() *fakeMRCClient { //nolint: revive // unexported-return
 	ch := make(chan certificate.MRCEvent)
 
 	return &fakeMRCClient{

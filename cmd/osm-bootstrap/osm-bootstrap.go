@@ -31,9 +31,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/health"
+	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/crdconversion"
 	"github.com/openservicemesh/osm/pkg/httpserver"
@@ -218,23 +218,22 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
 	}
 
-	// Initialize Configurator to watch resources in the config.openservicemesh.io API group
-	cfg := configurator.NewConfigurator(informerCollection, osmNamespace, osmMeshConfigName, msgBroker)
-
 	certOpts, err := getCertOptions()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
 	}
 
+	k8sClient := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, nil, msgBroker)
+
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
-		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, cfg, osmNamespace, certOpts, msgBroker, informerCollection, 5*time.Second)
+		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace, certOpts, k8sClient, informerCollection, 5*time.Second)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s from MRC", certProviderKind)
 		}
 	} else {
-		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, cfg, osmNamespace, certOpts, msgBroker, 5*time.Second, trustDomain)
+		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, osmNamespace, certOpts, k8sClient, 5*time.Second, trustDomain)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s", certProviderKind)

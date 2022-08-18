@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -31,7 +30,6 @@ type DebugConfig struct {
 	kubeConfig          *rest.Config
 	kubeClient          kubernetes.Interface
 	kubeController      k8s.Controller
-	configurator        configurator.Configurator
 	msgBroker           *messaging.Broker
 }
 

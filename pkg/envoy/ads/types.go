@@ -11,7 +11,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -28,12 +27,11 @@ var (
 type Server struct {
 	catalog       catalog.MeshCataloger
 	proxyRegistry *registry.ProxyRegistry
-	xdsHandlers   map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, *certificate.Manager, *registry.ProxyRegistry) ([]types.Resource, error)
-
+	xdsHandlers   map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, *certificate.Manager, *registry.ProxyRegistry) ([]types.Resource, error)
+	// xdsLog is a map of key proxy.GetName(), which is of the form <identity>:<uuid> to map xds TypeURI to a slice of timestamps
 	xdsLog         map[string]map[envoy.TypeURI][]time.Time
 	xdsMapLogMutex sync.Mutex
 	osmNamespace   string
-	cfg            configurator.Configurator
 	certManager    *certificate.Manager
 	ready          bool
 	workqueues     *workerpool.WorkerPool

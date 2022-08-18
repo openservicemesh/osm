@@ -18,7 +18,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -36,14 +35,13 @@ const (
 )
 
 // NewMutatingWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewMutatingWebhook(ctx context.Context, kubeClient kubernetes.Interface, certManager *certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName, osmVersion string, webhookTimeout int32, enableReconciler bool, cfg configurator.Configurator, osmContainerPullPolicy corev1.PullPolicy) error {
+func NewMutatingWebhook(ctx context.Context, kubeClient kubernetes.Interface, certManager *certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName, osmVersion string, webhookTimeout int32, enableReconciler bool, osmContainerPullPolicy corev1.PullPolicy) error {
 	wh := mutatingWebhook{
 		kubeClient:             kubeClient,
 		certManager:            certManager,
 		kubeController:         kubeController,
 		osmNamespace:           osmNamespace,
 		meshName:               meshName,
-		configurator:           cfg,
 		osmContainerPullPolicy: osmContainerPullPolicy,
 
 		// Envoy sidecars should never be injected in these namespaces

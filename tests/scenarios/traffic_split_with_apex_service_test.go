@@ -11,15 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
-	"github.com/openservicemesh/osm/pkg/identity"
-
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/compute"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
+	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -28,11 +28,19 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	a := assert.New(t)
 
 	// ---[  Setup the test context  ]---------
-	mockCtrl := gomock.NewController(t)
 	kubeClient := testclient.NewSimpleClientset()
-	configClient := configFake.NewSimpleClientset()
-	meshCatalog := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockCtrl := gomock.NewController(t)
+	services := []service.MeshService{tests.BookstoreApexService, tests.BookstoreV1Service, tests.BookstoreV2Service}
+	provider := compute.NewMockInterface(mockCtrl)
+	provider.EXPECT().GetMeshConfig().AnyTimes()
+	provider.EXPECT().GetServicesForServiceIdentity(gomock.Any()).Return(services).AnyTimes()
+	provider.EXPECT().GetResolvableEndpointsForService(gomock.Any()).Return([]endpoint.Endpoint{tests.Endpoint}).AnyTimes()
+	provider.EXPECT().GetTargetPortForServicePort(gomock.Any(), gomock.Any()).Return(uint16(8888), nil).AnyTimes()
+	for _, svc := range services {
+		provider.EXPECT().GetHostnamesForService(svc, true).Return(kube.NewClient(nil).GetHostnamesForService(svc, true)).AnyTimes()
+	}
+
+	meshCatalog := catalogFake.NewFakeMeshCatalog(provider)
 
 	proxy, err := getSidecarProxy(kubeClient, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace))
 	a.Nil(err)
@@ -42,13 +50,10 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 		return nil, nil
 	}), nil)
 
-	// ---[  Get the config from rds.NewResponse()  ]-------
-	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
-
 	mc := tresorFake.NewFake(1 * time.Hour)
 	a.NotNil(a)
 
-	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, mc, proxyRegistry)
+	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mc, proxyRegistry)
 	a.Nil(err)
 	a.Len(resources, 1) // only outbound routes configured for this test
 

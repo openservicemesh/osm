@@ -4,11 +4,14 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // Interface is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
 type Interface interface {
+	k8s.PassthroughInterface
+
 	// GetServicesForServiceIdentity retrieves the namespaced services for a given service identity
 	GetServicesForServiceIdentity(identity.ServiceIdentity) []service.MeshService
 

@@ -26,7 +26,6 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
@@ -43,7 +42,6 @@ func TestNewResponse(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 	kubeClient := testclient.NewSimpleClientset()
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 
 	proxyUUID := uuid.New()
@@ -104,7 +102,7 @@ func TestNewResponse(t *testing.T) {
 	mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(tests.BookbuyerServiceIdentity).Return(expectedOutboundMeshPolicy).AnyTimes()
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
 	mockCatalog.EXPECT().IsMetricsEnabled(proxy).Return(true, nil).AnyTimes()
-	mockConfigurator.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
+	mockCatalog.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
 
 	podlabels := map[string]string{
 		constants.AppLabel:               testMeshSvc.Name,
@@ -118,7 +116,7 @@ func TestNewResponse(t *testing.T) {
 	_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), newPod1, metav1.CreateOptions{})
 	assert.Nil(err)
 
-	resp, err := NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+	resp, err := NewResponse(mockCatalog, proxy, nil, nil, proxyRegistry)
 	assert.Nil(err)
 
 	// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
@@ -417,11 +415,10 @@ func TestNewResponseListServicesError(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	cfg := configurator.NewMockConfigurator(ctrl)
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxy.Identity).Return(nil).AnyTimes()
-	cfg.EXPECT().GetMeshConfig().AnyTimes()
+	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
+	resp, err := NewResponse(meshCatalog, proxy, nil, nil, proxyRegistry)
 	tassert.Error(t, err)
 	tassert.Nil(t, resp)
 }
@@ -437,15 +434,14 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	cfg := configurator.NewMockConfigurator(ctrl)
 
 	meshCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxyIdentity).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetEgressTrafficPolicy(proxyIdentity).Return(nil, fmt.Errorf("some error")).Times(1)
 	meshCatalog.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
-	cfg.EXPECT().GetMeshConfig().AnyTimes()
+	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
+	resp, err := NewResponse(meshCatalog, proxy, nil, nil, proxyRegistry)
 	tassert.NoError(t, err)
 	tassert.Empty(t, resp)
 }
@@ -461,7 +457,6 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	cfg := configurator.NewMockConfigurator(ctrl)
 	meshCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxyIdentity).Return(nil).Times(1)
 	meshCatalog.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
@@ -471,9 +466,9 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 			{Name: "my-cluster"}, // the test ensures this duplicate is removed
 		},
 	}, nil).Times(1)
-	cfg.EXPECT().GetMeshConfig().AnyTimes()
+	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, cfg, nil, proxyRegistry)
+	resp, err := NewResponse(meshCatalog, proxy, nil, nil, proxyRegistry)
 	tassert.NoError(t, err)
 	tassert.Len(t, resp, 1)
 	tassert.Equal(t, resp[0].(*xds_cluster.Cluster).Name, "my-cluster")

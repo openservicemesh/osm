@@ -21,7 +21,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -256,7 +255,6 @@ func TestNewResponse(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 			kubeClient := testclient.NewSimpleClientset()
 			proxy, err := getBookstoreV1Proxy(kubeClient)
@@ -278,8 +276,7 @@ func TestNewResponse(t *testing.T) {
 			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
-			mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
-
+			mockCatalog.EXPECT().GetMeshConfig().AnyTimes()
 			mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(&trafficpolicy.InboundMeshTrafficPolicy{HTTPRouteConfigsPerPort: tc.expectedInboundPolicies}).AnyTimes()
 			mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(&trafficpolicy.OutboundMeshTrafficPolicy{HTTPRouteConfigsPerPort: tc.expectedOutboundPolicies}).AnyTimes()
 			mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(&trafficpolicy.IngressTrafficPolicy{HTTPRoutePolicies: tc.ingressInboundPolicies}, nil).AnyTimes()
@@ -292,7 +289,7 @@ func TestNewResponse(t *testing.T) {
 
 			mc := tresorFake.NewFake(1 * time.Hour)
 
-			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mockConfigurator, mc, proxyRegistry)
+			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mc, proxyRegistry)
 			assert.Nil(err)
 			assert.NotNil(resources)
 
@@ -428,7 +425,6 @@ func TestResponseRequestCompletion(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 	uuid := uuid.New()
 	testProxy := envoy.NewProxy(envoy.KindSidecar, uuid, identity.New("some-service", "some-namespace"), nil, 1)
@@ -443,7 +439,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 	mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(nil).AnyTimes()
 	mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
-	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
+	mockCatalog.EXPECT().GetMeshConfig().AnyTimes()
 
 	testCases := []struct {
 		request *xds_discovery.DiscoveryRequest
@@ -469,7 +465,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		resources, err := NewResponse(mockCatalog, testProxy, tc.request, mockConfigurator, mc, proxyRegistry)
+		resources, err := NewResponse(mockCatalog, testProxy, tc.request, mc, proxyRegistry)
 		assert.Nil(err)
 
 		if tc.request != nil {

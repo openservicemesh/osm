@@ -15,15 +15,14 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/castorage/k8s"
+	k8storage "github.com/openservicemesh/osm/pkg/certificate/castorage/k8s"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -45,8 +44,8 @@ var getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
 
 // NewCertificateManager returns a new certificate manager with a MRC compat client.
 // TODO(4713): Remove and use NewCertificateManagerFromMRC
-func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
-	providerNamespace string, option Options, msgBroker *messaging.Broker, checkInterval time.Duration, trustDomain string) (*certificate.Manager, error) {
+func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config,
+	providerNamespace string, option Options, kubeController k8s.Controller, checkInterval time.Duration, trustDomain string) (*certificate.Manager, error) {
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}
@@ -55,7 +54,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 		MRCProviderGenerator: MRCProviderGenerator{
 			kubeClient:      kubeClient,
 			kubeConfig:      kubeConfig,
-			KeyBitSize:      utils.GetCertKeyBitSize(cfg.GetMeshConfig()),
+			KeyBitSize:      utils.GetCertKeyBitSize(kubeController.GetMeshConfig()),
 			caExtractorFunc: getCA,
 		},
 		mrc: &v1alpha2.MeshRootCertificate{
@@ -80,15 +79,15 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 	return certificate.NewManager(
 		ctx,
 		mrcClient,
-		func() time.Duration { return utils.GetServiceCertValidityPeriod(cfg.GetMeshConfig()) },
-		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(cfg.GetMeshConfig()) },
+		func() time.Duration { return utils.GetServiceCertValidityPeriod(kubeController.GetMeshConfig()) },
+		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(kubeController.GetMeshConfig()) },
 		checkInterval,
 	)
 }
 
 // NewCertificateManagerFromMRC returns a new certificate manager.
-func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator,
-	providerNamespace string, option Options, msgBroker *messaging.Broker, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
+func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config,
+	providerNamespace string, option Options, kubeController k8s.Controller, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}
@@ -97,7 +96,7 @@ func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Int
 		MRCProviderGenerator: MRCProviderGenerator{
 			kubeClient:      kubeClient,
 			kubeConfig:      kubeConfig,
-			KeyBitSize:      utils.GetCertKeyBitSize(cfg.GetMeshConfig()),
+			KeyBitSize:      utils.GetCertKeyBitSize(kubeController.GetMeshConfig()),
 			caExtractorFunc: getCA,
 		},
 		informerCollection: ic,
@@ -110,8 +109,8 @@ func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Int
 	return certificate.NewManager(
 		ctx,
 		mrcClient,
-		func() time.Duration { return utils.GetServiceCertValidityPeriod(cfg.GetMeshConfig()) },
-		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(cfg.GetMeshConfig()) },
+		func() time.Duration { return utils.GetServiceCertValidityPeriod(kubeController.GetMeshConfig()) },
+		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(kubeController.GetMeshConfig()) },
 		checkInterval,
 	)
 }
@@ -162,7 +161,7 @@ func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.Mesh
 		return nil, errors.New("Root cert does not have a private key")
 	}
 
-	rootCert, err = k8s.GetCertificateFromSecret(mrc.Namespace, mrc.Spec.Provider.Tresor.CA.SecretRef.Name, rootCert, c.kubeClient)
+	rootCert, err = k8storage.GetCertificateFromSecret(mrc.Namespace, mrc.Spec.Provider.Tresor.CA.SecretRef.Name, rootCert, c.kubeClient)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to synchronize certificate on Secrets API : %w", err)
 	}

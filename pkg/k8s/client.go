@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
@@ -20,32 +21,37 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	osminformers "github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewClient returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewClient(informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *Client {
+func NewClient(osmNamespace, meshConfigName string, informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *Client {
 	// Initialize client object
 	c := &Client{
-		informers:    informerCollection,
-		msgBroker:    msgBroker,
-		policyClient: policyClient,
+		informers:      informerCollection,
+		msgBroker:      msgBroker,
+		policyClient:   policyClient,
+		osmNamespace:   osmNamespace,
+		meshConfigName: meshConfigName,
 	}
 
 	// Initialize informers
 	informerInitHandlerMap := map[InformerKey]func(){
-		Namespaces:      c.initNamespaceMonitor,
-		Services:        c.initServicesMonitor,
-		ServiceAccounts: c.initServiceAccountsMonitor,
-		Pods:            c.initPodMonitor,
-		Endpoints:       c.initEndpointMonitor,
+		Namespaces:          c.initNamespaceMonitor,
+		Services:            c.initServicesMonitor,
+		ServiceAccounts:     c.initServiceAccountsMonitor,
+		Pods:                c.initPodMonitor,
+		Endpoints:           c.initEndpointMonitor,
+		MeshConfig:          c.initMeshConfigMonitor,
+		MeshRootCertificate: c.initMRCMonitor,
 	}
 
 	// If specific informers are not selected to be initialized, initialize all informers
 	if len(selectInformers) == 0 {
-		selectInformers = []InformerKey{Namespaces, Services, ServiceAccounts, Pods, Endpoints}
+		selectInformers = []InformerKey{Namespaces, Services, ServiceAccounts, Pods, Endpoints, MeshConfig, MeshRootCertificate}
 	}
 
 	for _, informer := range selectInformers {
@@ -59,6 +65,15 @@ func NewClient(informerCollection *osminformers.InformerCollection, policyClient
 func (c *Client) initNamespaceMonitor() {
 	// Add event handler to informer
 	c.informers.AddEventHandler(osminformers.InformerKeyNamespace, GetEventHandlerFuncs(nil, c.msgBroker))
+}
+
+func (c *Client) initMeshConfigMonitor() {
+	c.informers.AddEventHandler(informers.InformerKeyMeshConfig, GetEventHandlerFuncs(nil, c.msgBroker))
+	c.informers.AddEventHandler(informers.InformerKeyMeshConfig, c.metricsHandler())
+}
+
+func (c *Client) initMRCMonitor() {
+	c.informers.AddEventHandler(informers.InformerKeyMeshRootCertificate, GetEventHandlerFuncs(nil, c.msgBroker))
 }
 
 // Function to filter K8s meta Objects by OSM's isMonitoredNamespace
@@ -221,21 +236,14 @@ func (c *Client) ListServiceIdentitiesForService(svc service.MeshService) ([]ide
 	return svcAccounts, nil
 }
 
-// UpdateStatus updates the status subresource for the given resource and GroupVersionKind
-// The resource within the 'interface{}' must be a pointer to the underlying resource
-func (c *Client) UpdateStatus(resource interface{}) (metav1.Object, error) {
-	switch t := resource.(type) {
-	case *policyv1alpha1.IngressBackend:
-		obj := resource.(*policyv1alpha1.IngressBackend)
-		return c.policyClient.PolicyV1alpha1().IngressBackends(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
+// UpdateIngressBackendStatus updates the status for the provided IngressBackend.
+func (c *Client) UpdateIngressBackendStatus(obj *policyv1alpha1.IngressBackend) (*policyv1alpha1.IngressBackend, error) {
+	return c.policyClient.PolicyV1alpha1().IngressBackends(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
+}
 
-	case *policyv1alpha1.UpstreamTrafficSetting:
-		obj := resource.(*policyv1alpha1.UpstreamTrafficSetting)
-		return c.policyClient.PolicyV1alpha1().UpstreamTrafficSettings(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
-
-	default:
-		return nil, fmt.Errorf("Unsupported type: %T", t)
-	}
+// UpdateUpstreamTrafficSettingStatus updates the status for the provided UpstreamTrafficSetting.
+func (c *Client) UpdateUpstreamTrafficSettingStatus(obj *policyv1alpha1.UpstreamTrafficSetting) (*policyv1alpha1.UpstreamTrafficSetting, error) {
+	return c.policyClient.PolicyV1alpha1().UpstreamTrafficSettings(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
 }
 
 // ServiceToMeshServices translates a k8s service with one or more ports to one or more
@@ -433,4 +441,25 @@ func (c *Client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName,
 // IsHeadlessService determines whether or not a corev1.Service is a headless service
 func IsHeadlessService(svc corev1.Service) bool {
 	return len(svc.Spec.ClusterIP) == 0 || svc.Spec.ClusterIP == corev1.ClusterIPNone
+}
+
+// GetMeshConfig returns the current MeshConfig
+func (c *Client) GetMeshConfig() configv1alpha2.MeshConfig {
+	key := types.NamespacedName{Namespace: c.osmNamespace, Name: c.meshConfigName}.String()
+	item, _, err := c.informers.GetByKey(informers.InformerKeyMeshConfig, key)
+	if item != nil {
+		return *item.(*configv1alpha2.MeshConfig)
+	}
+	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMeshConfigFetchFromCache)).Msgf("Error getting MeshConfig from cache with key %s", key)
+	} else {
+		log.Warn().Msgf("MeshConfig %s does not exist. Default config values will be used.", key)
+	}
+
+	return configv1alpha2.MeshConfig{}
+}
+
+// GetOSMNamespace returns the namespace in which the OSM controller pod resides.
+func (c *Client) GetOSMNamespace() string {
+	return c.osmNamespace
 }

@@ -11,11 +11,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/service"
 
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -51,12 +50,12 @@ func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
 
 func TestEndpointConfiguration(t *testing.T) {
 	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	kubeClient := testclient.NewSimpleClientset()
-	configClient := configFake.NewSimpleClientset()
 
-	meshCatalog := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
+	mockCtrl := gomock.NewController(t)
+	provider := compute.NewMockInterface(mockCtrl)
+	provider.EXPECT().ListEndpointsForService(gomock.Any()).Return(nil).AnyTimes()
+	meshCatalog := catalogFake.NewFakeMeshCatalog(provider)
 
 	proxy, err := getProxy(kubeClient)
 	assert.Empty(err)
@@ -66,7 +65,9 @@ func TestEndpointConfiguration(t *testing.T) {
 	request := &xds_discovery.DiscoveryRequest{
 		ResourceNames: []string{"default/bookstore-v1|80"},
 	}
-	resources, err := NewResponse(meshCatalog, proxy, request, mockConfigurator, nil, nil)
+
+	proxy = envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookbuyerServiceIdentity, nil, 1)
+	resources, err := NewResponse(meshCatalog, proxy, request, nil, nil)
 	assert.Nil(err)
 	assert.NotNil(resources)
 

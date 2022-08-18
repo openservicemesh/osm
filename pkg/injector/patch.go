@@ -142,7 +142,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	}
 
 	// Add the Envoy sidecar
-	sidecar := getEnvoySidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS)
+	sidecar := getEnvoySidecarContainerSpec(pod, wh.kubeController.GetMeshConfig(), originalHealthProbes, podOS)
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
 	return json.Marshal(makePatches(req, pod))
@@ -152,7 +152,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 func (wh *mutatingWebhook) verifyPrerequisites(podOS string) error {
 	isWindows := strings.EqualFold(podOS, constants.OSWindows)
 
-	mc := wh.configurator.GetMeshConfig()
+	mc := wh.kubeController.GetMeshConfig()
 	// Verify that the required images are configured
 	if image := utils.GetEnvoyImage(mc); !isWindows && image == "" {
 		// Linux pods require Envoy Linux image
@@ -181,7 +181,7 @@ func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, names
 	if err != nil {
 		return err
 	}
-	globalOutboundPortExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundPortExclusionList
+	globalOutboundPortExclusionList := wh.kubeController.GetMeshConfig().Spec.Traffic.OutboundPortExclusionList
 	outboundPortExclusionList := mergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList)
 
 	// Build inbound port exclusion list
@@ -189,7 +189,7 @@ func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, names
 	if err != nil {
 		return err
 	}
-	globalInboundPortExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.InboundPortExclusionList
+	globalInboundPortExclusionList := wh.kubeController.GetMeshConfig().Spec.Traffic.InboundPortExclusionList
 	inboundPortExclusionList := mergePortExclusionLists(podInboundPortExclusionList, globalInboundPortExclusionList)
 
 	// Build the outbound IP range exclusion list
@@ -197,7 +197,7 @@ func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, names
 	if err != nil {
 		return err
 	}
-	globalOutboundIPRangeExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundIPRangeExclusionList
+	globalOutboundIPRangeExclusionList := wh.kubeController.GetMeshConfig().Spec.Traffic.OutboundIPRangeExclusionList
 	outboundIPRangeExclusionList := mergeIPRangeLists(podOutboundIPRangeExclusionList, globalOutboundIPRangeExclusionList)
 
 	// Build the outbound IP range inclusion list
@@ -205,13 +205,13 @@ func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, names
 	if err != nil {
 		return err
 	}
-	globalOutboundIPRangeInclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundIPRangeInclusionList
+	globalOutboundIPRangeInclusionList := wh.kubeController.GetMeshConfig().Spec.Traffic.OutboundIPRangeInclusionList
 	outboundIPRangeInclusionList := mergeIPRangeLists(podOutboundIPRangeInclusionList, globalOutboundIPRangeInclusionList)
 
-	networkInterfaceExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.NetworkInterfaceExclusionList
+	networkInterfaceExclusionList := wh.kubeController.GetMeshConfig().Spec.Traffic.NetworkInterfaceExclusionList
 
 	// Add the init container to the pod spec
-	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.GetMeshConfig().Spec.Sidecar.EnablePrivilegedInitContainer, wh.osmContainerPullPolicy, networkInterfaceExclusionList)
+	initContainer := getInitContainerSpec(constants.InitContainerName, wh.kubeController.GetMeshConfig(), outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.kubeController.GetMeshConfig().Spec.Sidecar.EnablePrivilegedInitContainer, wh.osmContainerPullPolicy, networkInterfaceExclusionList)
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 
 	return nil

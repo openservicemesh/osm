@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 func TestKubernetesServicesToMeshServices(t *testing.T) {
@@ -130,7 +131,7 @@ func TestKubernetesServicesToMeshServices(t *testing.T) {
 
 			ic, err := informers.NewInformerCollection("test", stop, informers.WithKubeClient(testclient.NewSimpleClientset(objs...)))
 			assert.NoError(err)
-			k8sClient := k8s.NewClient(ic, nil, nil)
+			k8sClient := k8s.NewClient("ns", tests.OsmMeshConfigName, ic, nil, nil)
 
 			actual := kubernetesServicesToMeshServices(k8sClient, tc.k8sServices, tc.subdomainFilter)
 			assert.ElementsMatch(tc.expectedMeshServices, actual)

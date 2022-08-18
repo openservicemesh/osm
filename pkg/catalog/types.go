@@ -7,10 +7,8 @@ package catalog
 import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/compute"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -25,14 +23,8 @@ var (
 // MeshCatalog is the struct for the service catalog
 type MeshCatalog struct {
 	compute.Interface
-	meshSpec     smi.MeshSpec
-	configurator configurator.Configurator
-	certManager  *certificate.Manager
-
-	// This is the kubernetes client that operates async caches to avoid issuing synchronous
-	// calls through kubeClient and instead relies on background cache synchronization and local
-	// lookups
-	kubeController k8s.Controller
+	meshSpec    smi.MeshSpec
+	certManager *certificate.Manager
 
 	// policyController implements the functionality related to the resources part of the policy.openservicemesh.io
 	// API group, such as egress.

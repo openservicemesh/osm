@@ -11,12 +11,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
-	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
-	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
@@ -31,11 +27,6 @@ import (
 // and finally verifies the response from sds.NewResponse().
 func TestNewResponse(t *testing.T) {
 	assert := tassert.New(t)
-
-	// Setup a fake Kube client. We use this to create a full simulation of creating a pod with
-	// the required xDS Certificate, properly formatted CommonName etc.
-	fakeKubeClient := testclient.NewSimpleClientset()
-	fakeConfigClient := configFake.NewSimpleClientset()
 
 	// We deliberately set the namespace and service accounts to random values
 	// to ensure no hard-coded values sneak in.
@@ -58,15 +49,12 @@ func TestNewResponse(t *testing.T) {
 	podID := uuid.New()
 
 	proxy := envoy.NewProxy(envoy.KindSidecar, podID, proxySvcAccount.ToServiceIdentity(), nil, 1)
-	ic, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(fakeKubeClient), informers.WithConfigClient(fakeConfigClient, "-the-mesh-config-name-", "-osm-namespace-"))
-	assert.Nil(err)
 
-	cfg := configurator.NewConfigurator(ic, "-osm-namespace-", "-the-mesh-config-name-", nil)
 	certManager := tresorFake.NewFake(1 * time.Hour)
-	meshCatalog := catalogFake.NewFakeMeshCatalog(fakeKubeClient, fakeConfigClient)
+	meshCatalog := catalogFake.NewFakeMeshCatalog(nil)
 
 	// ----- Test with an properly configured proxy
-	resources, err := NewResponse(meshCatalog, proxy, request, cfg, certManager, nil)
+	resources, err := NewResponse(meshCatalog, proxy, request, certManager, nil)
 	assert.Equal(err, nil, fmt.Sprintf("Error evaluating sds.NewResponse(): %s", err))
 	assert.NotNil(resources)
 	assert.Equal(len(resources), 2) // 1. service-cert, 2. root-cert-for-mtls-inbound (refer to the DiscoveryRequest 'request')

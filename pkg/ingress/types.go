@@ -5,7 +5,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -19,7 +18,6 @@ var (
 type client struct {
 	kubeClient     kubernetes.Interface
 	kubeController k8s.Controller
-	cfg            configurator.Configurator
 	certProvider   *certificate.Manager
 	msgBroker      *messaging.Broker
 }

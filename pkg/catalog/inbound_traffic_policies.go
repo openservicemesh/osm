@@ -32,7 +32,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 	var trafficTargets []*access.TrafficTarget
 	routeConfigPerPort := make(map[int][]*trafficpolicy.InboundTrafficPolicy)
 
-	permissiveMode := mc.configurator.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode
+	permissiveMode := mc.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode
 	if !permissiveMode {
 		// Pre-computing the list of TrafficTarget optimizes to avoid repeated
 		// cache lookups for each upstream service.

@@ -32,7 +32,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	}
 
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Envoy connections is less than maxDataPlaneConnections
-	if s.cfg.GetMeshConfig().Spec.Sidecar.MaxDataPlaneConnections > 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMeshConfig().Spec.Sidecar.MaxDataPlaneConnections {
+	if s.catalog.GetMeshConfig().Spec.Sidecar.MaxDataPlaneConnections > 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.catalog.GetMeshConfig().Spec.Sidecar.MaxDataPlaneConnections {
 		metricsstore.DefaultMetricsStore.ProxyMaxConnectionsRejected.Inc()
 		return errTooManyConnections
 	}

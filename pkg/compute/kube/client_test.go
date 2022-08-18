@@ -18,7 +18,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -34,18 +33,16 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 	var (
 		mockCtrl           *gomock.Controller
 		mockKubeController *k8s.MockController
-		mockConfigurator   *configurator.MockConfigurator
 		c                  *client
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
-	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 
 	BeforeEach(func() {
-		c = NewClient(mockKubeController, mockConfigurator)
+		c = NewClient(mockKubeController)
 	})
 
 	It("tests GetID", func() {
@@ -356,9 +353,8 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
-			provider := NewClient(mockKubeController, mockConfigurator)
+			provider := NewClient(mockKubeController)
 
 			var pods []*corev1.Pod
 			for serviceIdentity, endpoints := range tc.outboundServiceAccountEndpoints {
@@ -485,7 +481,7 @@ func TestGetServicesForServiceIdentity(t *testing.T) {
 			ic, err := informers.NewInformerCollection("test-mesh", stop, informers.WithKubeClient(testClient))
 			assert.NoError(err)
 			c := &client{
-				kubeController: k8s.NewClient(ic, nil, messaging.NewBroker(stop)),
+				kubeController: k8s.NewClient("osm-ns", tests.OsmMeshConfigName, ic, nil, messaging.NewBroker(stop)),
 			}
 			actual := c.GetServicesForServiceIdentity(tc.svcIdentity)
 			assert.ElementsMatch(tc.expected, actual)
@@ -609,7 +605,7 @@ func TestIsMetricsEnabled(t *testing.T) {
 			} else {
 				k.EXPECT().GetPodForProxy(gomock.Any()).Return(nil, errors.New("not found"))
 			}
-			c := NewClient(k, nil)
+			c := NewClient(k)
 
 			actual, err := c.IsMetricsEnabled(&envoy.Proxy{})
 			assert.Equal(tc.expectEnabled, actual)

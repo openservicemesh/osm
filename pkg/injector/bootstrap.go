@@ -45,10 +45,10 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 		// defined on the Pod Spec.
 		OriginalHealthProbes: originalHealthProbes,
 
-		TLSMinProtocolVersion: wh.configurator.GetMeshConfig().Spec.Sidecar.TLSMinProtocolVersion,
-		TLSMaxProtocolVersion: wh.configurator.GetMeshConfig().Spec.Sidecar.TLSMaxProtocolVersion,
-		CipherSuites:          wh.configurator.GetMeshConfig().Spec.Sidecar.CipherSuites,
-		ECDHCurves:            wh.configurator.GetMeshConfig().Spec.Sidecar.ECDHCurves,
+		TLSMinProtocolVersion: wh.kubeController.GetMeshConfig().Spec.Sidecar.TLSMinProtocolVersion,
+		TLSMaxProtocolVersion: wh.kubeController.GetMeshConfig().Spec.Sidecar.TLSMaxProtocolVersion,
+		CipherSuites:          wh.kubeController.GetMeshConfig().Spec.Sidecar.CipherSuites,
+		ECDHCurves:            wh.kubeController.GetMeshConfig().Spec.Sidecar.ECDHCurves,
 	}
 	bootstrapConfig, err := builder.Build()
 	if err != nil {

@@ -24,7 +24,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
@@ -36,10 +35,9 @@ import (
 )
 
 var (
-	proxy           *envoy.Proxy
-	server          xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer
-	osmConfigurator *configurator.Client
-	adsServer       *Server
+	proxy     *envoy.Proxy
+	server    xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer
+	adsServer *Server
 )
 
 func setupTestServer(b *testing.B) {
@@ -55,10 +53,9 @@ func setupTestServer(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
-	kubeController := k8s.NewClient(informerCollection, policyClient, msgBroker)
+	kubeController := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, informerCollection, policyClient, msgBroker)
 	policyController := policy.NewPolicyController(informerCollection, kubeController, msgBroker)
-	osmConfigurator = configurator.NewConfigurator(informerCollection, tests.OsmNamespace, tests.OsmMeshConfigName, msgBroker)
-	kubeProvider := kube.NewClient(kubeController, osmConfigurator)
+	kubeProvider := kube.NewClient(kubeController)
 
 	meshConfig := configv1alpha2.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
@@ -114,12 +111,10 @@ func setupTestServer(b *testing.B) {
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
 	meshSpec := smi.NewSMIClient(informerCollection, tests.OsmNamespace, kubeController, msgBroker)
 	mc := catalog.NewMeshCatalog(
-		kubeController,
 		meshSpec,
 		certManager,
 		policyController,
 		stop,
-		osmConfigurator,
 		kubeProvider,
 		msgBroker,
 	)
@@ -154,7 +149,7 @@ func setupTestServer(b *testing.B) {
 
 	proxy = envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil, 1)
 
-	adsServer = NewADSServer(mc, proxyRegistry, true, tests.Namespace, osmConfigurator, certManager, kubeController, nil)
+	adsServer = NewADSServer(mc, proxyRegistry, true, tests.Namespace, certManager, kubeController, nil)
 }
 
 func BenchmarkSendXDSResponse(b *testing.B) {
@@ -180,7 +175,7 @@ func BenchmarkSendXDSResponse(b *testing.B) {
 			b.ResetTimer()
 			b.StartTimer()
 			for i := 0; i < b.N; i++ {
-				if err := adsServer.sendResponse(proxy, &server, nil, osmConfigurator, xdsType); err != nil {
+				if err := adsServer.sendResponse(proxy, &server, nil, xdsType); err != nil {
 					b.Fatalf("Failed to send response: %s", err)
 				}
 			}

@@ -7,9 +7,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -63,17 +64,24 @@ const (
 	Endpoints InformerKey = "Endpoints"
 	// ServiceAccounts lookup identifier
 	ServiceAccounts InformerKey = "ServiceAccounts"
+	// MeshConfig lookup identifier
+	MeshConfig InformerKey = "MeshConfig"
+	// MeshRootCertificate lookup identifier
+	MeshRootCertificate InformerKey = "MeshRootCertificate"
 )
 
 // Client is the type used to represent the k8s client for the native k8s resources
 type Client struct {
-	policyClient policyv1alpha1Client.Interface
-	informers    *informers.InformerCollection
-	msgBroker    *messaging.Broker
+	policyClient   policyv1alpha1Client.Interface
+	informers      *informers.InformerCollection
+	msgBroker      *messaging.Broker
+	osmNamespace   string
+	meshConfigName string
 }
 
 // Controller is the controller interface for K8s services
 type Controller interface {
+	PassthroughInterface
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service
 
@@ -102,14 +110,25 @@ type Controller interface {
 	// GetEndpoints returns the endpoints for a given service, if found
 	GetEndpoints(service.MeshService) (*corev1.Endpoints, error)
 
-	// UpdateStatus updates the status subresource for the given resource and GroupVersionKind
-	// The object within the 'interface{}' must be a pointer to the underlying resource
-	UpdateStatus(interface{}) (metav1.Object, error)
-
 	// GetPodForProxy returns the pod for the given proxy
 	GetPodForProxy(*envoy.Proxy) (*v1.Pod, error)
 
-	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
-
 	ServiceToMeshServices(svc corev1.Service) []service.MeshService
+}
+
+// PassthroughInterface is the interface for methods that are implemented by the k8s.Client, but are not considered
+// specific to kubernetes, and thus do not need further abstraction, and can be used throughout the code base without
+// fear of coupling to k8s. That is to say that another implementation that may exist for a bare metal control plane
+// would be expected to implement these methods as well. In this way, for instance, a *policyv1alpha1.IngressBackend
+// is not considered an object uniquely specific to kubernetes, but an object tied to OSM.
+// A good rule of thumb is that any CRUD operations (get,delete,create,update,etc) on CRD's we define belong here, since
+// we control the definition it is reasonable to assume a non-k8s implementation would be obligated to implement as
+// well.
+type PassthroughInterface interface {
+	GetMeshConfig() configv1alpha2.MeshConfig
+	GetOSMNamespace() string
+	UpdateIngressBackendStatus(obj *policyv1alpha1.IngressBackend) (*policyv1alpha1.IngressBackend, error)
+	UpdateUpstreamTrafficSettingStatus(obj *policyv1alpha1.UpstreamTrafficSetting) (*policyv1alpha1.UpstreamTrafficSetting, error)
+
+	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
 }

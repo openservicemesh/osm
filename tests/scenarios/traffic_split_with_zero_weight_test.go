@@ -19,7 +19,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -214,7 +213,6 @@ func TestRDSRespose(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 			kubeClient := testclient.NewSimpleClientset()
 			proxy, err := getBookstoreV1Proxy(kubeClient)
@@ -232,8 +230,6 @@ func TestRDSRespose(t *testing.T) {
 			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
-			mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
-
 			proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 				return []service.MeshService{tests.BookstoreV1Service}, nil
 			}), nil)
@@ -246,10 +242,11 @@ func TestRDSRespose(t *testing.T) {
 			mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(expectedOutboundMeshPolicy).AnyTimes()
 			mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
+			mockCatalog.EXPECT().GetMeshConfig().AnyTimes()
 
 			cm := tresorFake.NewFake(1 * time.Hour)
 
-			resources, err := rds.NewResponse(mockCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
+			resources, err := rds.NewResponse(mockCatalog, proxy, nil, cm, proxyRegistry)
 			assert.Nil(err)
 			assert.NotNil(resources)
 
