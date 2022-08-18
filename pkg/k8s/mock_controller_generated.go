@@ -5,6 +5,7 @@
 package k8s
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -295,6 +296,19 @@ func (m *MockController) ListRetryPolicies() []*v1alpha1.Retry {
 func (mr *MockControllerMockRecorder) ListRetryPolicies() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRetryPolicies", reflect.TypeOf((*MockController)(nil).ListRetryPolicies))
+
+	// ListSecrets mocks base method.
+func (m *MockController) ListSecrets() []*v1.Secret {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListSecrets")
+	ret0, _ := ret[0].([]*v1.Secret)
+	return ret0
+}
+
+// ListSecrets indicates an expected call of ListSecrets.
+func (mr *MockControllerMockRecorder) ListSecrets() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSecrets", reflect.TypeOf((*MockController)(nil).ListSecrets))
 }
 
 // ListServiceAccounts mocks base method.
@@ -439,4 +453,18 @@ func (m *MockController) UpdateUpstreamTrafficSettingStatus(arg0 *v1alpha1.Upstr
 func (mr *MockControllerMockRecorder) UpdateUpstreamTrafficSettingStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUpstreamTrafficSettingStatus", reflect.TypeOf((*MockController)(nil).UpdateUpstreamTrafficSettingStatus), arg0)
+}
+
+// UpdateSecret mocks base method.
+func (m *MockController) UpdateSecret(arg0 context.Context, arg1 *v1.Secret, arg2 map[string][]byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSecret", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateSecret indicates an expected call of UpdateSecret.
+func (mr *MockControllerMockRecorder) UpdateSecret(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSecret", reflect.TypeOf((*MockController)(nil).UpdateSecret), arg0, arg1, arg2)
 }

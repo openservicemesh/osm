@@ -198,7 +198,7 @@ func main() {
 	}
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
-	kubeController := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, policyClient, configClient, msgBroker, k8s.Namespaces)
+	kubeController := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, msgBroker, k8s.Namespaces)
 
 	certOpts, err := getCertOptions()
 	if err != nil {
@@ -228,8 +228,8 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, fmt.Sprintf("Error creating sidecar injector webhook: %s", err))
 	}
 
-	bootstrapSecretRotator := injector.NewBootstrapSecretRotator(ctx, kubeClient, informerCollection, certManager, certCheckInterval)
-	bootstrapSecretRotator.StartBootstrapSecretRotationTicker()
+	bootstrapSecretRotator := injector.NewBootstrapSecretRotator(kubeController, certManager, certCheckInterval)
+	bootstrapSecretRotator.StartBootstrapSecretRotationTicker(ctx)
 
 	version.SetMetric()
 	/*

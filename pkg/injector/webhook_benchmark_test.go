@@ -84,7 +84,7 @@ func BenchmarkPodCreationHandler(b *testing.B) {
 		informers.WithKubeClient(kubeClient),
 		informers.WithConfigClient(configClient, tests.OsmMeshConfigName, tests.OsmNamespace),
 	)
-	kubeController := k8s.NewClient("osm-system", tests.OsmMeshConfigName, informerCollection, policyClient, configClient, msgBroker)
+	kubeController := k8s.NewClient("osm-system", tests.OsmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, msgBroker)
 	if err != nil {
 		b.Fatalf("Failed to create kubeController: %s", err.Error())
 	}

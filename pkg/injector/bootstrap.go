@@ -11,13 +11,12 @@ import (
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/openservicemesh/osm/pkg/version"
@@ -108,46 +107,36 @@ func (wh *mutatingWebhook) marshalAndSaveBootstrap(name, namespace string, confi
 }
 
 // NewBootstrapSecretRotator returns a new bootstrap secret rotator.
-func NewBootstrapSecretRotator(ctx context.Context, kubeClient kubernetes.Interface, informerCollection *informers.InformerCollection, certManager *certificate.Manager, checkInterval time.Duration) *BootstrapSecretRotator {
+func NewBootstrapSecretRotator(kubeController k8s.Controller, certManager *certificate.Manager, checkInterval time.Duration) *BootstrapSecretRotator {
 	return &BootstrapSecretRotator{
-		context:            ctx,
-		kubeClient:         kubeClient,
-		informerCollection: informerCollection,
-		certManager:        certManager,
-		checkInterval:      checkInterval,
+		kubeController: kubeController,
+		certManager:    certManager,
+		checkInterval:  checkInterval,
 	}
 }
 
 // listBootstrapSecrets returns the bootstrap secrets stored in the informerCollection's store.
 // this function is used to get the namespace of the secrets.
 func (b *BootstrapSecretRotator) listBootstrapSecrets() []*corev1.Secret {
-	// informers return slice of pointers so we'll convert them to value types before returning
-	secretPtrs := b.informerCollection.List(informers.InformerKeySecret)
-	var secrets []*corev1.Secret
+	secrets := b.kubeController.ListSecrets()
+	var bootstrapSecrets []*corev1.Secret
 
-	for _, secretPtr := range secretPtrs {
-		if secretPtr == nil {
-			continue
-		}
-		secret, ok := secretPtr.(*corev1.Secret)
-		if !ok {
-			continue
-		}
+	for _, secret := range secrets {
 		// finds bootstrap secrets
 		if strings.Contains(secret.Name, bootstrapSecretPrefix) {
-			secrets = append(secrets, secret)
+			bootstrapSecrets = append(bootstrapSecrets, secret)
 		}
 	}
 
-	return secrets
+	return bootstrapSecrets
 }
 
 // rotateBootstrapSecrets finds the bootstrap secret of the given certificate
 // from the list of secrets stored in the informerCollection's store and updates the secret.
-func (b *BootstrapSecretRotator) rotateBootstrapSecrets() {
+func (b *BootstrapSecretRotator) rotateBootstrapSecrets(ctx context.Context) {
 	secrets := b.listBootstrapSecrets()
 	for _, secret := range secrets {
-		secretProxyUUID := strings.ReplaceAll(secret.Name, bootstrapSecretPrefix, "")
+		secretProxyUUID := strings.TrimPrefix(secret.Name, bootstrapSecretPrefix)
 		certs := b.certManager.ListIssuedCertificates()
 		for _, cert := range certs {
 			// CommonName for a xds certificate has the form: <ProxyUUID>.<kind>.<identity>
@@ -157,30 +146,22 @@ func (b *BootstrapSecretRotator) rotateBootstrapSecrets() {
 				continue
 			}
 			opts := []certificate.IssueOption{certificate.FullCNProvided()}
-			c, err := b.certManager.IssueCertificate(cert.CommonName.String(), cert.CertType, opts...)
+			c, err := b.certManager.IssueCertificate(cert.CommonName.String(), certificate.Internal, opts...)
 			if err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).
-					Msgf("Error rotating cert SerialNumber=%s", cert.GetSerialNumber())
+					Msgf("Error rotating cert %s", cert)
 			}
 			// if the secret and issued cert are the same no need to update the secret
 			if reflect.DeepEqual(c.GetTrustedCAs, secret.Data["ca.crt"]) && reflect.DeepEqual(c.PrivateKey, secret.Data["tls.key"]) && reflect.DeepEqual(c.CertChain, secret.Data["tls.crt"]) {
 				continue
 			}
-			// TODO: check mapping
 			secretData := map[string][]byte{
 				"ca.crt":  cert.GetTrustedCAs(),
 				"tls.crt": cert.GetCertificateChain(),
 				"tls.key": cert.GetPrivateKey(),
 			}
-			newSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secret.Name,
-					Namespace: secret.Namespace,
-				},
-				Type: corev1.SecretTypeTLS,
-				Data: secretData,
-			}
-			_, err = b.kubeClient.CoreV1().Secrets(secret.GetNamespace()).Update(b.context, newSecret, metav1.UpdateOptions{})
+
+			err = b.kubeController.UpdateSecret(ctx, secret, secretData)
 			if err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingBootstrapSecret)).
 					Msgf("Error updating bootstrap secret %s/%s with issued cert %s", secret.Namespace, secret.Name, cert.CommonName.String())
@@ -192,16 +173,16 @@ func (b *BootstrapSecretRotator) rotateBootstrapSecrets() {
 
 // StartBootstrapSecretRotationTicker will start a ticker to check if the bootstrap secrets should be
 // updated every BootstrapSecretRotator check interval
-func (b *BootstrapSecretRotator) StartBootstrapSecretRotationTicker() {
+func (b *BootstrapSecretRotator) StartBootstrapSecretRotationTicker(ctx context.Context) {
 	ticker := time.NewTicker(b.checkInterval)
 	go func() {
 		for {
 			select {
-			case <-b.context.Done():
+			case <-ctx.Done():
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				b.rotateBootstrapSecrets()
+				b.rotateBootstrapSecrets(ctx)
 			}
 		}
 	}()

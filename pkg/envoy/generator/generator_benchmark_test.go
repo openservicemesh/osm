@@ -41,7 +41,7 @@ func setupTestGenerator(b *testing.B) (*envoy.Proxy, *EnvoyConfigGenerator) {
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
-	kubeController := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, informerCollection, policyClient, configClient, msgBroker)
+	kubeController := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, msgBroker)
 	kubeProvider := kube.NewClient(kubeController)
 
 	meshConfig := configv1alpha2.MeshConfig{

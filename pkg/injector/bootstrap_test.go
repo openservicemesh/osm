@@ -3,10 +3,10 @@ package injector
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,17 +15,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	fakeKube "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/models"
 )
 
@@ -337,9 +336,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 })
 
 func TestListBootstrapSecrets(t *testing.T) {
-	fakeClient := fakeKube.NewSimpleClientset()
-	fakeCertManager := tresorFake.NewFake(1 * time.Hour)
-
 	testCases := []struct {
 		name       string
 		secrets    []*corev1.Secret
@@ -350,7 +346,7 @@ func TestListBootstrapSecrets(t *testing.T) {
 			secrets: []*corev1.Secret{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.DefaultCABundleSecretName,
+						Name:      "notBootstrapSecret",
 						Namespace: "testNamespace",
 					},
 				},
@@ -375,12 +371,6 @@ func TestListBootstrapSecrets(t *testing.T) {
 			secrets: []*corev1.Secret{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      constants.DefaultCABundleSecretName,
-						Namespace: "testNamespace",
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
 						Name:      "notBootstrapSecret",
 						Namespace: "testNamespace",
 					},
@@ -392,14 +382,14 @@ func TestListBootstrapSecrets(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
-			informerCollection, err := informers.NewInformerCollection("testNamespace", nil, informers.WithKubeClient(fakeClient))
+
+			mockController := k8s.NewMockController(gomock.NewController(t))
+			mockController.EXPECT().ListSecrets().Return(tc.secrets)
+
+			certManager, err := certificate.FakeCertManager()
 			assert.Nil(err)
 
-			b := NewBootstrapSecretRotator(context.Background(), fakeClient, informerCollection, fakeCertManager, time.Duration(1))
-			for _, s := range tc.secrets {
-				err = informerCollection.Add(informers.InformerKeySecret, s, t)
-				assert.Nil(err)
-			}
+			b := NewBootstrapSecretRotator(mockController, certManager, time.Duration(1))
 
 			actual := b.listBootstrapSecrets()
 			assert.ElementsMatch(tc.expSecrets, actual)
@@ -445,20 +435,11 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
-			getCertValidityPeriod := func() time.Duration { return 5 * time.Second }
-			certManager, err := certificate.NewManager(context.Background(), &certificate.FakeMRCClient{}, getCertValidityPeriod, getCertValidityPeriod, 5*time.Second)
+			certManager, err := certificate.FakeCertManager()
 			assert.Nil(err)
 
-			fakeClient := fakeKube.NewSimpleClientset()
-			informerCollection, err := informers.NewInformerCollection(testNs, nil, informers.WithKubeClient(fakeClient))
-			assert.Nil(err)
-			// add secrets to kubeClient and informer
-			for _, s := range tc.secrets {
-				_, err = fakeClient.CoreV1().Secrets(testNs).Create(context.Background(), s, metav1.CreateOptions{})
-				assert.Nil(err)
-				err = informerCollection.Add(informers.InformerKeySecret, s, t)
-				assert.Nil(err)
-			}
+			mockController := k8s.NewMockController(gomock.NewController(t))
+			mockController.EXPECT().ListSecrets().Return(tc.secrets)
 
 			cert, err := certManager.IssueCertificate(tc.certName, certificate.Internal)
 			assert.Nil(err)
@@ -468,26 +449,11 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 				"tls.crt": cert.GetCertificateChain(),
 				"tls.key": cert.GetPrivateKey(),
 			}
-			updatedSecret := corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      bootstrapSecretPrefix + proxyUUID,
-					Namespace: testNs,
-				},
-				Type: corev1.SecretTypeTLS,
-				Data: secretData,
-			}
 
-			bootstrapSecretRotator := NewBootstrapSecretRotator(context.Background(), fakeClient, informerCollection, certManager, time.Duration(1))
-			bootstrapSecretRotator.rotateBootstrapSecrets()
+			mockController.EXPECT().UpdateSecret(context.Background(), tc.secrets[0], secretData)
 
-			secrets, err := bootstrapSecretRotator.kubeClient.CoreV1().Secrets(testNs).List(bootstrapSecretRotator.context, metav1.ListOptions{})
-			assert.Nil(err)
-
-			for _, secret := range secrets.Items {
-				if strings.Contains(secret.Name, bootstrapSecretPrefix) {
-					assert.Equal(updatedSecret, secret)
-				}
-			}
+			bootstrapSecretRotator := NewBootstrapSecretRotator(mockController, certManager, time.Duration(1))
+			bootstrapSecretRotator.rotateBootstrapSecrets(context.Background())
 		})
 	}
 }

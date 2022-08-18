@@ -196,7 +196,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
 	}
 
-	k8sClient := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, policyClient, configClient, msgBroker)
+	k8sClient := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, msgBroker)
 
 	certOpts, err := getCertOptions()
 	if err != nil {

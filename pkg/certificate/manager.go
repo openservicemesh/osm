@@ -287,7 +287,6 @@ func (m *Manager) issueCertificate(options IssueOptions) (*Certificate, error) {
 	var rotate bool
 	cert := m.getFromCache(options.cacheKey()) // Don't call this while holding the lock
 	if cert != nil {
-		fmt.Println("found in cache?")
 		// check if cert needs to be rotated
 		rotate = m.shouldRotate(cert)
 		if !rotate {

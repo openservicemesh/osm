@@ -460,6 +460,10 @@ func TestGetEndpoints(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
+<<<<<<< HEAD
+=======
+
+>>>>>>> BootstrapSecretRotator has k8s.Controller instead of kubeClient and informerCollection,
 			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
 
@@ -566,7 +570,7 @@ func TestPolicyUpdateStatus(t *testing.T) {
 			policyClient := fakePolicyClient.NewSimpleClientset(tc.existingResource.(runtime.Object))
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(kubeClient), informers.WithPolicyClient(policyClient))
 			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, policyClient, nil, nil)
+			c := NewClient("osm", tests.OsmMeshConfigName, ic,kubeClient, policyClient, nil, nil)
 			switch v := tc.updatedResource.(type) {
 			case *policyv1alpha1.IngressBackend:
 				_, err = c.UpdateIngressBackendStatus(v)

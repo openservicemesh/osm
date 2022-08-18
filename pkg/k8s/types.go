@@ -3,10 +3,12 @@
 package k8s
 
 import (
+	"context"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
@@ -92,6 +94,7 @@ const (
 type Client struct {
 	policyClient   policyv1alpha1Client.Interface
 	configClient   configv1alpha2Client.Interface
+	kubeClient     kubernetes.Interface
 	informers      *informers.InformerCollection
 	msgBroker      *messaging.Broker
 	osmNamespace   string
@@ -101,6 +104,11 @@ type Client struct {
 // Controller is the controller interface for K8s services
 type Controller interface {
 	PassthroughInterface
+	// ListSecrets returns a list of secrets
+	ListSecrets() []*corev1.Secret
+
+	// UpdateSecret updates the secret with the provided data
+	UpdateSecret(ctx context.Context, secret *corev1.Secret, secretData map[string][]byte) error
 
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service

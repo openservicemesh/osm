@@ -3,7 +3,6 @@
 package injector
 
 import (
-	"context"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -41,9 +39,7 @@ type Config struct {
 // BootstrapSecretRotator is the type used to represent
 // the information needed for bootstrap secret rotation
 type BootstrapSecretRotator struct {
-	kubeClient         kubernetes.Interface
-	informerCollection *informers.InformerCollection
-	context            context.Context
-	certManager        *certificate.Manager
-	checkInterval      time.Duration
+	kubeController k8s.Controller
+	certManager    *certificate.Manager
+	checkInterval  time.Duration
 }

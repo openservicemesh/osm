@@ -18,16 +18,16 @@ var (
 	validity = time.Hour
 )
 
-// FakeMRCClient implements the MRCClient interface
-type FakeMRCClient struct{}
+// fakeMRCClient implements the MRCClient interface
+type fakeMRCClient struct{}
 
 // GetCertIssuerForMRC returns a fakeIssuer and pre-generated RootCertificate. It is intended to implement the certificate.MRCClient interface.
-func (c *FakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error) {
+func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error) {
 	return &fakeIssuer{}, pem.RootCertificate("rootCA"), nil
 }
 
 // List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
-func (c *FakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
+func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 	// return single empty object in the list.
 	return []*v1alpha2.MeshRootCertificate{{
 		Spec: v1alpha2.MeshRootCertificateSpec{
@@ -37,7 +37,7 @@ func (c *FakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 }
 
 // Watch returns a channel that has one MRCEventAdded. It is intended to implement the certificate.MRCClient interface.
-func (c *FakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
+func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 	ch := make(chan MRCEvent)
 	go func() {
 		ch <- MRCEvent{
@@ -129,7 +129,7 @@ func FakeCertManager() (*Manager, error) {
 	getCertValidityDuration := func() time.Duration { return validity }
 	cm, err := NewManager(
 		context.Background(),
-		&FakeMRCClient{},
+		&fakeMRCClient{},
 		getCertValidityDuration,
 		getCertValidityDuration,
 		1*time.Hour,
