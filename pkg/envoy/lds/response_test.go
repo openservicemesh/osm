@@ -22,8 +22,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -32,7 +32,7 @@ import (
 func TestNewResponse(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
-	policyCtrl := policy.NewMockController(mockCtrl)
+	policyCtrl := k8s.NewMockController(mockCtrl)
 	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
 	stop := make(chan struct{})

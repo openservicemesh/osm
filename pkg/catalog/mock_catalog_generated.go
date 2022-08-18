@@ -13,6 +13,7 @@ import (
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
 	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	identity "github.com/openservicemesh/osm/pkg/identity"
+	k8s "github.com/openservicemesh/osm/pkg/k8s"
 	service "github.com/openservicemesh/osm/pkg/service"
 	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
 	types "k8s.io/apimachinery/pkg/types"
@@ -82,6 +83,20 @@ func (m *MockMeshCataloger) GetInboundMeshTrafficPolicy(arg0 identity.ServiceIde
 func (mr *MockMeshCatalogerMockRecorder) GetInboundMeshTrafficPolicy(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundMeshTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetInboundMeshTrafficPolicy), arg0, arg1)
+}
+
+// GetIngressBackendPolicy mocks base method.
+func (m *MockMeshCataloger) GetIngressBackendPolicy(arg0 service.MeshService) *v1alpha1.IngressBackend {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIngressBackendPolicy", arg0)
+	ret0, _ := ret[0].(*v1alpha1.IngressBackend)
+	return ret0
+}
+
+// GetIngressBackendPolicy indicates an expected call of GetIngressBackendPolicy.
+func (mr *MockMeshCatalogerMockRecorder) GetIngressBackendPolicy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressBackendPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetIngressBackendPolicy), arg0)
 }
 
 // GetIngressTrafficPolicies mocks base method.
@@ -198,6 +213,20 @@ func (mr *MockMeshCatalogerMockRecorder) GetTargetPortForServicePort(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortForServicePort", reflect.TypeOf((*MockMeshCataloger)(nil).GetTargetPortForServicePort), arg0, arg1)
 }
 
+// GetUpstreamTrafficSetting mocks base method.
+func (m *MockMeshCataloger) GetUpstreamTrafficSetting(arg0 k8s.UpstreamTrafficSettingGetOpt) *v1alpha1.UpstreamTrafficSetting {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUpstreamTrafficSetting", arg0)
+	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
+	return ret0
+}
+
+// GetUpstreamTrafficSetting indicates an expected call of GetUpstreamTrafficSetting.
+func (mr *MockMeshCatalogerMockRecorder) GetUpstreamTrafficSetting(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSetting", reflect.TypeOf((*MockMeshCataloger)(nil).GetUpstreamTrafficSetting), arg0)
+}
+
 // IsMetricsEnabled mocks base method.
 func (m *MockMeshCataloger) IsMetricsEnabled(arg0 *envoy.Proxy) (bool, error) {
 	m.ctrl.T.Helper()
@@ -225,6 +254,20 @@ func (m *MockMeshCataloger) ListAllowedUpstreamEndpointsForService(arg0 identity
 func (mr *MockMeshCatalogerMockRecorder) ListAllowedUpstreamEndpointsForService(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllowedUpstreamEndpointsForService", reflect.TypeOf((*MockMeshCataloger)(nil).ListAllowedUpstreamEndpointsForService), arg0, arg1)
+}
+
+// ListEgressPoliciesForSourceIdentity mocks base method.
+func (m *MockMeshCataloger) ListEgressPoliciesForSourceIdentity(arg0 identity.K8sServiceAccount) []*v1alpha1.Egress {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEgressPoliciesForSourceIdentity", arg0)
+	ret0, _ := ret[0].([]*v1alpha1.Egress)
+	return ret0
+}
+
+// ListEgressPoliciesForSourceIdentity indicates an expected call of ListEgressPoliciesForSourceIdentity.
+func (mr *MockMeshCatalogerMockRecorder) ListEgressPoliciesForSourceIdentity(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEgressPoliciesForSourceIdentity", reflect.TypeOf((*MockMeshCataloger)(nil).ListEgressPoliciesForSourceIdentity), arg0)
 }
 
 // ListEndpointsForIdentity mocks base method.
@@ -310,6 +353,20 @@ func (m *MockMeshCataloger) ListOutboundServicesForIdentity(arg0 identity.Servic
 func (mr *MockMeshCatalogerMockRecorder) ListOutboundServicesForIdentity(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOutboundServicesForIdentity", reflect.TypeOf((*MockMeshCataloger)(nil).ListOutboundServicesForIdentity), arg0)
+}
+
+// ListRetryPolicies mocks base method.
+func (m *MockMeshCataloger) ListRetryPolicies(arg0 identity.K8sServiceAccount) []*v1alpha1.Retry {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListRetryPolicies", arg0)
+	ret0, _ := ret[0].([]*v1alpha1.Retry)
+	return ret0
+}
+
+// ListRetryPolicies indicates an expected call of ListRetryPolicies.
+func (mr *MockMeshCatalogerMockRecorder) ListRetryPolicies(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRetryPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).ListRetryPolicies), arg0)
 }
 
 // ListServiceIdentitiesForService mocks base method.

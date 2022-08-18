@@ -23,7 +23,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	smiFake "github.com/openservicemesh/osm/pkg/smi/fake"
@@ -2156,7 +2155,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 
 			fakeCertManager := tresorFake.NewFake(1 * time.Hour)
 
-			mockPolicyController := policy.NewMockController(mockCtrl)
+			mockPolicyController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockK8s := k8s.NewMockController(mockCtrl)
 			provider := kube.NewClient(mockK8s)

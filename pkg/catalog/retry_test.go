@@ -12,7 +12,7 @@ import (
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/policy"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -24,7 +24,7 @@ func TestGetRetryPolicy(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockPolicyController := policy.NewMockController(mockCtrl)
+	mockPolicyController := k8s.NewMockController(mockCtrl)
 	mockCompute := compute.NewMockInterface(mockCtrl)
 	mc := &MeshCatalog{
 		policyController: mockPolicyController,

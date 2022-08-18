@@ -22,7 +22,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/webhook"
@@ -52,9 +51,8 @@ func BenchmarkDoValidation(b *testing.B) {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
 	k8sClient := k8s.NewClient("osm-ns", tests.OsmMeshConfigName, informerCollection, policyClient, msgBroker)
-	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
 	kv := &policyValidator{
-		policyClient: policyController,
+		policyClient: k8sClient,
 	}
 
 	w := httptest.NewRecorder()

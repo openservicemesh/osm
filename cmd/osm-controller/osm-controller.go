@@ -47,7 +47,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/reconciler"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -229,12 +228,10 @@ func main() {
 
 	ingress.Initialize(kubeClient, k8sClient, stop, certManager, msgBroker)
 
-	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
-
 	meshCatalog := catalog.NewMeshCatalog(
 		meshSpec,
 		certManager,
-		policyController,
+		k8sClient,
 		stop,
 		computeClient,
 		msgBroker,
@@ -253,7 +250,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
 
-	if err := validator.NewValidatingWebhook(ctx, validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, certManager, kubeClient, policyController); err != nil {
+	if err := validator.NewValidatingWebhook(ctx, validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, certManager, kubeClient, k8sClient); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, fmt.Sprintf("Error starting the validating webhook server: %s", err))
 	}
 

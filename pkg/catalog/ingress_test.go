@@ -12,7 +12,7 @@ import (
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/policy"
+	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -390,7 +390,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			mockProvider := compute.NewMockInterface(mockCtrl)
-			mockPolicyController := policy.NewMockController(mockCtrl)
+			mockPolicyController := k8s.NewMockController(mockCtrl)
 
 			meshCatalog := &MeshCatalog{
 				Interface:        mockProvider,

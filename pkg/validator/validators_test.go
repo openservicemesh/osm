@@ -16,7 +16,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/policy"
 )
 
 func TestIngressBackendValidator(t *testing.T) {
@@ -775,7 +774,7 @@ func TestIngressBackendValidator(t *testing.T) {
 			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
 			assert.NoError(err)
 
-			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
+			policyClient := k8s.NewClient("osm-namespace", "osm-mesh-config", informerCollection, fakeClient, broker)
 			pv := &policyValidator{
 				policyClient: policyClient,
 			}
@@ -1294,7 +1293,7 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
 			assert.NoError(err)
 
-			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
+			policyClient := k8s.NewClient("test-namespace", "test-mesh-config", informerCollection, fakeClient, broker)
 
 			pv := &policyValidator{
 				policyClient: policyClient,

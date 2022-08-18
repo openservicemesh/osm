@@ -70,6 +70,11 @@ const (
 	MeshRootCertificate InformerKey = "MeshRootCertificate"
 )
 
+const (
+	// kindSvcAccount is the ServiceAccount kind
+	kindSvcAccount = "ServiceAccount"
+)
+
 // Client is the type used to represent the k8s client for the native k8s resources
 type Client struct {
 	policyClient   policyv1alpha1Client.Interface
@@ -131,4 +136,33 @@ type PassthroughInterface interface {
 	UpdateUpstreamTrafficSettingStatus(obj *policyv1alpha1.UpstreamTrafficSetting) (*policyv1alpha1.UpstreamTrafficSetting, error)
 
 	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
+
+	// ListEgressPoliciesForSourceIdentity lists the Egress policies for the given source identity
+	ListEgressPoliciesForSourceIdentity(identity.K8sServiceAccount) []*policyv1alpha1.Egress
+
+	// GetIngressBackendPolicy returns the IngressBackend policy for the given backend MeshService
+	GetIngressBackendPolicy(service.MeshService) *policyv1alpha1.IngressBackend
+
+	// ListRetryPolicies returns the Retry policies for the given source identity
+	ListRetryPolicies(identity.K8sServiceAccount) []*policyv1alpha1.Retry
+
+	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the given options
+	GetUpstreamTrafficSetting(UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting
+}
+
+// UpstreamTrafficSettingGetOpt specifies the options used to filter UpstreamTrafficSetting objects as a part of its getter
+type UpstreamTrafficSettingGetOpt struct {
+	// MeshService specifies the mesh service known within the cluster
+	// Must be specified when retrieving a resource matching the upstream
+	// mesh service.
+	MeshService *service.MeshService
+
+	// NamespacedName specifies the name and namespace of the resource
+	NamespacedName *types.NamespacedName
+
+	// Host specifies the host field of matching UpstreamTrafficSettings
+	// This field is not qualified by namespace because, by definition,
+	// a properly formatted Host includes a namespace and UpstreamTrafficSetting
+	// resources should not target services in different namespaces.
+	Host string
 }

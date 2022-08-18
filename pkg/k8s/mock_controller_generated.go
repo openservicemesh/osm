@@ -55,6 +55,20 @@ func (mr *MockControllerMockRecorder) GetEndpoints(arg0 interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEndpoints", reflect.TypeOf((*MockController)(nil).GetEndpoints), arg0)
 }
 
+// GetIngressBackendPolicy mocks base method.
+func (m *MockController) GetIngressBackendPolicy(arg0 service.MeshService) *v1alpha1.IngressBackend {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIngressBackendPolicy", arg0)
+	ret0, _ := ret[0].(*v1alpha1.IngressBackend)
+	return ret0
+}
+
+// GetIngressBackendPolicy indicates an expected call of GetIngressBackendPolicy.
+func (mr *MockControllerMockRecorder) GetIngressBackendPolicy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressBackendPolicy", reflect.TypeOf((*MockController)(nil).GetIngressBackendPolicy), arg0)
+}
+
 // GetMeshConfig mocks base method.
 func (m *MockController) GetMeshConfig() v1alpha2.MeshConfig {
 	m.ctrl.T.Helper()
@@ -141,6 +155,20 @@ func (mr *MockControllerMockRecorder) GetTargetPortForServicePort(arg0, arg1 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortForServicePort", reflect.TypeOf((*MockController)(nil).GetTargetPortForServicePort), arg0, arg1)
 }
 
+// GetUpstreamTrafficSetting mocks base method.
+func (m *MockController) GetUpstreamTrafficSetting(arg0 UpstreamTrafficSettingGetOpt) *v1alpha1.UpstreamTrafficSetting {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUpstreamTrafficSetting", arg0)
+	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
+	return ret0
+}
+
+// GetUpstreamTrafficSetting indicates an expected call of GetUpstreamTrafficSetting.
+func (mr *MockControllerMockRecorder) GetUpstreamTrafficSetting(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSetting", reflect.TypeOf((*MockController)(nil).GetUpstreamTrafficSetting), arg0)
+}
+
 // IsMonitoredNamespace mocks base method.
 func (m *MockController) IsMonitoredNamespace(arg0 string) bool {
 	m.ctrl.T.Helper()
@@ -153,6 +181,20 @@ func (m *MockController) IsMonitoredNamespace(arg0 string) bool {
 func (mr *MockControllerMockRecorder) IsMonitoredNamespace(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMonitoredNamespace", reflect.TypeOf((*MockController)(nil).IsMonitoredNamespace), arg0)
+}
+
+// ListEgressPoliciesForSourceIdentity mocks base method.
+func (m *MockController) ListEgressPoliciesForSourceIdentity(arg0 identity.K8sServiceAccount) []*v1alpha1.Egress {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEgressPoliciesForSourceIdentity", arg0)
+	ret0, _ := ret[0].([]*v1alpha1.Egress)
+	return ret0
+}
+
+// ListEgressPoliciesForSourceIdentity indicates an expected call of ListEgressPoliciesForSourceIdentity.
+func (mr *MockControllerMockRecorder) ListEgressPoliciesForSourceIdentity(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEgressPoliciesForSourceIdentity", reflect.TypeOf((*MockController)(nil).ListEgressPoliciesForSourceIdentity), arg0)
 }
 
 // ListMonitoredNamespaces mocks base method.
@@ -182,6 +224,20 @@ func (m *MockController) ListPods() []*v1.Pod {
 func (mr *MockControllerMockRecorder) ListPods() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPods", reflect.TypeOf((*MockController)(nil).ListPods))
+}
+
+// ListRetryPolicies mocks base method.
+func (m *MockController) ListRetryPolicies(arg0 identity.K8sServiceAccount) []*v1alpha1.Retry {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListRetryPolicies", arg0)
+	ret0, _ := ret[0].([]*v1alpha1.Retry)
+	return ret0
+}
+
+// ListRetryPolicies indicates an expected call of ListRetryPolicies.
+func (mr *MockControllerMockRecorder) ListRetryPolicies(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRetryPolicies", reflect.TypeOf((*MockController)(nil).ListRetryPolicies), arg0)
 }
 
 // ListServiceAccounts mocks base method.
