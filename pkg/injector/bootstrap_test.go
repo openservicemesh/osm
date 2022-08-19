@@ -18,12 +18,15 @@ import (
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/models"
 )
@@ -335,73 +338,17 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	})
 })
 
-func TestListBootstrapSecrets(t *testing.T) {
-	testCases := []struct {
-		name       string
-		secrets    []*corev1.Secret
-		expSecrets []*corev1.Secret
-	}{
-		{
-			name: "get bootstrap secrets from k8s secrets",
-			secrets: []*corev1.Secret{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "notBootstrapSecret",
-						Namespace: "testNamespace",
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      bootstrapSecretPrefix + "proxyUUID",
-						Namespace: "testNamespace",
-					},
-				},
-			},
-			expSecrets: []*corev1.Secret{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      bootstrapSecretPrefix + "proxyUUID",
-						Namespace: "testNamespace",
-					},
-				},
-			},
-		},
-		{
-			name: "no bootstrap secrets in k8s secrets",
-			secrets: []*corev1.Secret{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "notBootstrapSecret",
-						Namespace: "testNamespace",
-					},
-				},
-			},
-			expSecrets: []*corev1.Secret{},
-		},
-	}
-	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
-			assert := tassert.New(t)
-
-			mockController := k8s.NewMockController(gomock.NewController(t))
-			mockController.EXPECT().ListSecrets().Return(tc.secrets)
-
-			certManager, err := certificate.FakeCertManager()
-			assert.Nil(err)
-
-			b := NewBootstrapSecretRotator(mockController, certManager, time.Duration(1))
-
-			actual := b.listBootstrapSecrets()
-			assert.ElementsMatch(tc.expSecrets, actual)
-		})
-	}
-}
-
 func TestRotateBootstrapSecrets(t *testing.T) {
 	assert := tassert.New(t)
 
 	testNs := "testNamespace"
-	proxyUUID := uuid.New().String()
+	proxyUUID := uuid.New()
+	secretName := bootstrapSecretPrefix + proxyUUID.String()
+
+	proxyRegistry := registry.NewProxyRegistry(nil, nil)
+	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("foo", "bar"), nil, 1)
+	proxy.PodMetadata = &envoy.PodMetadata{Namespace: testNs}
+	proxyRegistry.RegisterProxy(proxy)
 
 	testCases := []struct {
 		name     string
@@ -410,11 +357,11 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 	}{
 		{
 			name:     "update bootstrap secret with new cert",
-			certName: certificate.CommonName(proxyUUID + ".test.cert").String(),
+			certName: certificate.CommonName(proxyUUID.String() + ".test.cert").String(),
 			secrets: []*corev1.Secret{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      bootstrapSecretPrefix + proxyUUID,
+						Name:      secretName,
 						Namespace: testNs,
 					},
 					Data: map[string][]byte{
@@ -439,7 +386,7 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 			assert.Nil(err)
 
 			mockController := k8s.NewMockController(gomock.NewController(t))
-			mockController.EXPECT().ListSecrets().Return(tc.secrets)
+			mockController.EXPECT().GetSecret(context.Background(), secretName, testNs).Return(tc.secrets[0], nil)
 
 			cert, err := certManager.IssueCertificate(tc.certName, certificate.Internal)
 			assert.Nil(err)
@@ -449,10 +396,9 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 				"tls.crt": cert.GetCertificateChain(),
 				"tls.key": cert.GetPrivateKey(),
 			}
-
 			mockController.EXPECT().UpdateSecret(context.Background(), tc.secrets[0], secretData)
 
-			bootstrapSecretRotator := NewBootstrapSecretRotator(mockController, certManager, time.Duration(1))
+			bootstrapSecretRotator := NewBootstrapSecretRotator(mockController, proxyRegistry, certManager, time.Duration(1))
 			bootstrapSecretRotator.rotateBootstrapSecrets(context.Background())
 		})
 	}

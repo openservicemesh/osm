@@ -97,6 +97,9 @@ const (
 	// OSMCertificateValidityPeriod is the TTL of the certificates used in the OSM control plane or for Envoy to xDS communication.
 	OSMCertificateValidityPeriod = 87600 * time.Hour // a decade
 
+	// CertCheckInterval is the period of ticks for a Ticker
+	CertCheckInterval = 5 * time.Second
+
 	// DefaultCABundleSecretName is the default name of the secret for the OSM CA bundle
 	DefaultCABundleSecretName = "osm-ca-bundle" // #nosec G101: Potential hardcoded credentials
 

@@ -142,6 +142,21 @@ func (mr *MockControllerMockRecorder) GetPodForProxy(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPodForProxy", reflect.TypeOf((*MockController)(nil).GetPodForProxy), arg0)
 }
 
+// GetSecret mocks base method.
+func (m *MockController) GetSecret(arg0 context.Context, arg1, arg2 string) (*v1.Secret, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSecret", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*v1.Secret)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSecret indicates an expected call of GetSecret.
+func (mr *MockControllerMockRecorder) GetSecret(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecret", reflect.TypeOf((*MockController)(nil).GetSecret), arg0, arg1, arg2)
+}
+
 // GetService mocks base method.
 func (m *MockController) GetService(arg0, arg1 string) *v1.Service {
 	m.ctrl.T.Helper()
@@ -438,6 +453,18 @@ func (m *MockController) UpdateMeshRootCertificateStatus(arg0 *v1alpha2.MeshRoot
 func (mr *MockControllerMockRecorder) UpdateMeshRootCertificateStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeshRootCertificateStatus", reflect.TypeOf((*MockController)(nil).UpdateMeshRootCertificateStatus), arg0)
+// UpdateSecret mocks base method.
+func (m *MockController) UpdateSecret(arg0 context.Context, arg1 *v1.Secret, arg2 map[string][]byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSecret", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateSecret indicates an expected call of UpdateSecret.
+func (mr *MockControllerMockRecorder) UpdateSecret(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSecret", reflect.TypeOf((*MockController)(nil).UpdateSecret), arg0, arg1, arg2)
 }
 
 // UpdateUpstreamTrafficSettingStatus mocks base method.
@@ -453,18 +480,4 @@ func (m *MockController) UpdateUpstreamTrafficSettingStatus(arg0 *v1alpha1.Upstr
 func (mr *MockControllerMockRecorder) UpdateUpstreamTrafficSettingStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUpstreamTrafficSettingStatus", reflect.TypeOf((*MockController)(nil).UpdateUpstreamTrafficSettingStatus), arg0)
-}
-
-// UpdateSecret mocks base method.
-func (m *MockController) UpdateSecret(arg0 context.Context, arg1 *v1.Secret, arg2 map[string][]byte) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateSecret", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateSecret indicates an expected call of UpdateSecret.
-func (mr *MockControllerMockRecorder) UpdateSecret(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSecret", reflect.TypeOf((*MockController)(nil).UpdateSecret), arg0, arg1, arg2)
 }

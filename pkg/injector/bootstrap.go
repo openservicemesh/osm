@@ -4,17 +4,19 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	xds_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
+	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/models"
@@ -107,66 +109,57 @@ func (wh *mutatingWebhook) marshalAndSaveBootstrap(name, namespace string, confi
 }
 
 // NewBootstrapSecretRotator returns a new bootstrap secret rotator.
-func NewBootstrapSecretRotator(kubeController k8s.Controller, certManager *certificate.Manager, checkInterval time.Duration) *BootstrapSecretRotator {
+func NewBootstrapSecretRotator(kubeController k8s.Controller, proxyRegistry *registry.ProxyRegistry, certManager *certificate.Manager, checkInterval time.Duration) *BootstrapSecretRotator {
 	return &BootstrapSecretRotator{
 		kubeController: kubeController,
+		proxyRegistry:  proxyRegistry,
 		certManager:    certManager,
 		checkInterval:  checkInterval,
 	}
 }
 
-// listBootstrapSecrets returns the bootstrap secrets stored in the informerCollection's store.
-// this function is used to get the namespace of the secrets.
-func (b *BootstrapSecretRotator) listBootstrapSecrets() []*corev1.Secret {
-	secrets := b.kubeController.ListSecrets()
-	var bootstrapSecrets []*corev1.Secret
-
-	for _, secret := range secrets {
-		// finds bootstrap secrets
-		if strings.Contains(secret.Name, bootstrapSecretPrefix) {
-			bootstrapSecrets = append(bootstrapSecrets, secret)
-		}
-	}
-
-	return bootstrapSecrets
-}
-
-// rotateBootstrapSecrets finds the bootstrap secret of the given certificate
-// from the list of secrets stored in the informerCollection's store and updates the secret.
+// rotateBootstrapSecrets updates the bootstrap secret from the connectedProxy by
+// getting the current or issuing a new certificate.
 func (b *BootstrapSecretRotator) rotateBootstrapSecrets(ctx context.Context) {
-	secrets := b.listBootstrapSecrets()
-	for _, secret := range secrets {
-		secretProxyUUID := strings.TrimPrefix(secret.Name, bootstrapSecretPrefix)
-		certs := b.certManager.ListIssuedCertificates()
-		for _, cert := range certs {
-			// CommonName for a xds certificate has the form: <ProxyUUID>.<kind>.<identity>
-			certProxyUUID := strings.Split(cert.CommonName.String(), ".")[0]
-			// checks if this is the corresponding cert for the secret
-			if secretProxyUUID != certProxyUUID {
-				continue
-			}
-			opts := []certificate.IssueOption{certificate.FullCNProvided()}
-			c, err := b.certManager.IssueCertificate(cert.CommonName.String(), certificate.Internal, opts...)
-			if err != nil {
-				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).
-					Msgf("Error rotating cert %s", cert)
-			}
-			// if the secret and issued cert are the same no need to update the secret
-			if reflect.DeepEqual(c.GetTrustedCAs, secret.Data["ca.crt"]) && reflect.DeepEqual(c.PrivateKey, secret.Data["tls.key"]) && reflect.DeepEqual(c.CertChain, secret.Data["tls.crt"]) {
-				continue
-			}
-			secretData := map[string][]byte{
-				"ca.crt":  cert.GetTrustedCAs(),
-				"tls.crt": cert.GetCertificateChain(),
-				"tls.key": cert.GetPrivateKey(),
-			}
+	proxies := b.proxyRegistry.ListConnectedProxies()
+	for _, proxy := range proxies {
+		envoyBootstrapConfigName := bootstrapSecretPrefix + proxy.UUID.String()
+		secret, err := b.kubeController.GetSecret(ctx, envoyBootstrapConfigName, proxy.PodMetadata.Namespace)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting the secret %s/%s", proxy.PodMetadata.Namespace, envoyBootstrapConfigName)
+			continue
+		}
 
-			err = b.kubeController.UpdateSecret(ctx, secret, secretData)
-			if err != nil {
+		cnPrefix := envoy.NewXDSCertCNPrefix(proxy.UUID, envoy.KindSidecar, proxy.Identity)
+		bootstrapCert, err := b.certManager.IssueCertificate(cnPrefix, certificate.Internal)
+		if err != nil {
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).
+				Msgf("Error rotating cert %s", bootstrapCert)
+		}
+
+		ca := bootstrapCert.GetTrustedCAs()
+		certChain := bootstrapCert.GetCertificateChain()
+		pk := bootstrapCert.GetPrivateKey()
+
+		// if the secret and issued cert are the same no need to update the secret
+		if reflect.DeepEqual(ca, secret.Data["ca.crt"]) && reflect.DeepEqual(pk, secret.Data["tls.key"]) && reflect.DeepEqual(certChain, secret.Data["tls.crt"]) {
+			continue
+		}
+		secretData := map[string][]byte{
+			"ca.crt":  ca,
+			"tls.crt": certChain,
+			"tls.key": pk,
+		}
+		err = b.kubeController.UpdateSecret(ctx, secret, secretData)
+		if err != nil {
+			if apierrors.IsConflict(err) {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingBootstrapSecret)).
-					Msgf("Error updating bootstrap secret %s/%s with issued cert %s", secret.Namespace, secret.Name, cert.CommonName.String())
+					Msgf("There was an update conflict while trying to update the envoy bootstrap config secret %s/%s with issued cert %s", secret.Namespace, secret.Name, bootstrapCert)
 				continue
 			}
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingBootstrapSecret)).
+				Msgf("Error updating bootstrap secret %s/%s with issued cert %s", secret.Namespace, secret.Name, bootstrapCert)
+			continue
 		}
 	}
 }

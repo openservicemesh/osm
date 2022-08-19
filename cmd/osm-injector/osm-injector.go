@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	smiAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
@@ -204,19 +203,19 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
 	}
-	certCheckInterval := 5 * time.Second
+
 	// Intitialize certificate manager/provider
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
 		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, kubeController, informerCollection, certCheckInterval)
+			certOpts, kubeController, informerCollection, constants.CertCheckInterval)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s from MRC", certProviderKind)
 		}
 	} else {
 		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, kubeController, certCheckInterval, trustDomain)
+			certOpts, kubeController, constants.CertCheckInterval, trustDomain)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s", certProviderKind)
@@ -227,9 +226,6 @@ func main() {
 	if err := injector.NewMutatingWebhook(ctx, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, osmVersion, webhookTimeout, enableReconciler, corev1.PullPolicy(osmContainerPullPolicy)); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, fmt.Sprintf("Error creating sidecar injector webhook: %s", err))
 	}
-
-	bootstrapSecretRotator := injector.NewBootstrapSecretRotator(kubeController, certManager, certCheckInterval)
-	bootstrapSecretRotator.StartBootstrapSecretRotationTicker(ctx)
 
 	version.SetMetric()
 	/*

@@ -104,11 +104,11 @@ type Client struct {
 // Controller is the controller interface for K8s services
 type Controller interface {
 	PassthroughInterface
-	// ListSecrets returns a list of secrets
-	ListSecrets() []*corev1.Secret
+	// GetSecret returns the secret, given the name and namespace
+	GetSecret(context.Context, string, string) (*corev1.Secret, error)
 
 	// UpdateSecret updates the secret with the provided data
-	UpdateSecret(ctx context.Context, secret *corev1.Secret, secretData map[string][]byte) error
+	UpdateSecret(context.Context, *corev1.Secret, map[string][]byte) error
 
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service
