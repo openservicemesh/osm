@@ -1,22 +1,32 @@
 package validator
 
 import (
+	"context"
 	"testing"
+	"time"
 
-	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
+
+func newNsK8sObj(ns string) *corev1.Namespace {
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ns,
+		},
+	}
+}
 
 func TestIngressBackendValidator(t *testing.T) {
 	testCases := []struct {
@@ -753,8 +763,6 @@ func TestIngressBackendValidator(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
 			stop := make(chan struct{})
 			defer close(stop)
 			broker := messaging.NewBroker(stop)
@@ -764,14 +772,11 @@ func TestIngressBackendValidator(t *testing.T) {
 				objects[i] = tc.existingIngressBackends[i]
 			}
 
-			// TODO: Get rid of this (it's only used for namespace monitor verification)
-			k8sController := k8s.NewMockController(mockCtrl)
-			if len(objects) > 0 {
-				k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
-			}
-
 			fakeClient := fakePolicyClientset.NewSimpleClientset(objects...)
-			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
+			informerCollection, err := informers.NewInformerCollection("osm", stop,
+				informers.WithPolicyClient(fakeClient),
+				informers.WithKubeClient(testclient.NewSimpleClientset()),
+			)
 			assert.NoError(err)
 
 			policyClient := k8s.NewClient("osm-namespace", "osm-mesh-config", informerCollection, fakeClient, broker)
@@ -784,9 +789,18 @@ func TestIngressBackendValidator(t *testing.T) {
 			// policy client's msgBroker eventhandler registered when it initially runs
 			// and that leads to a race condition in tests
 			if len(objects) > 0 {
-				events, unsub := broker.SubscribeKubeEvents(events.IngressBackend.Added())
-				<-events
-				unsub()
+				ticker := time.NewTicker(1 * time.Second)
+				for {
+					<-ticker.C
+					list, err := fakeClient.PolicyV1alpha1().IngressBackends("default").List(context.Background(), metav1.ListOptions{})
+					if err != nil {
+						t.Logf("Error getting IngressBackends: %v", err)
+						continue
+					}
+					if len(list.Items) > 0 {
+						break
+					}
+				}
 			}
 
 			resp, err := pv.ingressBackendValidator(tc.input)
@@ -1028,6 +1042,7 @@ func TestTrafficTargetValidator(t *testing.T) {
 }
 
 func TestUpstreamTrafficSettingValidator(t *testing.T) {
+	testNs := "test"
 	testCases := []struct {
 		name                            string
 		input                           *admissionv1.AdmissionRequest
@@ -1094,7 +1109,7 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "httpbin1",
-						Namespace: "test",
+						Namespace: testNs,
 					},
 					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
 						Host: "httpbin.test.svc.cluster.local",
@@ -1136,7 +1151,7 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "httpbin",
-						Namespace: "test",
+						Namespace: testNs,
 					},
 					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
 						Host:               "httpbin.test.svc.cluster.local",
@@ -1272,8 +1287,6 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
 			stop := make(chan struct{})
 			defer close(stop)
 			broker := messaging.NewBroker(stop)
@@ -1283,14 +1296,11 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 				objects[i] = tc.existingUpstreamTrafficSettings[i]
 			}
 
-			// TODO: Get rid of this (it's only used for namespace monitor verification)
-			k8sController := k8s.NewMockController(mockCtrl)
-			if len(objects) > 0 {
-				k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
-			}
-
 			fakeClient := fakePolicyClientset.NewSimpleClientset(objects...)
-			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
+			informerCollection, err := informers.NewInformerCollection("osm", stop,
+				informers.WithPolicyClient(fakeClient),
+				informers.WithKubeClient(testclient.NewSimpleClientset()),
+			)
 			assert.NoError(err)
 
 			policyClient := k8s.NewClient("test-namespace", "test-mesh-config", informerCollection, fakeClient, broker)
@@ -1299,14 +1309,30 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 				policyClient: policyClient,
 			}
 
+			if len(objects) > 0 {
+				// monitor namespaces
+				err := informerCollection.Add(informers.InformerKeyNamespace, newNsK8sObj(testNs), t)
+				assert.Nil(err)
+				assert.True(policyClient.IsMonitoredNamespace(testNs))
+			}
+
 			// Block until we start getting upstreamtrafficsetting updates
 			// We only do this because the informerCollection doesn't have the
 			// policy client's msgBroker eventhandler registered when it initially runs
 			// and that leads to a race condition in tests (due to the kubeController mockss)
 			if len(objects) > 0 {
-				events, unsub := broker.SubscribeKubeEvents(events.UpstreamTrafficSetting.Added())
-				<-events
-				unsub()
+				ticker := time.NewTicker(1 * time.Second)
+				for {
+					<-ticker.C
+					list, err := fakeClient.PolicyV1alpha1().UpstreamTrafficSettings(testNs).List(context.Background(), metav1.ListOptions{})
+					if err != nil {
+						t.Logf("Error getting UpstreamTrafficSettings: %v", err)
+						continue
+					}
+					if len(list.Items) > 0 {
+						break
+					}
+				}
 			}
 
 			resp, err := pv.upstreamTrafficSettingValidator(tc.input)
