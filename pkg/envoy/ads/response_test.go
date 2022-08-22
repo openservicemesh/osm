@@ -23,7 +23,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -36,9 +35,7 @@ var _ = Describe("Test ADS response functions", func() {
 	proxyUUID := uuid.New()
 	proxySvcAccount := tests.BookstoreServiceAccount
 
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}), nil)
+	proxyRegistry := registry.NewProxyRegistry()
 
 	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil, 1)
 
@@ -66,6 +63,8 @@ var _ = Describe("Test ADS response functions", func() {
 				},
 			},
 		}).AnyTimes()
+		provider.EXPECT().ListServiceIdentitiesForService(gomock.Any()).Return(nil).AnyTimes()
+		provider.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
 		metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)
 
@@ -143,6 +142,7 @@ var _ = Describe("Test ADS response functions", func() {
 				},
 			},
 		}).AnyTimes()
+		provider.EXPECT().ListServiceIdentitiesForService(gomock.Any()).Return(nil).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
 			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, fakeCertManager, kubectrlMock, nil)

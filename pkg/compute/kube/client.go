@@ -127,9 +127,7 @@ func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 			continue
 		}
 
-		podLabels := pod.ObjectMeta.Labels
-		meshServicesForPod := c.getServicesByLabels(podLabels, pod.Namespace)
-
+		meshServicesForPod := c.getServicesByLabels(pod.ObjectMeta.Labels, pod.Namespace)
 		for _, svc := range meshServicesForPod {
 			if added := svcSet.Add(svc); added {
 				meshServices = append(meshServices, svc)
@@ -139,6 +137,27 @@ func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 
 	log.Trace().Msgf("[%s] Services for service account %s: %v", c.GetID(), svcAccount, meshServices)
 	return meshServices
+}
+
+// ListServicesForProxy maps an Envoy instance to a number of Kubernetes services.
+func (c *client) ListServicesForProxy(p *envoy.Proxy) ([]service.MeshService, error) {
+	var meshServices []service.MeshService
+	pod, err := c.kubeController.GetPodForProxy(p)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, svc := range c.getServicesByLabels(pod.ObjectMeta.Labels, pod.Namespace) {
+		// Filter out headless services that point to a specific proxy.
+		if svc.Subdomain() == pod.Name || svc.Subdomain() == "" {
+			meshServices = append(meshServices, svc)
+		}
+	}
+
+	log.Trace().Msgf("Services associated with Pod with UID=%s Name=%s/%s: %v",
+		pod.ObjectMeta.UID, pod.Namespace, pod.Name, meshServices)
+
+	return meshServices, nil
 }
 
 // getServicesByLabels gets Kubernetes services whose selectors match the given labels

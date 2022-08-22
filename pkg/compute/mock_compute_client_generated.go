@@ -196,6 +196,21 @@ func (mr *MockInterfaceMockRecorder) ListServices() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*MockInterface)(nil).ListServices))
 }
 
+// ListServicesForProxy mocks base method.
+func (m *MockInterface) ListServicesForProxy(arg0 *envoy.Proxy) ([]service.MeshService, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListServicesForProxy", arg0)
+	ret0, _ := ret[0].([]service.MeshService)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListServicesForProxy indicates an expected call of ListServicesForProxy.
+func (mr *MockInterfaceMockRecorder) ListServicesForProxy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServicesForProxy", reflect.TypeOf((*MockInterface)(nil).ListServicesForProxy), arg0)
+}
+
 // UpdateIngressBackendStatus mocks base method.
 func (m *MockInterface) UpdateIngressBackendStatus(arg0 *v1alpha1.IngressBackend) (*v1alpha1.IngressBackend, error) {
 	m.ctrl.T.Helper()

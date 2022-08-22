@@ -34,4 +34,7 @@ type Interface interface {
 	IsMetricsEnabled(*envoy.Proxy) (bool, error)
 
 	GetHostnamesForService(svc service.MeshService, localNamespace bool) []string
+
+	// ListServicesForProxy gets the services that map to the given proxy.
+	ListServicesForProxy(p *envoy.Proxy) ([]service.MeshService, error)
 }
