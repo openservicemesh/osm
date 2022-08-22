@@ -2,44 +2,14 @@ package utils
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"fmt"
 
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/constants"
 )
-
-func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []byte, ca []byte) (grpc.ServerOption, error) {
-	certif, err := tls.X509KeyPair(certPem, keyPem)
-	if err != nil {
-		return nil, fmt.Errorf("[grpc][mTLS][%s] Failed loading Certificate (%+v) and Key (%+v) PEM files", serverName, certPem, keyPem)
-	}
-
-	certPool := x509.NewCertPool()
-
-	// Load the set of Root CAs
-	if ok := certPool.AppendCertsFromPEM(ca); !ok {
-		return nil, fmt.Errorf("[grpc][mTLS][%s] Failed to append client certs", serverName)
-	}
-
-	// #nosec G402
-	tlsConfig := tls.Config{
-		InsecureSkipVerify: insecure,
-		ServerName:         serverName,
-		ClientAuth:         tls.RequireAndVerifyClientCert,
-		Certificates:       []tls.Certificate{certif},
-		ClientCAs:          certPool,
-		MinVersion:         constants.MinTLSVersion,
-	}
-	return grpc.Creds(credentials.NewTLS(&tlsConfig)), nil
-}
 
 // ValidateClient ensures that the connected client is authorized to connect to the gRPC server.
 func ValidateClient(ctx context.Context) (certificate.CommonName, certificate.SerialNumber, error) {

@@ -20,45 +20,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func TestSetupMutualTLS(t *testing.T) {
-	assert := tassert.New(t)
-
-	type setupMutualTLStest struct {
-		certPem       []byte
-		keyPem        []byte
-		ca            []byte
-		expectedError string
-	}
-
-	certManager := tresorFake.NewFake(1 * time.Hour)
-	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.Internal)
-
-	assert.NoError(err)
-
-	serverType := "ADS"
-	goodCertPem := adsCert.GetCertificateChain()
-	goodKeyPem := adsCert.GetPrivateKey()
-	goodCA := adsCert.GetIssuingCA()
-	var emptyByteArray []byte
-
-	setupMutualTLStests := []setupMutualTLStest{
-		{emptyByteArray, goodKeyPem, goodCA, "[grpc][mTLS][ADS] Failed loading Certificate ([]) and Key "},
-		{goodCertPem, goodKeyPem, emptyByteArray, "[grpc][mTLS][ADS] Failed to append client certs"},
-		{goodCertPem, goodKeyPem, goodCA, ""},
-	}
-
-	for _, smt := range setupMutualTLStests {
-		result, err := setupMutualTLS(true, serverType, smt.certPem, smt.keyPem, smt.ca)
-		if err != nil {
-			assert.Nil(result)
-			assert.Contains(err.Error(), smt.expectedError)
-		} else {
-			assert.NotNil(result)
-			assert.Empty(smt.expectedError)
-		}
-	}
-}
-
 func TestValidateClient(t *testing.T) {
 	assert := tassert.New(t)
 

@@ -1,4 +1,4 @@
-package utils
+package ads
 
 import (
 	"context"
@@ -14,29 +14,21 @@ import (
 func TestNewGrpc(t *testing.T) {
 	assert := tassert.New(t)
 	certManager := tresorFake.NewFake(1 * time.Hour)
-	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.Internal)
-	assert.NoError(err)
-
-	certPem := adsCert.GetCertificateChain()
-	keyPem := adsCert.GetPrivateKey()
-	rootPem := adsCert.GetIssuingCA()
-	var emptyByteArray []byte
 
 	type newGrpcTest struct {
 		serverType    string
 		port          int
-		certPem       []byte
+		cm            *certificate.Manager
 		expectedError bool
 	}
 
 	newGrpcTests := []newGrpcTest{
-		{"abc", 123, emptyByteArray, true},
-		{"ADS", 8081, emptyByteArray, true},
-		{"ADS", 8080, certPem, false},
+		{"abc", 123, nil, true},
+		{"ADS", 8080, certManager, false},
 	}
 
 	for _, gt := range newGrpcTests {
-		resServer, resListener, err := NewGrpc(gt.serverType, gt.port, gt.certPem, keyPem, rootPem)
+		resServer, resListener, err := NewGrpc(gt.serverType, gt.port, "fake-ads", certManager)
 		if err != nil {
 			assert.Nil(resServer)
 			assert.Nil(resListener)
@@ -53,18 +45,17 @@ func TestGrpcServe(t *testing.T) {
 	assert := tassert.New(t)
 
 	certManager := tresorFake.NewFake(1 * time.Hour)
-	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.Internal)
-
-	assert.NoError(err)
 
 	serverType := "ADS"
+	certName := "fake-ads"
 	port := 9999
-	grpcServer, lis, err := NewGrpc(serverType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
+	grpcServer, lis, err := NewGrpc(serverType, port, certName, certManager)
 	assert.Nil(err)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	errorCh := make(chan interface{}, 1)
-	go GrpcServe(ctx, grpcServer, lis, cancel, serverType, errorCh)
+	err = grpcServer.GrpcServe(ctx, cancel, lis, errorCh)
+	assert.NoError(err)
 	defer cancel()
 	time.Sleep(50 * time.Millisecond)
 
