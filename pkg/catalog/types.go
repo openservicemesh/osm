@@ -9,7 +9,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -25,10 +24,6 @@ type MeshCatalog struct {
 	compute.Interface
 	meshSpec    smi.MeshSpec
 	certManager *certificate.Manager
-
-	// policyController implements the functionality related to the resources part of the policy.openservicemesh.io
-	// API group, such as egress.
-	policyController k8s.PassthroughInterface
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.

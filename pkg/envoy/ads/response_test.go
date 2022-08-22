@@ -45,6 +45,9 @@ var _ = Describe("Test ADS response functions", func() {
 
 	provider := compute.NewMockInterface(mockCtrl)
 	provider.EXPECT().IsMetricsEnabled(gomock.Any()).Return(true, nil).AnyTimes()
+	provider.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(nil).AnyTimes()
 
 	mc := catalogFake.NewFakeMeshCatalog(provider)
 

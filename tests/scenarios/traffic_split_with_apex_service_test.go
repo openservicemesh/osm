@@ -36,6 +36,9 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	provider.EXPECT().GetTargetPortForServicePort(gomock.Any(), gomock.Any()).Return(uint16(8888), nil).AnyTimes()
 	provider.EXPECT().ListServicesForProxy(gomock.Any()).Return(nil, nil).AnyTimes()
 
+	provider.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(nil).AnyTimes()
 	for _, svc := range services {
 		provider.EXPECT().GetHostnamesForService(svc, true).Return(kube.NewClient(nil).GetHostnamesForService(svc, true)).AnyTimes()
 	}
@@ -46,15 +49,20 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	a.Nil(err)
 	a.NotNil(proxy)
 
+	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
+		return nil, nil
+	}), nil)
+
 	mc := tresorFake.NewFake(1 * time.Hour)
 	a.NotNil(a)
 
-	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mc, nil)
+	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mc, proxyRegistry)
 	a.Nil(err)
 	a.Len(resources, 1) // only outbound routes configured for this test
 
 	// ---[  Prepare the config for testing  ]-------
 	// Order matters. In this test, we do not expect rds-inbound route configuration, and rds-outbound is expected
+	// to be configured per outbound port.
 	routeCfg, ok := resources[0].(*xds_route.RouteConfiguration)
 	a.True(ok)
 	a.Equal("rds-outbound.8888", routeCfg.Name)

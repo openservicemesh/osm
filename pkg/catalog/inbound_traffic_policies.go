@@ -67,7 +67,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfigForSvc)
 
-		upstreamTrafficSetting := mc.policyController.GetUpstreamTrafficSetting(
+		upstreamTrafficSetting := mc.Interface.GetUpstreamTrafficSetting(
 			k8s.UpstreamTrafficSettingGetOpt{MeshService: &upstreamSvc})
 		clusterConfigs = append(clusterConfigs, getRateLimitServiceClusters(upstreamTrafficSetting, rlsClusterSet)...)
 

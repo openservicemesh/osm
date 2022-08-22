@@ -58,17 +58,10 @@ func NewClient(osmNamespace, meshConfigName string, informerCollection *osminfor
 		informerInitHandlerMap[informer]()
 	}
 
-	shouldObserve := func(obj interface{}) bool {
-		object, ok := obj.(metav1.Object)
-		if !ok {
-			return false
-		}
-		return c.IsMonitoredNamespace(object.GetNamespace())
-	}
-	c.informers.AddEventHandler(informers.InformerKeyEgress, GetEventHandlerFuncs(shouldObserve, msgBroker))
-	c.informers.AddEventHandler(informers.InformerKeyIngressBackend, GetEventHandlerFuncs(shouldObserve, msgBroker))
-	c.informers.AddEventHandler(informers.InformerKeyRetry, GetEventHandlerFuncs(shouldObserve, msgBroker))
-	c.informers.AddEventHandler(informers.InformerKeyUpstreamTrafficSetting, GetEventHandlerFuncs(shouldObserve, msgBroker))
+	c.informers.AddEventHandler(informers.InformerKeyEgress, GetEventHandlerFuncs(c.shouldObserve, msgBroker))
+	c.informers.AddEventHandler(informers.InformerKeyIngressBackend, GetEventHandlerFuncs(c.shouldObserve, msgBroker))
+	c.informers.AddEventHandler(informers.InformerKeyRetry, GetEventHandlerFuncs(c.shouldObserve, msgBroker))
+	c.informers.AddEventHandler(informers.InformerKeyUpstreamTrafficSetting, GetEventHandlerFuncs(c.shouldObserve, msgBroker))
 
 	return c
 }

@@ -579,12 +579,10 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 
 			mockProvider := compute.NewMockInterface(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockPolicyController := k8s.NewMockController(mockCtrl)
 
 			mc := MeshCatalog{
 				Interface:        mockProvider,
 				meshSpec:         mockMeshSpec,
-				policyController: mockPolicyController,
 			}
 
 			// Mock calls to k8s client caches
@@ -632,7 +630,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				}).AnyTimes()
 
 			// Mock calls to UpstreamTrafficSetting lookups
-			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).DoAndReturn(
+			mockProvider.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).DoAndReturn(
 				func(opt k8s.UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting {
 					// In this test, only service ns1/<p1|p2> has UpstreamTrafficSetting configured
 					if opt.MeshService != nil &&

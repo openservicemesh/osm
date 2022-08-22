@@ -22,7 +22,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -32,14 +31,10 @@ import (
 func TestNewResponse(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
-	policyCtrl := k8s.NewMockController(mockCtrl)
 	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
 	stop := make(chan struct{})
 
-	policyCtrl.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
-	policyCtrl.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
-	policyCtrl.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(nil).AnyTimes()
 	mockMeshSpec.EXPECT().ListTrafficTargets(gomock.Any()).Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
 	mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
 	mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return([]*split.TrafficSplit{}).AnyTimes()
@@ -53,6 +48,9 @@ func TestNewResponse(t *testing.T) {
 	}
 	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
 	provider := compute.NewMockInterface(mockCtrl)
+	provider.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(nil).AnyTimes()
 
 	provider.EXPECT().GetServicesForServiceIdentity(tests.BookstoreServiceIdentity).Return([]service.MeshService{
 		tests.BookstoreApexService,
@@ -87,7 +85,6 @@ func TestNewResponse(t *testing.T) {
 	meshCatalog := catalog.NewMeshCatalog(
 		mockMeshSpec,
 		tresorFake.NewFake(time.Hour),
-		policyCtrl,
 		stop,
 		provider,
 		messaging.NewBroker(stop),

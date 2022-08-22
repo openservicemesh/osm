@@ -42,7 +42,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicies(meshServices []service.MeshServ
 // Depending on if the IngressBackend API is enabled, the policies will be generated either from the IngressBackend
 // or Kubernetes Ingress API.
 func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error) {
-	ingressBackendPolicy := mc.policyController.GetIngressBackendPolicy(svc)
+	ingressBackendPolicy := mc.Interface.GetIngressBackendPolicy(svc)
 	if ingressBackendPolicy == nil {
 		log.Trace().Msgf("Did not find IngressBackend policy for service %s", svc)
 		return nil, nil

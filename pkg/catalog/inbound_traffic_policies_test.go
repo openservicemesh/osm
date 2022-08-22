@@ -2155,19 +2155,17 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 
 			fakeCertManager := tresorFake.NewFake(1 * time.Hour)
 
-			mockPolicyController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockK8s := k8s.NewMockController(mockCtrl)
 			provider := kube.NewClient(mockK8s)
 
 			mc := MeshCatalog{
-				policyController: mockPolicyController,
 				certManager:      fakeCertManager,
 				meshSpec:         mockMeshSpec,
 				Interface:        provider,
 			}
 
-			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
+			mockK8s.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
 			mockK8s.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 				Spec: v1alpha2.MeshConfigSpec{
 					Traffic: v1alpha2.TrafficSpec{

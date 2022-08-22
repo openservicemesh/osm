@@ -111,7 +111,6 @@ func setupTestServer(b *testing.B) {
 	mc := catalog.NewMeshCatalog(
 		meshSpec,
 		certManager,
-		kubeController,
 		stop,
 		kubeProvider,
 		msgBroker,

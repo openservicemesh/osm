@@ -27,7 +27,6 @@ func TestGetRetryPolicy(t *testing.T) {
 	mockPolicyController := k8s.NewMockController(mockCtrl)
 	mockCompute := compute.NewMockInterface(mockCtrl)
 	mc := &MeshCatalog{
-		policyController: mockPolicyController,
 		Interface:        mockCompute,
 	}
 	retrySrc := identity.ServiceIdentity("sa1.ns")
