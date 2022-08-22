@@ -99,7 +99,7 @@ func TestNewResponse(t *testing.T) {
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
 	mockCatalog.EXPECT().IsMetricsEnabled(proxy).Return(true, nil).AnyTimes()
 	mockCatalog.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
-	mockCatalog.EXPECT().GetServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	mockCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
 	podlabels := map[string]string{
 		constants.AppLabel:               testMeshSvc.Name,
@@ -411,7 +411,7 @@ func TestNewResponseListServicesError(t *testing.T) {
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxy.Identity).Return(nil).AnyTimes()
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
-	meshCatalog.EXPECT().GetServicesForProxy(proxy).Return(nil, errors.New("no services found")).AnyTimes()
+	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, errors.New("no services found")).AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil)
 	tassert.Error(t, err)
@@ -431,7 +431,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	meshCatalog.EXPECT().GetEgressTrafficPolicy(proxyIdentity).Return(nil, fmt.Errorf("some error")).Times(1)
 	meshCatalog.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
-	meshCatalog.EXPECT().GetServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil)
 	tassert.NoError(t, err)
@@ -455,7 +455,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 		},
 	}, nil).Times(1)
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
-	meshCatalog.EXPECT().GetServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
 	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil)
 	tassert.NoError(t, err)

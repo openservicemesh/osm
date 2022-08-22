@@ -238,7 +238,7 @@ func TestRDSRespose(t *testing.T) {
 			mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().GetMeshConfig().AnyTimes()
-			mockCatalog.EXPECT().GetServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+			mockCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
 			cm := tresorFake.NewFake(1 * time.Hour)
 

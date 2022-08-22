@@ -25,7 +25,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	// Build local clusters based on allowed inbound traffic policies
-	proxyServices, err := meshCatalog.GetServicesForProxy(proxy)
+	proxyServices, err := meshCatalog.ListServicesForProxy(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
 			Str("proxy", proxy.String()).Msg("Error looking up MeshServices associated with proxy")

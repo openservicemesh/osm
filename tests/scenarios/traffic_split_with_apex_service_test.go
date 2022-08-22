@@ -34,6 +34,8 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	provider.EXPECT().GetServicesForServiceIdentity(gomock.Any()).Return(services).AnyTimes()
 	provider.EXPECT().GetResolvableEndpointsForService(gomock.Any()).Return([]endpoint.Endpoint{tests.Endpoint}).AnyTimes()
 	provider.EXPECT().GetTargetPortForServicePort(gomock.Any(), gomock.Any()).Return(uint16(8888), nil).AnyTimes()
+	provider.EXPECT().ListServicesForProxy(gomock.Any()).Return(nil, nil).AnyTimes()
+
 	for _, svc := range services {
 		provider.EXPECT().GetHostnamesForService(svc, true).Return(kube.NewClient(nil).GetHostnamesForService(svc, true)).AnyTimes()
 	}
@@ -49,12 +51,11 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 
 	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mc, nil)
 	a.Nil(err)
-	a.Len(resources, 2)
+	a.Len(resources, 1) // only outbound routes configured for this test
 
 	// ---[  Prepare the config for testing  ]-------
-	// Order matters. In this test, the first config is rds-inbound, and rds-outbound is expected
-	// to be configured per outbound port.
-	routeCfg, ok := resources[1].(*xds_route.RouteConfiguration)
+	// Order matters. In this test, we do not expect rds-inbound route configuration, and rds-outbound is expected
+	routeCfg, ok := resources[0].(*xds_route.RouteConfiguration)
 	a.True(ok)
 	a.Equal("rds-outbound.8888", routeCfg.Name)
 

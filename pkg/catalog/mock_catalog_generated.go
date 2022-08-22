@@ -169,21 +169,6 @@ func (mr *MockMeshCatalogerMockRecorder) GetResolvableEndpointsForService(arg0 i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResolvableEndpointsForService", reflect.TypeOf((*MockMeshCataloger)(nil).GetResolvableEndpointsForService), arg0)
 }
 
-// GetServicesForProxy mocks base method.
-func (m *MockMeshCataloger) GetServicesForProxy(arg0 *envoy.Proxy) ([]service.MeshService, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServicesForProxy", arg0)
-	ret0, _ := ret[0].([]service.MeshService)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetServicesForProxy indicates an expected call of GetServicesForProxy.
-func (mr *MockMeshCatalogerMockRecorder) GetServicesForProxy(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesForProxy", reflect.TypeOf((*MockMeshCataloger)(nil).GetServicesForProxy), arg0)
-}
-
 // GetServicesForServiceIdentity mocks base method.
 func (m *MockMeshCataloger) GetServicesForServiceIdentity(arg0 identity.ServiceIdentity) []service.MeshService {
 	m.ctrl.T.Helper()
@@ -353,6 +338,21 @@ func (m *MockMeshCataloger) ListServices() []service.MeshService {
 func (mr *MockMeshCatalogerMockRecorder) ListServices() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*MockMeshCataloger)(nil).ListServices))
+}
+
+// ListServicesForProxy mocks base method.
+func (m *MockMeshCataloger) ListServicesForProxy(arg0 *envoy.Proxy) ([]service.MeshService, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListServicesForProxy", arg0)
+	ret0, _ := ret[0].([]service.MeshService)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListServicesForProxy indicates an expected call of ListServicesForProxy.
+func (mr *MockMeshCatalogerMockRecorder) ListServicesForProxy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServicesForProxy", reflect.TypeOf((*MockMeshCataloger)(nil).ListServicesForProxy), arg0)
 }
 
 // UpdateIngressBackendStatus mocks base method.

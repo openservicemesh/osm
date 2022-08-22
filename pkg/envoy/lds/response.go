@@ -31,7 +31,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		statsHeaders = proxy.StatsHeaders()
 	}
 
-	svcList, err := meshCatalog.GetServicesForProxy(proxy)
+	svcList, err := meshCatalog.ListServicesForProxy(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
 			Str("proxy", proxy.String()).Msgf("Error looking up MeshServices associated with proxy")

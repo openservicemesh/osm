@@ -35,6 +35,6 @@ type Interface interface {
 
 	GetHostnamesForService(svc service.MeshService, localNamespace bool) []string
 
-	// GetServicesForProxy gets the services that map to the given proxy.
-	GetServicesForProxy(p *envoy.Proxy) ([]service.MeshService, error)
+	// ListServicesForProxy gets the services that map to the given proxy.
+	ListServicesForProxy(p *envoy.Proxy) ([]service.MeshService, error)
 }

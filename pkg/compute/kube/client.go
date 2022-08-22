@@ -139,8 +139,8 @@ func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 	return meshServices
 }
 
-// GetServicesForProxy maps an Envoy instance to a number of Kubernetes services.
-func (c *client) GetServicesForProxy(p *envoy.Proxy) ([]service.MeshService, error) {
+// ListServicesForProxy maps an Envoy instance to a number of Kubernetes services.
+func (c *client) ListServicesForProxy(p *envoy.Proxy) ([]service.MeshService, error) {
 	var meshServices []service.MeshService
 	pod, err := c.kubeController.GetPodForProxy(p)
 	if err != nil {

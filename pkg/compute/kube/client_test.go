@@ -618,7 +618,7 @@ func TestIsMetricsEnabled(t *testing.T) {
 	}
 }
 
-func TestGetServicesForProxy(t *testing.T) {
+func TestListServicesForProxy(t *testing.T) {
 	goodUUID := uuid.New()
 	badUUID := uuid.New()
 	testCases := []struct {
@@ -817,7 +817,7 @@ func TestGetServicesForProxy(t *testing.T) {
 			c := &client{
 				kubeController: k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, messaging.NewBroker(stop)),
 			}
-			actual, err := c.GetServicesForProxy(tc.proxy)
+			actual, err := c.ListServicesForProxy(tc.proxy)
 			assert.ElementsMatch(tc.expected, actual)
 			if tc.expectErr {
 				assert.Error(err)

@@ -82,7 +82,7 @@ func TestNewResponse(t *testing.T) {
 			},
 		},
 	}).AnyTimes()
-	provider.EXPECT().GetServicesForProxy(proxy).Return([]service.MeshService{tests.BookbuyerService}, nil).AnyTimes()
+	provider.EXPECT().ListServicesForProxy(proxy).Return([]service.MeshService{tests.BookbuyerService}, nil).AnyTimes()
 
 	meshCatalog := catalog.NewMeshCatalog(
 		mockMeshSpec,

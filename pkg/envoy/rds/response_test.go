@@ -276,7 +276,7 @@ func TestNewResponse(t *testing.T) {
 			mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(&trafficpolicy.OutboundMeshTrafficPolicy{HTTPRouteConfigsPerPort: tc.expectedOutboundPolicies}).AnyTimes()
 			mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(&trafficpolicy.IngressTrafficPolicy{HTTPRoutePolicies: tc.ingressInboundPolicies}, nil).AnyTimes()
 			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
-			mockCatalog.EXPECT().GetServicesForProxy(proxy).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
+			mockCatalog.EXPECT().ListServicesForProxy(proxy).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
 			// Empty discovery request
 			discoveryRequest := xds_discovery.DiscoveryRequest{
 				ResourceNames: []string{},
@@ -431,7 +431,7 @@ func TestResponseRequestCompletion(t *testing.T) {
 	mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 	mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 	mockCatalog.EXPECT().GetMeshConfig().AnyTimes()
-	mockCatalog.EXPECT().GetServicesForProxy(testProxy).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
+	mockCatalog.EXPECT().ListServicesForProxy(testProxy).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
 
 	testCases := []struct {
 		request *xds_discovery.DiscoveryRequest
