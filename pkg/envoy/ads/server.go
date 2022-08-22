@@ -22,7 +22,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/sds"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
 
@@ -73,7 +72,7 @@ func (s *Server) withXdsLogMutex(f func()) {
 
 // Start starts the ADS server
 func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int, adsCert *certificate.Certificate) error {
-	grpcServer, lis, err := utils.NewGrpc(ServerType, port, xdsServerCertificateCommonName, s.certManager)
+	grpcServer, lis, err := NewGrpc(ServerType, port, xdsServerCertificateCommonName, s.certManager)
 	if err != nil {
 		return fmt.Errorf("error starting ADS server: %w", err)
 	}
