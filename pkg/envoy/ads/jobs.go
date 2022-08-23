@@ -22,7 +22,7 @@ type proxyResponseJob struct {
 }
 
 // GetDoneCh returns the channel, which when closed, indicates the job has been finished.
-func (proxyJob *proxyResponseJob) GetDoneCh() <-chan struct{} {
+func (proxyJob *proxyResponseJob) GetDoneCh() chan struct{} {
 	return proxyJob.done
 }
 

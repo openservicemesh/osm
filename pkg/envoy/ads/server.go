@@ -84,12 +84,6 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int,
 
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, ServerType, nil)
 
-	if s.cacheEnabled {
-		// Start broadcast listener thread when cache is enabled and we are ready to start handling
-		// proxy broadcast updates
-		go s.watchForUpdates(ctx)
-	}
-
 	s.ready = true
 
 	return nil

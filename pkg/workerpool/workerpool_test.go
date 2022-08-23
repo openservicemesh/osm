@@ -25,7 +25,7 @@ type testJob struct {
 	hash    uint64
 }
 
-func (tj *testJob) GetDoneCh() <-chan struct{} {
+func (tj *testJob) GetDoneCh() chan struct{} {
 	return tj.jobDone
 }
 
