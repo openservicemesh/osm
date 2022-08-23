@@ -49,14 +49,10 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	a.Nil(err)
 	a.NotNil(proxy)
 
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}), nil)
-
 	mc := tresorFake.NewFake(1 * time.Hour)
 	a.NotNil(a)
 
-	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mc, proxyRegistry)
+	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mc, nil)
 	a.Nil(err)
 	a.Len(resources, 1) // only outbound routes configured for this test
 

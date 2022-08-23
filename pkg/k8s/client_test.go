@@ -26,6 +26,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/tests"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -1817,7 +1818,7 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 	testCases := []struct {
 		name         string
 		allResources []*policyv1alpha1.UpstreamTrafficSetting
-		opt          UpstreamTrafficSettingGetOpt
+		opt          trafficpolicy.UpstreamTrafficSettingGetOpt
 		expected     *policyv1alpha1.UpstreamTrafficSetting
 	}{
 		{
@@ -1842,7 +1843,7 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 					},
 				},
 			},
-			opt: UpstreamTrafficSettingGetOpt{MeshService: &service.MeshService{Name: "s1", Namespace: "ns1"}},
+			opt: trafficpolicy.UpstreamTrafficSettingGetOpt{MeshService: &service.MeshService{Name: "s1", Namespace: "ns1"}},
 			expected: &policyv1alpha1.UpstreamTrafficSetting{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "u1",
@@ -1866,7 +1867,7 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 					},
 				},
 			},
-			opt:      UpstreamTrafficSettingGetOpt{MeshService: &service.MeshService{Name: "s3", Namespace: "ns1"}},
+			opt:      trafficpolicy.UpstreamTrafficSettingGetOpt{MeshService: &service.MeshService{Name: "s3", Namespace: "ns1"}},
 			expected: nil,
 		},
 		{
@@ -1891,7 +1892,7 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 					},
 				},
 			},
-			opt: UpstreamTrafficSettingGetOpt{NamespacedName: &types.NamespacedName{Namespace: "ns1", Name: "u1"}},
+			opt: trafficpolicy.UpstreamTrafficSettingGetOpt{NamespacedName: &types.NamespacedName{Namespace: "ns1", Name: "u1"}},
 			expected: &policyv1alpha1.UpstreamTrafficSetting{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "u1",
@@ -1915,7 +1916,7 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 					},
 				},
 			},
-			opt:      UpstreamTrafficSettingGetOpt{NamespacedName: &types.NamespacedName{Namespace: "ns1", Name: "u3"}},
+			opt:      trafficpolicy.UpstreamTrafficSettingGetOpt{NamespacedName: &types.NamespacedName{Namespace: "ns1", Name: "u3"}},
 			expected: nil,
 		},
 		{
@@ -1931,7 +1932,7 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 					},
 				},
 			},
-			opt:      UpstreamTrafficSettingGetOpt{},
+			opt:      trafficpolicy.UpstreamTrafficSettingGetOpt{},
 			expected: nil,
 		},
 	}

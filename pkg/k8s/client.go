@@ -16,6 +16,7 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -533,7 +534,7 @@ func (c *Client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyv
 }
 
 // GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the given options
-func (c *Client) GetUpstreamTrafficSetting(options UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting {
+func (c *Client) GetUpstreamTrafficSetting(options trafficpolicy.UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting {
 	if options.MeshService == nil && options.NamespacedName == nil && options.Host == "" {
 		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
 		return nil

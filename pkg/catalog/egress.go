@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -137,7 +136,7 @@ func (mc *MeshCatalog) getUpstreamTrafficSettingForEgress(egressPolicy *policyv1
 				Name:      match.Name,
 			}
 			upstreamtrafficSetting := mc.Interface.GetUpstreamTrafficSetting(
-				k8s.UpstreamTrafficSettingGetOpt{NamespacedName: &namespacedName})
+				trafficpolicy.UpstreamTrafficSettingGetOpt{NamespacedName: &namespacedName})
 
 			if upstreamtrafficSetting == nil {
 				return nil, fmt.Errorf("UpstreamTrafficSetting %s specified in Egress policy %s/%s could not be found, ignoring it",

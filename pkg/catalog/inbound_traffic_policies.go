@@ -7,7 +7,6 @@ import (
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -68,7 +67,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		clusterConfigs = append(clusterConfigs, clusterConfigForSvc)
 
 		upstreamTrafficSetting := mc.Interface.GetUpstreamTrafficSetting(
-			k8s.UpstreamTrafficSettingGetOpt{MeshService: &upstreamSvc})
+			trafficpolicy.UpstreamTrafficSettingGetOpt{MeshService: &upstreamSvc})
 		clusterConfigs = append(clusterConfigs, getRateLimitServiceClusters(upstreamTrafficSetting, rlsClusterSet)...)
 
 		// ---

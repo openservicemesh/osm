@@ -13,6 +13,7 @@ import (
 	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
+	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
 	v1 "k8s.io/api/core/v1"
 	types "k8s.io/apimachinery/pkg/types"
 )
@@ -156,7 +157,7 @@ func (mr *MockControllerMockRecorder) GetTargetPortForServicePort(arg0, arg1 int
 }
 
 // GetUpstreamTrafficSetting mocks base method.
-func (m *MockController) GetUpstreamTrafficSetting(arg0 UpstreamTrafficSettingGetOpt) *v1alpha1.UpstreamTrafficSetting {
+func (m *MockController) GetUpstreamTrafficSetting(arg0 trafficpolicy.UpstreamTrafficSettingGetOpt) *v1alpha1.UpstreamTrafficSetting {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUpstreamTrafficSetting", arg0)
 	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)

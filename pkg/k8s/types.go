@@ -12,6 +12,7 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -147,22 +148,5 @@ type PassthroughInterface interface {
 	ListRetryPolicies(identity.K8sServiceAccount) []*policyv1alpha1.Retry
 
 	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the given options
-	GetUpstreamTrafficSetting(UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting
-}
-
-// UpstreamTrafficSettingGetOpt specifies the options used to filter UpstreamTrafficSetting objects as a part of its getter
-type UpstreamTrafficSettingGetOpt struct {
-	// MeshService specifies the mesh service known within the cluster
-	// Must be specified when retrieving a resource matching the upstream
-	// mesh service.
-	MeshService *service.MeshService
-
-	// NamespacedName specifies the name and namespace of the resource
-	NamespacedName *types.NamespacedName
-
-	// Host specifies the host field of matching UpstreamTrafficSettings
-	// This field is not qualified by namespace because, by definition,
-	// a properly formatted Host includes a namespace and UpstreamTrafficSetting
-	// resources should not target services in different namespaces.
-	Host string
+	GetUpstreamTrafficSetting(trafficpolicy.UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting
 }
