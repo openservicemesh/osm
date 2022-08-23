@@ -162,7 +162,7 @@ func TestGetRootCert(t *testing.T) {
 			assert.Equal(err != nil, tc.expectError)
 
 			if err != nil {
-				actualSANs := subjectAltNamesToStr(sdsSecret.GetValidationContext().GetMatchSubjectAltNames())
+				actualSANs := subjectAltNamesToStr(sdsSecret.GetValidationContext().GetMatchTypedSubjectAltNames())
 				assert.ElementsMatch(actualSANs, tc.expectedSANs)
 			}
 		})
@@ -364,7 +364,7 @@ func TestGetSDSSecrets(t *testing.T) {
 			// Verify SAN for inbound and outbound MTLS certs
 			case secrets.RootCertTypeForMTLSInbound, secrets.RootCertTypeForMTLSOutbound:
 				// Check SANs
-				actualSANs := subjectAltNamesToStr(sdsSecret.GetValidationContext().GetMatchSubjectAltNames())
+				actualSANs := subjectAltNamesToStr(sdsSecret.GetValidationContext().GetMatchTypedSubjectAltNames())
 				assert.ElementsMatch(actualSANs, tc.expectedSANs)
 
 				// Check trusted CA
@@ -381,7 +381,7 @@ func TestGetSDSSecrets(t *testing.T) {
 func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 	type testCase struct {
 		serviceIdentities   []identity.ServiceIdentity
-		expectedSANMatchers []*xds_matcher.StringMatcher
+		expectedSANMatchers []*xds_auth.SubjectAltNameMatcher
 	}
 
 	testCases := []testCase{
@@ -390,15 +390,21 @@ func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 				identity.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"}.ToServiceIdentity(),
 				identity.K8sServiceAccount{Name: "sa-2", Namespace: "ns-2"}.ToServiceIdentity(),
 			},
-			expectedSANMatchers: []*xds_matcher.StringMatcher{
+			expectedSANMatchers: []*xds_auth.SubjectAltNameMatcher{
 				{
-					MatchPattern: &xds_matcher.StringMatcher_Exact{
-						Exact: "sa-1.ns-1.cluster.local",
+					SanType: xds_auth.SubjectAltNameMatcher_DNS,
+					Matcher: &xds_matcher.StringMatcher{
+						MatchPattern: &xds_matcher.StringMatcher_Exact{
+							Exact: "sa-1.ns-1.cluster.local",
+						},
 					},
 				},
 				{
-					MatchPattern: &xds_matcher.StringMatcher_Exact{
-						Exact: "sa-2.ns-2.cluster.local",
+					SanType: xds_auth.SubjectAltNameMatcher_DNS,
+					Matcher: &xds_matcher.StringMatcher{
+						MatchPattern: &xds_matcher.StringMatcher_Exact{
+							Exact: "sa-2.ns-2.cluster.local",
+						},
 					},
 				},
 			},
@@ -417,21 +423,27 @@ func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 
 func TestSubjectAltNamesToStr(t *testing.T) {
 	type testCase struct {
-		sanMatchers []*xds_matcher.StringMatcher
+		sanMatchers []*xds_auth.SubjectAltNameMatcher
 		strSANs     []string
 	}
 
 	testCases := []testCase{
 		{
-			sanMatchers: []*xds_matcher.StringMatcher{
+			sanMatchers: []*xds_auth.SubjectAltNameMatcher{
 				{
-					MatchPattern: &xds_matcher.StringMatcher_Exact{
-						Exact: "sa-1.ns-1.cluster.local",
+					SanType: xds_auth.SubjectAltNameMatcher_DNS,
+					Matcher: &xds_matcher.StringMatcher{
+						MatchPattern: &xds_matcher.StringMatcher_Exact{
+							Exact: "sa-1.ns-1.cluster.local",
+						},
 					},
 				},
 				{
-					MatchPattern: &xds_matcher.StringMatcher_Exact{
-						Exact: "sa-2.ns-2.cluster.local",
+					SanType: xds_auth.SubjectAltNameMatcher_DNS,
+					Matcher: &xds_matcher.StringMatcher{
+						MatchPattern: &xds_matcher.StringMatcher_Exact{
+							Exact: "sa-2.ns-2.cluster.local",
+						},
 					},
 				},
 			},
@@ -450,4 +462,13 @@ func TestSubjectAltNamesToStr(t *testing.T) {
 			assert.ElementsMatch(actual, tc.strSANs)
 		})
 	}
+}
+
+func subjectAltNamesToStr(sanMatchList []*xds_auth.SubjectAltNameMatcher) []string {
+	var sanStr []string
+
+	for _, sanMatcher := range sanMatchList {
+		sanStr = append(sanStr, sanMatcher.Matcher.GetExact())
+	}
+	return sanStr
 }
