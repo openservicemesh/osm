@@ -113,6 +113,17 @@ func TestClusterToMeshSvc(t *testing.T) {
 			},
 			expectError: false,
 		},
+		{
+			name:    "valid headless service-based cluster name",
+			cluster: "foo/mysql-0.mysql|80",
+			expectedMeshSvc: service.MeshService{
+				Namespace:  "foo",
+				Name:       "mysql",
+				Subdomain:  "mysql-0",
+				TargetPort: 80,
+			},
+			expectError: false,
+		},
 	}
 
 	for _, tc := range testCases {

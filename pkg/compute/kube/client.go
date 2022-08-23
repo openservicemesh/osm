@@ -57,7 +57,7 @@ func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 				continue
 			}
 			for _, address := range kubernetesEndpoint.Addresses {
-				if svc.Subdomain() != "" && svc.Subdomain() != address.Hostname {
+				if svc.Subdomain != "" && svc.Subdomain != address.Hostname {
 					// if there's a subdomain on this meshservice, make sure it matches the endpoint's hostname
 					continue
 				}
@@ -149,7 +149,7 @@ func (c *client) ListServicesForProxy(p *envoy.Proxy) ([]service.MeshService, er
 
 	for _, svc := range c.getServicesByLabels(pod.ObjectMeta.Labels, pod.Namespace) {
 		// Filter out headless services that point to a specific proxy.
-		if svc.Subdomain() == pod.Name || svc.Subdomain() == "" {
+		if svc.Subdomain == pod.Name || svc.Subdomain == "" {
 			meshServices = append(meshServices, svc)
 		}
 	}

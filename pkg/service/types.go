@@ -3,7 +3,6 @@ package service
 
 import (
 	"fmt"
-	"strings"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 )
@@ -28,13 +27,12 @@ type MeshService struct {
 	// If the service resides on a Kubernetes service, this would be the Kubernetes namespace.
 	Namespace string
 
-	// The name of the service. May include instance (e.g. pod) information if the backing service
-	// doesn't have a single, stable ip address. For example, a MeshService created by a headless
-	// Kubernetes service named mysql-headless, will have the name "mysql.mysql-headless"
-	// A MeshService created by a normal ClusterIP service named mysql will be named "mysql"
-	// This imposes a restriction that service names cannot contain "." (which is already
-	// the case in kubernetes). Thus, MeshService.Name will be of the form: [subdomain.]providerKey
+	// The name of the service
 	Name string
+
+	// Subdomain is the subdomain of the service. This is only populated if the service is a headless service backed by a
+	// single pod.
+	Subdomain string
 
 	// Port is the port number that clients use to access the service.
 	// This can be different than MeshService.TargetPort which represents the actual port number
@@ -51,33 +49,17 @@ type MeshService struct {
 	Protocol string
 }
 
-// NamespacedKey is the key (i.e. namespace + ProviderKey()) with which to lookup the backing service within the provider
+// NamespacedKey is the key (i.e. namespace + Name) with which to lookup the backing service within the provider
 func (ms MeshService) NamespacedKey() string {
-	return fmt.Sprintf("%s/%s", ms.Namespace, ms.ProviderKey())
+	return fmt.Sprintf("%s/%s", ms.Namespace, ms.Name)
 }
 
-// Subdomain is an optional subdomain for this MeshService
-// TODO: possibly memoize if performance suffers
-func (ms *MeshService) Subdomain() string {
-	nameComponents := strings.Split(ms.Name, ".")
-	if len(nameComponents) == 1 {
-		return ""
+// FullName is the name of the service including the subdomain.
+func (ms MeshService) FullName() string {
+	if ms.Subdomain != "" {
+		return fmt.Sprintf("%s.%s", ms.Subdomain, ms.Name)
 	}
-	return nameComponents[0]
-}
-
-// ProviderKey represents the name of the original entity from which this MeshService was created (e.g. a Kubernetes service name)
-// TODO: possibly memoize if performance suffers
-func (ms *MeshService) ProviderKey() string {
-	nameComponents := strings.Split(ms.Name, ".")
-
-	return nameComponents[len(nameComponents)-1]
-}
-
-// SiblingTo returns true if svc and ms are derived from the same resource
-// in the service provder (based on namespace and provider key)
-func (ms MeshService) SiblingTo(svc MeshService) bool {
-	return ms.NamespacedKey() == svc.NamespacedKey()
+	return ms.Name
 }
 
 // String returns the string representation of the given MeshService.
@@ -88,17 +70,17 @@ func (ms MeshService) String() string {
 
 // EnvoyClusterName is the name of the cluster corresponding to the MeshService in Envoy
 func (ms MeshService) EnvoyClusterName() string {
-	return fmt.Sprintf("%s/%s|%d", ms.Namespace, ms.Name, ms.TargetPort)
+	return fmt.Sprintf("%s/%s|%d", ms.Namespace, ms.FullName(), ms.TargetPort)
 }
 
 // EnvoyLocalClusterName is the name of the local cluster corresponding to the MeshService in Envoy
 func (ms MeshService) EnvoyLocalClusterName() string {
-	return fmt.Sprintf("%s/%s|%d|local", ms.Namespace, ms.Name, ms.TargetPort)
+	return fmt.Sprintf("%s/%s|%d|local", ms.Namespace, ms.FullName(), ms.TargetPort)
 }
 
 // FQDN is similar to String(), but uses a dot separator and is in a different order.
 func (ms MeshService) FQDN() string {
-	return fmt.Sprintf("%s.%s.svc.cluster.local", ms.Name, ms.Namespace)
+	return fmt.Sprintf("%s.%s.svc.cluster.local", ms.FullName(), ms.Namespace)
 }
 
 // OutboundTrafficMatchName returns the MeshService outbound traffic match name
@@ -109,11 +91,6 @@ func (ms MeshService) OutboundTrafficMatchName() string {
 // InboundTrafficMatchName returns the MeshService inbound traffic match name
 func (ms MeshService) InboundTrafficMatchName() string {
 	return fmt.Sprintf("inbound_%s_%d_%s", ms, ms.TargetPort, ms.Protocol)
-}
-
-// IngressTrafficMatchName returns the ingress traffic match name
-func (ms MeshService) IngressTrafficMatchName() string {
-	return IngressTrafficMatchName(ms.Namespace, ms.Name, ms.TargetPort, ms.Protocol)
 }
 
 // IngressTrafficMatchName returns the ingress traffic match name

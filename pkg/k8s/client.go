@@ -295,7 +295,8 @@ func (c *Client) ServiceToMeshServices(svc corev1.Service) []service.MeshService
 				}
 				meshServices = append(meshServices, service.MeshService{
 					Namespace:  svc.Namespace,
-					Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
+					Name:       svc.Name,
+					Subdomain:  address.Hostname,
 					Port:       meshSvc.Port,
 					TargetPort: meshSvc.TargetPort,
 					Protocol:   meshSvc.Protocol,

@@ -90,7 +90,8 @@ var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 
 	It("should correctly filter endpoints for a headless service pod endpoint", func() {
 		subdomainedSvc := service.MeshService{
-			Name:       "subdomain-0.test",
+			Name:       "test",
+			Subdomain:  "subdomain-0",
 			Namespace:  "default",
 			TargetPort: 90,
 		}
