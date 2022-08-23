@@ -11,7 +11,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -42,7 +41,6 @@ type Config struct {
 // the information needed for bootstrap secret rotation
 type BootstrapSecretRotator struct {
 	kubeController k8s.Controller
-	proxyRegistry  *registry.ProxyRegistry
 	certManager    *certificate.Manager
 	checkInterval  time.Duration
 }

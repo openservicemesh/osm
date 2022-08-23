@@ -142,21 +142,6 @@ func (mr *MockControllerMockRecorder) GetPodForProxy(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPodForProxy", reflect.TypeOf((*MockController)(nil).GetPodForProxy), arg0)
 }
 
-// GetSecret mocks base method.
-func (m *MockController) GetSecret(arg0 context.Context, arg1, arg2 string) (*v1.Secret, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecret", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v1.Secret)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSecret indicates an expected call of GetSecret.
-func (mr *MockControllerMockRecorder) GetSecret(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecret", reflect.TypeOf((*MockController)(nil).GetSecret), arg0, arg1, arg2)
-}
-
 // GetService mocks base method.
 func (m *MockController) GetService(arg0, arg1 string) *v1.Service {
 	m.ctrl.T.Helper()
@@ -311,8 +296,9 @@ func (m *MockController) ListRetryPolicies() []*v1alpha1.Retry {
 func (mr *MockControllerMockRecorder) ListRetryPolicies() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRetryPolicies", reflect.TypeOf((*MockController)(nil).ListRetryPolicies))
+}
 
-	// ListSecrets mocks base method.
+// ListSecrets mocks base method.
 func (m *MockController) ListSecrets() []*v1.Secret {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListSecrets")

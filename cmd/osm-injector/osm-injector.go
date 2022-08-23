@@ -227,6 +227,9 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, fmt.Sprintf("Error creating sidecar injector webhook: %s", err))
 	}
 
+	bootstrapSecretRotator := injector.NewBootstrapSecretRotator(kubeController, certManager, constants.CertCheckInterval)
+	bootstrapSecretRotator.StartBootstrapSecretRotationTicker(ctx)
+
 	version.SetMetric()
 	/*
 	 * Initialize osm-injector's HTTP server

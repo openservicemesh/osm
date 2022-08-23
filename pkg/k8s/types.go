@@ -104,8 +104,8 @@ type Client struct {
 // Controller is the controller interface for K8s services
 type Controller interface {
 	PassthroughInterface
-	// GetSecret returns the secret, given the name and namespace
-	GetSecret(context.Context, string, string) (*corev1.Secret, error)
+	// ListSecrets returns a list of secrets
+	ListSecrets() []*corev1.Secret
 
 	// UpdateSecret updates the secret with the provided data
 	UpdateSecret(context.Context, *corev1.Secret, map[string][]byte) error

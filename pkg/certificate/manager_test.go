@@ -69,7 +69,7 @@ func TestShouldRotate(t *testing.T) {
 			manager.signingIssuer = tc.managerKeyIssuer
 			manager.validatingIssuer = tc.managerPubIssuer
 
-			rotate := manager.shouldRotate(tc.cert)
+			rotate := manager.ShouldRotate(tc.cert)
 			assert.Equal(tc.expectedRotation, rotate)
 		})
 	}
