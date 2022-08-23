@@ -236,7 +236,6 @@ spec:
                           required:
                           - rateLimitService
                           - domain
-                          - descriptors
                           properties:
                             rateLimitService:
                               description: Rate limit service to use as a global rate limiter.

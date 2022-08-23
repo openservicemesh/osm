@@ -286,7 +286,8 @@ type HTTPGlobalRateLimitSpec struct {
 
 	// Descriptors defines the list of rate limit descriptors to use
 	// in the rate limit service request.
-	Descriptors []HTTPGlobalRateLimitDescriptor `json:"descriptors"`
+	// +optional
+	Descriptors []HTTPGlobalRateLimitDescriptor `json:"descriptors,omitempty"`
 
 	// Timeout defines the timeout interval for calls to the rate limit service.
 	// Defaults to 20ms.
