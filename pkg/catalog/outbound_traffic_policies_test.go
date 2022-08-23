@@ -580,8 +580,8 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
 			mc := MeshCatalog{
-				Interface:        mockProvider,
-				meshSpec:         mockMeshSpec,
+				Interface: mockProvider,
+				meshSpec:  mockMeshSpec,
 			}
 
 			// Mock calls to k8s client caches

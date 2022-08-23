@@ -2160,9 +2160,9 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			provider := kube.NewClient(mockK8s)
 
 			mc := MeshCatalog{
-				certManager:      fakeCertManager,
-				meshSpec:         mockMeshSpec,
-				Interface:        provider,
+				certManager: fakeCertManager,
+				meshSpec:    mockMeshSpec,
+				Interface:   provider,
 			}
 
 			mockK8s.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()

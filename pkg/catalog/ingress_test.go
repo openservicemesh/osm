@@ -391,7 +391,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			mockProvider := compute.NewMockInterface(mockCtrl)
 
 			meshCatalog := &MeshCatalog{
-				Interface:        mockProvider,
+				Interface: mockProvider,
 			}
 
 			// Note: if AnyTimes() is used with a mock function, it implies the function may or may not be called

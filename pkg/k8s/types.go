@@ -69,6 +69,14 @@ const (
 	MeshConfig InformerKey = "MeshConfig"
 	// MeshRootCertificate lookup identifier
 	MeshRootCertificate InformerKey = "MeshRootCertificate"
+	// Egress lookup identifier
+	Egress InformerKey = "Egress"
+	// IngressBackend lookup identifier
+	IngressBackend InformerKey = "IngressBackend"
+	// Retry lookup identifier
+	Retry InformerKey = "Retry"
+	// UpstreamTrafficSetting lookup identifier
+	UpstreamTrafficSetting InformerKey = "UpstreamTrafficSetting"
 )
 
 const (

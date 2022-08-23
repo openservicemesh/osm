@@ -16,8 +16,8 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager *certificate.Manager,
 	computeInterface compute.Interface,
 	msgBroker *messaging.Broker) *MeshCatalog {
 	mc := &MeshCatalog{
-		Interface:        computeInterface,
-		meshSpec:         meshSpec,
+		Interface:   computeInterface,
+		meshSpec:    meshSpec,
 		certManager: certManager,
 	}
 

@@ -22,7 +22,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	osminformers "github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -41,28 +40,29 @@ func NewClient(osmNamespace, meshConfigName string, informerCollection *osminfor
 
 	// Initialize informers
 	informerInitHandlerMap := map[InformerKey]func(){
-		Namespaces:          c.initNamespaceMonitor,
-		Services:            c.initServicesMonitor,
-		ServiceAccounts:     c.initServiceAccountsMonitor,
-		Pods:                c.initPodMonitor,
-		Endpoints:           c.initEndpointMonitor,
-		MeshConfig:          c.initMeshConfigMonitor,
-		MeshRootCertificate: c.initMRCMonitor,
+		Namespaces:             c.initNamespaceMonitor,
+		Services:               c.initServicesMonitor,
+		ServiceAccounts:        c.initServiceAccountsMonitor,
+		Pods:                   c.initPodMonitor,
+		Endpoints:              c.initEndpointMonitor,
+		MeshConfig:             c.initMeshConfigMonitor,
+		MeshRootCertificate:    c.initMRCMonitor,
+		Egress:                 c.initEgressMonitor,
+		IngressBackend:         c.initIngressBackendMonitor,
+		Retry:                  c.initRetryMonitor,
+		UpstreamTrafficSetting: c.initUpstreamTrafficSettingMonitor,
 	}
 
 	// If specific informers are not selected to be initialized, initialize all informers
 	if len(selectInformers) == 0 {
-		selectInformers = []InformerKey{Namespaces, Services, ServiceAccounts, Pods, Endpoints, MeshConfig, MeshRootCertificate}
+		selectInformers = []InformerKey{
+			Namespaces, Services, ServiceAccounts, Pods, Endpoints, MeshConfig, MeshRootCertificate,
+			Egress, IngressBackend, Retry, UpstreamTrafficSetting}
 	}
 
 	for _, informer := range selectInformers {
 		informerInitHandlerMap[informer]()
 	}
-
-	c.informers.AddEventHandler(informers.InformerKeyEgress, GetEventHandlerFuncs(c.shouldObserve, msgBroker))
-	c.informers.AddEventHandler(informers.InformerKeyIngressBackend, GetEventHandlerFuncs(c.shouldObserve, msgBroker))
-	c.informers.AddEventHandler(informers.InformerKeyRetry, GetEventHandlerFuncs(c.shouldObserve, msgBroker))
-	c.informers.AddEventHandler(informers.InformerKeyUpstreamTrafficSetting, GetEventHandlerFuncs(c.shouldObserve, msgBroker))
 
 	return c
 }
@@ -74,12 +74,28 @@ func (c *Client) initNamespaceMonitor() {
 }
 
 func (c *Client) initMeshConfigMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyMeshConfig, GetEventHandlerFuncs(nil, c.msgBroker))
-	c.informers.AddEventHandler(informers.InformerKeyMeshConfig, c.metricsHandler())
+	c.informers.AddEventHandler(osminformers.InformerKeyMeshConfig, GetEventHandlerFuncs(nil, c.msgBroker))
+	c.informers.AddEventHandler(osminformers.InformerKeyMeshConfig, c.metricsHandler())
 }
 
 func (c *Client) initMRCMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyMeshRootCertificate, GetEventHandlerFuncs(nil, c.msgBroker))
+	c.informers.AddEventHandler(osminformers.InformerKeyMeshRootCertificate, GetEventHandlerFuncs(nil, c.msgBroker))
+}
+
+func (c *Client) initEgressMonitor() {
+	c.informers.AddEventHandler(osminformers.InformerKeyEgress, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
+}
+
+func (c *Client) initIngressBackendMonitor() {
+	c.informers.AddEventHandler(osminformers.InformerKeyIngressBackend, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
+}
+
+func (c *Client) initRetryMonitor() {
+	c.informers.AddEventHandler(osminformers.InformerKeyRetry, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
+}
+
+func (c *Client) initUpstreamTrafficSettingMonitor() {
+	c.informers.AddEventHandler(osminformers.InformerKeyUpstreamTrafficSetting, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
 
 // Function to filter K8s meta Objects by OSM's isMonitoredNamespace
@@ -457,7 +473,7 @@ func IsHeadlessService(svc corev1.Service) bool {
 // GetMeshConfig returns the current MeshConfig
 func (c *Client) GetMeshConfig() configv1alpha2.MeshConfig {
 	key := types.NamespacedName{Namespace: c.osmNamespace, Name: c.meshConfigName}.String()
-	item, _, err := c.informers.GetByKey(informers.InformerKeyMeshConfig, key)
+	item, _, err := c.informers.GetByKey(osminformers.InformerKeyMeshConfig, key)
 	if item != nil {
 		return *item.(*configv1alpha2.MeshConfig)
 	}
@@ -479,7 +495,7 @@ func (c *Client) GetOSMNamespace() string {
 func (c *Client) ListEgressPoliciesForSourceIdentity(source identity.K8sServiceAccount) []*policyv1alpha1.Egress {
 	var policies []*policyv1alpha1.Egress
 
-	for _, egressIface := range c.informers.List(informers.InformerKeyEgress) {
+	for _, egressIface := range c.informers.List(osminformers.InformerKeyEgress) {
 		egressPolicy := egressIface.(*policyv1alpha1.Egress)
 
 		if !c.IsMonitoredNamespace(egressPolicy.Namespace) {
@@ -498,7 +514,7 @@ func (c *Client) ListEgressPoliciesForSourceIdentity(source identity.K8sServiceA
 
 // GetIngressBackendPolicy returns the IngressBackend policy for the given backend MeshService
 func (c *Client) GetIngressBackendPolicy(svc service.MeshService) *policyv1alpha1.IngressBackend {
-	for _, ingressBackendIface := range c.informers.List(informers.InformerKeyIngressBackend) {
+	for _, ingressBackendIface := range c.informers.List(osminformers.InformerKeyIngressBackend) {
 		ingressBackend := ingressBackendIface.(*policyv1alpha1.IngressBackend)
 
 		if ingressBackend.Namespace != svc.Namespace {
@@ -523,7 +539,7 @@ func (c *Client) GetIngressBackendPolicy(svc service.MeshService) *policyv1alpha
 func (c *Client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyv1alpha1.Retry {
 	var retries []*policyv1alpha1.Retry
 
-	for _, retryInterface := range c.informers.List(informers.InformerKeyRetry) {
+	for _, retryInterface := range c.informers.List(osminformers.InformerKeyRetry) {
 		retry := retryInterface.(*policyv1alpha1.Retry)
 		if retry.Spec.Source.Kind == kindSvcAccount && retry.Spec.Source.Name == source.Name && retry.Spec.Source.Namespace == source.Namespace {
 			retries = append(retries, retry)
@@ -542,7 +558,7 @@ func (c *Client) GetUpstreamTrafficSetting(options trafficpolicy.UpstreamTraffic
 
 	if options.NamespacedName != nil {
 		// Filter by namespaced name
-		resource, exists, err := c.informers.GetByKey(informers.InformerKeyUpstreamTrafficSetting, options.NamespacedName.String())
+		resource, exists, err := c.informers.GetByKey(osminformers.InformerKeyUpstreamTrafficSetting, options.NamespacedName.String())
 		if exists && err == nil {
 			return resource.(*policyv1alpha1.UpstreamTrafficSetting)
 		}
@@ -550,7 +566,7 @@ func (c *Client) GetUpstreamTrafficSetting(options trafficpolicy.UpstreamTraffic
 	}
 
 	// Filter by MeshService
-	for _, resource := range c.informers.List(informers.InformerKeyUpstreamTrafficSetting) {
+	for _, resource := range c.informers.List(osminformers.InformerKeyUpstreamTrafficSetting) {
 		upstreamTrafficSetting := resource.(*policyv1alpha1.UpstreamTrafficSetting)
 
 		if upstreamTrafficSetting.Spec.Host == options.Host {
