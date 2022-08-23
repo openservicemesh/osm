@@ -11,8 +11,6 @@ import (
 	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	envoy "github.com/openservicemesh/osm/pkg/envoy"
-	identity "github.com/openservicemesh/osm/pkg/identity"
-	service "github.com/openservicemesh/osm/pkg/service"
 	v1 "k8s.io/api/core/v1"
 	types "k8s.io/apimachinery/pkg/types"
 )
@@ -41,18 +39,18 @@ func (m *MockController) EXPECT() *MockControllerMockRecorder {
 }
 
 // GetEndpoints mocks base method.
-func (m *MockController) GetEndpoints(arg0 service.MeshService) (*v1.Endpoints, error) {
+func (m *MockController) GetEndpoints(arg0, arg1 string) (*v1.Endpoints, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEndpoints", arg0)
+	ret := m.ctrl.Call(m, "GetEndpoints", arg0, arg1)
 	ret0, _ := ret[0].(*v1.Endpoints)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetEndpoints indicates an expected call of GetEndpoints.
-func (mr *MockControllerMockRecorder) GetEndpoints(arg0 interface{}) *gomock.Call {
+func (mr *MockControllerMockRecorder) GetEndpoints(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEndpoints", reflect.TypeOf((*MockController)(nil).GetEndpoints), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEndpoints", reflect.TypeOf((*MockController)(nil).GetEndpoints), arg0, arg1)
 }
 
 // GetMeshConfig mocks base method.
@@ -113,32 +111,17 @@ func (mr *MockControllerMockRecorder) GetPodForProxy(arg0 interface{}) *gomock.C
 }
 
 // GetService mocks base method.
-func (m *MockController) GetService(arg0 service.MeshService) *v1.Service {
+func (m *MockController) GetService(arg0, arg1 string) *v1.Service {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetService", arg0)
+	ret := m.ctrl.Call(m, "GetService", arg0, arg1)
 	ret0, _ := ret[0].(*v1.Service)
 	return ret0
 }
 
 // GetService indicates an expected call of GetService.
-func (mr *MockControllerMockRecorder) GetService(arg0 interface{}) *gomock.Call {
+func (mr *MockControllerMockRecorder) GetService(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetService", reflect.TypeOf((*MockController)(nil).GetService), arg0)
-}
-
-// GetTargetPortForServicePort mocks base method.
-func (m *MockController) GetTargetPortForServicePort(arg0 types.NamespacedName, arg1 uint16) (uint16, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTargetPortForServicePort", arg0, arg1)
-	ret0, _ := ret[0].(uint16)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetTargetPortForServicePort indicates an expected call of GetTargetPortForServicePort.
-func (mr *MockControllerMockRecorder) GetTargetPortForServicePort(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortForServicePort", reflect.TypeOf((*MockController)(nil).GetTargetPortForServicePort), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetService", reflect.TypeOf((*MockController)(nil).GetService), arg0, arg1)
 }
 
 // GetUpstreamTrafficSetting mocks base method.
@@ -197,19 +180,19 @@ func (mr *MockControllerMockRecorder) ListIngressBackendPolicies() *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIngressBackendPolicies", reflect.TypeOf((*MockController)(nil).ListIngressBackendPolicies))
 }
 
-// ListMonitoredNamespaces mocks base method.
-func (m *MockController) ListMonitoredNamespaces() ([]string, error) {
+// ListNamespaces mocks base method.
+func (m *MockController) ListNamespaces() ([]*v1.Namespace, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListMonitoredNamespaces")
-	ret0, _ := ret[0].([]string)
+	ret := m.ctrl.Call(m, "ListNamespaces")
+	ret0, _ := ret[0].([]*v1.Namespace)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListMonitoredNamespaces indicates an expected call of ListMonitoredNamespaces.
-func (mr *MockControllerMockRecorder) ListMonitoredNamespaces() *gomock.Call {
+// ListNamespaces indicates an expected call of ListNamespaces.
+func (mr *MockControllerMockRecorder) ListNamespaces() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMonitoredNamespaces", reflect.TypeOf((*MockController)(nil).ListMonitoredNamespaces))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNamespaces", reflect.TypeOf((*MockController)(nil).ListNamespaces))
 }
 
 // ListPods mocks base method.
@@ -254,21 +237,6 @@ func (mr *MockControllerMockRecorder) ListServiceAccounts() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccounts", reflect.TypeOf((*MockController)(nil).ListServiceAccounts))
 }
 
-// ListServiceIdentitiesForService mocks base method.
-func (m *MockController) ListServiceIdentitiesForService(arg0 service.MeshService) ([]identity.K8sServiceAccount, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServiceIdentitiesForService", arg0)
-	ret0, _ := ret[0].([]identity.K8sServiceAccount)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListServiceIdentitiesForService indicates an expected call of ListServiceIdentitiesForService.
-func (mr *MockControllerMockRecorder) ListServiceIdentitiesForService(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceIdentitiesForService", reflect.TypeOf((*MockController)(nil).ListServiceIdentitiesForService), arg0)
-}
-
 // ListServices mocks base method.
 func (m *MockController) ListServices() []*v1.Service {
 	m.ctrl.T.Helper()
@@ -295,20 +263,6 @@ func (m *MockController) ListUpstreamTrafficSettings() []*v1alpha1.UpstreamTraff
 func (mr *MockControllerMockRecorder) ListUpstreamTrafficSettings() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUpstreamTrafficSettings", reflect.TypeOf((*MockController)(nil).ListUpstreamTrafficSettings))
-}
-
-// ServiceToMeshServices mocks base method.
-func (m *MockController) ServiceToMeshServices(arg0 v1.Service) []service.MeshService {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ServiceToMeshServices", arg0)
-	ret0, _ := ret[0].([]service.MeshService)
-	return ret0
-}
-
-// ServiceToMeshServices indicates an expected call of ServiceToMeshServices.
-func (mr *MockControllerMockRecorder) ServiceToMeshServices(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceToMeshServices", reflect.TypeOf((*MockController)(nil).ServiceToMeshServices), arg0)
 }
 
 // UpdateIngressBackendStatus mocks base method.

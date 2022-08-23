@@ -6,19 +6,16 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
-	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 var (
@@ -97,14 +94,14 @@ type Controller interface {
 	ListServiceAccounts() []*corev1.ServiceAccount
 
 	// GetService returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
-	GetService(service.MeshService) *corev1.Service
+	GetService(name, namespace string) *corev1.Service
 
 	// IsMonitoredNamespace returns whether a namespace with the given name is being monitored
 	// by the mesh
 	IsMonitoredNamespace(string) bool
 
-	// ListMonitoredNamespaces returns the namespaces monitored by the mesh
-	ListMonitoredNamespaces() ([]string, error)
+	// ListNamespaces returns the namespaces monitored by the mesh
+	ListNamespaces() ([]*corev1.Namespace, error)
 
 	// GetNamespace returns k8s namespace present in cache
 	GetNamespace(string) *corev1.Namespace
@@ -112,16 +109,10 @@ type Controller interface {
 	// ListPods returns a list of pods part of the mesh
 	ListPods() []*corev1.Pod
 
-	// ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
-	ListServiceIdentitiesForService(service.MeshService) ([]identity.K8sServiceAccount, error)
-
 	// GetEndpoints returns the endpoints for a given service, if found
-	GetEndpoints(service.MeshService) (*corev1.Endpoints, error)
+	GetEndpoints(name, namespace string) (*corev1.Endpoints, error)
 
-	// GetPodForProxy returns the pod for the given proxy
-	GetPodForProxy(*envoy.Proxy) (*v1.Pod, error)
-
-	ServiceToMeshServices(svc corev1.Service) []service.MeshService
+	GetPodForProxy(proxy *envoy.Proxy) (*corev1.Pod, error)
 }
 
 // PassthroughInterface is the interface for methods that are implemented by the k8s.Client, but are not considered
@@ -137,8 +128,6 @@ type PassthroughInterface interface {
 	GetOSMNamespace() string
 	UpdateIngressBackendStatus(obj *policyv1alpha1.IngressBackend) (*policyv1alpha1.IngressBackend, error)
 	UpdateUpstreamTrafficSettingStatus(obj *policyv1alpha1.UpstreamTrafficSetting) (*policyv1alpha1.UpstreamTrafficSetting, error)
-
-	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
 
 	// ListEgressPolicies lists the all Egress policies
 	ListEgressPolicies() []*policyv1alpha1.Egress
