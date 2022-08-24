@@ -57,6 +57,10 @@ func newMetricsDisable(out io.Writer) *cobra.Command {
 }
 
 func (cmd *metricsDisableCmd) run() error {
+	if len(cmd.namespaces) == 0 {
+		return fmt.Errorf("no namespace mentioned")
+	}
+
 	// Add metrics annotation on namespaces
 	for _, ns := range cmd.namespaces {
 		ns = strings.TrimSpace(ns)
