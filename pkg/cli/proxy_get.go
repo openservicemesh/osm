@@ -11,9 +11,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/google/uuid"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/mesh"
 )
 
 // ExecuteEnvoyAdminReq makes an HTTP request to the Envoy admin server for the given
@@ -72,7 +72,7 @@ func getPortForwarder(clientSet kubernetes.Interface, config *rest.Config, names
 	if err != nil {
 		return nil, fmt.Errorf("error getting pod %s/%s", namespace, podName)
 	}
-	if !mesh.ProxyLabelExists(*pod) {
+	if uuid, labelFound := pod.Labels[constants.EnvoyUniqueIDLabelName]; !labelFound || !isValidUUID(uuid) {
 		return nil, fmt.Errorf("pod %s/%s is not a part of a mesh", namespace, podName)
 	}
 	if pod.Status.Phase != corev1.PodRunning {
@@ -90,4 +90,9 @@ func getPortForwarder(clientSet kubernetes.Interface, config *rest.Config, names
 	}
 
 	return portForwarder, nil
+}
+
+func isValidUUID(u string) bool {
+	_, err := uuid.Parse(u)
+	return err == nil
 }

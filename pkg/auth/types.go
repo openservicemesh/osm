@@ -1,3 +1,4 @@
+// Package auth implements the ExtAuthConfig struct.
 package auth
 
 import (

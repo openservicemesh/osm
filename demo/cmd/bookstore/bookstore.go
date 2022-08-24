@@ -164,8 +164,8 @@ func main() {
 		router.HandleFunc(h.path, h.fn).Methods(h.method)
 	}
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
-
 	log.Info().Msgf("Bookstore running on port %d", *port)
+	//#nosec G114: Use of net/http serve function that has no support for setting timeouts
 	err = http.ListenAndServe(fmt.Sprintf(":%d", *port), router)
 	log.Fatal().Err(err).Msgf("Failed to start HTTP server on port %d", *port)
 }

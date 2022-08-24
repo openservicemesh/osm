@@ -1,3 +1,7 @@
+// Package mockspec allows the mocks to be generated consistently by doing the following:
+// 1. defining mockgen rules using a file to specify the parameters
+// 2. generating mocks the same way for each of the rules
+// 3. integrating checks for the mocks in the CI
 package main
 
 import (

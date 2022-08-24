@@ -1,3 +1,4 @@
+// Package models implements the HealthProbe struct.
 package models
 
 import "time"
