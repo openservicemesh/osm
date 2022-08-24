@@ -15,6 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -92,7 +93,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 						Name: "inbound_virtual-host|bookstore-v1.default.svc.cluster.local",
 						Routes: []*xds_route.Route{
 							{
-								// corresponds to ingressPolicies[0].Rules[0]
+								// corresponds to Rules[0]
 
 								// Only the filter name is matched, not the marshalled config
 								TypedPerFilterConfig: map[string]*any.Any{
@@ -100,7 +101,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 								},
 							},
 							{
-								// corresponds to ingressPolicies[0].Rules[1]
+								// corresponds to Rules[1]
 
 								// Only the filter name is matched, not the marshalled config
 								TypedPerFilterConfig: map[string]*any.Any{
@@ -201,6 +202,126 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "inbound policy with VirtualHost and Route level global rate limiting",
+			inbound: &trafficpolicy.InboundMeshTrafficPolicy{
+				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+					80: {
+						{
+							Name:      "bookstore-v1-default",
+							Hostnames: []string{"bookstore-v1.default.svc.cluster.local"},
+							Rules: []*trafficpolicy.Rule{
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
+										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+										RateLimit: &policyv1alpha1.HTTPPerRouteRateLimitSpec{
+											Global: &policyv1alpha1.HTTPGlobalPerRouteRateLimitSpec{
+												Descriptors: []policyv1alpha1.HTTPGlobalRateLimitDescriptor{
+													{
+														Entries: []policyv1alpha1.HTTPGlobalRateLimitDescriptorEntry{
+															{
+																GenericKey: &policyv1alpha1.GenericKeyDescriptorEntry{},
+															},
+															{
+																RemoteAddress: &policyv1alpha1.RemoteAddressDescriptorEntry{},
+															},
+														},
+													},
+													{
+														Entries: []policyv1alpha1.HTTPGlobalRateLimitDescriptorEntry{
+															{
+																RequestHeader: &policyv1alpha1.RequestHeaderDescriptorEntry{},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+								},
+							},
+							RateLimit: &policyv1alpha1.RateLimitSpec{
+								Global: &policyv1alpha1.GlobalRateLimitSpec{
+									HTTP: &policyv1alpha1.HTTPGlobalRateLimitSpec{
+										RateLimitService: policyv1alpha1.RateLimitServiceSpec{
+											Host: "foo.bar",
+											Port: 8080,
+										},
+										Descriptors: []policyv1alpha1.HTTPGlobalRateLimitDescriptor{
+											{
+												Entries: []policyv1alpha1.HTTPGlobalRateLimitDescriptorEntry{
+													{
+														HeaderValueMatch: &policyv1alpha1.HeaderValueMatchDescriptorEntry{
+															Headers: []policyv1alpha1.HTTPHeaderMatcher{
+																{
+																	Exact: "e",
+																},
+																{
+																	Prefix: "p",
+																},
+																{
+																	Suffix: "s",
+																},
+																{
+																	Regex: "r.*",
+																},
+																{
+																	Contains: "c",
+																},
+																{
+																	Present: pointer.BoolPtr(true),
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedRouteConfigFields: &xds_route.RouteConfiguration{
+				Name: "rds-inbound.80",
+				VirtualHosts: []*xds_route.VirtualHost{
+					{
+						Name: "inbound_virtual-host|bookstore-v1.default.svc.cluster.local",
+						Routes: []*xds_route.Route{
+							{
+								// corresponds to Rules[0]
+
+								// Only the filter name is matched, not the marshalled config
+								TypedPerFilterConfig: map[string]*any.Any{
+									envoy.HTTPRBACFilterName: nil,
+								},
+
+								Action: &xds_route.Route_Route{
+									Route: &xds_route.RouteAction{
+										// Only the length of the rate limit configs are matched
+										// This maps to the number of descriptors in the RateLimit policy
+
+										// Since the input RateLimit policy has 2 descriptors, we add 2 elements
+										// to the expected list for length check performed in the test body
+										RateLimits: []*xds_route.RateLimit{nil, nil},
+									},
+								},
+							},
+						},
+						// Only the length of the rate limit configs are matched
+						// This maps to the number of descriptors in the RateLimit policy
+
+						// Since the input RateLimit policy has 1 descriptor, we add 1 element
+						// to the expected list for length check performed in the test body
+						RateLimits: []*xds_route.RateLimit{nil},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -221,6 +342,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 
 				for i, vh := range routeConfig.VirtualHosts {
 					assert.Len(vh.Routes, len(tc.expectedRouteConfigFields.VirtualHosts[i].Routes))
+					assert.Len(vh.RateLimits, len(tc.expectedRouteConfigFields.VirtualHosts[i].RateLimits))
 
 					// Verify that the expected typed filters on the VirtualHost are present
 					for filter := range tc.expectedRouteConfigFields.VirtualHosts[i].TypedPerFilterConfig {
@@ -231,6 +353,12 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 					for j, route := range vh.Routes {
 						for filter := range tc.expectedRouteConfigFields.VirtualHosts[i].Routes[j].TypedPerFilterConfig {
 							assert.Contains(route.TypedPerFilterConfig, filter)
+						}
+
+						if tc.expectedRouteConfigFields.VirtualHosts[i].Routes[j].GetRoute() != nil {
+							assert.Len(route.GetRoute().RateLimits, len(tc.expectedRouteConfigFields.VirtualHosts[i].Routes[j].GetRoute().RateLimits))
+						} else {
+							assert.Len(route.GetRoute().RateLimits, 0) // If not specified in the test, expect 0
 						}
 					}
 				}

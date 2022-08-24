@@ -112,7 +112,10 @@ func applyInboundVirtualHostConfig(vhost *xds_route.VirtualHost, policy *traffic
 			config[envoy.HTTPLocalRateLimitFilterName] = filter
 		}
 	}
-	// Add other typed filter configs below when necessary
+
+	if policy.RateLimit != nil && policy.RateLimit.Global != nil && policy.RateLimit.Global.HTTP != nil {
+		vhost.RateLimits = getGlobalRateLimitConfig(policy.RateLimit.Global.HTTP.Descriptors)
+	}
 
 	vhost.TypedPerFilterConfig = config
 }
@@ -168,6 +171,125 @@ func getLocalRateLimitFilterConfig(config *policyv1alpha1.HTTPLocalRateLimitSpec
 	}
 
 	return marshalled, nil
+}
+
+func getGlobalRateLimitConfig(descriptors []policyv1alpha1.HTTPGlobalRateLimitDescriptor) []*xds_route.RateLimit {
+	var rateLimits []*xds_route.RateLimit
+	for _, descriptor := range descriptors {
+		rl := &xds_route.RateLimit{}
+
+		for _, entry := range descriptor.Entries {
+			switch {
+			case entry.GenericKey != nil:
+				rl.Actions = append(rl.Actions, &xds_route.RateLimit_Action{
+					ActionSpecifier: &xds_route.RateLimit_Action_GenericKey_{
+						GenericKey: &xds_route.RateLimit_Action_GenericKey{
+							DescriptorKey:   entry.GenericKey.Key,
+							DescriptorValue: entry.GenericKey.Value,
+						},
+					},
+				})
+
+			case entry.RemoteAddress != nil:
+				rl.Actions = append(rl.Actions, &xds_route.RateLimit_Action{
+					ActionSpecifier: &xds_route.RateLimit_Action_RemoteAddress_{
+						RemoteAddress: &xds_route.RateLimit_Action_RemoteAddress{},
+					},
+				})
+
+			case entry.RequestHeader != nil:
+				rl.Actions = append(rl.Actions, &xds_route.RateLimit_Action{
+					ActionSpecifier: &xds_route.RateLimit_Action_RequestHeaders_{
+						RequestHeaders: &xds_route.RateLimit_Action_RequestHeaders{
+							HeaderName:    entry.RequestHeader.Name,
+							DescriptorKey: entry.RequestHeader.Key,
+						},
+					},
+				})
+
+			case entry.HeaderValueMatch != nil:
+				rl.Actions = append(rl.Actions, &xds_route.RateLimit_Action{
+					ActionSpecifier: &xds_route.RateLimit_Action_HeaderValueMatch_{
+						HeaderValueMatch: &xds_route.RateLimit_Action_HeaderValueMatch{
+							DescriptorKey:   entry.HeaderValueMatch.Key,
+							DescriptorValue: entry.HeaderValueMatch.Value,
+							Headers:         getHeaderMatchers(entry.HeaderValueMatch.Headers),
+							ExpectMatch: func() *wrappers.BoolValue {
+								if entry.HeaderValueMatch.ExpectMatch != nil {
+									return wrapperspb.Bool(*entry.HeaderValueMatch.ExpectMatch)
+								}
+								return nil
+							}(),
+						},
+					},
+				})
+			}
+		}
+
+		rateLimits = append(rateLimits, rl)
+	}
+
+	return rateLimits
+}
+
+func getHeaderMatchers(headers []policyv1alpha1.HTTPHeaderMatcher) []*xds_route.HeaderMatcher {
+	var headerMatchers []*xds_route.HeaderMatcher
+
+	for _, h := range headers {
+		hm := &xds_route.HeaderMatcher{
+			Name: h.Name,
+		}
+
+		switch {
+		case h.Exact != "":
+			hm.HeaderMatchSpecifier = &xds_route.HeaderMatcher_StringMatch{
+				StringMatch: &xds_matcher.StringMatcher{
+					MatchPattern: &xds_matcher.StringMatcher_Exact{Exact: h.Exact},
+				},
+			}
+
+		case h.Prefix != "":
+			hm.HeaderMatchSpecifier = &xds_route.HeaderMatcher_StringMatch{
+				StringMatch: &xds_matcher.StringMatcher{
+					MatchPattern: &xds_matcher.StringMatcher_Prefix{Prefix: h.Prefix},
+				},
+			}
+
+		case h.Suffix != "":
+			hm.HeaderMatchSpecifier = &xds_route.HeaderMatcher_StringMatch{
+				StringMatch: &xds_matcher.StringMatcher{
+					MatchPattern: &xds_matcher.StringMatcher_Suffix{Suffix: h.Suffix},
+				},
+			}
+
+		case h.Regex != "":
+			hm.HeaderMatchSpecifier = &xds_route.HeaderMatcher_StringMatch{
+				StringMatch: &xds_matcher.StringMatcher{
+					MatchPattern: &xds_matcher.StringMatcher_SafeRegex{
+						SafeRegex: &xds_matcher.RegexMatcher{
+							EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+							Regex:      h.Regex,
+						}},
+				},
+			}
+
+		case h.Contains != "":
+			hm.HeaderMatchSpecifier = &xds_route.HeaderMatcher_StringMatch{
+				StringMatch: &xds_matcher.StringMatcher{
+					MatchPattern: &xds_matcher.StringMatcher_Contains{Contains: h.Contains},
+				},
+			}
+
+		case h.Present != nil:
+			hm.HeaderMatchSpecifier = &xds_route.HeaderMatcher_PresentMatch{
+				PresentMatch: *h.Present,
+			}
+		}
+
+		headerMatchers = append(headerMatchers, hm)
+	}
+
+	return headerMatchers
 }
 
 // getRateLimitHeaderValueOptions returns a list of HeaderValueOption objects corresponding
@@ -302,10 +424,10 @@ func applyInboundRouteConfig(route *xds_route.Route, rbacConfig *any.Any, rateLi
 
 	perFilterConfig := make(map[string]*any.Any)
 
-	// Apply rate limiting config
+	// Apply RBACPerRoute policy
 	perFilterConfig[envoy.HTTPRBACFilterName] = rbacConfig
 
-	// Apply rate limiting config
+	// Apply local rate limit policy
 	if rateLimit != nil && rateLimit.Local != nil {
 		if filter, err := getLocalRateLimitFilterConfig(rateLimit.Local); err != nil {
 			log.Error().Err(err).Msgf("Error applying local rate limiting config for route path %s, ignoring it", route.GetMatch().GetPath())
@@ -349,6 +471,13 @@ func buildEgressRoutes(routingRules []*trafficpolicy.EgressHTTPRoutingRule) []*x
 }
 
 func buildRoute(weightedClusters trafficpolicy.RouteWeightedClusters, method string) *xds_route.Route {
+	getPerRouteRateLimitDescriptors := func(rl *policyv1alpha1.HTTPPerRouteRateLimitSpec) []policyv1alpha1.HTTPGlobalRateLimitDescriptor {
+		if rl != nil && rl.Global != nil {
+			return rl.Global.Descriptors
+		}
+		return nil
+	}
+
 	route := xds_route.Route{
 		Match: &xds_route.RouteMatch{
 			Headers: getHeadersForRoute(method, weightedClusters.HTTPRouteMatch.Headers),
@@ -362,6 +491,7 @@ func buildRoute(weightedClusters trafficpolicy.RouteWeightedClusters, method str
 				// longer than 15s to timeout, e.g. large file transfers.
 				Timeout:     &duration.Duration{Seconds: 0},
 				RetryPolicy: buildRetryPolicy(weightedClusters.RetryPolicy),
+				RateLimits:  getGlobalRateLimitConfig(getPerRouteRateLimitDescriptors(weightedClusters.RateLimit)),
 			},
 		},
 	}

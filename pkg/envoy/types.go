@@ -101,8 +101,9 @@ const (
 	// use wellknown names. These filters are configured as a map where the key is
 	// the filter name and value is the marshalled filter config.
 	// See https://github.com/envoyproxy/envoy/issues/21759#issuecomment-1163570994
-	HTTPRBACFilterName           = "envoy.filters.http.rbac"
-	HTTPLocalRateLimitFilterName = "envoy.filters.http.local_ratelimit"
+	HTTPRBACFilterName            = "envoy.filters.http.rbac"
+	HTTPLocalRateLimitFilterName  = "envoy.filters.http.local_ratelimit"
+	HTTPGlobalRateLimitFilterName = "envoy.filters.http.ratelimit"
 
 	// Network (L4) filters
 	TCPProxyFilterName          = "tcp_proxy"

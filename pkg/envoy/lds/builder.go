@@ -476,6 +476,11 @@ func (hb *httpConnManagerBuilder) Tracing(config *xds_hcm.HttpConnectionManager_
 	return hb
 }
 
+func (hb *httpConnManagerBuilder) HTTPGlobalRateLimit(rl *policyv1alpha1.HTTPGlobalRateLimitSpec) *httpConnManagerBuilder {
+	hb.httpGlobalRateLimit = rl
+	return hb
+}
+
 // Build builds the HttpConnectionManager filter from the builder config
 func (hb *httpConnManagerBuilder) Build() (*xds_listener.Filter, error) {
 	httpFilters := hb.defaultFilters()
