@@ -1,3 +1,4 @@
+// Package main implements the bookstore application
 package main
 
 import (

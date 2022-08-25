@@ -1,3 +1,4 @@
+// Package fake moves fakes to their own sub-package
 package fake
 
 import (

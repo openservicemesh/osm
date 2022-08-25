@@ -1,3 +1,6 @@
+// Package main implements the bookwarehouse application
+// This create a service which has both inbound as well as outbound service policies
+// i.e. bookbuyer makes a GET call to bookstore, bookstore makes a POST call to bookwarehouse
 package main
 
 import (

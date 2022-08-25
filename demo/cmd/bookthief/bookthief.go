@@ -1,3 +1,4 @@
+// Package main implements the bookthief application
 package main
 
 import (

@@ -1,3 +1,6 @@
+// Package ticker reintroduces the ticker concept.
+// It contains a ticker implementation that is fully interacted through pubsub.
+// It starts turned off by default and is run after dispatcher starts.
 package ticker
 
 import (

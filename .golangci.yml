@@ -1,6 +1,6 @@
 run:
   tests: true
-  timeout: 10m
+  timeout: 20m
   skip-dirs:
     - pkg/gen
   skip-files:
@@ -35,6 +35,10 @@ issues:
         - revive
       source: ". \"github.com/openservicemesh/osm/tests/framework\""
       text: "dot imports"
+    # Ignore error for package comments
+    - linters:
+        - revive
+      text: "package-comments: should have a package comment"
     # Exclude staticcheck messages for deprecated function, variable or constant
     # This causes issues with package github.com/golang/protobuf/proto
     - linters:

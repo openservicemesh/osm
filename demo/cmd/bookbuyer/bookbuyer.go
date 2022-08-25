@@ -1,3 +1,4 @@
+// Package main implements the bookbuyer application
 package main
 
 import (
