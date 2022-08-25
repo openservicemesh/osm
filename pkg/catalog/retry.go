@@ -16,7 +16,7 @@ func (mc *MeshCatalog) getRetryPolicy(downstreamIdentity identity.ServiceIdentit
 	src := downstreamIdentity.ToK8sServiceAccount()
 
 	// List the retry policies for the source
-	retryPolicies := mc.Interface.ListRetryPolicies(src)
+	retryPolicies := mc.ListRetryPolicies(src)
 	if retryPolicies == nil {
 		log.Trace().Msgf("Did not find retry policy for downstream service %s", src)
 		return nil
