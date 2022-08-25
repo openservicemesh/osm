@@ -56,6 +56,7 @@ jobs:
         with:
           version: latest
           skip-pkg-cache: true
+          args: --timeout=20m
 
   codegen:
     name: Codegen

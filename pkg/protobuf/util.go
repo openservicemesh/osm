@@ -1,3 +1,4 @@
+// Package protobuf contains function(s) pertaining to protobufs
 package protobuf
 
 import (

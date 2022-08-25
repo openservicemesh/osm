@@ -1,3 +1,4 @@
+// Package secrets contains SDSCert types and methods
 package secrets
 
 import (
