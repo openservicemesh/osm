@@ -87,12 +87,6 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int,
 		return fmt.Errorf("error starting ADS server: %w", err)
 	}
 
-	if s.cacheEnabled {
-		// Start broadcast listener thread when cache is enabled and we are ready to start handling
-		// proxy broadcast updates
-		go s.watchForUpdates(ctx)
-	}
-
 	s.ready = true
 
 	return nil

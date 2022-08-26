@@ -8,45 +8,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
-
-// Routine which fulfills listening to proxy broadcasts
-func (s *Server) watchForUpdates(ctx context.Context) {
-	// Register for proxy config updates broadcasted by the message broker
-	proxyUpdatePubSub := s.msgBroker.GetProxyUpdatePubSub()
-	proxyUpdateChan := proxyUpdatePubSub.Sub(messaging.ProxyUpdateTopic)
-	defer s.msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
-
-	for {
-		select {
-		case <-proxyUpdateChan:
-			s.allPodUpdater()
-			// TODO(2683): listen to specific pod updates and cert rotations
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-func (s *Server) allPodUpdater() {
-	for _, proxy := range s.proxyRegistry.ListConnectedProxies() {
-		s.update(proxy)
-	}
-}
-
-func (s *Server) update(proxy *envoy.Proxy) {
-	// Queue update for this proxy/pod
-	job := proxyResponseJob{
-		proxy:     proxy,
-		adsStream: nil, // Since it goes in the cache, stream is not needed
-		request:   nil, // No request is used, as we fill all verticals
-		xdsServer: s,
-		typeURIs:  envoy.XDSResponseOrder,
-		done:      make(chan struct{}),
-	}
-	s.workqueues.AddJob(&job)
-}
 
 // RecordFullSnapshot stores a group of resources as a new Snapshot with a new version in the cache.
 // It also runs a consistency check on the snapshot (will warn if there are missing resources referenced in
