@@ -38,7 +38,8 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 
 	provider.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
-	provider.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(nil).AnyTimes()
 	for _, svc := range services {
 		provider.EXPECT().GetHostnamesForService(svc, true).Return(kube.NewClient(nil).GetHostnamesForService(svc, true)).AnyTimes()
 	}

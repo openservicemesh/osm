@@ -212,18 +212,46 @@ func (mr *MockMeshCatalogerMockRecorder) GetTargetPortForServicePort(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortForServicePort", reflect.TypeOf((*MockMeshCataloger)(nil).GetTargetPortForServicePort), arg0, arg1)
 }
 
-// GetUpstreamTrafficSetting mocks base method.
-func (m *MockMeshCataloger) GetUpstreamTrafficSetting(arg0 trafficpolicy.UpstreamTrafficSettingGetOpt) *v1alpha1.UpstreamTrafficSetting {
+// GetUpstreamTrafficSettingByHost mocks base method.
+func (m *MockMeshCataloger) GetUpstreamTrafficSettingByHost(arg0 string) *v1alpha1.UpstreamTrafficSetting {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUpstreamTrafficSetting", arg0)
+	ret := m.ctrl.Call(m, "GetUpstreamTrafficSettingByHost", arg0)
 	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
 	return ret0
 }
 
-// GetUpstreamTrafficSetting indicates an expected call of GetUpstreamTrafficSetting.
-func (mr *MockMeshCatalogerMockRecorder) GetUpstreamTrafficSetting(arg0 interface{}) *gomock.Call {
+// GetUpstreamTrafficSettingByHost indicates an expected call of GetUpstreamTrafficSettingByHost.
+func (mr *MockMeshCatalogerMockRecorder) GetUpstreamTrafficSettingByHost(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSetting", reflect.TypeOf((*MockMeshCataloger)(nil).GetUpstreamTrafficSetting), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSettingByHost", reflect.TypeOf((*MockMeshCataloger)(nil).GetUpstreamTrafficSettingByHost), arg0)
+}
+
+// GetUpstreamTrafficSettingByNamespace mocks base method.
+func (m *MockMeshCataloger) GetUpstreamTrafficSettingByNamespace(arg0 *types.NamespacedName) *v1alpha1.UpstreamTrafficSetting {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUpstreamTrafficSettingByNamespace", arg0)
+	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
+	return ret0
+}
+
+// GetUpstreamTrafficSettingByNamespace indicates an expected call of GetUpstreamTrafficSettingByNamespace.
+func (mr *MockMeshCatalogerMockRecorder) GetUpstreamTrafficSettingByNamespace(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSettingByNamespace", reflect.TypeOf((*MockMeshCataloger)(nil).GetUpstreamTrafficSettingByNamespace), arg0)
+}
+
+// GetUpstreamTrafficSettingByService mocks base method.
+func (m *MockMeshCataloger) GetUpstreamTrafficSettingByService(arg0 *service.MeshService) *v1alpha1.UpstreamTrafficSetting {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUpstreamTrafficSettingByService", arg0)
+	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
+	return ret0
+}
+
+// GetUpstreamTrafficSettingByService indicates an expected call of GetUpstreamTrafficSettingByService.
+func (mr *MockMeshCatalogerMockRecorder) GetUpstreamTrafficSettingByService(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSettingByService", reflect.TypeOf((*MockMeshCataloger)(nil).GetUpstreamTrafficSettingByService), arg0)
 }
 
 // IsMetricsEnabled mocks base method.

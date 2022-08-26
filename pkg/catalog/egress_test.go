@@ -443,7 +443,8 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 
 			mockCompute := compute.NewMockInterface(mockCtrl)
 			mockCompute.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(tc.egressPolicies).Times(1)
-			mockCompute.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
+			mockCompute.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
+			mockCompute.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
 			mc := &MeshCatalog{
 				meshSpec:  mockMeshSpec,
 				Interface: mockCompute,

@@ -50,7 +50,8 @@ func TestNewResponse(t *testing.T) {
 	provider := compute.NewMockInterface(mockCtrl)
 	provider.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
-	provider.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(nil).AnyTimes()
 
 	provider.EXPECT().GetServicesForServiceIdentity(tests.BookstoreServiceIdentity).Return([]service.MeshService{
 		tests.BookstoreApexService,

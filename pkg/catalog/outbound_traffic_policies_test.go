@@ -629,11 +629,11 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				}).AnyTimes()
 
 			// Mock calls to UpstreamTrafficSetting lookups
-			mockProvider.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).DoAndReturn(
-				func(opt trafficpolicy.UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting {
+			mockProvider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).DoAndReturn(
+				func(meshService *service.MeshService) *policyv1alpha1.UpstreamTrafficSetting {
 					// In this test, only service ns1/<p1|p2> has UpstreamTrafficSetting configured
-					if opt.MeshService != nil &&
-						(*opt.MeshService == meshSvc1P1 || *opt.MeshService == meshSvc1P2) {
+					if meshService != nil &&
+						(*meshService == meshSvc1P1 || *meshService == meshSvc1P2) {
 						return &upstreamTrafficSettingSvc1
 					}
 					return nil

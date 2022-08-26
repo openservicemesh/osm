@@ -13,7 +13,6 @@ import (
 	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
-	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
 	v1 "k8s.io/api/core/v1"
 	types "k8s.io/apimachinery/pkg/types"
 )
@@ -156,18 +155,46 @@ func (mr *MockControllerMockRecorder) GetTargetPortForServicePort(arg0, arg1 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortForServicePort", reflect.TypeOf((*MockController)(nil).GetTargetPortForServicePort), arg0, arg1)
 }
 
-// GetUpstreamTrafficSetting mocks base method.
-func (m *MockController) GetUpstreamTrafficSetting(arg0 trafficpolicy.UpstreamTrafficSettingGetOpt) *v1alpha1.UpstreamTrafficSetting {
+// GetUpstreamTrafficSettingByHost mocks base method.
+func (m *MockController) GetUpstreamTrafficSettingByHost(arg0 string) *v1alpha1.UpstreamTrafficSetting {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUpstreamTrafficSetting", arg0)
+	ret := m.ctrl.Call(m, "GetUpstreamTrafficSettingByHost", arg0)
 	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
 	return ret0
 }
 
-// GetUpstreamTrafficSetting indicates an expected call of GetUpstreamTrafficSetting.
-func (mr *MockControllerMockRecorder) GetUpstreamTrafficSetting(arg0 interface{}) *gomock.Call {
+// GetUpstreamTrafficSettingByHost indicates an expected call of GetUpstreamTrafficSettingByHost.
+func (mr *MockControllerMockRecorder) GetUpstreamTrafficSettingByHost(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSetting", reflect.TypeOf((*MockController)(nil).GetUpstreamTrafficSetting), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSettingByHost", reflect.TypeOf((*MockController)(nil).GetUpstreamTrafficSettingByHost), arg0)
+}
+
+// GetUpstreamTrafficSettingByNamespace mocks base method.
+func (m *MockController) GetUpstreamTrafficSettingByNamespace(arg0 *types.NamespacedName) *v1alpha1.UpstreamTrafficSetting {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUpstreamTrafficSettingByNamespace", arg0)
+	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
+	return ret0
+}
+
+// GetUpstreamTrafficSettingByNamespace indicates an expected call of GetUpstreamTrafficSettingByNamespace.
+func (mr *MockControllerMockRecorder) GetUpstreamTrafficSettingByNamespace(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSettingByNamespace", reflect.TypeOf((*MockController)(nil).GetUpstreamTrafficSettingByNamespace), arg0)
+}
+
+// GetUpstreamTrafficSettingByService mocks base method.
+func (m *MockController) GetUpstreamTrafficSettingByService(arg0 *service.MeshService) *v1alpha1.UpstreamTrafficSetting {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUpstreamTrafficSettingByService", arg0)
+	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
+	return ret0
+}
+
+// GetUpstreamTrafficSettingByService indicates an expected call of GetUpstreamTrafficSettingByService.
+func (mr *MockControllerMockRecorder) GetUpstreamTrafficSettingByService(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSettingByService", reflect.TypeOf((*MockController)(nil).GetUpstreamTrafficSettingByService), arg0)
 }
 
 // IsMonitoredNamespace mocks base method.

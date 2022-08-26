@@ -53,8 +53,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			Name:                          meshSvc.EnvoyClusterName(),
 			Service:                       meshSvc,
 			EnableEnvoyActiveHealthChecks: mc.GetMeshConfig().Spec.FeatureFlags.EnableEnvoyActiveHealthChecks,
-			UpstreamTrafficSetting: mc.GetUpstreamTrafficSetting(
-				trafficpolicy.UpstreamTrafficSettingGetOpt{MeshService: &meshSvc}),
+			UpstreamTrafficSetting:        mc.GetUpstreamTrafficSettingByService(&meshSvc),
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfigForServicePort)
 

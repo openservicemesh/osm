@@ -2165,7 +2165,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				Interface:   provider,
 			}
 
-			mockK8s.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
+			mockK8s.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
+			mockK8s.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
 			mockK8s.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 				Spec: v1alpha2.MeshConfigSpec{
 					Traffic: v1alpha2.TrafficSpec{

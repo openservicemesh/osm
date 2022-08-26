@@ -135,8 +135,7 @@ func (mc *MeshCatalog) getUpstreamTrafficSettingForEgress(egressPolicy *policyv1
 				Namespace: egressPolicy.Namespace,
 				Name:      match.Name,
 			}
-			upstreamtrafficSetting := mc.GetUpstreamTrafficSetting(
-				trafficpolicy.UpstreamTrafficSettingGetOpt{NamespacedName: &namespacedName})
+			upstreamtrafficSetting := mc.GetUpstreamTrafficSettingByNamespace(&namespacedName)
 
 			if upstreamtrafficSetting == nil {
 				return nil, fmt.Errorf("UpstreamTrafficSetting %s specified in Egress policy %s/%s could not be found, ignoring it",

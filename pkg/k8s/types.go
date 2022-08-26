@@ -12,7 +12,6 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
-	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -155,6 +154,12 @@ type PassthroughInterface interface {
 	// ListRetryPolicies returns the Retry policies for the given source identity
 	ListRetryPolicies(identity.K8sServiceAccount) []*policyv1alpha1.Retry
 
-	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the given options
-	GetUpstreamTrafficSetting(trafficpolicy.UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting
+	// GetUpstreamTrafficSettingByService returns the UpstreamTrafficSetting resource that matches the MeshService
+	GetUpstreamTrafficSettingByService(*service.MeshService) *policyv1alpha1.UpstreamTrafficSetting
+
+	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the namespace
+	GetUpstreamTrafficSettingByNamespace(*types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting
+
+	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the host
+	GetUpstreamTrafficSettingByHost(string) *policyv1alpha1.UpstreamTrafficSetting
 }

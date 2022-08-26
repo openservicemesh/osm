@@ -16,7 +16,6 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
-	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -549,19 +548,25 @@ func (c *Client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyv
 	return retries
 }
 
-// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the given options
-func (c *Client) GetUpstreamTrafficSetting(options trafficpolicy.UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting {
-	if options.MeshService == nil && options.NamespacedName == nil && options.Host == "" {
+// GetUpstreamTrafficSettingByNamespace returns the UpstreamTrafficSetting resource that matches the namespace
+func (c *Client) GetUpstreamTrafficSettingByNamespace(namespace *types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting {
+	if namespace == nil {
 		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
 		return nil
 	}
 
-	if options.NamespacedName != nil {
-		// Filter by namespaced name
-		resource, exists, err := c.informers.GetByKey(osminformers.InformerKeyUpstreamTrafficSetting, options.NamespacedName.String())
-		if exists && err == nil {
-			return resource.(*policyv1alpha1.UpstreamTrafficSetting)
-		}
+	// Filter by namespaced name
+	resource, exists, err := c.informers.GetByKey(osminformers.InformerKeyUpstreamTrafficSetting, namespace.String())
+	if exists && err == nil {
+		return resource.(*policyv1alpha1.UpstreamTrafficSetting)
+	}
+	return nil
+}
+
+// GetUpstreamTrafficSettingByService returns the UpstreamTrafficSetting resource that matches the given service
+func (c *Client) GetUpstreamTrafficSettingByService(meshService *service.MeshService) *policyv1alpha1.UpstreamTrafficSetting {
+	if meshService == nil {
+		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
 		return nil
 	}
 
@@ -569,12 +574,27 @@ func (c *Client) GetUpstreamTrafficSetting(options trafficpolicy.UpstreamTraffic
 	for _, resource := range c.informers.List(osminformers.InformerKeyUpstreamTrafficSetting) {
 		upstreamTrafficSetting := resource.(*policyv1alpha1.UpstreamTrafficSetting)
 
-		if upstreamTrafficSetting.Spec.Host == options.Host {
+		if upstreamTrafficSetting.Namespace == meshService.Namespace &&
+			upstreamTrafficSetting.Spec.Host == meshService.FQDN() {
 			return upstreamTrafficSetting
 		}
+	}
 
-		if upstreamTrafficSetting.Namespace == options.MeshService.Namespace &&
-			upstreamTrafficSetting.Spec.Host == options.MeshService.FQDN() {
+	return nil
+}
+
+// GetUpstreamTrafficSettingByHost returns the UpstreamTrafficSetting resource that matches the host
+func (c *Client) GetUpstreamTrafficSettingByHost(host string) *policyv1alpha1.UpstreamTrafficSetting {
+	if host == "" {
+		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
+		return nil
+	}
+
+	// Filter by MeshService
+	for _, resource := range c.informers.List(osminformers.InformerKeyUpstreamTrafficSetting) {
+		upstreamTrafficSetting := resource.(*policyv1alpha1.UpstreamTrafficSetting)
+
+		if upstreamTrafficSetting.Spec.Host == host {
 			return upstreamTrafficSetting
 		}
 	}

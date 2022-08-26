@@ -57,7 +57,8 @@ func TestEndpointConfiguration(t *testing.T) {
 	provider.EXPECT().ListEndpointsForService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
-	provider.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(nil).AnyTimes()
 	meshCatalog := catalogFake.NewFakeMeshCatalog(provider)
 
 	proxy, err := getProxy(kubeClient)

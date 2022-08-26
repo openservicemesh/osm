@@ -4,7 +4,6 @@ package trafficpolicy
 
 import (
 	mapset "github.com/deckarep/golang-set"
-	"k8s.io/apimachinery/pkg/types"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
@@ -201,21 +200,4 @@ type TrafficMatch struct {
 	// RateLimit defines the rate limiting policy applied for this TrafficMatch
 	// +optional
 	RateLimit *policyv1alpha1.RateLimitSpec
-}
-
-// UpstreamTrafficSettingGetOpt specifies the options used to filter UpstreamTrafficSetting objects as a part of its getter
-type UpstreamTrafficSettingGetOpt struct {
-	// MeshService specifies the mesh service known within the cluster
-	// Must be specified when retrieving a resource matching the upstream
-	// mesh service.
-	MeshService *service.MeshService
-
-	// NamespacedName specifies the name and namespace of the resource
-	NamespacedName *types.NamespacedName
-
-	// Host specifies the host field of matching UpstreamTrafficSettings
-	// This field is not qualified by namespace because, by definition,
-	// a properly formatted Host includes a namespace and UpstreamTrafficSetting
-	// resources should not target services in different namespaces.
-	Host string
 }

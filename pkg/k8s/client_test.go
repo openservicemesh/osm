@@ -26,7 +26,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/tests"
-	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -1814,11 +1813,11 @@ func TestListRetryPolicy(t *testing.T) {
 	}
 }
 
-func TestGetUpstreamTrafficSetting(t *testing.T) {
+func TestGetUpstreamTrafficSettingByService(t *testing.T) {
 	testCases := []struct {
 		name         string
 		allResources []*policyv1alpha1.UpstreamTrafficSetting
-		opt          trafficpolicy.UpstreamTrafficSettingGetOpt
+		service      *service.MeshService
 		expected     *policyv1alpha1.UpstreamTrafficSetting
 	}{
 		{
@@ -1843,7 +1842,7 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 					},
 				},
 			},
-			opt: trafficpolicy.UpstreamTrafficSettingGetOpt{MeshService: &service.MeshService{Name: "s1", Namespace: "ns1"}},
+			service: &service.MeshService{Name: "s1", Namespace: "ns1"},
 			expected: &policyv1alpha1.UpstreamTrafficSetting{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "u1",
@@ -1867,9 +1866,56 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 					},
 				},
 			},
-			opt:      trafficpolicy.UpstreamTrafficSettingGetOpt{MeshService: &service.MeshService{Name: "s3", Namespace: "ns1"}},
+			service:  &service.MeshService{Name: "s3", Namespace: "ns1"},
 			expected: nil,
 		},
+		{
+			name: "no filter option specified",
+			allResources: []*policyv1alpha1.UpstreamTrafficSetting{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "u1",
+						Namespace: "ns1",
+					},
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+						Host: "s1.ns1.svc.cluster.local",
+					},
+				},
+			},
+			service:  nil,
+			expected: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+			c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, fakeClient, nil)
+			a.Nil(err)
+			a.NotNil(c)
+
+			// Create fake egress policies
+			for _, resource := range tc.allResources {
+				_ = c.informers.Add(informers.InformerKeyUpstreamTrafficSetting, resource, t)
+			}
+
+			actual := c.GetUpstreamTrafficSettingByService(tc.service)
+			a.Equal(tc.expected, actual)
+		})
+	}
+}
+
+func TestGetUpstreamTrafficSettingByNamespace(t *testing.T) {
+	testCases := []struct {
+		name         string
+		allResources []*policyv1alpha1.UpstreamTrafficSetting
+		namespace    *types.NamespacedName
+		expected     *policyv1alpha1.UpstreamTrafficSetting
+	}{
 		{
 			name: "UpstreamTrafficSetting namespaced name found",
 			allResources: []*policyv1alpha1.UpstreamTrafficSetting{
@@ -1892,7 +1938,7 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 					},
 				},
 			},
-			opt: trafficpolicy.UpstreamTrafficSettingGetOpt{NamespacedName: &types.NamespacedName{Namespace: "ns1", Name: "u1"}},
+			namespace: &types.NamespacedName{Namespace: "ns1", Name: "u1"},
 			expected: &policyv1alpha1.UpstreamTrafficSetting{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "u1",
@@ -1916,8 +1962,8 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 					},
 				},
 			},
-			opt:      trafficpolicy.UpstreamTrafficSettingGetOpt{NamespacedName: &types.NamespacedName{Namespace: "ns1", Name: "u3"}},
-			expected: nil,
+			namespace: &types.NamespacedName{Namespace: "ns1", Name: "u3"},
+			expected:  nil,
 		},
 		{
 			name: "no filter option specified",
@@ -1932,8 +1978,8 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 					},
 				},
 			},
-			opt:      trafficpolicy.UpstreamTrafficSettingGetOpt{},
-			expected: nil,
+			namespace: nil,
+			expected:  nil,
 		},
 	}
 
@@ -1953,7 +1999,7 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 				_ = c.informers.Add(informers.InformerKeyUpstreamTrafficSetting, resource, t)
 			}
 
-			actual := c.GetUpstreamTrafficSetting(tc.opt)
+			actual := c.GetUpstreamTrafficSettingByNamespace(tc.namespace)
 			a.Equal(tc.expected, actual)
 		})
 	}
