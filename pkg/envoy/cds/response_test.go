@@ -113,7 +113,7 @@ func TestNewResponse(t *testing.T) {
 	_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), newPod1, metav1.CreateOptions{})
 	assert.Nil(err)
 
-	resp, err := NewResponse(mockCatalog, proxy, nil, nil, nil)
+	resp, err := NewResponse(mockCatalog, proxy, nil, nil)
 	assert.Nil(err)
 
 	// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
@@ -266,8 +266,6 @@ func TestNewResponse(t *testing.T) {
 			},
 			AlpnProtocols: envoy.ALPNInMesh,
 		},
-		Sni:                tests.BookstoreV1Service.ServerName(),
-		AllowRenegotiation: false,
 	}
 
 	expectedBookstoreV2TLSContext := xds_auth.UpstreamTlsContext{
@@ -297,8 +295,6 @@ func TestNewResponse(t *testing.T) {
 			},
 			AlpnProtocols: envoy.ALPNInMesh,
 		},
-		Sni:                tests.BookstoreV1Service.ServerName(),
-		AllowRenegotiation: false,
 	}
 
 	expectedPrometheusCluster := &xds_cluster.Cluster{
@@ -413,7 +409,7 @@ func TestNewResponseListServicesError(t *testing.T) {
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, errors.New("no services found")).AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil)
+	resp, err := NewResponse(meshCatalog, proxy, nil, nil)
 	tassert.Error(t, err)
 	tassert.Nil(t, resp)
 }
@@ -433,7 +429,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil)
+	resp, err := NewResponse(meshCatalog, proxy, nil, nil)
 	tassert.NoError(t, err)
 	tassert.Empty(t, resp)
 }
@@ -457,7 +453,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, nil, nil)
+	resp, err := NewResponse(meshCatalog, proxy, nil, nil)
 	tassert.NoError(t, err)
 	tassert.Len(t, resp, 1)
 	tassert.Equal(t, resp[0].(*xds_cluster.Cluster).Name, "my-cluster")

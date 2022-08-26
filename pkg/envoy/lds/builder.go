@@ -188,7 +188,7 @@ func (lb *listenerBuilder) Build() (*xds_listener.Listener, error) {
 		return nil, nil
 	}
 
-	return l, nil
+	return l, l.Validate()
 }
 
 func (lb *listenerBuilder) buildOutboundListener() *xds_listener.Listener {

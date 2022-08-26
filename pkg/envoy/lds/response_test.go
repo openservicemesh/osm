@@ -92,7 +92,7 @@ func TestNewResponse(t *testing.T) {
 	)
 
 	cm := tresorFake.NewFake(1 * time.Hour)
-	resources, err := NewResponse(meshCatalog, proxy, nil, cm, nil)
+	resources, err := NewResponse(meshCatalog, proxy, cm, nil)
 	assert.Empty(err)
 	assert.NotNil(resources)
 	// There are 3 listeners configured based on the configuration:

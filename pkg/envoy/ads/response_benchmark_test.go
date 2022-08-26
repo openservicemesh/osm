@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
@@ -94,7 +93,6 @@ func setupTestServer(b *testing.B) {
 
 	// --- setup
 	namespace := tests.Namespace
-
 	proxySvcAccount := tests.BookstoreServiceAccount
 
 	certPEM, _ := certManager.IssueCertificate(proxySvcAccount.ToServiceIdentity().String(), certificate.Service)
@@ -160,13 +158,11 @@ func BenchmarkSendXDSResponse(b *testing.B) {
 		b.Run(string(xdsType), func(b *testing.B) {
 			setupTestServer(b)
 
-			// Set subscribed resources
-			proxy.SetSubscribedResources(xdsType, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound"))
-
 			b.ResetTimer()
 			b.StartTimer()
 			for i := 0; i < b.N; i++ {
-				if err := adsServer.sendResponse(proxy, &server, nil, xdsType); err != nil {
+				handler := adsServer.xdsHandlers[xdsType]
+				if _, err := handler(adsServer.catalog, proxy, adsServer.certManager, adsServer.proxyRegistry); err != nil {
 					b.Fatalf("Failed to send response: %s", err)
 				}
 			}
