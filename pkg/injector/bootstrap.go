@@ -144,18 +144,16 @@ func (b *BootstrapSecretRotator) rotateBootstrapSecrets(ctx context.Context) {
 			continue
 		}
 
-		issuedCert, err := b.certManager.IssueCertificate(bootstrapCert.CommonName.String(), certificate.Internal)
+		issuedCert, err := b.certManager.IssueCertificate(bootstrapCert.CommonName.String(), certificate.Internal, certificate.FullCNProvided())
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).Msgf("Error rotating cert %s", issuedCert)
 		}
 
-		secretData := map[string][]byte{
-			bootstrap.EnvoyXDSCACertFile: issuedCert.GetTrustedCAs(),
-			bootstrap.EnvoyXDSCertFile:   issuedCert.GetCertificateChain(),
-			bootstrap.EnvoyXDSKeyFile:    issuedCert.GetPrivateKey(),
-		}
+		secret.Data[bootstrap.EnvoyXDSCACertFile] = issuedCert.GetTrustedCAs()
+		secret.Data[bootstrap.EnvoyXDSCertFile] = issuedCert.GetCertificateChain()
+		secret.Data[bootstrap.EnvoyXDSKeyFile] = issuedCert.GetPrivateKey()
 
-		err = b.kubeController.UpdateSecret(ctx, secret, secretData)
+		err = b.kubeController.UpdateSecret(ctx, secret, secret.Data)
 		if err != nil {
 			if apierrors.IsConflict(err) {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingBootstrapSecret)).

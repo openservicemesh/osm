@@ -110,7 +110,7 @@ type Manager struct {
 	// TODO(#4711): define serviceCertValidityDuration in the MRC
 	serviceCertValidityDuration func() time.Duration
 
-	mu            sync.Mutex // mu syncrhonizes acces to the below resources.
+	mu            sync.Mutex // mu syncrhonizes access to the below resources.
 	signingIssuer *issuer
 	// equal to signingIssuer if there is no additional public cert issuer.
 	validatingIssuer *issuer
