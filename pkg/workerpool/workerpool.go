@@ -1,3 +1,21 @@
+// Package workerpool implements the thread-pool paradigm
+// in Go. The benefits of it in Go however, can be quite different
+// from any other language able to schedule itself on system threads.
+//
+// By using a workpool model, the main focus and intention is to limit the
+// number of go routines that can do busy-work and get scheduled concurrenly
+// at any point in time.
+//
+// Too many go routines being scheduled at the same time will cause other
+// go routines (maybe more critical ones) to be scheduled less often, thus
+// incurring in resource starvation on those and potentially triggering other
+// issues.
+//
+// By being able to queue up work, we should be able to run a more deterministic
+// runtime (despite Go's nature, this we will not be able to help), less dependant
+// on the scheduler and more accurate in terms of time, as now the number of routines
+// doing busy work can remain constant as opposed have O(N) routines attempting to run
+// at the same time.
 package workerpool
 
 import (
