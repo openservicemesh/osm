@@ -1595,7 +1595,7 @@
              }
             ],
             "validation_context_sds_secret_config": {
-             "name": "root-cert-for-mtls-inbound:bookstore/bookstore-v1",
+             "name": "root-cert-for-mtls-inbound",
              "sds_config": {
               "ads": {},
               "resource_api_version": "V3"
@@ -2310,12 +2310,12 @@
      }
     },
     {
-     "name": "root-cert-for-mtls-inbound:bookstore/bookstore-v1",
+     "name": "root-cert-for-mtls-inbound",
      "version_info": "4",
      "last_updated": "2021-08-02T18:54:19.802Z",
      "secret": {
       "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
-      "name": "root-cert-for-mtls-inbound:bookstore/bookstore-v1",
+      "name": "root-cert-for-mtls-inbound",
       "validation_context": {
        "trusted_ca": {
         "inline_bytes": ""

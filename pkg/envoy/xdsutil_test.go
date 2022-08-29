@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/service"
 
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -119,10 +120,7 @@ var _ = Describe("Test Envoy tools", func() {
 					}},
 					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 						ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-							Name: secrets.SDSCert{
-								Name:     "test/foo",
-								CertType: secrets.RootCertTypeForMTLSInbound,
-							}.String(),
+							Name: secrets.NameForMTLSInbound,
 							SdsConfig: &core.ConfigSource{
 								ConfigSourceSpecifier: &core.ConfigSource_Ads{
 									Ads: &core.AggregatedConfigSource{},
@@ -229,16 +227,8 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test getCommonTLSContext()", func() {
 		It("returns proper auth.CommonTlsContext for outbound mTLS", func() {
-			tlsSDSCert := secrets.SDSCert{
-				Name:     "default/bookbuyer",
-				CertType: secrets.ServiceCertType,
-			}
-			peerValidationSDSCert := &secrets.SDSCert{
-				Name:     "default/bookstore-v1",
-				CertType: secrets.RootCertTypeForMTLSOutbound,
-			}
-
-			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert, sidecarSpec)
+			actual := getCommonTLSContext(secrets.NameForIdentity(identity.New("bookbuyer", "default")),
+				secrets.NameForUpstreamService(service.MeshService{Name: "bookstore-v1", Namespace: "default"}), sidecarSpec)
 
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(sidecarSpec),
@@ -259,16 +249,8 @@ var _ = Describe("Test Envoy tools", func() {
 		})
 
 		It("returns proper auth.CommonTlsContext for inbound mTLS", func() {
-			tlsSDSCert := secrets.SDSCert{
-				Name:     "default/bookstore-v1",
-				CertType: secrets.ServiceCertType,
-			}
-			peerValidationSDSCert := &secrets.SDSCert{
-				Name:     "default/bookstore-v1",
-				CertType: secrets.RootCertTypeForMTLSInbound,
-			}
-
-			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert, sidecarSpec)
+			actual := getCommonTLSContext(secrets.NameForIdentity(identity.New("bookstore-v1", "default")),
+				secrets.NameForMTLSInbound, sidecarSpec)
 
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(sidecarSpec),
@@ -278,7 +260,7 @@ var _ = Describe("Test Envoy tools", func() {
 				}},
 				ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 					ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-						Name:      "root-cert-for-mtls-inbound:default/bookstore-v1",
+						Name:      "root-cert-for-mtls-inbound",
 						SdsConfig: GetADSConfigSource(),
 					},
 				},
@@ -289,12 +271,7 @@ var _ = Describe("Test Envoy tools", func() {
 		})
 
 		It("returns proper auth.CommonTlsContext for TLS (non-mTLS)", func() {
-			tlsSDSCert := secrets.SDSCert{
-				Name:     "default/bookstore-v1",
-				CertType: secrets.ServiceCertType,
-			}
-
-			actual := getCommonTLSContext(tlsSDSCert, nil /* no client cert validation */, sidecarSpec)
+			actual := getCommonTLSContext(secrets.NameForIdentity(identity.New("bookstore-v1", "default")), "" /* no client cert validation */, sidecarSpec)
 
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(sidecarSpec),
