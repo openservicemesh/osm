@@ -26,7 +26,8 @@ func TestServerName(t *testing.T) {
 			name: "subdomain",
 			service: MeshService{
 				Namespace: "namespace-here",
-				Name:      "subdomain-0.service-name-here",
+				Name:      "service-name-here",
+				Subdomain: "subdomain-0",
 			},
 			expected: "subdomain-0.service-name-here.namespace-here.svc.cluster.local",
 		},

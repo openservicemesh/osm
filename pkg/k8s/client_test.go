@@ -208,7 +208,7 @@ func TestGetService(t *testing.T) {
 					Namespace: "ns1",
 				},
 			},
-			svc:      service.MeshService{Name: "foo-0.foo-headless", Namespace: "ns1"},
+			svc:      service.MeshService{Name: "foo-headless", Namespace: "ns1", Subdomain: "foo-0"},
 			expected: true,
 		},
 	}
@@ -819,7 +819,8 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 			expected: []service.MeshService{
 				{
 					Namespace:  "ns1",
-					Name:       "pod-0.s1",
+					Name:       "s1",
+					Subdomain:  "pod-0",
 					Port:       80,
 					TargetPort: 8080,
 					Protocol:   "http",
@@ -952,14 +953,16 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 			expected: []service.MeshService{
 				{
 					Namespace:  "ns1",
-					Name:       "pod-0.s1",
+					Name:       "s1",
+					Subdomain:  "pod-0",
 					Port:       80,
 					TargetPort: 8080,
 					Protocol:   "http",
 				},
 				{
 					Namespace:  "ns1",
-					Name:       "pod-0.s1",
+					Name:       "s1",
+					Subdomain:  "pod-0",
 					Port:       90,
 					TargetPort: 9090,
 					Protocol:   "tcp",

@@ -67,9 +67,16 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 		return service.MeshService{}, fmt.Errorf("Invalid cluster port %s, expected int value: %w", chunks[2], err)
 	}
 
+	subdomain, name, ok := strings.Cut(chunks[1], ".")
+	if !ok {
+		name = subdomain
+		subdomain = ""
+	}
+
 	return service.MeshService{
 		Namespace: chunks[0],
-		Name:      chunks[1],
+		Name:      name,
+		Subdomain: subdomain,
 
 		// The port always maps to MeshService.TargetPort and not MeshService.Port because
 		// endpoints of a service are derived from it's TargetPort and not Port.

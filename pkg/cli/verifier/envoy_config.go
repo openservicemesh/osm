@@ -491,7 +491,8 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForK8sSvc(svc corev1.Service) ([
 				}
 				mSvc := service.MeshService{
 					Namespace:  svc.Namespace,
-					Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
+					Name:       svc.Name,
+					Subdomain:  address.Hostname,
 					Port:       meshSvc.Port,
 					TargetPort: meshSvc.TargetPort,
 					Protocol:   meshSvc.Protocol,
@@ -516,14 +517,8 @@ func (v *EnvoyConfigVerifier) findIngressFilterChainForService(svc *corev1.Servi
 	}
 
 	sourceIPs := map[string]bool{}
-	fakeMs := service.MeshService{
-		Name:       svc.GetName(),
-		Namespace:  svc.GetNamespace(),
-		TargetPort: v.configAttr.trafficAttr.DstPort,
-		Protocol:   v.configAttr.trafficAttr.AppProtocol,
-	}
 
-	filterChainName := fakeMs.IngressTrafficMatchName()
+	filterChainName := service.IngressTrafficMatchName(svc.GetName(), svc.GetNamespace(), v.configAttr.trafficAttr.DstPort, v.configAttr.trafficAttr.AppProtocol)
 	var chain *xds_listener.FilterChain
 	for _, c := range filterChains {
 		if c.Name == filterChainName {

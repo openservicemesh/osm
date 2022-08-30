@@ -126,7 +126,7 @@ func (c *Client) ListMonitoredNamespaces() ([]string, error) {
 // GetService retrieves the Kubernetes Services resource for the given MeshService
 func (c *Client) GetService(svc service.MeshService) *corev1.Service {
 	// client-go cache uses <namespace>/<name> as key
-	svcIf, exists, err := c.informers.GetByKey(osminformers.InformerKeyService, svc.NamespacedKey())
+	svcIf, exists, err := c.informers.GetByKey(osminformers.InformerKeyService, key(svc.Name, svc.Namespace))
 	if exists && err == nil {
 		svc := svcIf.(*corev1.Service)
 		return svc
@@ -190,10 +190,14 @@ func (c *Client) ListPods() []*corev1.Pod {
 	return pods
 }
 
+func key(name, namespace string) string {
+	return fmt.Sprintf("%s/%s", namespace, name)
+}
+
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
 // or error if the API errored out.
 func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error) {
-	ep, exists, err := c.informers.GetByKey(osminformers.InformerKeyEndpoints, svc.NamespacedKey())
+	ep, exists, err := c.informers.GetByKey(osminformers.InformerKeyEndpoints, key(svc.Name, svc.Namespace))
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +299,8 @@ func (c *Client) ServiceToMeshServices(svc corev1.Service) []service.MeshService
 				}
 				meshServices = append(meshServices, service.MeshService{
 					Namespace:  svc.Namespace,
-					Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
+					Name:       svc.Name,
+					Subdomain:  address.Hostname,
 					Port:       meshSvc.Port,
 					TargetPort: meshSvc.TargetPort,
 					Protocol:   meshSvc.Protocol,
