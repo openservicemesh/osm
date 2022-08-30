@@ -89,6 +89,10 @@ func (lb *listenerBuilder) buildInboundHTTPFilterChain(trafficMatch *trafficpoli
 	if lb.extAuthzConfig != nil && lb.extAuthzConfig.Enable {
 		fb.httpConnManager().AddFilter(getExtAuthzHTTPFilter(lb.extAuthzConfig))
 	}
+	// HTTP global rate limit
+	if trafficMatch.RateLimit != nil && trafficMatch.RateLimit.Global != nil && trafficMatch.RateLimit.Global.HTTP != nil {
+		fb.httpConnManager().AddFilter(buildHTTPGlobalRateLimitFilter(trafficMatch.RateLimit.Global.HTTP))
+	}
 	if lb.wasmStatsHeaders != nil {
 		wasmFilters, wasmLocalReplyConfig, err := getWASMStatsConfig(lb.wasmStatsHeaders)
 		if err != nil {
@@ -105,10 +109,6 @@ func (lb *listenerBuilder) buildInboundHTTPFilterChain(trafficMatch *trafficpoli
 			return nil, fmt.Errorf("error building inbound http filter chain: %w", err)
 		}
 		fb.httpConnManager().AddFilter(healthCheckFilter)
-	}
-	// HTTP global rate limit
-	if trafficMatch.RateLimit != nil && trafficMatch.RateLimit.Global != nil && trafficMatch.RateLimit.Global.HTTP != nil {
-		fb.httpConnManager().AddFilter(buildHTTPGlobalRateLimitFilter(trafficMatch.RateLimit.Global.HTTP))
 	}
 
 	// Build the inbound filters
