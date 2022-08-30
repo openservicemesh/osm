@@ -490,8 +490,8 @@ func (c *Client) GetOSMNamespace() string {
 	return c.osmNamespace
 }
 
-// ListEgressPoliciesForSourceIdentity lists the Egress policies for the given source identity based on service accounts
-func (c *Client) ListEgressPoliciesForSourceIdentity(source identity.K8sServiceAccount) []*policyv1alpha1.Egress {
+// ListEgressPolicies lists the Egress policies for the given source identity based on service accounts
+func (c *Client) ListEgressPolicies(source identity.K8sServiceAccount) []*policyv1alpha1.Egress {
 	var policies []*policyv1alpha1.Egress
 
 	for _, egressIface := range c.informers.List(osminformers.InformerKeyEgress) {

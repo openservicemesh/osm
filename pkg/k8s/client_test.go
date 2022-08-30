@@ -1331,7 +1331,7 @@ func TestMetricsHandler(t *testing.T) {
 	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 0` + "\n"))
 }
 
-func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
+func TestListEgressPolicies(t *testing.T) {
 	egressNs := "test"
 	egressNsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1466,7 +1466,7 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 				_ = c.informers.Add(informers.InformerKeyEgress, egressPolicy, t)
 			}
 
-			actual := c.ListEgressPoliciesForSourceIdentity(tc.source)
+			actual := c.ListEgressPolicies(tc.source)
 			a.ElementsMatch(tc.expectedEgresses, actual)
 		})
 	}

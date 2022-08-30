@@ -196,18 +196,18 @@ func (mr *MockInterfaceMockRecorder) IsMetricsEnabled(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMetricsEnabled", reflect.TypeOf((*MockInterface)(nil).IsMetricsEnabled), arg0)
 }
 
-// ListEgressPoliciesForSourceIdentity mocks base method.
-func (m *MockInterface) ListEgressPoliciesForSourceIdentity(arg0 identity.K8sServiceAccount) []*v1alpha1.Egress {
+// ListEgressPolicies mocks base method.
+func (m *MockInterface) ListEgressPolicies(arg0 identity.K8sServiceAccount) []*v1alpha1.Egress {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListEgressPoliciesForSourceIdentity", arg0)
+	ret := m.ctrl.Call(m, "ListEgressPolicies", arg0)
 	ret0, _ := ret[0].([]*v1alpha1.Egress)
 	return ret0
 }
 
-// ListEgressPoliciesForSourceIdentity indicates an expected call of ListEgressPoliciesForSourceIdentity.
-func (mr *MockInterfaceMockRecorder) ListEgressPoliciesForSourceIdentity(arg0 interface{}) *gomock.Call {
+// ListEgressPolicies indicates an expected call of ListEgressPolicies.
+func (mr *MockInterfaceMockRecorder) ListEgressPolicies(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEgressPoliciesForSourceIdentity", reflect.TypeOf((*MockInterface)(nil).ListEgressPoliciesForSourceIdentity), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEgressPolicies", reflect.TypeOf((*MockInterface)(nil).ListEgressPolicies), arg0)
 }
 
 // ListEndpointsForIdentity mocks base method.

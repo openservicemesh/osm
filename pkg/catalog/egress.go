@@ -34,7 +34,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 	var trafficMatches []*trafficpolicy.TrafficMatch
 	var clusterConfigs []*trafficpolicy.EgressClusterConfig
 	portToRouteConfigMap := make(map[int][]*trafficpolicy.EgressHTTPRouteConfig)
-	egressResources := mc.ListEgressPoliciesForSourceIdentity(serviceIdentity.ToK8sServiceAccount())
+	egressResources := mc.ListEgressPolicies(serviceIdentity.ToK8sServiceAccount())
 
 	for _, egress := range egressResources {
 		upstreamTrafficSetting, err := mc.getUpstreamTrafficSettingForEgress(egress)

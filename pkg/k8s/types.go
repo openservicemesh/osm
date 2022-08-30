@@ -145,8 +145,8 @@ type PassthroughInterface interface {
 
 	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
 
-	// ListEgressPoliciesForSourceIdentity lists the Egress policies for the given source identity
-	ListEgressPoliciesForSourceIdentity(identity.K8sServiceAccount) []*policyv1alpha1.Egress
+	// ListEgressPolicies lists the Egress policies for the given source identity
+	ListEgressPolicies(identity.K8sServiceAccount) []*policyv1alpha1.Egress
 
 	// GetIngressBackendPolicy returns the IngressBackend policy for the given backend MeshService
 	GetIngressBackendPolicy(service.MeshService) *policyv1alpha1.IngressBackend

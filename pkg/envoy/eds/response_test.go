@@ -55,7 +55,7 @@ func TestEndpointConfiguration(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	provider := compute.NewMockInterface(mockCtrl)
 	provider.EXPECT().ListEndpointsForService(gomock.Any()).Return(nil).AnyTimes()
-	provider.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().ListEgressPolicies(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(nil).AnyTimes()
