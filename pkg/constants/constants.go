@@ -210,6 +210,32 @@ const (
 
 	// MRCStateError is the error status option for the State of the MeshRootCertificate
 	MRCStateError = "error"
+
+	MRCIntentPassive = "passive"
+
+	// MRCComponentStatusUnknown is the unknown status option for the component status of the MeshRootCertificate
+	MRCComponentStatusUnknown = "unknown"
+
+	// MRCConditionStatusUnknown is the unknown status option for the condition status of the MeshRootCertificate
+	MRCConditionStatusUnknown = "unknown"
+
+	// MRCConditionTypeReady is the ready condition type for certificate condition of the MeshRootCertificate
+	MRCConditionTypeReady = "ready"
+
+	// MRCConditionTypeAccepted is the accepted condition type for certificate condition of the MeshRootCertificate
+	MRCConditionTypeAccepted = "accepted"
+
+	// MRCConditionTypeIssuingRollout is the issuing rollout condition type for certificate condition of the MeshRootCertificate
+	MRCConditionTypeIssuingRollout = "issuingRollout"
+
+	// MRCConditionTypeIssuingRollback is the issuing rollback condition type for certificate condition of the MeshRootCertificate
+	MRCConditionTypeIssuingRollback = "issuingRollback"
+
+	// MRCConditionTypeValidatingRollout is the validating rollout condition type for certificate condition of the MeshRootCertificate
+	MRCConditionTypeValidatingRollout = "validatingRollout"
+
+	// MRCConditionTypeValidatingRollback is the validating rollback condition type for certificate condition of the MeshRootCertificate
+	MRCConditionTypeValidatingRollback = "validatingRollback"
 )
 
 // Labels used by the control plane

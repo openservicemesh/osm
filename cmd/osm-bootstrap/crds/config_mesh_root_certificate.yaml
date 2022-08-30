@@ -152,6 +152,9 @@ spec:
                     - required: ["certManager"]
                     - required: ["vault"]
                     - required: ["tresor"]
+            intent:
+              description: Specifies the intent of the MeshRootCertificate can be (Active, Passive)
+              type: string
             status:
               type: object
               x-kubernetes-preserve-unknown-fields: true

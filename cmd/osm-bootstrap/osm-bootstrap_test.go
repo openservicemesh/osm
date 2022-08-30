@@ -96,6 +96,39 @@ var testMeshRootCertificate = &configv1alpha2.MeshRootCertificate{
 	Spec: configv1alpha2.MeshRootCertificateSpec{},
 	Status: configv1alpha2.MeshRootCertificateStatus{
 		State: constants.MRCStateActive,
+		ComponentStatuses: configv1alpha2.MeshRootCertificateComponentStatuses{
+			Webhooks:        constants.MRCComponentStatusUnknown,
+			XDSControlPlane: constants.MRCComponentStatusUnknown,
+			Sidecar:         constants.MRCComponentStatusUnknown,
+			Bootstrap:       constants.MRCComponentStatusUnknown,
+			Gateway:         constants.MRCComponentStatusUnknown,
+		},
+		Conditions: []configv1alpha2.MeshRootCertificateCondition{
+			{
+				Type:   constants.MRCConditionTypeReady,
+				Status: constants.MRCConditionStatusUnknown,
+			},
+			{
+				Type:   constants.MRCConditionTypeAccepted,
+				Status: constants.MRCConditionStatusUnknown,
+			},
+			{
+				Type:   constants.MRCConditionTypeIssuingRollout,
+				Status: constants.MRCConditionStatusUnknown,
+			},
+			{
+				Type:   constants.MRCConditionTypeValidatingRollout,
+				Status: constants.MRCConditionStatusUnknown,
+			},
+			{
+				Type:   constants.MRCConditionTypeIssuingRollback,
+				Status: constants.MRCConditionStatusUnknown,
+			},
+			{
+				Type:   constants.MRCConditionTypeValidatingRollback,
+				Status: constants.MRCConditionStatusUnknown,
+			},
+		},
 	},
 }
 

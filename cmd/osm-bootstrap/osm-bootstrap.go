@@ -430,6 +430,39 @@ func (b *bootstrap) createMeshRootCertificate() error {
 
 	createdMRC.Status = configv1alpha2.MeshRootCertificateStatus{
 		State: constants.MRCStateActive,
+		ComponentStatuses: configv1alpha2.MeshRootCertificateComponentStatuses{
+			Webhooks:        constants.MRCComponentStatusUnknown,
+			XDSControlPlane: constants.MRCComponentStatusUnknown,
+			Sidecar:         constants.MRCComponentStatusUnknown,
+			Bootstrap:       constants.MRCComponentStatusUnknown,
+			Gateway:         constants.MRCComponentStatusUnknown,
+		},
+		Conditions: []configv1alpha2.MeshRootCertificateCondition{
+			{
+				Type:   constants.MRCConditionTypeReady,
+				Status: constants.MRCConditionStatusUnknown,
+			},
+			{
+				Type:   constants.MRCConditionTypeAccepted,
+				Status: constants.MRCConditionStatusUnknown,
+			},
+			{
+				Type:   constants.MRCConditionTypeIssuingRollout,
+				Status: constants.MRCConditionStatusUnknown,
+			},
+			{
+				Type:   constants.MRCConditionTypeValidatingRollout,
+				Status: constants.MRCConditionStatusUnknown,
+			},
+			{
+				Type:   constants.MRCConditionTypeIssuingRollback,
+				Status: constants.MRCConditionStatusUnknown,
+			},
+			{
+				Type:   constants.MRCConditionTypeValidatingRollback,
+				Status: constants.MRCConditionStatusUnknown,
+			},
+		},
 	}
 
 	_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).UpdateStatus(context.Background(), createdMRC, metav1.UpdateOptions{})
