@@ -30,8 +30,8 @@ type MeshService struct {
 	// The name of the service
 	Name string
 
-	// Subdomain is the subdomain of the service. This is only populated if the service is a headless service backed by a
-	// single pod.
+	// Subdomain is the subdomain of the service. This is currently only populated if the service is a headless service
+	// backed by a single pod.
 	Subdomain string
 
 	// Port is the port number that clients use to access the service.
@@ -49,38 +49,30 @@ type MeshService struct {
 	Protocol string
 }
 
-// NamespacedKey is the key (i.e. namespace + Name) with which to lookup the backing service within the provider
-func (ms MeshService) NamespacedKey() string {
-	return fmt.Sprintf("%s/%s", ms.Namespace, ms.Name)
-}
-
-// FullName is the name of the service including the subdomain.
-func (ms MeshService) FullName() string {
-	if ms.Subdomain != "" {
-		return fmt.Sprintf("%s.%s", ms.Subdomain, ms.Name)
-	}
-	return ms.Name
-}
-
 // String returns the string representation of the given MeshService.
-// SHOULD NOT BE USED AS A MAPPING FOR ANYTHING. Use NamespacedKey and Subdomain
 func (ms MeshService) String() string {
+	if ms.Subdomain != "" {
+		return fmt.Sprintf("%s/%s.%s", ms.Namespace, ms.Subdomain, ms.Name)
+	}
 	return fmt.Sprintf("%s/%s", ms.Namespace, ms.Name)
 }
 
 // EnvoyClusterName is the name of the cluster corresponding to the MeshService in Envoy
 func (ms MeshService) EnvoyClusterName() string {
-	return fmt.Sprintf("%s/%s|%d", ms.Namespace, ms.FullName(), ms.TargetPort)
+	return fmt.Sprintf("%s|%d", ms, ms.TargetPort)
 }
 
 // EnvoyLocalClusterName is the name of the local cluster corresponding to the MeshService in Envoy
 func (ms MeshService) EnvoyLocalClusterName() string {
-	return fmt.Sprintf("%s/%s|%d|local", ms.Namespace, ms.FullName(), ms.TargetPort)
+	return fmt.Sprintf("%s|local", ms.EnvoyClusterName())
 }
 
 // FQDN is similar to String(), but uses a dot separator and is in a different order.
 func (ms MeshService) FQDN() string {
-	return fmt.Sprintf("%s.%s.svc.cluster.local", ms.FullName(), ms.Namespace)
+	if ms.Subdomain != "" {
+		return fmt.Sprintf("%s.%s.%s.svc.cluster.local", ms.Subdomain, ms.Name, ms.Namespace)
+	}
+	return fmt.Sprintf("%s.%s.svc.cluster.local", ms.Name, ms.Namespace)
 }
 
 // OutboundTrafficMatchName returns the MeshService outbound traffic match name
