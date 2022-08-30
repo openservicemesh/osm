@@ -16,28 +16,20 @@ func TestNewGrpc(t *testing.T) {
 	certManager := tresorFake.NewFake(1 * time.Hour)
 
 	type newGrpcTest struct {
-		serverType    string
-		port          int
-		cm            *certificate.Manager
-		expectedError bool
+		serverType string
+		port       int
+		cm         *certificate.Manager
 	}
 
 	newGrpcTests := []newGrpcTest{
-		{"abc", 123, nil, true},
-		{"ADS", 8080, certManager, false},
+		{"ADS", 8080, certManager},
 	}
 
 	for _, gt := range newGrpcTests {
 		resServer, resListener, err := NewGrpc(gt.serverType, gt.port, "fake-ads", certManager)
-		if err != nil {
-			assert.Nil(resServer)
-			assert.Nil(resListener)
-			assert.True(gt.expectedError)
-		} else {
-			assert.NotNil(resServer)
-			assert.NotNil(resListener)
-			assert.False(gt.expectedError)
-		}
+		assert.NotNil(resServer)
+		assert.NotNil(resListener)
+		assert.NoError(err)
 	}
 }
 
