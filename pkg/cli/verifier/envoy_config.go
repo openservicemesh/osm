@@ -721,10 +721,8 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnSource(secrets []*xds_secret.Secre
 	downstreamSecretName := envoySecrets.NameForIdentity(downstreamIdentity)
 
 	upstreamPeerValidationSecretName := envoySecrets.NameForUpstreamService(
-		service.MeshService{
-			Name:      v.configAttr.trafficAttr.DstService.Name,
-			Namespace: v.configAttr.trafficAttr.DstService.Namespace,
-		})
+		v.configAttr.trafficAttr.DstService.Name,
+		v.configAttr.trafficAttr.DstService.Namespace)
 
 	expectedSecrets := mapset.NewSetWith(downstreamSecretName, upstreamPeerValidationSecretName)
 	actualSecrets := mapset.NewSet()

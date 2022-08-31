@@ -16,7 +16,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/service"
 
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -228,7 +227,7 @@ var _ = Describe("Test Envoy tools", func() {
 	Context("Test getCommonTLSContext()", func() {
 		It("returns proper auth.CommonTlsContext for outbound mTLS", func() {
 			actual := getCommonTLSContext(secrets.NameForIdentity(identity.New("bookbuyer", "default")),
-				secrets.NameForUpstreamService(service.MeshService{Name: "bookstore-v1", Namespace: "default"}), sidecarSpec)
+				secrets.NameForUpstreamService("bookstore-v1", "default"), sidecarSpec)
 
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(sidecarSpec),

@@ -189,7 +189,7 @@ func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS boo
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context for the given downstream identity and upstream service pair
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.UpstreamTlsContext {
-	commonTLSContext := getCommonTLSContext(secrets.NameForIdentity(downstreamIdentity), secrets.NameForUpstreamService(upstreamSvc), sidecarSpec)
+	commonTLSContext := getCommonTLSContext(secrets.NameForIdentity(downstreamIdentity), secrets.NameForUpstreamService(upstreamSvc.Name, upstreamSvc.Namespace), sidecarSpec)
 
 	// Advertise in-mesh using UpstreamTlsContext.CommonTlsContext.AlpnProtocols
 	commonTLSContext.AlpnProtocols = ALPNInMesh

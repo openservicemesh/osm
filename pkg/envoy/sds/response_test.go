@@ -54,17 +54,17 @@ func TestNewResponse(t *testing.T) {
 				},
 			},
 			requestedCerts: []string{
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-1", Namespace: "ns-1"}),
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-A", Namespace: "ns-A"}),
+				secrets.NameForUpstreamService("svc-1", "ns-1"),
+				secrets.NameForUpstreamService("svc-A", "ns-A"),
 				secrets.NameForIdentity(proxySvcID),
 				secrets.NameForMTLSInbound,
 			},
 			expectedCertToSAN: map[string][]string{
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-1", Namespace: "ns-1"}): {
+				secrets.NameForUpstreamService("svc-1", "ns-1"): {
 					"sa-1.ns-1.cluster.local",
 					"sa-2.ns-1.cluster.local",
 				},
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-A", Namespace: "ns-A"}): {
+				secrets.NameForUpstreamService("svc-A", "ns-A"): {
 					"sa-A.ns-A.cluster.local",
 				},
 				secrets.NameForIdentity(proxySvcID): nil,
@@ -83,16 +83,16 @@ func TestNewResponse(t *testing.T) {
 				},
 			},
 			requestedCerts: []string{
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-1", Namespace: "ns-1"}),
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-A", Namespace: "ns-A"}),
+				secrets.NameForUpstreamService("svc-1", "ns-1"),
+				secrets.NameForUpstreamService("svc-A", "ns-A"),
 				secrets.NameForIdentity(proxySvcID),
 			},
 			expectedCertToSAN: map[string][]string{
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-1", Namespace: "ns-1"}): {
+				secrets.NameForUpstreamService("svc-1", "ns-1"): {
 					"sa-1.ns-1.cluster.local",
 					"sa-2.ns-1.cluster.local",
 				},
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-A", Namespace: "ns-A"}): {
+				secrets.NameForUpstreamService("svc-A", "ns-A"): {
 					"sa-A.ns-A.cluster.local",
 				},
 				secrets.NameForIdentity(proxySvcID): nil,
@@ -110,12 +110,12 @@ func TestNewResponse(t *testing.T) {
 				},
 			},
 			requestedCerts: []string{
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-A", Namespace: "ns-A"}),
+				secrets.NameForUpstreamService("svc-A", "ns-A"),
 				secrets.NameForIdentity(proxySvcID),
 				secrets.NameForMTLSInbound,
 			},
 			expectedCertToSAN: map[string][]string{
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-A", Namespace: "ns-A"}): {
+				secrets.NameForUpstreamService("svc-A", "ns-A"): {
 					"sa-A.ns-A.cluster.local",
 				},
 				secrets.NameForIdentity(proxySvcID): nil,
@@ -134,16 +134,16 @@ func TestNewResponse(t *testing.T) {
 				},
 			},
 			requestedCerts: []string{
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-1", Namespace: "ns-1"}),
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-A", Namespace: "ns-A"}),
+				secrets.NameForUpstreamService("svc-1", "ns-1"),
+				secrets.NameForUpstreamService("svc-A", "ns-A"),
 				secrets.NameForMTLSInbound,
 			},
 			expectedCertToSAN: map[string][]string{
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-1", Namespace: "ns-1"}): {
+				secrets.NameForUpstreamService("svc-1", "ns-1"): {
 					"sa-1.ns-1.cluster.local",
 					"sa-2.ns-1.cluster.local",
 				},
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-A", Namespace: "ns-A"}): {
+				secrets.NameForUpstreamService("svc-A", "ns-A"): {
 					"sa-A.ns-A.cluster.local",
 				},
 				secrets.NameForMTLSInbound: nil,
@@ -161,11 +161,11 @@ func TestNewResponse(t *testing.T) {
 				},
 			},
 			expectedCertToSAN: map[string][]string{
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-1", Namespace: "ns-1"}): {
+				secrets.NameForUpstreamService("svc-1", "ns-1"): {
 					"sa-1.ns-1.cluster.local",
 					"sa-2.ns-1.cluster.local",
 				},
-				secrets.NameForUpstreamService(service.MeshService{Name: "svc-A", Namespace: "ns-A"}): {
+				secrets.NameForUpstreamService("svc-A", "ns-A"): {
 					"sa-A.ns-A.cluster.local",
 				},
 				secrets.NameForIdentity(proxySvcID): nil,

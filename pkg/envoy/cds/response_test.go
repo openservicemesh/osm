@@ -256,7 +256,7 @@ func TestNewResponse(t *testing.T) {
 			}},
 			ValidationContextType: &xds_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &xds_auth.SdsSecretConfig{
-					Name: secrets.NameForUpstreamService(tests.BookstoreV1Service),
+					Name: secrets.NameForUpstreamService(tests.BookstoreV1Service.Name, "default"),
 					SdsConfig: &xds_core.ConfigSource{
 						ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
 							Ads: &xds_core.AggregatedConfigSource{},
@@ -287,7 +287,7 @@ func TestNewResponse(t *testing.T) {
 			}},
 			ValidationContextType: &xds_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &xds_auth.SdsSecretConfig{
-					Name: secrets.NameForUpstreamService(tests.BookstoreV2Service),
+					Name: secrets.NameForUpstreamService(tests.BookstoreV2Service.Name, "default"),
 					SdsConfig: &xds_core.ConfigSource{
 						ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
 							Ads: &xds_core.AggregatedConfigSource{},

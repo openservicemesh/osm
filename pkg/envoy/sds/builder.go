@@ -59,7 +59,7 @@ func (b *sdsBuilder) SetTrustDomain(trustDomain string) *sdsBuilder {
 func (b *sdsBuilder) SetServiceIdentitiesForService(serviceIdentitiesForServices map[service.MeshService][]identity.ServiceIdentity) *sdsBuilder {
 	b.identitiesForSecrets = make(map[string][]identity.ServiceIdentity)
 	for svc, serviceIdentities := range serviceIdentitiesForServices {
-		b.identitiesForSecrets[secrets.NameForUpstreamService(svc)] = serviceIdentities
+		b.identitiesForSecrets[secrets.NameForUpstreamService(svc.Name, svc.Namespace)] = serviceIdentities
 	}
 	return b
 }

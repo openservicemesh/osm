@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 const (
@@ -19,7 +18,7 @@ func NameForIdentity(si identity.ServiceIdentity) string {
 	return fmt.Sprintf("service-cert:%s", si.ToK8sServiceAccount())
 }
 
-// NameForUpstreamService returns the SDS secret name corresponding to the given outbound Service.
-func NameForUpstreamService(svc service.MeshService) string {
-	return fmt.Sprintf("root-cert-for-mtls-outbound:%s", svc)
+// NameForUpstreamService returns the SDS secret name corresponding to the given outbound Service name and namespace.
+func NameForUpstreamService(name, namespace string) string {
+	return fmt.Sprintf("root-cert-for-mtls-outbound:%s/%s", namespace, name)
 }
