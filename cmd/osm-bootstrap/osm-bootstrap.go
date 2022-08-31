@@ -429,7 +429,7 @@ func (b *bootstrap) createMeshRootCertificate() error {
 	}
 
 	createdMRC.Status = configv1alpha2.MeshRootCertificateStatus{
-		State: constants.MRCStateActive,
+		State: constants.MRCStatePending,
 		ComponentStatuses: configv1alpha2.MeshRootCertificateComponentStatuses{
 			Webhooks:        constants.MRCComponentStatusUnknown,
 			XDSControlPlane: constants.MRCComponentStatusUnknown,

@@ -95,7 +95,7 @@ var testMeshRootCertificate = &configv1alpha2.MeshRootCertificate{
 	},
 	Spec: configv1alpha2.MeshRootCertificateSpec{},
 	Status: configv1alpha2.MeshRootCertificateStatus{
-		State: constants.MRCStateActive,
+		State: constants.MRCStatePending,
 		ComponentStatuses: configv1alpha2.MeshRootCertificateComponentStatuses{
 			Webhooks:        constants.MRCComponentStatusUnknown,
 			XDSControlPlane: constants.MRCComponentStatusUnknown,
@@ -397,7 +397,7 @@ func TestCreateMeshRootCertificate(t *testing.T) {
 			mrc, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), meshRootCertificateName, metav1.GetOptions{})
 			if tc.expectDefaultMeshRootCertificate {
 				assert.NoError(err)
-				assert.Equal(constants.MRCStateActive, mrc.Status.State)
+				assert.Equal(constants.MRCStatePending, mrc.Status.State)
 			} else {
 				assert.Error(err)
 			}

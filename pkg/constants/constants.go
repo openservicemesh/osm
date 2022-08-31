@@ -196,6 +196,9 @@ const (
 	// MRCStateIssuingRollout is the issuing rollout status option for the State of the MeshRootCertificate
 	MRCStateIssuingRollout = "issuingRollout"
 
+	// MRCStatePending is the pending status option for the State of the MeshRootCertificate
+	MRCStatePending = "pending"
+
 	// MRCStateActive is the active status option for the State of the MeshRootCertificate
 	MRCStateActive = "active"
 
@@ -211,31 +214,32 @@ const (
 	// MRCStateError is the error status option for the State of the MeshRootCertificate
 	MRCStateError = "error"
 
+	// MRCIntentPassive is the passive option for the Intent of the MeshRootCertificate
 	MRCIntentPassive = "passive"
 
 	// MRCComponentStatusUnknown is the unknown status option for the component status of the MeshRootCertificate
-	MRCComponentStatusUnknown = "unknown"
+	MRCComponentStatusUnknown = "Unknown"
 
 	// MRCConditionStatusUnknown is the unknown status option for the condition status of the MeshRootCertificate
-	MRCConditionStatusUnknown = "unknown"
+	MRCConditionStatusUnknown = "Unknown"
 
 	// MRCConditionTypeReady is the ready condition type for certificate condition of the MeshRootCertificate
-	MRCConditionTypeReady = "ready"
+	MRCConditionTypeReady = "Ready"
 
 	// MRCConditionTypeAccepted is the accepted condition type for certificate condition of the MeshRootCertificate
-	MRCConditionTypeAccepted = "accepted"
+	MRCConditionTypeAccepted = "Accepted"
 
 	// MRCConditionTypeIssuingRollout is the issuing rollout condition type for certificate condition of the MeshRootCertificate
-	MRCConditionTypeIssuingRollout = "issuingRollout"
+	MRCConditionTypeIssuingRollout = "IssuingRollout"
 
 	// MRCConditionTypeIssuingRollback is the issuing rollback condition type for certificate condition of the MeshRootCertificate
-	MRCConditionTypeIssuingRollback = "issuingRollback"
+	MRCConditionTypeIssuingRollback = "IssuingRollback"
 
 	// MRCConditionTypeValidatingRollout is the validating rollout condition type for certificate condition of the MeshRootCertificate
-	MRCConditionTypeValidatingRollout = "validatingRollout"
+	MRCConditionTypeValidatingRollout = "ValidatingRollout"
 
 	// MRCConditionTypeValidatingRollback is the validating rollback condition type for certificate condition of the MeshRootCertificate
-	MRCConditionTypeValidatingRollback = "validatingRollback"
+	MRCConditionTypeValidatingRollback = "ValidatingRollback"
 )
 
 // Labels used by the control plane
