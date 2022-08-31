@@ -33,11 +33,11 @@ var _ = Describe("Test ADS response functions", func() {
 	fakeCertManager, err := certificate.FakeCertManager()
 	Expect(err).ToNot(HaveOccurred())
 	proxyUUID := uuid.New()
-	proxySvcAccount := tests.BookstoreServiceAccount
+	proxySvcID := tests.BookstoreServiceIdentity
 
 	proxyRegistry := registry.NewProxyRegistry()
 
-	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil, 1)
+	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcID, nil, 1)
 
 	Context("Proxy is valid", func() {
 		Expect(proxy).ToNot((BeNil()))
@@ -51,7 +51,7 @@ var _ = Describe("Test ADS response functions", func() {
 	Context("Test sendAllResponses()", func() {
 
 		certManager := tresorFake.NewFake(1 * time.Hour)
-		certPEM, _ := certManager.IssueCertificate(proxySvcAccount.ToServiceIdentity().String(), certificate.Service)
+		certPEM, _ := certManager.IssueCertificate(proxySvcID.String(), certificate.Service)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		kubectrlMock := k8s.NewMockController(mockCtrl)
@@ -74,7 +74,7 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(s).ToNot(BeNil())
 
 			// Set subscribed resources for SDS
-			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))
+			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound"))
 
 			err := s.sendResponse(proxy, &server, nil, envoy.XDSResponseOrder...)
 			Expect(err).To(BeNil())
@@ -108,19 +108,13 @@ var _ = Describe("Test ADS response functions", func() {
 			tmpResource = (*actualResponses)[4].Resources[0]
 			err = tmpResource.UnmarshalTo(&proxyServiceCert)
 			Expect(err).To(BeNil())
-			Expect(proxyServiceCert.Name).To(Equal(secrets.SDSCert{
-				Name:     proxySvcAccount.String(),
-				CertType: secrets.RootCertTypeForMTLSInbound,
-			}.String()))
+			Expect(proxyServiceCert.Name).To(Equal(secrets.NameForIdentity(proxySvcID)))
 
 			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
 			tmpResource = (*actualResponses)[4].Resources[1]
 			err = tmpResource.UnmarshalTo(&serverRootCertTypeForMTLSInbound)
 			Expect(err).To(BeNil())
-			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
-				Name:     proxySvcAccount.String(),
-				CertType: secrets.ServiceCertType,
-			}.String()))
+			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.NameForMTLSInbound))
 
 			Expect(metricsstore.DefaultMetricsStore.Contains(fmt.Sprintf("osm_proxy_response_send_success_count{identity=%q,proxy_uuid=%q,type=%q} 1\n", proxy.Identity, proxy.UUID, envoy.TypeCDS))).To(BeTrue())
 		})
@@ -129,7 +123,7 @@ var _ = Describe("Test ADS response functions", func() {
 	Context("Test sendSDSResponse()", func() {
 
 		certManager := tresorFake.NewFake(1 * time.Hour)
-		certCNPrefix := fmt.Sprintf("%s.%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcAccount.Name, proxySvcAccount.Namespace)
+		certCNPrefix := fmt.Sprintf("%s.%s.%s", uuid.New(), envoy.KindSidecar, proxySvcID)
 		certPEM, _ := certManager.IssueCertificate(certCNPrefix, certificate.Service)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
@@ -150,7 +144,7 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect(s).ToNot(BeNil())
 
 			// Set subscribed resources
-			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore"))
+			proxy.SetSubscribedResources(envoy.TypeSDS, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound"))
 
 			err := s.sendResponse(proxy, &server, nil, envoy.TypeSDS)
 			Expect(err).To(BeNil())
@@ -167,25 +161,15 @@ var _ = Describe("Test ADS response functions", func() {
 			// 2. mTLS validation cert when this proxy is an upstream
 			Expect(len(sdsResponse.Resources)).To(Equal(2))
 
-			var tmpResource *any.Any
-
 			proxyServiceCert := xds_auth.Secret{}
-			tmpResource = sdsResponse.Resources[0]
-			err = tmpResource.UnmarshalTo(&proxyServiceCert)
+			err = sdsResponse.Resources[0].UnmarshalTo(&proxyServiceCert)
 			Expect(err).To(BeNil())
-			Expect(proxyServiceCert.Name).To(Equal(secrets.SDSCert{
-				Name:     proxySvcAccount.String(),
-				CertType: secrets.RootCertTypeForMTLSInbound,
-			}.String()))
+			Expect(proxyServiceCert.Name).To(Equal(secrets.NameForIdentity(proxySvcID)))
 
 			serverRootCertTypeForMTLSInbound := xds_auth.Secret{}
-			tmpResource = sdsResponse.Resources[1]
-			err = tmpResource.UnmarshalTo(&serverRootCertTypeForMTLSInbound)
+			err = sdsResponse.Resources[1].UnmarshalTo(&serverRootCertTypeForMTLSInbound)
 			Expect(err).To(BeNil())
-			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.SDSCert{
-				Name:     proxySvcAccount.String(),
-				CertType: secrets.ServiceCertType,
-			}.String()))
+			Expect(serverRootCertTypeForMTLSInbound.Name).To(Equal(secrets.NameForMTLSInbound))
 		})
 	})
 })

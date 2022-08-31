@@ -168,7 +168,7 @@ func BenchmarkSendXDSResponse(b *testing.B) {
 			setupTestServer(b)
 
 			// Set subscribed resources
-			proxy.SetSubscribedResources(xdsType, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore|80"))
+			proxy.SetSubscribedResources(xdsType, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound"))
 
 			b.ResetTimer()
 			b.StartTimer()

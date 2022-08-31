@@ -718,14 +718,11 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnSource(secrets []*xds_secret.Secre
 		return fmt.Errorf("pod %s not found", srcPod)
 	}
 	downstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity()
-	downstreamSecretName := envoySecrets.SDSCert{
-		Name:     envoySecrets.GetSecretNameForIdentity(downstreamIdentity),
-		CertType: envoySecrets.ServiceCertType,
-	}.String()
-	upstreamPeerValidationSecretName := envoySecrets.SDSCert{
-		Name:     v.configAttr.trafficAttr.DstService.String(),
-		CertType: envoySecrets.RootCertTypeForMTLSOutbound,
-	}.String()
+	downstreamSecretName := envoySecrets.NameForIdentity(downstreamIdentity)
+
+	upstreamPeerValidationSecretName := envoySecrets.NameForUpstreamService(
+		v.configAttr.trafficAttr.DstService.Name,
+		v.configAttr.trafficAttr.DstService.Namespace)
 
 	expectedSecrets := mapset.NewSetWith(downstreamSecretName, upstreamPeerValidationSecretName)
 	actualSecrets := mapset.NewSet()
@@ -750,14 +747,8 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnDestination(secrets []*xds_secret.
 		return fmt.Errorf("pod %s not found", dstPod)
 	}
 	upstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity()
-	upstreamSecretName := envoySecrets.SDSCert{
-		Name:     envoySecrets.GetSecretNameForIdentity(upstreamIdentity),
-		CertType: envoySecrets.ServiceCertType,
-	}.String()
-	downstreamPeerValidationSecretName := envoySecrets.SDSCert{
-		Name:     envoySecrets.GetSecretNameForIdentity(upstreamIdentity),
-		CertType: envoySecrets.RootCertTypeForMTLSInbound,
-	}.String()
+	upstreamSecretName := envoySecrets.NameForIdentity(upstreamIdentity)
+	downstreamPeerValidationSecretName := envoySecrets.NameForMTLSInbound
 
 	expectedSecrets := mapset.NewSetWith(upstreamSecretName, downstreamPeerValidationSecretName)
 	actualSecrets := mapset.NewSet()
