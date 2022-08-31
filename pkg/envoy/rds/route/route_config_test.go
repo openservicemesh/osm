@@ -328,7 +328,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual := BuildInboundMeshRouteConfiguration(tc.inbound.HTTPRouteConfigsPerPort, nil, false, "cluster.local")
+			actual := BuildInboundMeshRouteConfiguration(tc.inbound.HTTPRouteConfigsPerPort, nil, nil, "cluster.local")
 
 			if tc.expectedRouteConfigFields == nil {
 				assert.Nil(actual)
@@ -368,18 +368,15 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 
 	statsWASMTestCases := []struct {
 		name                      string
-		wasmEnabled               bool
+		statsHeaders              map[string]string
 		expectedResponseHeaderLen int
 	}{
 		{
-			name:                      "response headers added when WASM enabled",
-			wasmEnabled:               true,
-			expectedResponseHeaderLen: len((&envoy.Proxy{}).StatsHeaders()),
+			name:         "response headers added when WASM enabled",
+			statsHeaders: map[string]string{"header-1": "val1", "header-2": "val2"},
 		},
 		{
-			name:                      "response headers not added when WASM disabled",
-			wasmEnabled:               false,
-			expectedResponseHeaderLen: 0,
+			name: "response headers not added when WASM disabled",
 		},
 	}
 
@@ -413,9 +410,9 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 	for _, tc := range statsWASMTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			actual := BuildInboundMeshRouteConfiguration(testInbound.HTTPRouteConfigsPerPort, &envoy.Proxy{}, tc.wasmEnabled, "cluster.local")
+			actual := BuildInboundMeshRouteConfiguration(testInbound.HTTPRouteConfigsPerPort, &envoy.Proxy{}, tc.statsHeaders, "cluster.local")
 			for _, routeConfig := range actual {
-				assert.Len(routeConfig.ResponseHeadersToAdd, tc.expectedResponseHeaderLen)
+				assert.Len(routeConfig.ResponseHeadersToAdd, len(tc.statsHeaders))
 			}
 		})
 	}

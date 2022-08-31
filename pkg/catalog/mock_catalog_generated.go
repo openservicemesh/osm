@@ -169,6 +169,21 @@ func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshTrafficPolicy(arg0 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundMeshTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetOutboundMeshTrafficPolicy), arg0)
 }
 
+// GetProxyStatsHeaders mocks base method.
+func (m *MockMeshCataloger) GetProxyStatsHeaders(arg0 *envoy.Proxy) (map[string]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProxyStatsHeaders", arg0)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetProxyStatsHeaders indicates an expected call of GetProxyStatsHeaders.
+func (mr *MockMeshCatalogerMockRecorder) GetProxyStatsHeaders(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProxyStatsHeaders", reflect.TypeOf((*MockMeshCataloger)(nil).GetProxyStatsHeaders), arg0)
+}
+
 // GetResolvableEndpointsForService mocks base method.
 func (m *MockMeshCataloger) GetResolvableEndpointsForService(arg0 service.MeshService) []endpoint.Endpoint {
 	m.ctrl.T.Helper()
@@ -537,4 +552,18 @@ func (m *MockMeshCataloger) UpdateUpstreamTrafficSettingStatus(arg0 *v1alpha1.Up
 func (mr *MockMeshCatalogerMockRecorder) UpdateUpstreamTrafficSettingStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUpstreamTrafficSettingStatus", reflect.TypeOf((*MockMeshCataloger)(nil).UpdateUpstreamTrafficSettingStatus), arg0)
+}
+
+// VerifyProxy mocks base method.
+func (m *MockMeshCataloger) VerifyProxy(arg0 *envoy.Proxy) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VerifyProxy", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// VerifyProxy indicates an expected call of VerifyProxy.
+func (mr *MockMeshCatalogerMockRecorder) VerifyProxy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyProxy", reflect.TypeOf((*MockMeshCataloger)(nil).VerifyProxy), arg0)
 }

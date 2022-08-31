@@ -3,7 +3,6 @@ package envoy
 import (
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
@@ -41,76 +40,10 @@ type Proxy struct {
 
 	// kind is the proxy's kind (ex. sidecar, gateway)
 	kind ProxyKind
-
-	// Records metadata around the Kubernetes Pod on which this Envoy Proxy is installed.
-	// This could be nil if the Envoy is not operating in a Kubernetes cluster (VM for example)
-	// NOTE: This field may be not be set at the time Proxy struct is initialized. This would
-	// eventually be set when the metadata arrives via the xDS protocol.
-	PodMetadata *PodMetadata
 }
 
 func (p *Proxy) String() string {
-	return fmt.Sprintf("[ProxyUUID=%s], [Pod metadata=%s]", p.UUID, p.PodMetadataString())
-}
-
-// PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
-// This struct is initialized *eventually*, when the metadata arrives via xDS.
-type PodMetadata struct {
-	UID            string
-	Name           string
-	Namespace      string
-	IP             string
-	ServiceAccount identity.K8sServiceAccount
-	Cluster        string
-	EnvoyNodeID    string
-	WorkloadKind   string
-	WorkloadName   string
-}
-
-// HasPodMetadata answers the question - has the Pod metadata been recorded for the given Envoy proxy
-func (p *Proxy) HasPodMetadata() bool {
-	return p.PodMetadata != nil
-}
-
-// StatsHeaders returns the headers required for SMI metrics
-func (p *Proxy) StatsHeaders() map[string]string {
-	unknown := "unknown"
-	podName := unknown
-	podNamespace := unknown
-	podControllerKind := unknown
-	podControllerName := unknown
-
-	if p.PodMetadata != nil {
-		if len(p.PodMetadata.Name) > 0 {
-			podName = p.PodMetadata.Name
-		}
-		if len(p.PodMetadata.Namespace) > 0 {
-			podNamespace = p.PodMetadata.Namespace
-		}
-		if len(p.PodMetadata.WorkloadKind) > 0 {
-			podControllerKind = p.PodMetadata.WorkloadKind
-		}
-		if len(p.PodMetadata.WorkloadName) > 0 {
-			podControllerName = p.PodMetadata.WorkloadName
-		}
-	}
-
-	// Assume ReplicaSets are controlled by a Deployment unless their names
-	// do not contain a hyphen. This aligns with the behavior of the
-	// Prometheus config in the OSM Helm chart.
-	if podControllerKind == "ReplicaSet" {
-		if hyp := strings.LastIndex(podControllerName, "-"); hyp >= 0 {
-			podControllerKind = "Deployment"
-			podControllerName = podControllerName[:hyp]
-		}
-	}
-
-	return map[string]string{
-		"osm-stats-pod":       podName,
-		"osm-stats-namespace": podNamespace,
-		"osm-stats-kind":      podControllerKind,
-		"osm-stats-name":      podControllerName,
-	}
+	return fmt.Sprintf("[ProxyIdentity=%s], [ProxyUUID=%s]", p.Identity, p.UUID)
 }
 
 // SetLastAppliedVersion records the version of the given Envoy proxy that was last acknowledged.
@@ -153,19 +86,6 @@ func (p *Proxy) GetLastSentNonce(typeURI TypeURI) string {
 func (p *Proxy) SetNewNonce(typeURI TypeURI) string {
 	p.lastNonce[typeURI] = fmt.Sprintf("%d", time.Now().UnixNano())
 	return p.lastNonce[typeURI]
-}
-
-// PodMetadataString returns relevant pod metadata as a string
-func (p *Proxy) PodMetadataString() string {
-	if p.PodMetadata == nil {
-		return ""
-	}
-	return fmt.Sprintf("UID=%s, Namespace=%s, Name=%s, ServiceAccount=%s", p.PodMetadata.UID, p.PodMetadata.Namespace, p.PodMetadata.Name, p.PodMetadata.ServiceAccount.Name)
-}
-
-// GetName returns a unique name for this proxy based on the identity and uuid.
-func (p *Proxy) GetName() string {
-	return fmt.Sprintf("%s:%s", p.Identity.String(), p.UUID.String())
 }
 
 // GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.

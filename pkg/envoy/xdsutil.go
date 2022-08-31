@@ -1,9 +1,7 @@
 package envoy
 
 import (
-	"fmt"
 	"net"
-	"strings"
 
 	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -17,7 +15,6 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -212,47 +209,6 @@ func GetADSConfigSource() *xds_core.ConfigSource {
 		},
 		ResourceApiVersion: xds_core.ApiVersion_V3,
 	}
-}
-
-// GetEnvoyServiceNodeID creates the string for Envoy's "--service-node" CLI argument for the Kubernetes sidecar container Command/Args
-func GetEnvoyServiceNodeID(nodeID, workloadKind, workloadName string) string {
-	items := []string{
-		"$(POD_UID)",
-		"$(POD_NAMESPACE)",
-		"$(POD_IP)",
-		"$(SERVICE_ACCOUNT)",
-		nodeID,
-		"$(POD_NAME)",
-		workloadKind,
-		workloadName,
-	}
-
-	return strings.Join(items, constants.EnvoyServiceNodeSeparator)
-}
-
-// ParseEnvoyServiceNodeID parses the given Envoy service node ID and returns the encoded metadata
-func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
-	chunks := strings.Split(serviceNodeID, constants.EnvoyServiceNodeSeparator)
-
-	if len(chunks) < 5 {
-		return nil, fmt.Errorf("invalid envoy service node id format")
-	}
-
-	meta := &PodMetadata{
-		UID:            chunks[0],
-		Namespace:      chunks[1],
-		IP:             chunks[2],
-		ServiceAccount: identity.K8sServiceAccount{Name: chunks[3], Namespace: chunks[1]},
-		EnvoyNodeID:    chunks[4],
-	}
-
-	if len(chunks) >= 8 {
-		meta.Name = chunks[5]
-		meta.WorkloadKind = chunks[6]
-		meta.WorkloadName = chunks[7]
-	}
-
-	return meta, nil
 }
 
 // GetCIDRRangeFromStr converts the given CIDR as a string to an XDS CidrRange object

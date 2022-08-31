@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes/fake"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	. "github.com/onsi/ginkgo"
@@ -746,7 +747,7 @@ func TestListServicesForProxy(t *testing.T) {
 		},
 		{
 			name:  "Error: pod not found",
-			proxy: envoy.NewProxy(envoy.KindSidecar, goodUUID, identity.New("sa1", "n1"), &net.IPAddr{}, 1),
+			proxy: envoy.NewProxy(envoy.KindSidecar, goodUUID, identity.New("sa1", "ns1"), &net.IPAddr{}, 1),
 			pods: []*corev1.Pod{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1486,7 +1487,6 @@ func TestListRetryPolicy(t *testing.T) {
 			},
 		},
 	}
-
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			a := assert.New(t)
@@ -1509,6 +1509,201 @@ func TestListRetryPolicy(t *testing.T) {
 
 			actual := c.ListRetryPoliciesForServiceAccount(tc.source)
 			a.ElementsMatch(tc.expectedRetries, actual)
+		})
+	}
+}
+
+func TestGetProxyStatsHeaders(t *testing.T) {
+	uuid1 := uuid.New()
+	tr := true
+	const namespace = "ns1"
+	testCases := []struct {
+		name      string
+		proxy     *envoy.Proxy
+		pod       *corev1.Pod
+		expected  map[string]string
+		expectErr bool
+	}{
+		{
+			name:      "pod not found",
+			proxy:     envoy.NewProxy(envoy.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
+			expectErr: true,
+		},
+		{
+			name:  "pod has bad service account",
+			proxy: envoy.NewProxy(envoy.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Labels: map[string]string{
+						constants.EnvoyUniqueIDLabelName: uuid1.String(),
+					},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "sa2",
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name:  "full stats headers from deployment",
+			proxy: envoy.NewProxy(envoy.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
+
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod",
+					Namespace: namespace,
+					Labels: map[string]string{
+						constants.EnvoyUniqueIDLabelName: uuid1.String(),
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "bad-controller",
+							Kind: "Invalid",
+						},
+						{
+							Name:       "good-dep",
+							Kind:       "Deployment",
+							Controller: &tr,
+						},
+					},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "sa1",
+				},
+			},
+			expected: map[string]string{
+				"osm-stats-kind":      "Deployment",
+				"osm-stats-name":      "good-dep",
+				"osm-stats-namespace": namespace,
+				"osm-stats-pod":       "pod",
+			},
+		},
+		{
+			name:  "no owner references",
+			proxy: envoy.NewProxy(envoy.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
+
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod",
+					Namespace: namespace,
+					Labels: map[string]string{
+						constants.EnvoyUniqueIDLabelName: uuid1.String(),
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "bad-controller",
+							Kind: "Invalid",
+						},
+					},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "sa1",
+				},
+			},
+			expected: map[string]string{
+				"osm-stats-kind":      "unknown",
+				"osm-stats-name":      "unknown",
+				"osm-stats-namespace": namespace,
+				"osm-stats-pod":       "pod",
+			},
+		},
+		{
+			name:  "full stats headers from replicaset with hyphen",
+			proxy: envoy.NewProxy(envoy.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
+
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod",
+					Namespace: namespace,
+					Labels: map[string]string{
+						constants.EnvoyUniqueIDLabelName: uuid1.String(),
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name: "bad-controller",
+							Kind: "Invalid",
+						},
+						{
+							Name:       "good-controller",
+							Kind:       "ReplicaSet",
+							Controller: &tr,
+						},
+					},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "sa1",
+				},
+			},
+			expected: map[string]string{
+				"osm-stats-kind":      "Deployment",
+				"osm-stats-name":      "good",
+				"osm-stats-namespace": namespace,
+				"osm-stats-pod":       "pod",
+			},
+		},
+		{
+			name:  "full stats headers from replicaset without hyphen",
+			proxy: envoy.NewProxy(envoy.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
+
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod",
+					Namespace: namespace,
+					Labels: map[string]string{
+						constants.EnvoyUniqueIDLabelName: uuid1.String(),
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name:       "goodcontroller",
+							Kind:       "ReplicaSet",
+							Controller: &tr,
+						},
+					},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "sa1",
+				},
+			},
+			expected: map[string]string{
+				"osm-stats-kind":      "ReplicaSet",
+				"osm-stats-name":      "goodcontroller",
+				"osm-stats-namespace": namespace,
+				"osm-stats-pod":       "pod",
+			},
+		},
+	}
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			objects := []runtime.Object{
+				&corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{Name: namespace, Labels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: tests.MeshName,
+					}},
+				},
+			}
+			if test.pod != nil {
+				objects = append(objects, test.pod)
+			}
+			fakeClient := fake.NewSimpleClientset(objects...)
+
+			stop := make(chan struct{})
+			defer close(stop)
+
+			informer, err := informers.NewInformerCollection(tests.MeshName, stop,
+				informers.WithKubeClient(fakeClient),
+			)
+			assert.NoError(err)
+			controller := k8s.NewClient("ns", "", informer, nil, messaging.NewBroker(stop))
+			c := NewClient(controller)
+			actual, err := c.GetProxyStatsHeaders(test.proxy)
+			if test.expectErr {
+				assert.Error(err)
+			} else {
+				assert.NoError(err)
+			}
+			assert.Equal(test.expected, actual)
 		})
 	}
 }

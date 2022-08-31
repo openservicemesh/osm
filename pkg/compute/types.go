@@ -59,4 +59,9 @@ type Interface interface {
 
 	// GetUpstreamTrafficSettingByHost returns the UpstreamTrafficSetting resource that matches the host
 	GetUpstreamTrafficSettingByHost(host string) *policyv1alpha1.UpstreamTrafficSetting
+
+	GetProxyStatsHeaders(p *envoy.Proxy) (map[string]string, error)
+
+	// VerifyProxy attempts to lookup a pod that matches the given proxy instance by service identity, namespace, and UUID
+	VerifyProxy(proxy *envoy.Proxy) error
 }

@@ -37,5 +37,5 @@ func (proxyJob *proxyResponseJob) Run() {
 
 // JobName implementation for this job, for logging purposes
 func (proxyJob *proxyResponseJob) JobName() string {
-	return fmt.Sprintf("sendJob-%s", proxyJob.proxy.GetName())
+	return fmt.Sprintf("sendJob-%s", proxyJob.proxy.UUID)
 }

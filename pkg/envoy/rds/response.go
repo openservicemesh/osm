@@ -20,12 +20,20 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 	proxyServices, err := cataloger.ListServicesForProxy(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
-			Msgf("Error looking up services for Envoy with name=%s", proxy.GetName())
+			Msgf("Error looking up services for proxy %s", proxy)
 		return nil, err
 	}
 	var rdsResources []types.Resource
 
 	trustDomain := cm.GetTrustDomain()
+
+	statsHeaders := map[string]string{}
+	if cataloger.GetMeshConfig().Spec.FeatureFlags.EnableWASMStats {
+		statsHeaders, err = cataloger.GetProxyStatsHeaders(proxy)
+		if err != nil {
+			log.Err(err).Msgf("Error getting proxy stats headers for proxy %s", proxy)
+		}
+	}
 
 	// ---
 	// Build inbound mesh route configurations. These route configurations allow
@@ -33,7 +41,7 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryR
 	// clients on allowed routes.
 	inboundMeshTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(proxy.Identity, proxyServices)
 	if inboundMeshTrafficPolicy != nil {
-		inboundMeshRouteConfig := route.BuildInboundMeshRouteConfiguration(inboundMeshTrafficPolicy.HTTPRouteConfigsPerPort, proxy, cataloger.GetMeshConfig().Spec.FeatureFlags.EnableWASMStats, trustDomain)
+		inboundMeshRouteConfig := route.BuildInboundMeshRouteConfiguration(inboundMeshTrafficPolicy.HTTPRouteConfigsPerPort, proxy, statsHeaders, trustDomain)
 		for _, config := range inboundMeshRouteConfig {
 			rdsResources = append(rdsResources, config)
 		}
