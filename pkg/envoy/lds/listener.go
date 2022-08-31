@@ -9,6 +9,7 @@ import (
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -46,7 +47,7 @@ func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_l
 			{
 				Filters: []*xds_listener.Filter{
 					{
-						Name: envoy.HTTPConnectionManagerFilterName,
+						Name: wellknown.HTTPConnectionManager,
 						ConfigType: &xds_listener.Filter_TypedConfig{
 							TypedConfig: marshalledConnManager,
 						},
@@ -69,7 +70,7 @@ func getDefaultPassthroughFilterChain() *xds_listener.FilterChain {
 		Name: outboundEgressFilterChainName,
 		Filters: []*xds_listener.Filter{
 			{
-				Name:       envoy.TCPProxyFilterName,
+				Name:       wellknown.TCPProxy,
 				ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: protobuf.MustMarshalAny(tcpProxy)},
 			},
 		},

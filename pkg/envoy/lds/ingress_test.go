@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/auth"
-	"github.com/openservicemesh/osm/pkg/envoy"
 
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -96,7 +96,7 @@ func TestGetIngressFilterChainFromTrafficMatch(t *testing.T) {
 				Port:     80,
 				Protocol: "http",
 			},
-			expectedEnvoyFilters: []string{envoy.HTTPConnectionManagerFilterName},
+			expectedEnvoyFilters: []string{wellknown.HTTPConnectionManager},
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:   &wrapperspb.UInt32Value{Value: 80},
 				TransportProtocol: "",
@@ -111,7 +111,7 @@ func TestGetIngressFilterChainFromTrafficMatch(t *testing.T) {
 				Protocol:    "https",
 				ServerNames: []string{"foo.bar.svc.cluster.local"},
 			},
-			expectedEnvoyFilters: []string{envoy.HTTPConnectionManagerFilterName},
+			expectedEnvoyFilters: []string{wellknown.HTTPConnectionManager},
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:   &wrapperspb.UInt32Value{Value: 80},
 				TransportProtocol: "tls",
@@ -126,7 +126,7 @@ func TestGetIngressFilterChainFromTrafficMatch(t *testing.T) {
 				Port:     80,
 				Protocol: "https",
 			},
-			expectedEnvoyFilters: []string{envoy.HTTPConnectionManagerFilterName},
+			expectedEnvoyFilters: []string{wellknown.HTTPConnectionManager},
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:   &wrapperspb.UInt32Value{Value: 80},
 				TransportProtocol: "tls",
@@ -160,7 +160,7 @@ func TestGetIngressFilterChainFromTrafficMatch(t *testing.T) {
 			if err == nil {
 				assert.Equal(tc.expectedFilterChainMatch, actual.FilterChainMatch)
 				assert.Len(actual.Filters, 1) // Single HTTPConnectionManager filter
-				assert.Equal(envoy.HTTPConnectionManagerFilterName, actual.Filters[0].Name)
+				assert.Equal(wellknown.HTTPConnectionManager, actual.Filters[0].Name)
 			}
 		})
 	}

@@ -6,6 +6,7 @@ import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -84,7 +85,7 @@ func (lb *listenerBuilder) buildEgressTCPFilterChain(match trafficpolicy.Traffic
 	}
 
 	tcpFilter := &xds_listener.Filter{
-		Name:       envoy.TCPProxyFilterName,
+		Name:       wellknown.TCPProxy,
 		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledTCPProxy},
 	}
 

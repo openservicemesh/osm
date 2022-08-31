@@ -8,6 +8,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -97,7 +98,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 
 								// Only the filter name is matched, not the marshalled config
 								TypedPerFilterConfig: map[string]*any.Any{
-									envoy.HTTPRBACFilterName: nil,
+									wellknown.HTTPRoleBasedAccessControl: nil,
 								},
 							},
 							{
@@ -105,7 +106,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 
 								// Only the filter name is matched, not the marshalled config
 								TypedPerFilterConfig: map[string]*any.Any{
-									envoy.HTTPRBACFilterName: nil,
+									wellknown.HTTPRoleBasedAccessControl: nil,
 								},
 							},
 						},
@@ -180,8 +181,8 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 
 								// Only the filter name is matched, not the marshalled config
 								TypedPerFilterConfig: map[string]*any.Any{
-									envoy.HTTPRBACFilterName:           nil,
-									envoy.HTTPLocalRateLimitFilterName: nil,
+									wellknown.HTTPRoleBasedAccessControl: nil,
+									envoy.HTTPLocalRateLimitFilterName:   nil,
 								},
 							},
 							{
@@ -189,8 +190,8 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 
 								// Only the filter name is matched, not the marshalled config
 								TypedPerFilterConfig: map[string]*any.Any{
-									envoy.HTTPRBACFilterName:           nil,
-									envoy.HTTPLocalRateLimitFilterName: nil,
+									wellknown.HTTPRoleBasedAccessControl: nil,
+									envoy.HTTPLocalRateLimitFilterName:   nil,
 								},
 							},
 						},
@@ -297,7 +298,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 
 								// Only the filter name is matched, not the marshalled config
 								TypedPerFilterConfig: map[string]*any.Any{
-									envoy.HTTPRBACFilterName: nil,
+									wellknown.HTTPRoleBasedAccessControl: nil,
 								},
 
 								Action: &xds_route.Route_Route{

@@ -11,10 +11,9 @@ import (
 	xds_wasm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/wasm/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	xds_wasm_ext "github.com/envoyproxy/go-control-plane/envoy/extensions/wasm/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
 	"google.golang.org/protobuf/types/known/anypb"
-
-	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
 //go:embed stats.wasm
@@ -91,7 +90,7 @@ func getAddHeadersFilter(headers map[string]string) (*xds_hcm.HttpFilter, error)
 	}
 
 	return &xds_hcm.HttpFilter{
-		Name: envoy.HTTPLuaFilterName,
+		Name: wellknown.Lua,
 		ConfigType: &xds_hcm.HttpFilter_TypedConfig{
 			TypedConfig: luaAny,
 		},

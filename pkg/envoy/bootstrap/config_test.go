@@ -142,7 +142,7 @@ static_resources:
         port_value: 15901
     filter_chains:
     - filters:
-      - name: http_connection_manager
+      - name: envoy.filters.network.http_connection_manager
         typed_config:
           '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
           access_log:
@@ -171,7 +171,7 @@ static_resources:
                   user_agent: '%REQ(USER-AGENT)%'
                   x_forwarded_for: '%REQ(X-FORWARDED-FOR)%'
           http_filters:
-          - name: http_router
+          - name: envoy.filters.http.router
             typed_config:
               '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
           route_config:
@@ -195,7 +195,7 @@ static_resources:
         port_value: 15902
     filter_chains:
     - filters:
-      - name: http_connection_manager
+      - name: envoy.filters.network.http_connection_manager
         typed_config:
           '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
           access_log:
@@ -224,7 +224,7 @@ static_resources:
                   user_agent: '%REQ(USER-AGENT)%'
                   x_forwarded_for: '%REQ(X-FORWARDED-FOR)%'
           http_filters:
-          - name: http_router
+          - name: envoy.filters.http.router
             typed_config:
               '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
           route_config:
@@ -248,7 +248,7 @@ static_resources:
         port_value: 15903
     filter_chains:
     - filters:
-      - name: http_connection_manager
+      - name: envoy.filters.network.http_connection_manager
         typed_config:
           '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
           access_log:
@@ -277,7 +277,7 @@ static_resources:
                   user_agent: '%REQ(USER-AGENT)%'
                   x_forwarded_for: '%REQ(X-FORWARDED-FOR)%'
           http_filters:
-          - name: http_router
+          - name: envoy.filters.http.router
             typed_config:
               '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
           route_config:

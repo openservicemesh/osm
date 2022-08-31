@@ -9,6 +9,7 @@ import (
 	xds_http_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -95,7 +96,7 @@ func (lb *listenerBuilder) defaultOutboundListenerFilters() *listenerBuilder {
 			// The OriginalDestination ListenerFilter is used to restore the original destination address
 			// as opposed to the listener's address (due to iptables redirection).
 			// This enables  filter chain matching on the original destination address (ip, port).
-			Name: envoy.OriginalDstFilterName,
+			Name: wellknown.OriginalDestination,
 			ConfigType: &xds_listener.ListenerFilter_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: envoy.OriginalDstFilterTypeURL,
@@ -110,7 +111,7 @@ func (lb *listenerBuilder) DefaultInboundListenerFilters() *listenerBuilder {
 	lb.listenerFilters = append(lb.listenerFilters,
 		&xds_listener.ListenerFilter{
 			// To inspect TLS metadata, such as the transport protocol and SNI
-			Name: envoy.TLSInspectorFilterName,
+			Name: wellknown.TLSInspector,
 			ConfigType: &xds_listener.ListenerFilter_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: envoy.TLSInspectorFilterTypeURL,
@@ -121,7 +122,7 @@ func (lb *listenerBuilder) DefaultInboundListenerFilters() *listenerBuilder {
 			// The OriginalDestination ListenerFilter is used to restore the original destination address
 			// as opposed to the listener's address (due to iptables redirection).
 			// This enables  filter chain matching on the original destination address (ip, port).
-			Name: envoy.OriginalDstFilterName,
+			Name: wellknown.OriginalDestination,
 			ConfigType: &xds_listener.ListenerFilter_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: envoy.OriginalDstFilterTypeURL,
@@ -177,7 +178,7 @@ func (lb *listenerBuilder) Build() (*xds_listener.Listener, error) {
 		l = lb.buildInboundListener()
 
 	default:
-		return nil, fmt.Errorf("listener %s: unsupported traffic direction %s", l.Name, l.TrafficDirection)
+		return nil, fmt.Errorf("listener unsupported traffic direction %s", lb.trafficDirection)
 	}
 
 	if len(l.FilterChains) == 0 && l.DefaultFilterChain == nil {
@@ -231,7 +232,7 @@ func (lb *listenerBuilder) buildOutboundListener() *xds_listener.Listener {
 		// The 'FilterDisabled' field configures the match predicate.
 		&xds_listener.ListenerFilter{
 			// To inspect TLS metadata, such as the transport protocol and SNI
-			Name: envoy.TLSInspectorFilterName,
+			Name: wellknown.TLSInspector,
 			ConfigType: &xds_listener.ListenerFilter_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: envoy.TLSInspectorFilterTypeURL,
@@ -241,7 +242,7 @@ func (lb *listenerBuilder) buildOutboundListener() *xds_listener.Listener {
 		},
 		&xds_listener.ListenerFilter{
 			// To inspect if the application protocol is HTTP based
-			Name: envoy.HTTPInspectorFilterName,
+			Name: wellknown.HttpInspector,
 			ConfigType: &xds_listener.ListenerFilter_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: envoy.HTTPInspectorFilterTypeURL,
@@ -421,7 +422,7 @@ func (hb *httpConnManagerBuilder) defaultFilters() []*xds_hcm.HttpFilter {
 	return []*xds_hcm.HttpFilter{
 		{
 			// HTTP RBAC filter - required to perform HTTP based RBAC per route
-			Name: envoy.HTTPRBACFilterName,
+			Name: wellknown.HTTPRoleBasedAccessControl,
 			ConfigType: &xds_hcm.HttpFilter_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: envoy.HTTPRBACFilterTypeURL,
@@ -454,7 +455,7 @@ func (hb *httpConnManagerBuilder) AddFilter(filter *xds_hcm.HttpFilter) *httpCon
 		return hb
 	}
 
-	if filter.Name == envoy.HTTPRouterFilterName {
+	if filter.Name == wellknown.Router {
 		hb.routerFilter = filter
 		return hb
 	}
@@ -490,7 +491,7 @@ func (hb *httpConnManagerBuilder) Build() (*xds_listener.Filter, error) {
 	if hb.routerFilter == nil {
 		// Router filter - required to perform HTTP connection management
 		hb.routerFilter = &xds_hcm.HttpFilter{
-			Name: envoy.HTTPRouterFilterName,
+			Name: wellknown.Router,
 			ConfigType: &xds_hcm.HttpFilter_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: envoy.HTTPRouterFilterTypeURL,
@@ -531,7 +532,7 @@ func (hb *httpConnManagerBuilder) Build() (*xds_listener.Filter, error) {
 	}
 
 	return &xds_listener.Filter{
-		Name:       envoy.HTTPConnectionManagerFilterName,
+		Name:       wellknown.HTTPConnectionManager,
 		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalled},
 	}, nil
 }
@@ -595,7 +596,7 @@ func (tb *tcpProxyBuilder) Build() (*xds_listener.Filter, error) {
 	}
 
 	marshalled := &xds_listener.Filter{
-		Name:       envoy.TCPProxyFilterName,
+		Name:       wellknown.TCPProxy,
 		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledTCPProxy},
 	}
 

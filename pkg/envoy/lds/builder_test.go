@@ -6,6 +6,7 @@ import (
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -44,7 +45,7 @@ func TestHTTPConnManagerBuilder(t *testing.T) {
 			assertFunc: func(a *assert.Assertions, hcm *xds_hcm.HttpConnectionManager) {
 				a.Equal("foo", hcm.StatPrefix)
 				a.Equal("bar", hcm.GetRds().RouteConfigName)
-				a.True(contains(hcm.HttpFilters, envoy.HTTPRBACFilterName))
+				a.True(contains(hcm.HttpFilters, wellknown.HTTPRoleBasedAccessControl))
 				a.True(contains(hcm.HttpFilters, envoy.HTTPLocalRateLimitFilterName))
 				a.True(contains(hcm.HttpFilters, "f1"))
 				a.True(contains(hcm.HttpFilters, "f2"))
@@ -83,7 +84,7 @@ func TestBuildOutboundHTTPFilter(t *testing.T) {
 
 	filter, err := lb.buildOutboundHTTPFilter(route.OutboundRouteConfigName)
 	a.NoError(err)
-	a.Equal(filter.Name, envoy.HTTPConnectionManagerFilterName)
+	a.Equal(filter.Name, wellknown.HTTPConnectionManager)
 }
 
 func TestBuildInboundFilterChains(t *testing.T) {
@@ -197,7 +198,7 @@ func TestFilterBuilder(t *testing.T) {
 				StatPrefix:       "test",
 				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: "foo"},
 			},
-			expectedNetworkFilters: []string{envoy.TCPProxyFilterName},
+			expectedNetworkFilters: []string{wellknown.TCPProxy},
 		},
 		{
 			name: "TCP proxy to multiple upstream clusters",
@@ -225,7 +226,7 @@ func TestFilterBuilder(t *testing.T) {
 					},
 				},
 			},
-			expectedNetworkFilters: []string{envoy.TCPProxyFilterName},
+			expectedNetworkFilters: []string{wellknown.TCPProxy},
 		},
 		{
 			name: "TCP proxy without a valid cluster should error",
@@ -261,13 +262,13 @@ func TestFilterBuilder(t *testing.T) {
 					httpConnManager()
 			},
 			expectedNetworkFilters: []string{envoy.L4RBACFilterName},
-			expectedHTTPFilters:    []string{envoy.HTTPRBACFilterName, envoy.HTTPLocalRateLimitFilterName, envoy.HTTPRouterFilterName},
+			expectedHTTPFilters:    []string{wellknown.HTTPRoleBasedAccessControl, envoy.HTTPLocalRateLimitFilterName, wellknown.Router},
 		},
 	}
 
 	getTCPProxyFilter := func(filters []*xds_listener.Filter) *xds_tcp_proxy.TcpProxy {
 		for _, f := range filters {
-			if f.Name == envoy.TCPProxyFilterName {
+			if f.Name == wellknown.TCPProxy {
 				unmarshalled := &xds_tcp_proxy.TcpProxy{}
 				_ = f.GetTypedConfig().UnmarshalTo(unmarshalled)
 				return unmarshalled
@@ -278,7 +279,7 @@ func TestFilterBuilder(t *testing.T) {
 
 	getHCMFilter := func(filters []*xds_listener.Filter) *xds_hcm.HttpConnectionManager {
 		for _, f := range filters {
-			if f.Name == envoy.HTTPConnectionManagerFilterName {
+			if f.Name == wellknown.HTTPConnectionManager {
 				unmarshalled := &xds_hcm.HttpConnectionManager{}
 				_ = f.GetTypedConfig().UnmarshalTo(unmarshalled)
 				return unmarshalled
@@ -337,15 +338,15 @@ func TestAddFilter(t *testing.T) {
 	a := assert.New(t)
 	hb := HTTPConnManagerBuilder()
 
-	hb.AddFilter(&xds_hcm.HttpFilter{Name: envoy.HTTPRouterFilterName})
-	hb.AddFilter(&xds_hcm.HttpFilter{Name: envoy.HTTPExtAuthzFilterName})
+	hb.AddFilter(&xds_hcm.HttpFilter{Name: wellknown.Router})
+	hb.AddFilter(&xds_hcm.HttpFilter{Name: wellknown.HTTPExternalAuthorization})
 
 	// Verify the HTTP router filter is always the last filter regardless
 	// of the order in which the filters are added
-	a.Equal(envoy.HTTPExtAuthzFilterName, hb.filters[0].Name)
-	a.Equal(envoy.HTTPRouterFilterName, hb.routerFilter.Name)
+	a.Equal(wellknown.HTTPExternalAuthorization, hb.filters[0].Name)
+	a.Equal(wellknown.Router, hb.routerFilter.Name)
 
 	// Verify adding router filter multiple times doesn
-	hb.AddFilter(&xds_hcm.HttpFilter{Name: envoy.HTTPRouterFilterName})
-	a.Equal(envoy.HTTPRouterFilterName, hb.routerFilter.Name)
+	hb.AddFilter(&xds_hcm.HttpFilter{Name: wellknown.Router})
+	a.Equal(wellknown.Router, hb.routerFilter.Name)
 }

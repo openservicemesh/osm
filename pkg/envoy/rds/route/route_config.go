@@ -12,6 +12,7 @@ import (
 	xds_http_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -425,7 +426,7 @@ func applyInboundRouteConfig(route *xds_route.Route, rbacConfig *any.Any, rateLi
 	perFilterConfig := make(map[string]*any.Any)
 
 	// Apply RBACPerRoute policy
-	perFilterConfig[envoy.HTTPRBACFilterName] = rbacConfig
+	perFilterConfig[wellknown.HTTPRoleBasedAccessControl] = rbacConfig
 
 	// Apply local rate limit policy
 	if rateLimit != nil && rateLimit.Local != nil {

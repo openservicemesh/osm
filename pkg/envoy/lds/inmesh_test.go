@@ -7,6 +7,7 @@ import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -89,7 +90,7 @@ func TestBuildOutboundHTTPFilterChain(t *testing.T) {
 				assert.Len(httpFilterChain.FilterChainMatch.PrefixRanges, len(tc.trafficMatch.DestinationIPRanges))
 
 				for _, filter := range httpFilterChain.Filters {
-					assert.Equal(envoy.HTTPConnectionManagerFilterName, filter.Name)
+					assert.Equal(wellknown.HTTPConnectionManager, filter.Name)
 				}
 			}
 		})
@@ -165,7 +166,7 @@ func TestBuildOutboundTCPFIlterChain(t *testing.T) {
 				assert.Len(tcpFilterChain.FilterChainMatch.PrefixRanges, len(tc.destinationIPRanges))
 
 				for _, filter := range tcpFilterChain.Filters {
-					assert.Equal(envoy.TCPProxyFilterName, filter.Name)
+					assert.Equal(wellknown.TCPProxy, filter.Name)
 				}
 			}
 		})
@@ -202,7 +203,7 @@ func TestBuildInboundHTTPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{envoy.L4RBACFilterName, envoy.HTTPConnectionManagerFilterName},
+			expectedFilterNames: []string{envoy.L4RBACFilterName, wellknown.HTTPConnectionManager},
 			expectError:         false,
 		},
 		{
@@ -220,7 +221,7 @@ func TestBuildInboundHTTPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{envoy.HTTPConnectionManagerFilterName},
+			expectedFilterNames: []string{wellknown.HTTPConnectionManager},
 			expectError:         false,
 		},
 		{
@@ -246,7 +247,7 @@ func TestBuildInboundHTTPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{envoy.L4LocalRateLimitFilterName, envoy.HTTPConnectionManagerFilterName},
+			expectedFilterNames: []string{envoy.L4LocalRateLimitFilterName, wellknown.HTTPConnectionManager},
 			expectError:         false,
 		},
 		{
@@ -284,7 +285,7 @@ func TestBuildInboundHTTPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{envoy.L4GlobalRateLimitFilterName, envoy.HTTPConnectionManagerFilterName},
+			expectedFilterNames: []string{envoy.L4GlobalRateLimitFilterName, wellknown.HTTPConnectionManager},
 			expectError:         false,
 		},
 		{
@@ -312,8 +313,8 @@ func TestBuildInboundHTTPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{envoy.HTTPConnectionManagerFilterName},
-			expectedHTTPFilters: []string{envoy.HTTPLocalRateLimitFilterName, envoy.HTTPGlobalRateLimitFilterName, envoy.HTTPRouterFilterName},
+			expectedFilterNames: []string{wellknown.HTTPConnectionManager},
+			expectedHTTPFilters: []string{envoy.HTTPLocalRateLimitFilterName, envoy.HTTPGlobalRateLimitFilterName, wellknown.Router},
 			expectError:         false,
 		},
 		{
@@ -335,7 +336,7 @@ func TestBuildInboundHTTPFilterChain(t *testing.T) {
 			wasmStatsHeaders:        map[string]string{"k1": "v1", "k2": "v2"},
 			enableActiveHealthCheck: true,
 			extAuthzConfig:          &auth.ExtAuthConfig{Enable: true},
-			expectedFilterNames:     []string{envoy.HTTPConnectionManagerFilterName},
+			expectedFilterNames:     []string{wellknown.HTTPConnectionManager},
 			expectError:             false,
 		},
 	}
@@ -384,7 +385,7 @@ func TestBuildInboundHTTPFilterChain(t *testing.T) {
 
 			var httpFilters []*xds_hcm.HttpFilter
 			for _, f := range filterChain.Filters {
-				if f.Name != envoy.HTTPConnectionManagerFilterName {
+				if f.Name != wellknown.HTTPConnectionManager {
 					continue
 				}
 				hcm := &xds_hcm.HttpConnectionManager{}
@@ -427,7 +428,7 @@ func TestBuildInboundTCPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{envoy.L4RBACFilterName, envoy.TCPProxyFilterName},
+			expectedFilterNames: []string{envoy.L4RBACFilterName, wellknown.TCPProxy},
 			expectError:         false,
 		},
 		{
@@ -446,7 +447,7 @@ func TestBuildInboundTCPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{envoy.TCPProxyFilterName},
+			expectedFilterNames: []string{wellknown.TCPProxy},
 			expectError:         false,
 		},
 		{
@@ -473,7 +474,7 @@ func TestBuildInboundTCPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{envoy.L4LocalRateLimitFilterName, envoy.TCPProxyFilterName},
+			expectedFilterNames: []string{envoy.L4LocalRateLimitFilterName, wellknown.TCPProxy},
 			expectError:         false,
 		},
 		{
@@ -512,7 +513,7 @@ func TestBuildInboundTCPFilterChain(t *testing.T) {
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{envoy.L4GlobalRateLimitFilterName, envoy.TCPProxyFilterName},
+			expectedFilterNames: []string{envoy.L4GlobalRateLimitFilterName, wellknown.TCPProxy},
 			expectError:         false,
 		},
 	}

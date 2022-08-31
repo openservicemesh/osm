@@ -3,6 +3,7 @@ package lds
 import (
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes/any"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -20,7 +21,7 @@ func getPrometheusConnectionManager() *xds_hcm.HttpConnectionManager {
 		CodecType:  xds_hcm.HttpConnectionManager_AUTO,
 		HttpFilters: []*xds_hcm.HttpFilter{
 			{
-				Name: envoy.HTTPRouterFilterName,
+				Name: wellknown.Router,
 				ConfigType: &xds_hcm.HttpFilter_TypedConfig{
 					TypedConfig: &any.Any{
 						TypeUrl: envoy.HTTPRouterFilterTypeURL,

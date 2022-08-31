@@ -1271,7 +1271,7 @@
          },
          "filters": [
           {
-           "name": "http_connection_manager",
+           "name": "envoy.filters.network.http_connection_manager",
            "typed_config": {
             "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
             "stat_prefix": "mesh-http-conn-manager.rds-outbound.14001",
@@ -1400,7 +1400,7 @@
          },
          "filters": [
           {
-           "name": "http_connection_manager",
+           "name": "envoy.filters.network.http_connection_manager",
            "typed_config": {
             "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
             "stat_prefix": "mesh-http-conn-manager.rds-egress.80",
@@ -1527,7 +1527,7 @@
          },
          "filters": [
           {
-           "name": "tcp_proxy",
+           "name": "envoy.filters.network.tcp_proxy",
            "typed_config": {
             "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
             "stat_prefix": "egress-tcp-proxy.443",

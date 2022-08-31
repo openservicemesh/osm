@@ -6,6 +6,7 @@ import (
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
@@ -109,7 +110,7 @@ func TestNewResponse(t *testing.T) {
 	assert.Equal(listener.Name, OutboundListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_OUTBOUND)
 	assert.Len(listener.ListenerFilters, 3) // Test has egress policy feature enabled, so 3 filters are expected: OriginalDst, TlsInspector, HttpInspector
-	assert.Equal(envoy.OriginalDstFilterName, listener.ListenerFilters[0].Name)
+	assert.Equal(wellknown.OriginalDestination, listener.ListenerFilters[0].Name)
 	assert.NotNil(listener.FilterChains)
 	// There are 3 filter chains configured on the outbound-listener based on the configuration:
 	// 1. Filter chain for bookstore-v1
@@ -124,7 +125,7 @@ func TestNewResponse(t *testing.T) {
 	assert.Len(listener.FilterChains, 3)
 	assert.NotNil(listener.DefaultFilterChain)
 	assert.Equal(listener.DefaultFilterChain.Name, outboundEgressFilterChainName)
-	assert.Equal(listener.DefaultFilterChain.Filters[0].Name, envoy.TCPProxyFilterName)
+	assert.Equal(listener.DefaultFilterChain.Filters[0].Name, wellknown.TCPProxy)
 
 	// validating inbound listener
 	listener, ok = resources[1].(*xds_listener.Listener)
@@ -132,8 +133,8 @@ func TestNewResponse(t *testing.T) {
 	assert.Equal(listener.Name, InboundListenerName)
 	assert.Equal(listener.TrafficDirection, xds_core.TrafficDirection_INBOUND)
 	assert.Len(listener.ListenerFilters, 2)
-	assert.Equal(listener.ListenerFilters[0].Name, envoy.TLSInspectorFilterName)
-	assert.Equal(listener.ListenerFilters[1].Name, envoy.OriginalDstFilterName)
+	assert.Equal(listener.ListenerFilters[0].Name, wellknown.TLSInspector)
+	assert.Equal(listener.ListenerFilters[1].Name, wellknown.OriginalDestination)
 	assert.NotNil(listener.FilterChains)
 	// There is 1 filter chains configured on the inbound-listner based on the configuration:
 	// 1. Filter chanin for bookbuyer
