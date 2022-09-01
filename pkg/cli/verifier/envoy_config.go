@@ -330,10 +330,10 @@ func findOutboundFilterChainForServicePort(meshSvc service.MeshService, dstIPRan
 
 func getFilterForProtocol(protocol string) string {
 	switch protocol {
-	case constants.ProtocolHTTP:
+	case constants.ProtocolHTTP, constants.ProtocolGRPC:
 		return envoy.HTTPConnectionManagerFilterName
 
-	case constants.ProtocolTCP, constants.ProtocolHTTPS:
+	case constants.ProtocolTCP, constants.ProtocolHTTPS, constants.ProtocolTCPServerFirst:
 		return envoy.TCPProxyFilterName
 
 	default:
