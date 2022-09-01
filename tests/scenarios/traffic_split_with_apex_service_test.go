@@ -1,24 +1,23 @@
 package scenarios
 
 import (
-	"fmt"
 	"testing"
+	"time"
 
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
-
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/envoy"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/compute"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
+	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -27,37 +26,35 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	a := assert.New(t)
 
 	// ---[  Setup the test context  ]---------
-	mockCtrl := gomock.NewController(t)
 	kubeClient := testclient.NewSimpleClientset()
-	configClient := configFake.NewSimpleClientset()
-	meshCatalog := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockCtrl := gomock.NewController(t)
+	services := []service.MeshService{tests.BookstoreApexService, tests.BookstoreV1Service, tests.BookstoreV2Service}
+	provider := compute.NewMockInterface(mockCtrl)
+	provider.EXPECT().GetMeshConfig().AnyTimes()
+	provider.EXPECT().GetServicesForServiceIdentity(gomock.Any()).Return(services).AnyTimes()
+	provider.EXPECT().GetResolvableEndpointsForService(gomock.Any()).Return([]endpoint.Endpoint{tests.Endpoint}).AnyTimes()
+	provider.EXPECT().GetTargetPortForServicePort(gomock.Any(), gomock.Any()).Return(uint16(8888), nil).AnyTimes()
+	provider.EXPECT().ListServicesForProxy(gomock.Any()).Return(nil, nil).AnyTimes()
 
-	proxyCertCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookbuyerServiceAccountName, tests.Namespace))
-	proxyCertSerialNumber := certificate.SerialNumber("123456")
-	proxy, err := getProxy(kubeClient, proxyCertCommonName, proxyCertSerialNumber)
+	for _, svc := range services {
+		provider.EXPECT().GetHostnamesForService(svc, true).Return(kube.NewClient(nil).GetHostnamesForService(svc, true)).AnyTimes()
+	}
+
+	meshCatalog := catalogFake.NewFakeMeshCatalog(provider)
+
+	proxy, err := getSidecarProxy(kubeClient, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace))
 	a.Nil(err)
 	a.NotNil(proxy)
 
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}), nil)
+	mc := tresorFake.NewFake(1 * time.Hour)
+	a.NotNil(a)
 
-	// ---[  Get the config from rds.NewResponse()  ]-------
-	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableWASMStats:    false,
-		EnableEgressPolicy: false,
-	}).AnyTimes()
-
-	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mc, nil)
 	a.Nil(err)
 	a.Len(resources, 1) // only outbound routes configured for this test
 
 	// ---[  Prepare the config for testing  ]-------
 	// Order matters. In this test, we do not expect rds-inbound route configuration, and rds-outbound is expected
-	// to be configured per outbound port.
 	routeCfg, ok := resources[0].(*xds_route.RouteConfiguration)
 	a.True(ok)
 	a.Equal("rds-outbound.8888", routeCfg.Name)

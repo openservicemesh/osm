@@ -100,6 +100,9 @@ type MetricsStore struct {
 	// by the control plane
 	EventsQueued prometheus.Gauge
 
+	// ReconciliationTotal counts the number of resource reconciliations invoked
+	ReconciliationTotal *prometheus.CounterVec
+
 	/*
 	 * MetricsStore internals should be defined below --------------
 	 */
@@ -157,14 +160,14 @@ func init() {
 		Subsystem: "proxy",
 		Name:      "response_send_success_count",
 		Help:      "Represents the number of responses successfully sent to proxies",
-	}, []string{"common_name", "type"})
+	}, []string{"proxy_uuid", "identity", "type"})
 
 	defaultMetricsStore.ProxyResponseSendErrorCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,
 		Subsystem: "proxy",
 		Name:      "response_send_error_count",
 		Help:      "Represents the number of responses that errored when being set to proxies",
-	}, []string{"common_name", "type"})
+	}, []string{"proxy_uuid", "identity", "type"})
 
 	defaultMetricsStore.ProxyConfigUpdateTime = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -191,7 +194,7 @@ func init() {
 		Subsystem: "proxy",
 		Name:      "xds_request_count",
 		Help:      "Represents the number of XDS requests made by proxies",
-	}, []string{"common_name", "type"})
+	}, []string{"proxy_uuid", "identity", "type"})
 
 	defaultMetricsStore.ProxyMaxConnectionsRejected = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,
@@ -275,6 +278,12 @@ func init() {
 		Name:      "events_queued",
 		Help:      "Number of events seen but not yet processed by the control plane",
 	})
+
+	defaultMetricsStore.ReconciliationTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: metricsRootNamespace,
+		Name:      "reconciliation_total",
+		Help:      "Counter of resource reconciliations invoked",
+	}, []string{"kind"})
 
 	defaultMetricsStore.registry = prometheus.NewRegistry()
 }

@@ -17,7 +17,6 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -65,11 +64,11 @@ func TestWatchAndUpdateProxyBootstrapSecret(t *testing.T) {
 	a.Nil(err)
 
 	// Publish a podAdded event
-	msgBroker.GetKubeEventPubSub().Pub(events.PubSubMessage{
-		Kind:   announcements.PodAdded,
+	msgBroker.PublishKubeEvent(events.PubSubMessage{
+		Kind:   events.Pod,
+		Type:   events.Added,
 		NewObj: &pod,
-		OldObj: nil,
-	}, announcements.PodAdded.String())
+	})
 
 	expectedOwnerReference := metav1.OwnerReference{
 		APIVersion: "v1",
@@ -100,7 +99,8 @@ func TestWatchAndUpdateLogLevel(t *testing.T) {
 		{
 			name: "log level updated to trace",
 			event: events.PubSubMessage{
-				Kind: announcements.MeshConfigUpdated,
+				Kind: events.MeshConfig,
+				Type: events.Updated,
 				OldObj: &configv1alpha2.MeshConfig{
 					Spec: configv1alpha2.MeshConfigSpec{
 						Observability: configv1alpha2.ObservabilitySpec{
@@ -121,7 +121,8 @@ func TestWatchAndUpdateLogLevel(t *testing.T) {
 		{
 			name: "log level updated to info",
 			event: events.PubSubMessage{
-				Kind: announcements.MeshConfigUpdated,
+				Kind: events.MeshConfig,
+				Type: events.Updated,
 				OldObj: &configv1alpha2.MeshConfig{
 					Spec: configv1alpha2.MeshConfigSpec{
 						Observability: configv1alpha2.ObservabilitySpec{
@@ -142,7 +143,8 @@ func TestWatchAndUpdateLogLevel(t *testing.T) {
 		{
 			name: "log level unchanged",
 			event: events.PubSubMessage{
-				Kind: announcements.MeshConfigUpdated,
+				Kind: events.MeshConfig,
+				Type: events.Updated,
 				OldObj: &configv1alpha2.MeshConfig{
 					Spec: configv1alpha2.MeshConfigSpec{
 						Observability: configv1alpha2.ObservabilitySpec{
@@ -174,7 +176,7 @@ func TestWatchAndUpdateLogLevel(t *testing.T) {
 			// add a delay before the test triggers events
 			time.Sleep(500 * time.Millisecond)
 
-			msgBroker.GetKubeEventPubSub().Pub(tc.event, announcements.MeshConfigUpdated.String())
+			msgBroker.PublishKubeEvent(tc.event)
 
 			a.Eventually(func() bool {
 				return zerolog.GlobalLevel() == tc.expectedLogLevel

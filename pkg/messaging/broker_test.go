@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/workqueue"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
@@ -27,28 +26,25 @@ func TestAllEvents(t *testing.T) {
 
 	c := NewBroker(stopCh)
 
-	proxyUpdateChan := c.GetProxyUpdatePubSub().Sub(announcements.ProxyUpdate.String())
+	proxyUpdateChan := c.GetProxyUpdatePubSub().Sub(ProxyUpdateTopic)
 	defer c.Unsub(c.proxyUpdatePubSub, proxyUpdateChan)
 
-	podChan := c.GetKubeEventPubSub().Sub(
-		announcements.PodAdded.String(),
-		announcements.PodUpdated.String(),
-		announcements.PodDeleted.String(),
+	podChan, unsubPodCH := c.SubscribeKubeEvents(
+		events.Pod.Added(),
+		events.Pod.Updated(),
+		events.Pod.Deleted(),
 	)
-	defer c.Unsub(c.kubeEventPubSub, podChan)
+	defer unsubPodCH()
 
-	endpointsChan := c.GetKubeEventPubSub().Sub(
-		announcements.EndpointAdded.String(),
-		announcements.EndpointUpdated.String(),
-		announcements.EndpointDeleted.String(),
+	endpointsChan, unsubEpsCh := c.SubscribeKubeEvents(
+		events.Endpoint.Added(),
+		events.Endpoint.Updated(),
+		events.Endpoint.Deleted(),
 	)
-	defer c.Unsub(c.kubeEventPubSub, endpointsChan)
+	defer unsubEpsCh()
 
-	meshCfgChan := c.GetKubeEventPubSub().Sub(announcements.MeshConfigUpdated.String())
-	defer c.Unsub(c.kubeEventPubSub, meshCfgChan)
-
-	certRotateChan := c.GetCertPubSub().Sub(announcements.CertificateRotated.String())
-	defer c.Unsub(c.certPubSub, certRotateChan)
+	meshCfgChan, unsubMshCfg := c.SubscribeKubeEvents(events.MeshConfig.Updated())
+	defer unsubMshCfg()
 
 	numEventTriggers := 50
 	// Endpoints add/update/delete will result in proxy update events
@@ -58,64 +54,56 @@ func TestAllEvents(t *testing.T) {
 	go func() {
 		for i := 0; i < numEventTriggers; i++ {
 			podAdd := events.PubSubMessage{
-				Kind:   announcements.PodAdded,
-				OldObj: i,
+				Kind:   events.Pod,
+				Type:   events.Added,
 				NewObj: i,
 			}
 			c.GetQueue().Add(podAdd)
 
 			podDel := events.PubSubMessage{
-				Kind:   announcements.PodDeleted,
+				Kind:   events.Pod,
+				Type:   events.Deleted,
 				OldObj: i,
-				NewObj: i,
 			}
 			c.GetQueue().Add(podDel)
 
 			podUpdate := events.PubSubMessage{
-				Kind:   announcements.PodUpdated,
+				Kind:   events.Pod,
+				Type:   events.Updated,
 				OldObj: i,
 				NewObj: i,
 			}
 			c.GetQueue().Add(podUpdate)
 
 			epAdd := events.PubSubMessage{
-				Kind:   announcements.EndpointAdded,
-				OldObj: i,
+				Kind:   events.Endpoint,
+				Type:   events.Added,
 				NewObj: i,
 			}
 			c.GetQueue().Add(epAdd)
 
 			epDel := events.PubSubMessage{
-				Kind:   announcements.EndpointDeleted,
+				Kind:   events.Endpoint,
+				Type:   events.Deleted,
 				OldObj: i,
-				NewObj: i,
 			}
 			c.GetQueue().Add(epDel)
 
 			epUpdate := events.PubSubMessage{
-				Kind:   announcements.EndpointUpdated,
+				Kind:   events.Endpoint,
+				Type:   events.Updated,
 				OldObj: i,
 				NewObj: i,
 			}
 			c.GetQueue().Add(epUpdate)
 
 			meshCfgUpdate := events.PubSubMessage{
-				Kind:   announcements.MeshConfigUpdated,
+				Kind:   events.MeshConfig,
+				Type:   events.Updated,
 				OldObj: &configv1alpha2.MeshConfig{},
 				NewObj: &configv1alpha2.MeshConfig{},
 			}
 			c.GetQueue().Add(meshCfgUpdate)
-		}
-	}()
-
-	go func() {
-		for i := 0; i < numEventTriggers; i++ {
-			certRotated := events.PubSubMessage{
-				Kind:   announcements.CertificateRotated,
-				OldObj: i,
-				NewObj: i,
-			}
-			c.certPubSub.Pub(certRotated, announcements.CertificateRotated.String())
 		}
 	}()
 
@@ -148,15 +136,6 @@ func TestAllEvents(t *testing.T) {
 		close(doneVerifyingMeshCfgEvents)
 	}()
 
-	doneVerifyingCertEvents := make(chan struct{})
-	go func() {
-		numExpectedCertEvents := numEventTriggers * 1 // 1 == 1 cert rotation event per trigger
-		for i := 0; i < numExpectedCertEvents; i++ {
-			<-certRotateChan
-		}
-		close(doneVerifyingCertEvents)
-	}()
-
 	doneVerifyingProxyEvents := make(chan struct{})
 	go func() {
 		// Verify that atleast 1 proxy update pub-sub is received. We only verify one
@@ -169,7 +148,6 @@ func TestAllEvents(t *testing.T) {
 	<-doneVerifyingPodEvents
 	<-doneVerifyingEndpointEvents
 	<-doneVerifyingMeshCfgEvents
-	<-doneVerifyingCertEvents
 	<-doneVerifyingProxyEvents
 
 	a.EqualValues(c.GetTotalQEventCount(), numEventTriggers*(numProxyUpdatesPerEventTrigger+numNonProxyUpdatesPerEventTrigger))
@@ -178,23 +156,24 @@ func TestAllEvents(t *testing.T) {
 
 func TestGetProxyUpdateEvent(t *testing.T) {
 	testCases := []struct {
-		name          string
-		msg           events.PubSubMessage
-		expectEvent   bool
-		expectedTopic string
+		name         string
+		msg          events.PubSubMessage
+		expectEvent  bool
+		expectedUUID string
 	}{
 		{
 			name: "egress event",
 			msg: events.PubSubMessage{
-				Kind: announcements.EgressAdded,
+				Kind: events.Egress,
+				Type: events.Added,
 			},
-			expectEvent:   true,
-			expectedTopic: announcements.ProxyUpdate.String(),
+			expectEvent: true,
 		},
 		{
 			name: "MeshConfig updated to enable permissive mode",
 			msg: events.PubSubMessage{
-				Kind: announcements.MeshConfigUpdated,
+				Kind: events.MeshConfig,
+				Type: events.Updated,
 				OldObj: &configv1alpha2.MeshConfig{
 					Spec: configv1alpha2.MeshConfigSpec{
 						Traffic: configv1alpha2.TrafficSpec{
@@ -210,13 +189,13 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 					},
 				},
 			},
-			expectEvent:   true,
-			expectedTopic: announcements.ProxyUpdate.String(),
+			expectEvent: true,
 		},
 		{
 			name: "MeshConfigUpdate event with unexpected object type",
 			msg: events.PubSubMessage{
-				Kind:   announcements.MeshConfigUpdated,
+				Kind:   events.MeshConfig,
+				Type:   events.Updated,
 				OldObj: "unexpected-type",
 			},
 			expectEvent: false,
@@ -224,7 +203,8 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 		{
 			name: "MeshConfig updated with field that does not result in proxy update",
 			msg: events.PubSubMessage{
-				Kind: announcements.MeshConfigUpdated,
+				Kind: events.MeshConfig,
+				Type: events.Updated,
 				OldObj: &configv1alpha2.MeshConfig{
 					Spec: configv1alpha2.MeshConfigSpec{
 						Observability: configv1alpha2.ObservabilitySpec{
@@ -245,43 +225,46 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 		{
 			name: "MeshConfig update with feature flags results in proxy update",
 			msg: events.PubSubMessage{
-				Kind: announcements.MeshConfigUpdated,
+				Kind: events.MeshConfig,
+				Type: events.Updated,
 				OldObj: &configv1alpha2.MeshConfig{
 					Spec: configv1alpha2.MeshConfigSpec{
 						FeatureFlags: configv1alpha2.FeatureFlags{
-							EnableEgressPolicy: true,
+							EnableWASMStats: true,
 						},
 					},
 				},
 				NewObj: &configv1alpha2.MeshConfig{
 					Spec: configv1alpha2.MeshConfigSpec{
 						FeatureFlags: configv1alpha2.FeatureFlags{
-							EnableEgressPolicy: false,
+							EnableWASMStats: false,
 						},
 					},
 				},
 			},
-			expectEvent:   true,
-			expectedTopic: announcements.ProxyUpdate.String(),
+			expectEvent: true,
 		},
 		{
 			name: "Namespace event",
 			msg: events.PubSubMessage{
-				Kind: announcements.NamespaceAdded,
+				Kind: events.Namespace,
+				Type: events.Added,
 			},
 			expectEvent: false,
 		},
 		{
 			name: "Pod add event",
 			msg: events.PubSubMessage{
-				Kind: announcements.PodAdded,
+				Kind: events.Pod,
+				Type: events.Added,
 			},
 			expectEvent: false,
 		},
 		{
 			name: "Pod update event not resulting in proxy update",
 			msg: events.PubSubMessage{
-				Kind: announcements.PodUpdated,
+				Kind: events.Pod,
+				Type: events.Updated,
 			},
 			expectEvent: false,
 		},
@@ -301,36 +284,41 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 						Labels:      map[string]string{constants.EnvoyUniqueIDLabelName: "foo"},
 					},
 				},
-				Kind: announcements.PodUpdated,
+				Kind: events.Pod,
+				Type: events.Updated,
 			},
-			expectEvent:   true,
-			expectedTopic: "proxy:foo",
+			expectEvent:  true,
+			expectedUUID: "foo",
 		},
 		{
 			name: "Pod delete event",
 			msg: events.PubSubMessage{
-				Kind: announcements.PodDeleted,
+				Kind: events.Pod,
+				Type: events.Deleted,
 			},
 			expectEvent: false,
 		},
 		{
 			name: "Service add event",
 			msg: events.PubSubMessage{
-				Kind: announcements.ServiceAdded,
+				Kind: events.Service,
+				Type: events.Added,
 			},
 			expectEvent: false,
 		},
 		{
 			name: "Service update event",
 			msg: events.PubSubMessage{
-				Kind: announcements.ServiceUpdated,
+				Kind: events.Service,
+				Type: events.Updated,
 			},
 			expectEvent: false,
 		},
 		{
 			name: "Service delete event",
 			msg: events.PubSubMessage{
-				Kind: announcements.ServiceDeleted,
+				Kind: events.Service,
+				Type: events.Deleted,
 			},
 			expectEvent: false,
 		},
@@ -340,10 +328,10 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			actual := getProxyUpdateEvent(tc.msg)
-			a.Equal(tc.expectEvent, actual != nil)
+			pub, uuid := shouldPublish(tc.msg)
+			a.Equal(tc.expectEvent, pub)
 			if tc.expectEvent {
-				a.Equal(tc.expectedTopic, actual.topic)
+				a.Equal(tc.expectedUUID, uuid)
 			}
 		})
 	}
@@ -355,14 +343,11 @@ func TestRunProxyUpdateDispatcher(t *testing.T) {
 	defer close(stopCh)
 
 	b := NewBroker(stopCh) // this starts runProxyUpdateDispatcher() in a goroutine
-	proxyUpdateChan := b.GetProxyUpdatePubSub().Sub(announcements.ProxyUpdate.String())
+	proxyUpdateChan := b.GetProxyUpdatePubSub().Sub(ProxyUpdateTopic)
 	defer b.Unsub(b.proxyUpdatePubSub, proxyUpdateChan)
 
 	// Verify sliding window expiry
-	b.proxyUpdateCh <- proxyUpdateEvent{
-		msg:   events.PubSubMessage{Kind: announcements.Kind("sliding-window")},
-		topic: announcements.ProxyUpdate.String(),
-	}
+	b.proxyUpdateCh <- ProxyUpdateTopic
 
 	time.Sleep(proxyUpdateSlidingWindow + 10*time.Millisecond)
 	<-proxyUpdateChan
@@ -382,10 +367,7 @@ func TestRunProxyUpdateDispatcher(t *testing.T) {
 		// via the 1s sleep.
 		for i := 0; i < numEvents; i++ {
 			log.Trace().Msg("Dispatching event")
-			b.proxyUpdateCh <- proxyUpdateEvent{
-				msg:   events.PubSubMessage{Kind: announcements.Kind("max-window")},
-				topic: announcements.ProxyUpdate.String(),
-			}
+			b.proxyUpdateCh <- ProxyUpdateTopic
 			time.Sleep(1 * time.Second)
 		}
 		// Verify channel close
@@ -435,7 +417,8 @@ func TestUpdateMetric(t *testing.T) {
 		{
 			name: "namespace added event",
 			event: events.PubSubMessage{
-				Kind:   announcements.NamespaceAdded,
+				Kind:   events.Namespace,
+				Type:   events.Added,
 				OldObj: nil,
 				NewObj: &namespace,
 			},
@@ -444,7 +427,8 @@ func TestUpdateMetric(t *testing.T) {
 		{
 			name: "namespace updated event",
 			event: events.PubSubMessage{
-				Kind:   announcements.NamespaceUpdated,
+				Kind:   events.Namespace,
+				Type:   events.Updated,
 				OldObj: &namespace,
 				NewObj: &namespace2,
 			},
@@ -453,7 +437,8 @@ func TestUpdateMetric(t *testing.T) {
 		{
 			name: "namespace deleted event",
 			event: events.PubSubMessage{
-				Kind:   announcements.NamespaceDeleted,
+				Kind:   events.Namespace,
+				Type:   events.Deleted,
 				OldObj: &namespace2,
 				NewObj: nil,
 			},

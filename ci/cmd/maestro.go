@@ -27,8 +27,7 @@ const (
 	// Pod labels
 	bookBuyerLabel     = "bookbuyer"
 	bookThiefLabel     = "bookthief"
-	bookstoreV1Label   = "bookstore-v1"
-	bookstoreV2Label   = "bookstore-v2"
+	bookstoreLabel     = "bookstore"
 	bookWarehouseLabel = "bookwarehouse"
 	mySQLLabel         = "mysql"
 )
@@ -37,8 +36,8 @@ var (
 	osmControllerPodSelector = fmt.Sprintf("%s=%s", constants.AppLabel, constants.OSMControllerName)
 	bookThiefSelector        = fmt.Sprintf("%s=%s", constants.AppLabel, bookThiefLabel)
 	bookBuyerSelector        = fmt.Sprintf("%s=%s", constants.AppLabel, bookBuyerLabel)
-	bookstoreV1Selector      = fmt.Sprintf("%s=%s", constants.AppLabel, bookstoreV1Label)
-	bookstoreV2Selector      = fmt.Sprintf("%s=%s", constants.AppLabel, bookstoreV2Label)
+	bookstoreV1Selector      = fmt.Sprintf("%s=%s,version=v1", constants.AppLabel, bookstoreLabel)
+	bookstoreV2Selector      = fmt.Sprintf("%s=%s,version=v2", constants.AppLabel, bookstoreLabel)
 	bookWarehouseSelector    = fmt.Sprintf("%s=%s", constants.AppLabel, bookWarehouseLabel)
 	mySQLSelector            = fmt.Sprintf("%s=%s", constants.AppLabel, mySQLLabel)
 
@@ -61,7 +60,7 @@ var (
 )
 
 func main() {
-	log.Debug().Msgf("Looking for: %s/%s, %s/%s, %s/%s, %s/%s, %s/%s %s/%s", bookBuyerLabel, bookbuyerNS, bookThiefLabel, bookthiefNS, bookstoreV1Label, bookstoreNS, bookstoreV2Label, bookstoreNS, bookWarehouseLabel, bookWarehouseNS, mySQLLabel, bookWarehouseNS)
+	log.Debug().Msgf("Looking for: %s/%s, %s/%s, %s/%s, %s/%s %s/%s", bookBuyerLabel, bookbuyerNS, bookThiefLabel, bookthiefNS, bookstoreLabel, bookstoreNS, bookWarehouseLabel, bookWarehouseNS, mySQLLabel, bookWarehouseNS)
 
 	kubeClient := maestro.GetKubernetesClient()
 

@@ -19,6 +19,8 @@ func newVerifyCmd(stdout io.Writer, stderr io.Writer) *cobra.Command {
 		Args:  cobra.NoArgs,
 	}
 	cmd.AddCommand(newVerifyConnectivityCmd(stdout, stderr))
+	cmd.AddCommand(newVerifyControlPlaneCmd(stdout, stderr))
+	cmd.AddCommand(newVerifyIngressConnectivityCmd(stdout, stderr))
 
 	return cmd
 }

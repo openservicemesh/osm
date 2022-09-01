@@ -28,6 +28,14 @@ func TestMeshNameString(t *testing.T) {
 
 	assert.Equal(ms.String(), fmt.Sprintf("%s/%s", namespace, name))
 	assert.Equal(ms.FQDN(), fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace))
+
+	ms = MeshService{
+		Namespace: namespace,
+		Name:      name,
+		Subdomain: "pod-0",
+	}
+	assert.Equal(ms.String(), fmt.Sprintf("%s/%s.%s", namespace, "pod-0", name))
+	assert.Equal(ms.FQDN(), fmt.Sprintf("%s.%s.%s.svc.cluster.local", "pod-0", name, namespace))
 }
 
 func TestMeshServiceCluster(t *testing.T) {
@@ -47,6 +55,18 @@ func TestMeshServiceCluster(t *testing.T) {
 			},
 			expectedClusterName:      "ns1/s1|90",
 			expectedLocalClusterName: "ns1/s1|90|local",
+		},
+		{
+			name: "envoy cluster and local cluster name with subdomain",
+			meshSvc: MeshService{
+				Namespace:  "ns1",
+				Name:       "s1",
+				Subdomain:  "pod-0",
+				Port:       80,
+				TargetPort: 90,
+			},
+			expectedClusterName:      "ns1/pod-0.s1|90",
+			expectedLocalClusterName: "ns1/pod-0.s1|90|local",
 		},
 	}
 

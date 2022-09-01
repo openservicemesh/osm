@@ -165,7 +165,7 @@ func (td *OsmTestData) FortioGRPCLoadTest(req FortioGRPCLoadTestDef) FortioLoadR
 
 	if err != nil {
 		return FortioLoadResult{
-			Err: fmt.Errorf("Remote exec err: %v | stderr: %s | cmd: %s", err, stderr, command),
+			Err: fmt.Errorf("Remote exec err: %w | stderr: %s | cmd: %s", err, stderr, command),
 		}
 	}
 	if len(stderr) > 0 {

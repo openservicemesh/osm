@@ -3,21 +3,19 @@ package validator
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
-	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/client-go/kubernetes"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/policy"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/webhook"
 )
@@ -25,9 +23,6 @@ import (
 var (
 	// validationAPIPath is the API path for performing resource validations
 	validationAPIPath = "/validate"
-
-	// HealthAPIPath is the API path for health check
-	HealthAPIPath = "/healthz"
 )
 
 // validatingWebhookServer implements the K8s Validating Webhook API, and runs the associated validator func.
@@ -37,17 +32,7 @@ type validatingWebhookServer struct {
 }
 
 // NewValidatingWebhook returns a validatingWebhookServer with the defaultValidators that were previously registered.
-func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler, validateTrafficTarget bool, port int, certManager certificate.Manager, kubeClient kubernetes.Interface, policyClient policy.Controller, stop <-chan struct{}) error {
-	// This is a certificate issued for the webhook handler
-	// This cert does not have to be related to the Envoy certs, but it does have to match
-	// the cert provisioned with the ValidatingWebhookConfiguration
-	webhookHandlerCert, err := certManager.IssueCertificate(
-		certificate.CommonName(fmt.Sprintf("%s.%s.svc", ValidatorWebhookSvc, osmNamespace)),
-		constants.XDSCertificateValidityPeriod)
-	if err != nil {
-		return errors.Errorf("Error issuing certificate for the validating webhook: %+v", err)
-	}
-
+func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler, validateTrafficTarget bool, certManager *certificate.Manager, kubeClient kubernetes.Interface, policyClient policy.Controller) error {
 	kv := &policyValidator{
 		policyClient: policyClient,
 	}
@@ -61,20 +46,23 @@ func NewValidatingWebhook(webhookConfigName, osmNamespace, osmVersion, meshName 
 		},
 	}
 
-	// Create the ValidatingWebhook
-	if err := createOrUpdateValidatingWebhook(kubeClient, webhookHandlerCert, webhookConfigName, meshName, osmNamespace, osmVersion, validateTrafficTarget, enableReconciler); err != nil {
-		return errors.Errorf("Error creating ValidatingWebhookConfiguration %s: %+v", webhookConfigName, err)
-	}
+	srv := webhook.NewServer(ValidatorWebhookSvc, osmNamespace, constants.ValidatorWebhookPort, certManager, map[string]http.HandlerFunc{
+		validationAPIPath: v.doValidation,
+	}, func(cert *certificate.Certificate) error {
+		if err := createOrUpdateValidatingWebhook(kubeClient, cert, webhookConfigName, meshName, osmNamespace, osmVersion, validateTrafficTarget, enableReconciler); err != nil {
+			return err
+		}
+		return nil
+	})
 
-	go v.run(port, webhookHandlerCert, stop)
-	return nil
+	return srv.Run(ctx)
 }
 
 func (s *validatingWebhookServer) doValidation(w http.ResponseWriter, req *http.Request) {
 	log.Trace().Msgf("Received validating webhook request: Method=%v, URL=%v", req.Method, req.URL)
 
 	if contentType := req.Header.Get(webhook.HTTPHeaderContentType); contentType != webhook.ContentTypeJSON {
-		err := errors.Errorf("Invalid content type %s; Expected %s", contentType, webhook.ContentTypeJSON)
+		err := fmt.Errorf("Invalid content type %s; Expected %s", contentType, webhook.ContentTypeJSON)
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidAdmissionReqHeader)).
 			Msgf("Responded to admission request with HTTP %v", http.StatusUnsupportedMediaType)
@@ -149,63 +137,4 @@ func (s *validatingWebhookServer) handleValidation(req *admissionv1.AdmissionReq
 		resp = webhook.AdmissionError(err)
 	}
 	return
-}
-
-func (s *validatingWebhookServer) run(port int, cert *certificate.Certificate, stop <-chan struct{}) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	mux := http.NewServeMux()
-
-	mux.HandleFunc(validationAPIPath, s.doValidation)
-	mux.HandleFunc(HealthAPIPath, healthHandler)
-
-	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
-		Handler: mux,
-	}
-
-	log.Info().Msgf("Starting resource validator webhook server on port: %v", port)
-	go func() {
-		// Generate a key pair from your pem-encoded cert and key
-		cert, err := tls.X509KeyPair(cert.GetCertificateChain(), cert.GetPrivateKey())
-		if err != nil {
-			// TODO: Need to push metric
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingValidatingWebhookCert)).
-				Msg("Error parsing webhook certificate")
-			return
-		}
-
-		// #nosec G402
-		server.TLSConfig = &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			MinVersion:   tls.VersionTLS13,
-		}
-
-		if err := server.ListenAndServeTLS("", ""); err != nil {
-			// TODO(#3962): metric might not be scraped before process restart resulting from this error
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrStartingValidatingWebhookHTTPServer)).
-				Msg("Resource validator webhook HTTP server failed to start")
-			return
-		}
-	}()
-
-	// Wait on exit signals
-	<-stop
-
-	// Stop the server
-	if err := server.Shutdown(ctx); err != nil {
-		// TODO: Needto push metric?
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrShuttingDownValidatingWebhookHTTPServer)).
-			Msg("Error shutting down resource validator webhook HTTP server")
-	} else {
-		log.Info().Msg("Done shutting down resource validator webhook HTTP server")
-	}
-}
-
-func healthHandler(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write([]byte("Health OK")); err != nil {
-		log.Error().Err(err).Msg("Error writing bytes for health check response")
-	}
 }

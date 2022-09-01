@@ -4,27 +4,20 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"testing"
-	"time"
 
 	tassert "github.com/stretchr/testify/assert"
 
-	. "github.com/onsi/ginkgo"
-
-	"github.com/golang/mock/gomock"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmfakeclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var (
-	mockCtrl         = gomock.NewController(GinkgoT())
-	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-	crNotReady       = &cmapi.CertificateRequest{
+	crNotReady = &cmapi.CertificateRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "osm-123",
 			Namespace: "osm-system",
@@ -33,8 +26,7 @@ var (
 )
 
 const (
-	validity = 1 * time.Hour
-	keySize  = 2048
+	keySize = 2048
 )
 
 func TestCertificateFromCertificateRequest(t *testing.T) {
@@ -53,13 +45,7 @@ func TestCertificateFromCertificateRequest(t *testing.T) {
 	rootKey, err := certificate.DecodePEMPrivateKey(rootKeyPEM)
 	assert.Nil(err)
 
-	rootCertificate, err := NewRootCertificateFromPEM(rootCertPEM)
-	assert.Nil(err)
-
-	mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
-
 	cm, err := New(
-		rootCertificate,
 		fakeClient,
 		"osm-system",
 		cmmeta.ObjectReference{Name: "osm-ca"},
@@ -124,7 +110,6 @@ func TestNew(t *testing.T) {
 	assert := tassert.New(t)
 	fakeClient := cmfakeclient.NewSimpleClientset()
 	_, err := New(
-		&certificate.Certificate{},
 		fakeClient,
 		"osm-system",
 		cmmeta.ObjectReference{Name: "osm-ca"},
@@ -133,7 +118,6 @@ func TestNew(t *testing.T) {
 
 	assert.Error(err, "expected error from key size of zero")
 	_, err = New(
-		&certificate.Certificate{},
 		fakeClient,
 		"osm-system",
 		cmmeta.ObjectReference{Name: "osm-ca"},

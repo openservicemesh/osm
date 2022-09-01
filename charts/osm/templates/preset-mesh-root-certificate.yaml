@@ -1,0 +1,46 @@
+{{- if .Values.osm.featureFlags.enableMeshRootCertificate }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: preset-mesh-root-certificate
+  namespace: {{ include "osm.namespace" . }}
+data:
+  preset-mesh-root-certificate.json: |
+    {
+      "trustDomain": {{.Values.osm.trustDomain | mustToJson}},
+      "provider": {
+        {{- if eq (.Values.osm.certificateProvider.kind | lower) "tresor"}}
+        "tresor": {
+          "ca": {
+            "secretRef": {
+              "name": {{.Values.osm.caBundleSecretName | mustToJson}},
+              "namespace": "{{include "osm.namespace" .}}"
+            }
+          }
+        }
+        {{- end}}
+        {{- if eq (.Values.osm.certificateProvider.kind | lower) "cert-manager"}}
+        "certManager": {
+          "issuerName": {{.Values.osm.certmanager.issuerName | mustToJson}},
+          "issuerKind": {{.Values.osm.certmanager.issuerKind | mustToJson}},
+          "issuerGroup": {{.Values.osm.certmanager.issuerGroup | mustToJson}}
+        }
+        {{- end}}
+        {{- if eq (.Values.osm.certificateProvider.kind | lower) "vault"}}
+        "vault": {
+          "token": {
+            "secretKeyRef": {
+              "name": {{.Values.osm.vault.secret.name | mustToJson}},
+              "key": {{.Values.osm.vault.secret.key | mustToJson}},
+              "namespace": "{{include "osm.namespace" .}}"
+            }
+          },
+          "host": {{.Values.osm.vault.host | mustToJson}},
+          "role": {{.Values.osm.vault.role | mustToJson}},
+          "protocol": {{.Values.osm.vault.protocol | mustToJson}},
+          "port": {{.Values.osm.vault.port | mustToJson}}
+        }
+        {{- end}}
+      }
+    }
+{{- end}}

@@ -8,18 +8,21 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 var (
-	errEmptyResult = errors.Errorf("Empty result from prometheus")
+	errEmptyResult = fmt.Errorf("Empty result from prometheus")
 )
 
 // Prometheus is a simple handler to represent a target Prometheus endpoint to run queries against
@@ -55,7 +58,7 @@ func (p *Prometheus) VectorQuery(query string, t time.Time) (float64, error) {
 		}
 		return float64(vectorVal[0].Value), nil
 	default:
-		return 0, errors.Errorf("Unknown model value type: %v", modelValue.Type().String())
+		return 0, fmt.Errorf("Unknown model value type: %v", modelValue.Type().String())
 	}
 }
 
@@ -196,5 +199,49 @@ func (g *Grafana) PanelPNGSnapshot(dashboard string, panelID int, fromMinutes in
 	}
 	fmt.Fprintf(os.Stdout, "Saved panel snapshot as %s\n", saveFilepath)
 
+	return nil
+}
+
+// GetEnvoyMetric returns the metrics for the given pod query regex matchers.
+// The returned list is the same size as the input list and the results are
+// indexed per the query index in the input string.
+// For e.g. if the query=[`.*over_limit.*`, `tls_inspector.*alpn_found.*`],
+// the output ["5", "6"] implies metrics matching the queries are:
+// `.*over_limit.*`: 5
+// `tls_inspector.*alpn_found.*`: 6
+func (td *OsmTestData) GetEnvoyMetric(pod types.NamespacedName, queryMatchers []string) ([]int, error) {
+	stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "get", "stats", pod.Name, "--namespace", pod.Namespace)
+	if err != nil {
+		time.Sleep(1 * time.Minute)
+		return nil, fmt.Errorf("could not get client stats, stderr=%s, err=%w", stderr, err)
+	}
+
+	metrics := make([]int, len(queryMatchers))
+	for i, key := range queryMatchers {
+		re := regexp.MustCompile(key)
+		matches := re.FindStringSubmatch(stdout.String())
+		if len(matches) > 0 {
+			// If multiple matches exist, pick the first match
+			// It's the caller's responsibility to provide the most
+			// precise matcher for the metric
+			m := strings.SplitN(matches[0], ":", 2)
+			val, err := strconv.Atoi(strings.TrimSpace(m[1]))
+			if err != nil {
+				return nil, fmt.Errorf("error getting numeric metric for query %s: %w", key, err)
+			}
+			metrics[i] = val
+		}
+	}
+
+	return metrics, nil
+}
+
+// ResetEnvoyStats resets the Envoy stats counters for the given pod
+func (td *OsmTestData) ResetEnvoyStats(pod types.NamespacedName) error {
+	_, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "set", "reset_counters", pod.Name, "--namespace", pod.Namespace)
+	if err != nil {
+		time.Sleep(1 * time.Minute)
+		return fmt.Errorf("could not get client stats, stderr=%s, err=%w", stderr, err)
+	}
 	return nil
 }

@@ -12,6 +12,8 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -763,14 +765,29 @@ func TestIngressBackendValidator(t *testing.T) {
 				objects[i] = tc.existingIngressBackends[i]
 			}
 
+			// TODO: Get rid of this (it's only used for namespace monitor verification)
 			k8sController := k8s.NewMockController(mockCtrl)
 			if len(objects) > 0 {
 				k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
 			}
 
-			policyClient, _ := policy.NewPolicyController(k8sController, fakePolicyClientset.NewSimpleClientset(objects...), stop, broker)
+			fakeClient := fakePolicyClientset.NewSimpleClientset(objects...)
+			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
+			assert.NoError(err)
+
+			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
 			pv := &policyValidator{
 				policyClient: policyClient,
+			}
+
+			// Block until we start getting ingressbackend updates
+			// We only do this because the informerCollection doesn't have the
+			// policy client's msgBroker eventhandler registered when it initially runs
+			// and that leads to a race condition in tests
+			if len(objects) > 0 {
+				events, unsub := broker.SubscribeKubeEvents(events.IngressBackend.Added())
+				<-events
+				unsub()
 			}
 
 			resp, err := pv.ingressBackendValidator(tc.input)
@@ -921,189 +938,6 @@ func TestEgressValidator(t *testing.T) {
 			assert := tassert.New(t)
 
 			resp, err := egressValidator(tc.input)
-			assert.Equal(tc.expResp, resp)
-			if err != nil {
-				assert.Equal(tc.expErrStr, err.Error())
-			}
-		})
-	}
-}
-
-func TestMulticlusterServiceValidator(t *testing.T) {
-	assert := tassert.New(t)
-	testCases := []struct {
-		name      string
-		input     *admissionv1.AdmissionRequest
-		expResp   *admissionv1.AdmissionResponse
-		expErrStr string
-	}{
-		{
-			name: "MultiClusterService with empty name fails",
-			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "config.openservicemesh.io",
-					Kind:    "MultiClusterService",
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(`
-					{
-						"apiVersion": "v1alpha1",
-						"kind": "MultiClusterService",
-						"spec": {
-							"serviceAccount" : "sdf",
-							"clusters": [{
-								"name": "",
-								"address": "0.0.0.0:8080"
-							}]
-						}
-					}
-					`),
-				},
-			},
-			expResp:   nil,
-			expErrStr: "Cluster name is not valid",
-		},
-		{
-			name: "MultiClusterService with duplicate cluster names fails",
-			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "config.openservicemesh.io",
-					Kind:    "MultiClusterService",
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(`
-					{
-						"apiVersion": "v1alpha1",
-						"kind": "MultiClusterService",
-						"spec": {
-							"clusters": [{
-								"name": "test",
-								"address": "0.0.0.0:8080"
-							},{
-								"name": "test",
-								"address": "0.0.0.0:8080"
-							}]
-						}
-					}
-					`),
-				},
-			},
-			expResp:   nil,
-			expErrStr: "Cluster named test already exists",
-		},
-		{
-			name: "MultiClusterService has an acceptable name",
-			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "config.openservicemesh.io",
-					Kind:    "MultiClusterService",
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(`
-					{
-						"apiVersion": "v1alpha1",
-						"kind": "MultiClusterService",
-						"spec": {
-							"clusters": [{
-								"name": "test",
-								"address": "0.0.0.0:8080"
-							}]
-						}
-					}
-					`),
-				},
-			},
-			expResp:   nil,
-			expErrStr: "",
-		},
-		{
-			name: "MultiClusterService with empty address fails",
-			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "config.openservicemesh.io",
-					Kind:    "MultiClusterService",
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(`
-					{
-						"apiVersion": "v1alpha1",
-						"kind": "MultiClusterService",
-						"spec": {
-							"serviceAccount" : "sdf",
-							"clusters": [{
-								"name": "test",
-								"address": ""
-							}]
-						}
-					}
-					`),
-				},
-			},
-			expResp:   nil,
-			expErrStr: "Cluster address  is not valid",
-		},
-		{
-			name: "MultiClusterService with invalid IP fails",
-			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "config.openservicemesh.io",
-					Kind:    "MultiClusterService",
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(`
-					{
-						"apiVersion": "v1alpha1",
-						"kind": "MultiClusterService",
-						"spec": {
-							"clusters": [{
-								"name": "test",
-								"address": "0.0.00:22"
-							}]
-						}
-					}
-					`),
-				},
-			},
-			expResp:   nil,
-			expErrStr: "Error parsing IP address 0.0.00:22",
-		},
-		{
-			name: "MultiClusterService with invalid port fails",
-			input: &admissionv1.AdmissionRequest{
-				Kind: metav1.GroupVersionKind{
-					Group:   "v1alpha1",
-					Version: "config.openservicemesh.io",
-					Kind:    "MultiClusterService",
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(`
-					{
-						"apiVersion": "v1alpha1",
-						"kind": "MultiClusterService",
-						"spec": {
-							"clusters": [{
-								"name": "test",
-								"address": "0.0.0.0:a"
-							}]
-						}
-					}
-					`),
-				},
-			},
-			expResp:   nil,
-			expErrStr: "Error parsing port value 0.0.0.0:a",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			resp, err := MultiClusterServiceValidator(tc.input)
-			t.Log(tc.input.Kind.Kind)
 			assert.Equal(tc.expResp, resp)
 			if err != nil {
 				assert.Equal(tc.expErrStr, err.Error())
@@ -1314,6 +1148,126 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 			expResp:   nil,
 			expErrStr: "",
 		},
+		{
+			name: "UpstreamTrafficSetting with valid rate limiting config",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "UpstreamTrafficSetting",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "policy.openservicemesh.io/v1alpha1",
+						"kind": "UpstreamTrafficSetting",
+						"metadata": {
+							"name": "httpbin",
+							"namespace": "test"
+						},
+						"spec": {
+							"host": "httpbin.test.svc.cluster.local",
+							"rateLimit": {
+								"local": {
+									"http": {
+										"responseStatusCode": 429
+									}
+								}
+							},
+							"httpRoutes": [
+								{
+								"rateLimit": {
+									"local": {
+										"responseStatusCode": 503
+									}
+								}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "UpstreamTrafficSetting with invalid vhost rate limiting HTTP status code",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "UpstreamTrafficSetting",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "policy.openservicemesh.io/v1alpha1",
+						"kind": "UpstreamTrafficSetting",
+						"metadata": {
+							"name": "httpbin",
+							"namespace": "test"
+						},
+						"spec": {
+							"host": "httpbin.test.svc.cluster.local",
+							"rateLimit": {
+								"local": {
+									"http": {
+										"responseStatusCode": 1
+									}
+								}
+							}
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Invalid responseStatusCode 1. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+		},
+		{
+			name: "UpstreamTrafficSetting with invalid HTTP route rate limiting status code",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "UpstreamTrafficSetting",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "policy.openservicemesh.io/v1alpha1",
+						"kind": "UpstreamTrafficSetting",
+						"metadata": {
+							"name": "httpbin",
+							"namespace": "test"
+						},
+						"spec": {
+							"host": "httpbin.test.svc.cluster.local",
+							"rateLimit": {
+								"local": {
+									"http": {
+										"responseStatusCode": 429
+									}
+								}
+							},
+							"httpRoutes": [
+								{
+								"rateLimit": {
+									"local": {
+										"responseStatusCode": 1
+									}
+								}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Invalid responseStatusCode 1. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1330,15 +1284,30 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 				objects[i] = tc.existingUpstreamTrafficSettings[i]
 			}
 
+			// TODO: Get rid of this (it's only used for namespace monitor verification)
 			k8sController := k8s.NewMockController(mockCtrl)
 			if len(objects) > 0 {
 				k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
 			}
 
-			policyClient, _ := policy.NewPolicyController(k8sController, fakePolicyClientset.NewSimpleClientset(objects...), stop, broker)
+			fakeClient := fakePolicyClientset.NewSimpleClientset(objects...)
+			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
+			assert.NoError(err)
+
+			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
 
 			pv := &policyValidator{
 				policyClient: policyClient,
+			}
+
+			// Block until we start getting upstreamtrafficsetting updates
+			// We only do this because the informerCollection doesn't have the
+			// policy client's msgBroker eventhandler registered when it initially runs
+			// and that leads to a race condition in tests (due to the kubeController mockss)
+			if len(objects) > 0 {
+				events, unsub := broker.SubscribeKubeEvents(events.UpstreamTrafficSetting.Added())
+				<-events
+				unsub()
 			}
 
 			resp, err := pv.upstreamTrafficSettingValidator(tc.input)

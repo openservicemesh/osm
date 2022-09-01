@@ -11,16 +11,15 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
@@ -81,7 +80,7 @@ func getMeshInfoList(restConfig *rest.Config, clientSet kubernetes.Interface) ([
 
 	osmControllerDeployments, err := getControllerDeployments(clientSet)
 	if err != nil {
-		return meshInfoList, errors.Errorf("Could not list deployments %v", err)
+		return meshInfoList, fmt.Errorf("Could not list deployments %w", err)
 	}
 	if len(osmControllerDeployments.Items) == 0 {
 		return meshInfoList, nil
@@ -171,7 +170,7 @@ func getSupportedSmiInfoForMeshList(meshInfoList []meshInfo, clientSet kubernete
 	var meshSmiInfoList []meshSmiInfo
 
 	for _, mesh := range meshInfoList {
-		meshControllerPods := k8s.GetOSMControllerPods(clientSet, mesh.namespace)
+		meshControllerPods := getOSMControllerPods(clientSet, mesh.namespace)
 
 		meshSmiSupportedVersions := []string{"Unknown"}
 		if len(meshControllerPods.Items) > 0 {
@@ -207,28 +206,28 @@ func getSupportedSmiForControllerPod(pod string, namespace string, restConfig *r
 
 	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", localPort, constants.OSMHTTPServerPort))
 	if err != nil {
-		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
+		return nil, fmt.Errorf("Error setting up port forwarding: %w", err)
 	}
 
 	var smiSupported map[string]string
 
 	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
 		defer pf.Stop()
-		url := fmt.Sprintf("http://localhost:%d%s", localPort, httpserverconstants.SmiVersionPath)
+		url := fmt.Sprintf("http://localhost:%d%s", localPort, constants.OSMControllerSMIVersionPath)
 
 		// #nosec G107: Potential HTTP request made with variable url
 		resp, err := http.Get(url)
 		if err != nil {
-			return errors.Errorf("Error fetching url %s: %s", url, err)
+			return fmt.Errorf("Error fetching url %s: %s", url, err)
 		}
 
 		if err := json.NewDecoder(resp.Body).Decode(&smiSupported); err != nil {
-			return errors.Errorf("Error rendering HTTP response: %s", err)
+			return fmt.Errorf("Error rendering HTTP response: %s", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Errorf("Error retrieving supported SMI versions for pod %s in namespace %s: %s", pod, namespace, err)
+		return nil, fmt.Errorf("Error retrieving supported SMI versions for pod %s in namespace %s: %s", pod, namespace, err)
 	}
 
 	for smiAPI, smiAPIVersion := range smiSupported {
@@ -262,5 +261,30 @@ func annotateErrorMessageWithActionableMessage(actionableMessage string, errMsgF
 		errMsgFormat += "\n"
 	}
 
-	return errors.Errorf(errMsgFormat+actionableMessage, args...)
+	return fmt.Errorf(errMsgFormat+actionableMessage, args...)
+}
+
+// namespacedNameFrom returns the namespaced name for the given name if possible, otherwise an error
+func namespacedNameFrom(name string) (types.NamespacedName, error) {
+	var nsName types.NamespacedName
+
+	chunks := strings.Split(name, "/")
+	if len(chunks) != 2 {
+		return nsName, fmt.Errorf("%s is not a namespaced name", name)
+	}
+
+	nsName.Namespace = chunks[0]
+	nsName.Name = chunks[1]
+
+	return nsName, nil
+}
+
+// getOSMControllerPods returns a list of osm-controller pods in the namespace
+func getOSMControllerPods(clientSet kubernetes.Interface, ns string) *corev1.PodList {
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{constants.AppLabel: constants.OSMControllerName}}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	podList, _ := clientSet.CoreV1().Pods(ns).List(context.TODO(), listOptions)
+	return podList
 }

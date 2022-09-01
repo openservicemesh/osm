@@ -6,10 +6,12 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -30,7 +32,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 	var trafficTargets []*access.TrafficTarget
 	routeConfigPerPort := make(map[int][]*trafficpolicy.InboundTrafficPolicy)
 
-	permissiveMode := mc.configurator.IsPermissiveTrafficPolicyMode()
+	permissiveMode := mc.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode
 	if !permissiveMode {
 		// Pre-computing the list of TrafficTarget optimizes to avoid repeated
 		// cache lookups for each upstream service.
@@ -38,12 +40,23 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		trafficTargets = mc.meshSpec.ListTrafficTargets(destinationFilter)
 	}
 
+	upstreamSvcSet := mapset.NewSet()
+	for _, svc := range upstreamServices {
+		upstreamSvcSet.Add(svc)
+	}
+
+	// Used to avoid duplicate clusters that can arise when multiple
+	// upstream services reference the same global rate limit service
+	rlsClusterSet := mapset.NewSet()
+
 	// A policy (traffic match, route, cluster) must be built for each upstream service. This
 	// includes apex/root services associated with the given upstream service.
 	allUpstreamServices := mc.getUpstreamServicesIncludeApex(upstreamServices)
 
 	// Build configurations per upstream service
 	for _, upstreamSvc := range allUpstreamServices {
+		upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop
+
 		// ---
 		// Create local cluster configs for this upstram service
 		clusterConfigForSvc := &trafficpolicy.MeshClusterConfig{
@@ -54,17 +67,36 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfigForSvc)
 
+		upstreamTrafficSetting := mc.policyController.GetUpstreamTrafficSetting(
+			policy.UpstreamTrafficSettingGetOpt{MeshService: &upstreamSvc})
+		clusterConfigs = append(clusterConfigs, getRateLimitServiceClusters(upstreamTrafficSetting, rlsClusterSet)...)
+
 		// ---
 		// Create a TrafficMatch for this upstream servic.
 		// The TrafficMatch will be used by LDS to program a filter chain match
 		// for this upstream service on the upstream server to accept inbound
 		// traffic.
-		trafficMatchForUpstreamSvc := &trafficpolicy.TrafficMatch{
-			Name:                upstreamSvc.InboundTrafficMatchName(),
-			DestinationPort:     int(upstreamSvc.TargetPort),
-			DestinationProtocol: upstreamSvc.Protocol,
+		//
+		// Note: a TrafficMatch must exist only for a service part of the given
+		// 'upstreamServices' list, and not a virtual (apex) service that
+		// may be returned as a part of the 'allUpstreamServices' list.
+		// A virtual (apex) service is required for the purpose of building
+		// HTTP routing rules, but should not result in a TrafficMatch rule
+		// as TrafficMatch rules are meant to map to actual services backed
+		// by a proxy, defined by the 'upstreamServices' list.
+		if upstreamSvcSet.Contains(upstreamSvc) {
+			trafficMatchForUpstreamSvc := &trafficpolicy.TrafficMatch{
+				Name:                upstreamSvc.InboundTrafficMatchName(),
+				DestinationPort:     int(upstreamSvc.TargetPort),
+				DestinationProtocol: upstreamSvc.Protocol,
+				ServerNames:         []string{upstreamSvc.ServerName()},
+				Cluster:             upstreamSvc.EnvoyLocalClusterName(),
+			}
+			if upstreamTrafficSetting != nil {
+				trafficMatchForUpstreamSvc.RateLimit = upstreamTrafficSetting.Spec.RateLimit
+			}
+			trafficMatches = append(trafficMatches, trafficMatchForUpstreamSvc)
 		}
-		trafficMatches = append(trafficMatches, trafficMatchForUpstreamSvc)
 
 		// Build the HTTP route configs for this service and port combination.
 		// If the port's protocol corresponds to TCP, we can skip this step
@@ -77,7 +109,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		// The routes are derived from SMI TrafficTarget and TrafficSplit policies in SMI mode,
 		// and are wildcarded in permissive mode. The downstreams that can access this upstream
 		// on the configured routes is also determined based on the traffic policy mode.
-		inboundTrafficPolicies := mc.getInboundTrafficPoliciesForUpstream(upstreamSvc, permissiveMode, trafficTargets)
+		inboundTrafficPolicies := mc.getInboundTrafficPoliciesForUpstream(upstreamSvc, permissiveMode, trafficTargets, upstreamTrafficSetting)
 		routeConfigPerPort[int(upstreamSvc.TargetPort)] = append(routeConfigPerPort[int(upstreamSvc.TargetPort)], inboundTrafficPolicies)
 	}
 
@@ -88,29 +120,38 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 	}
 }
 
-func (mc *MeshCatalog) getInboundTrafficPoliciesForUpstream(upstreamSvc service.MeshService, permissiveMode bool, trafficTargets []*access.TrafficTarget) *trafficpolicy.InboundTrafficPolicy {
+func (mc *MeshCatalog) getInboundTrafficPoliciesForUpstream(upstreamSvc service.MeshService, permissiveMode bool,
+	trafficTargets []*access.TrafficTarget, upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) *trafficpolicy.InboundTrafficPolicy {
 	var inboundPolicyForUpstreamSvc *trafficpolicy.InboundTrafficPolicy
 
 	if permissiveMode {
 		// Add a wildcard HTTP route that allows any downstream client to access the upstream service
-		hostnames := k8s.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
-		inboundPolicyForUpstreamSvc = trafficpolicy.NewInboundTrafficPolicy(upstreamSvc.FQDN(), hostnames)
+		hostnames := mc.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
+		inboundPolicyForUpstreamSvc = trafficpolicy.NewInboundTrafficPolicy(upstreamSvc.FQDN(), hostnames, upstreamTrafficSetting)
 		localCluster := service.WeightedCluster{
 			ClusterName: service.ClusterName(upstreamSvc.EnvoyLocalClusterName()),
 			Weight:      constants.ClusterWeightAcceptAll,
 		}
-		inboundPolicyForUpstreamSvc.AddRule(*trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{localCluster}), identity.WildcardServiceIdentity)
+		// Only a single rule for permissive mode.
+		inboundPolicyForUpstreamSvc.Rules = []*trafficpolicy.Rule{
+			{
+				Route:             *trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{localCluster}, upstreamTrafficSetting),
+				AllowedPrincipals: mapset.NewSetWith(identity.WildcardPrincipal),
+			},
+		}
 	} else {
 		// Build the HTTP routes from SMI TrafficTarget and HTTPRouteGroup configurations
-		inboundPolicyForUpstreamSvc = mc.buildInboundHTTPPolicyFromTrafficTarget(upstreamSvc, trafficTargets)
+		inboundPolicyForUpstreamSvc = mc.buildInboundHTTPPolicyFromTrafficTarget(upstreamSvc, trafficTargets, upstreamTrafficSetting)
 	}
 
 	return inboundPolicyForUpstreamSvc
 }
 
-func (mc *MeshCatalog) buildInboundHTTPPolicyFromTrafficTarget(upstreamSvc service.MeshService, trafficTargets []*access.TrafficTarget) *trafficpolicy.InboundTrafficPolicy {
-	hostnames := k8s.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
-	inboundPolicy := trafficpolicy.NewInboundTrafficPolicy(upstreamSvc.FQDN(), hostnames)
+func (mc *MeshCatalog) buildInboundHTTPPolicyFromTrafficTarget(upstreamSvc service.MeshService, trafficTargets []*access.TrafficTarget,
+	upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) *trafficpolicy.InboundTrafficPolicy {
+	hostnames := mc.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
+	inboundPolicy := trafficpolicy.NewInboundTrafficPolicy(upstreamSvc.FQDN(), hostnames, upstreamTrafficSetting)
+
 	localCluster := service.WeightedCluster{
 		ClusterName: service.ClusterName(upstreamSvc.EnvoyLocalClusterName()),
 		Weight:      constants.ClusterWeightAcceptAll,
@@ -119,7 +160,7 @@ func (mc *MeshCatalog) buildInboundHTTPPolicyFromTrafficTarget(upstreamSvc servi
 	var routingRules []*trafficpolicy.Rule
 	// From each TrafficTarget and HTTPRouteGroup configuration associated with this service, build routes for it.
 	for _, trafficTarget := range trafficTargets {
-		rules := mc.getRoutingRulesFromTrafficTarget(*trafficTarget, localCluster)
+		rules := mc.getRoutingRulesFromTrafficTarget(*trafficTarget, localCluster, upstreamTrafficSetting)
 		// Multiple TrafficTarget objects can reference the same route, in which case such routes
 		// need to be merged to create a single route that includes all the downstream client identities
 		// this route is authorized for.
@@ -130,7 +171,8 @@ func (mc *MeshCatalog) buildInboundHTTPPolicyFromTrafficTarget(upstreamSvc servi
 	return inboundPolicy
 }
 
-func (mc *MeshCatalog) getRoutingRulesFromTrafficTarget(trafficTarget access.TrafficTarget, routingCluster service.WeightedCluster) []*trafficpolicy.Rule {
+func (mc *MeshCatalog) getRoutingRulesFromTrafficTarget(trafficTarget access.TrafficTarget, routingCluster service.WeightedCluster,
+	upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) []*trafficpolicy.Rule {
 	// Compute the HTTP route matches associated with the given TrafficTarget object
 	httpRouteMatches, err := mc.routesFromRules(trafficTarget.Spec.Rules, trafficTarget.Namespace)
 	if err != nil {
@@ -140,17 +182,17 @@ func (mc *MeshCatalog) getRoutingRulesFromTrafficTarget(trafficTarget access.Tra
 	}
 
 	// Compute the allowed downstream service identities for the given TrafficTarget object
-	allowedDownstreamIdentities := mapset.NewSet()
+	trustDomain := mc.GetTrustDomain()
+	allowedDownstreamPrincipals := mapset.NewSet()
 	for _, source := range trafficTarget.Spec.Sources {
-		sourceSvcIdentity := trafficTargetIdentityToSvcAccount(source).ToServiceIdentity()
-		allowedDownstreamIdentities.Add(sourceSvcIdentity)
+		allowedDownstreamPrincipals.Add(trafficTargetIdentityToSvcAccount(source).AsPrincipal(trustDomain))
 	}
 
 	var routingRules []*trafficpolicy.Rule
 	for _, httpRouteMatch := range httpRouteMatches {
 		rule := &trafficpolicy.Rule{
-			Route:                    *trafficpolicy.NewRouteWeightedCluster(httpRouteMatch, []service.WeightedCluster{routingCluster}),
-			AllowedServiceIdentities: allowedDownstreamIdentities,
+			Route:             *trafficpolicy.NewRouteWeightedCluster(httpRouteMatch, []service.WeightedCluster{routingCluster}, upstreamTrafficSetting),
+			AllowedPrincipals: allowedDownstreamPrincipals,
 		}
 		routingRules = append(routingRules, rule)
 	}
@@ -159,7 +201,7 @@ func (mc *MeshCatalog) getRoutingRulesFromTrafficTarget(trafficTarget access.Tra
 }
 
 // routesFromRules takes a set of traffic target rules and the namespace of the traffic target and returns a list of
-//	http route matches (trafficpolicy.HTTPRouteMatch)
+// http route matches (trafficpolicy.HTTPRouteMatch)
 func (mc *MeshCatalog) routesFromRules(rules []access.TrafficTargetRule, trafficTargetNamespace string) ([]trafficpolicy.HTTPRouteMatch, error) {
 	var routes []trafficpolicy.HTTPRouteMatch
 
@@ -174,7 +216,7 @@ func (mc *MeshCatalog) routesFromRules(rules []access.TrafficTargetRule, traffic
 	}
 
 	for _, rule := range rules {
-		trafficSpecName := mc.getTrafficSpecName(smi.HTTPRouteGroupKind, trafficTargetNamespace, rule.Name)
+		trafficSpecName := getTrafficSpecName(smi.HTTPRouteGroupKind, trafficTargetNamespace, rule.Name)
 		for _, match := range rule.Matches {
 			matchedRoute, found := specMatchRoute[trafficSpecName][trafficpolicy.TrafficSpecMatchName(match)]
 			if found {
@@ -199,7 +241,7 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 		}
 
 		// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
-		specKey := mc.getTrafficSpecName(smi.HTTPRouteGroupKind, trafficSpecs.Namespace, trafficSpecs.Name)
+		specKey := getTrafficSpecName(smi.HTTPRouteGroupKind, trafficSpecs.Namespace, trafficSpecs.Name)
 		routePolicies[specKey] = make(map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch)
 		for _, trafficSpecsMatches := range trafficSpecs.Spec.Matches {
 			serviceRoute := trafficpolicy.HTTPRouteMatch{
@@ -223,7 +265,7 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 	return routePolicies, nil
 }
 
-func (mc *MeshCatalog) getTrafficSpecName(trafficSpecKind string, trafficSpecNamespace string, trafficSpecName string) trafficpolicy.TrafficSpecName {
+func getTrafficSpecName(trafficSpecKind string, trafficSpecNamespace string, trafficSpecName string) trafficpolicy.TrafficSpecName {
 	specKey := fmt.Sprintf("%s/%s/%s", trafficSpecKind, trafficSpecNamespace, trafficSpecName)
 	return trafficpolicy.TrafficSpecName(specKey)
 }
@@ -246,11 +288,12 @@ func (mc *MeshCatalog) getUpstreamServicesIncludeApex(upstreamServices []service
 		for _, split := range mc.meshSpec.ListTrafficSplits(smi.WithTrafficSplitBackendService(svc)) {
 			apexMeshService := service.MeshService{
 				Namespace:  svc.Namespace,
-				Name:       k8s.GetServiceFromHostname(split.Spec.Service),
+				Name:       split.Spec.Service,
 				Port:       svc.Port,
 				TargetPort: svc.TargetPort,
 				Protocol:   svc.Protocol,
 			}
+
 			if newlyAdded := svcSet.Add(apexMeshService); newlyAdded {
 				allServices = append(allServices, apexMeshService)
 			}
@@ -258,4 +301,46 @@ func (mc *MeshCatalog) getUpstreamServicesIncludeApex(upstreamServices []service
 	}
 
 	return allServices
+}
+
+// getRateLimitServiceClusters returns a list of MeshClusterConfig objects corresponding to the global
+// rate limit service instance. It ensures only a single cluster config if the same rate limit service
+// is used for both TCP and HTTP rate limiting.
+func getRateLimitServiceClusters(upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting, clusterSet mapset.Set) []*trafficpolicy.MeshClusterConfig {
+	if upstreamTrafficSetting == nil || upstreamTrafficSetting.Spec.RateLimit == nil || upstreamTrafficSetting.Spec.RateLimit.Global == nil {
+		return nil
+	}
+
+	rateLimit := upstreamTrafficSetting.Spec.RateLimit
+	var clusters []*trafficpolicy.MeshClusterConfig
+
+	if rateLimit.Global.TCP != nil {
+		clusterName := service.RateLimitServiceClusterName(rateLimit.Global.TCP.RateLimitService)
+		if !clusterSet.Contains(clusterName) {
+			clusters = append(clusters, &trafficpolicy.MeshClusterConfig{
+				Name:     clusterName,
+				Address:  rateLimit.Global.TCP.RateLimitService.Host,
+				Port:     uint32(rateLimit.Global.TCP.RateLimitService.Port),
+				Protocol: constants.ProtocolH2C,
+			})
+			clusterSet.Add(clusterName)
+		}
+	}
+
+	if rateLimit.Global.HTTP != nil {
+		clusterName := service.RateLimitServiceClusterName(rateLimit.Global.HTTP.RateLimitService)
+		// Only configure an HTTP rate limiting cluster if the same cluster is not already
+		// referenced by a TCP rate limiting config
+		if !clusterSet.Contains(clusterName) {
+			clusters = append(clusters, &trafficpolicy.MeshClusterConfig{
+				Name:     clusterName,
+				Address:  rateLimit.Global.HTTP.RateLimitService.Host,
+				Port:     uint32(rateLimit.Global.HTTP.RateLimitService.Port),
+				Protocol: constants.ProtocolH2C,
+			})
+			clusterSet.Add(clusterName)
+		}
+	}
+
+	return clusters
 }

@@ -5,7 +5,7 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
-USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-true}"
+USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
 
 KUBE_CONTEXT=$(kubectl config current-context)
 
@@ -64,9 +64,6 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookwarehouse
-      nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
       containers:
         # Main container with APP
         - name: bookwarehouse

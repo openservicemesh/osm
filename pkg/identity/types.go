@@ -12,11 +12,19 @@ const (
 )
 
 // ServiceIdentity is the type used to represent the identity for a service
-// For Kubernetes services this string will be in the format: <ServiceAccount>.<Namespace>.cluster.local
+// For Kubernetes services this string will be in the format: <ServiceAccount>.<Namespace>
 type ServiceIdentity string
+
+// New returns a new ServiceIdentity for the given name and namespace.
+func New(name, namespace string) ServiceIdentity {
+	return ServiceIdentity(fmt.Sprintf("%s.%s", name, namespace))
+}
 
 // WildcardServiceIdentity is a wildcard to match all service identities
 const WildcardServiceIdentity ServiceIdentity = "*"
+
+// WildcardPrincipal is a wildcard to match all principals. A principal is a service identity with a trust domain.
+const WildcardPrincipal = "*"
 
 // String returns the ServiceIdentity as a string
 func (si ServiceIdentity) String() string {
@@ -26,6 +34,14 @@ func (si ServiceIdentity) String() string {
 // IsWildcard determines if the ServiceIdentity is a wildcard
 func (si ServiceIdentity) IsWildcard() bool {
 	return si == WildcardServiceIdentity
+}
+
+// AsPrincipal converts the ServiceIdentity to a Principal with the given trust domain.
+func (si ServiceIdentity) AsPrincipal(trustDomain string) string {
+	if si.IsWildcard() {
+		return si.String()
+	}
+	return fmt.Sprintf("%s.%s", si.String(), trustDomain)
 }
 
 // ToK8sServiceAccount converts a ServiceIdentity to a K8sServiceAccount to help with transition from K8sServiceAccount to ServiceIdentity
@@ -53,7 +69,11 @@ func (sa K8sServiceAccount) String() string {
 }
 
 // ToServiceIdentity converts K8sServiceAccount to the newer ServiceIdentity
-// TODO(draychev): ToServiceIdentity is used in many places to ease with transition from K8sServiceAccount to ServiceIdentity and should be removed (not everywhere) - [https://github.com/openservicemesh/osm/issues/2218]
 func (sa K8sServiceAccount) ToServiceIdentity() ServiceIdentity {
-	return ServiceIdentity(fmt.Sprintf("%s.%s.%s", sa.Name, sa.Namespace, ClusterLocalTrustDomain))
+	return New(sa.Name, sa.Namespace)
+}
+
+// AsPrincipal converts the K8sServiceAccount to a Principal with the given trust domain.
+func (sa K8sServiceAccount) AsPrincipal(trustDomain string) string {
+	return sa.ToServiceIdentity().AsPrincipal(trustDomain)
 }

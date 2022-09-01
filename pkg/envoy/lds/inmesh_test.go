@@ -6,45 +6,24 @@ import (
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/mock/gomock"
+	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/auth"
-	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/envoy"
+
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-
-	// Mock calls used to build the HTTP connection manager
-	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-api").AnyTimes()
-	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
-		Enable: false,
-	}).AnyTimes()
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableWASMStats: false,
-	}).AnyTimes()
-
+func TestBuildOutboundHTTPFilterChain(t *testing.T) {
 	lb := &listenerBuilder{
-		meshCatalog:     mockCatalog,
-		cfg:             mockConfigurator,
-		serviceIdentity: tests.BookbuyerServiceIdentity,
+		proxyIdentity: tests.BookbuyerServiceIdentity,
 	}
 
 	testCases := []struct {
@@ -99,7 +78,7 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(tc.trafficMatch)
+			httpFilterChain, err := lb.buildOutboundHTTPFilterChain(tc.trafficMatch)
 
 			assert.Equal(err != nil, tc.expectError)
 
@@ -110,24 +89,16 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 				assert.Len(httpFilterChain.FilterChainMatch.PrefixRanges, len(tc.trafficMatch.DestinationIPRanges))
 
 				for _, filter := range httpFilterChain.Filters {
-					assert.Equal(wellknown.HTTPConnectionManager, filter.Name)
+					assert.Equal(envoy.HTTPConnectionManagerFilterName, filter.Name)
 				}
 			}
 		})
 	}
 }
 
-func TestGetOutboundTCPFilterChainForService(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-
+func TestBuildOutboundTCPFIlterChain(t *testing.T) {
 	lb := &listenerBuilder{
-		meshCatalog:     mockCatalog,
-		cfg:             mockConfigurator,
-		serviceIdentity: tests.BookbuyerServiceIdentity,
+		proxyIdentity: tests.BookbuyerServiceIdentity,
 	}
 
 	testCases := []struct {
@@ -183,7 +154,7 @@ func TestGetOutboundTCPFilterChainForService(t *testing.T) {
 				DestinationIPRanges: tc.destinationIPRanges,
 				WeightedClusters:    []service.WeightedCluster{{ClusterName: "bookstore_14001", Weight: 100}},
 			}
-			tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(trafficMatch)
+			tcpFilterChain, err := lb.buildOutboundTCPFilterChain(trafficMatch)
 
 			assert.Equal(err != nil, tc.expectError)
 
@@ -194,142 +165,247 @@ func TestGetOutboundTCPFilterChainForService(t *testing.T) {
 				assert.Len(tcpFilterChain.FilterChainMatch.PrefixRanges, len(tc.destinationIPRanges))
 
 				for _, filter := range tcpFilterChain.Filters {
-					assert.Equal(wellknown.TCPProxy, filter.Name)
+					assert.Equal(envoy.TCPProxyFilterName, filter.Name)
 				}
 			}
 		})
 	}
 }
 
-func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-
-	// Mock calls used to build the HTTP connection manager
-	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-api").AnyTimes()
-	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
-		Enable: false,
-	}).AnyTimes()
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableWASMStats:        false,
-		EnableMulticlusterMode: true,
-	}).AnyTimes()
-	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
-
-	lb := &listenerBuilder{
-		meshCatalog:     mockCatalog,
-		cfg:             mockConfigurator,
-		serviceIdentity: tests.BookbuyerServiceIdentity,
-	}
-
-	proxyService := tests.BookbuyerService
-
+func TestBuildInboundHTTPFilterChain(t *testing.T) {
 	testCases := []struct {
-		name           string
-		permissiveMode bool
-		port           uint16
+		name                    string
+		permissiveMode          bool
+		trafficMatch            *trafficpolicy.TrafficMatch
+		wasmStatsHeaders        map[string]string
+		enableActiveHealthCheck bool
+		tracingEndpoint         string
+		extAuthzConfig          *auth.ExtAuthConfig
 
 		expectedFilterChainMatch *xds_listener.FilterChainMatch
 		expectedFilterNames      []string
+		expectedHTTPFilters      []string
 		expectError              bool
 	}{
 		{
 			name:           "inbound HTTP filter chain with permissive mode disabled",
 			permissiveMode: false,
-			port:           80,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_80_http",
+				DestinationPort:     80,
+				DestinationProtocol: "http",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+			},
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 80},
-				ServerNames:          []string{proxyService.ServerName()},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{wellknown.RoleBasedAccessControl, wellknown.HTTPConnectionManager},
+			expectedFilterNames: []string{envoy.L4RBACFilterName, envoy.HTTPConnectionManagerFilterName},
 			expectError:         false,
 		},
 		{
 			name:           "inbound HTTP filter chain with permissive mode enabled",
 			permissiveMode: true,
-			port:           90,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "http",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+			},
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
-				ServerNames:          []string{proxyService.ServerName()},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{wellknown.HTTPConnectionManager},
+			expectedFilterNames: []string{envoy.HTTPConnectionManagerFilterName},
 			expectError:         false,
+		},
+		{
+			name:           "inbound HTTP filter chain with local rate limiting enabled",
+			permissiveMode: true,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "http",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+				RateLimit: &policyv1alpha1.RateLimitSpec{
+					Local: &policyv1alpha1.LocalRateLimitSpec{
+						TCP: &policyv1alpha1.TCPLocalRateLimitSpec{
+							Connections: 100,
+							Unit:        "minute",
+						},
+					},
+				},
+			},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
+				TransportProtocol:    "tls",
+				ApplicationProtocols: []string{"osm"},
+			},
+			expectedFilterNames: []string{envoy.L4LocalRateLimitFilterName, envoy.HTTPConnectionManagerFilterName},
+			expectError:         false,
+		},
+		{
+			name:           "inbound HTTP filter chain with global TCP rate limiting enabled",
+			permissiveMode: true,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "http",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+				RateLimit: &policyv1alpha1.RateLimitSpec{
+					Global: &policyv1alpha1.GlobalRateLimitSpec{
+						TCP: &policyv1alpha1.TCPGlobalRateLimitSpec{
+							RateLimitService: policyv1alpha1.RateLimitServiceSpec{
+								Host: "foo.bar",
+								Port: 8080,
+							},
+							Descriptors: []policyv1alpha1.TCPRateLimitDescriptor{
+								{
+									Entries: []policyv1alpha1.TCPRateLimitDescriptorEntry{
+										{
+											Key:   "k1",
+											Value: "v1",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
+				TransportProtocol:    "tls",
+				ApplicationProtocols: []string{"osm"},
+			},
+			expectedFilterNames: []string{envoy.L4GlobalRateLimitFilterName, envoy.HTTPConnectionManagerFilterName},
+			expectError:         false,
+		},
+		{
+			name:           "inbound HTTP filter chain with global HTTP rate limiting enabled",
+			permissiveMode: true,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "http",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+				RateLimit: &policyv1alpha1.RateLimitSpec{
+					Global: &policyv1alpha1.GlobalRateLimitSpec{
+						HTTP: &policyv1alpha1.HTTPGlobalRateLimitSpec{
+							RateLimitService: policyv1alpha1.RateLimitServiceSpec{
+								Host: "foo.bar",
+								Port: 8080,
+							},
+						},
+					},
+				},
+			},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
+				TransportProtocol:    "tls",
+				ApplicationProtocols: []string{"osm"},
+			},
+			expectedFilterNames: []string{envoy.HTTPConnectionManagerFilterName},
+			expectedHTTPFilters: []string{envoy.HTTPLocalRateLimitFilterName, envoy.HTTPGlobalRateLimitFilterName, envoy.HTTPRouterFilterName},
+			expectError:         false,
+		},
+		{
+			name:           "inbound HTTP filter chain with tracing, WASM stats headers, ExtAuthz, active healthcheck",
+			permissiveMode: true,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "http",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+			},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
+				TransportProtocol:    "tls",
+				ApplicationProtocols: []string{"osm"},
+			},
+			tracingEndpoint:         "foo.com/bar",
+			wasmStatsHeaders:        map[string]string{"k1": "v1", "k2": "v2"},
+			enableActiveHealthCheck: true,
+			extAuthzConfig:          &auth.ExtAuthConfig{Enable: true},
+			expectedFilterNames:     []string{envoy.HTTPConnectionManagerFilterName},
+			expectError:             false,
 		},
 	}
 
 	trafficTargets := []trafficpolicy.TrafficTargetWithRoutes{
 		{
 			Name:        "ns-1/test-1",
-			Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+			Destination: identity.ServiceIdentity("sa-1.ns-1"),
 			Sources: []identity.ServiceIdentity{
-				identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-				identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+				identity.ServiceIdentity("sa-2.ns-2"),
+				identity.ServiceIdentity("sa-3.ns-3"),
 			},
 			TCPRouteMatches: nil,
 		},
 	}
 
+	containsHTTPFilter := func(filters []*xds_hcm.HttpFilter, filterName string) bool {
+		for _, f := range filters {
+			if f.Name == filterName {
+				return true
+			}
+		}
+		return false
+	}
+
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
-
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
-			if !tc.permissiveMode {
-				// mock catalog calls used to build the RBAC filter
-				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity).Return(trafficTargets, nil).Times(1)
+			lb := &listenerBuilder{
+				proxyIdentity:       tests.BookbuyerServiceIdentity,
+				permissiveMesh:      tc.permissiveMode,
+				trafficTargets:      trafficTargets,
+				wasmStatsHeaders:    tc.wasmStatsHeaders,
+				activeHealthCheck:   tc.enableActiveHealthCheck,
+				httpTracingEndpoint: tc.tracingEndpoint,
 			}
 
-			proxyService.TargetPort = tc.port
-			filterChain, err := lb.getInboundMeshHTTPFilterChain(proxyService)
+			filterChain, err := lb.buildInboundHTTPFilterChain(tc.trafficMatch)
 
 			assert.Equal(err != nil, tc.expectError)
 			assert.Equal(filterChain.FilterChainMatch, tc.expectedFilterChainMatch)
 			assert.Len(filterChain.Filters, len(tc.expectedFilterNames))
 			for i, filter := range filterChain.Filters {
-				assert.Equal(filter.Name, tc.expectedFilterNames[i])
+				assert.Equal(tc.expectedFilterNames[i], filter.Name)
+			}
+
+			var httpFilters []*xds_hcm.HttpFilter
+			for _, f := range filterChain.Filters {
+				if f.Name != envoy.HTTPConnectionManagerFilterName {
+					continue
+				}
+				hcm := &xds_hcm.HttpConnectionManager{}
+				err := f.GetTypedConfig().UnmarshalTo(hcm)
+				assert.Nil(err)
+
+				httpFilters = append(httpFilters, hcm.HttpFilters...)
+			}
+
+			for _, httpFilter := range tc.expectedHTTPFilters {
+				assert.True(containsHTTPFilter(httpFilters, httpFilter), "expected HTTP filter not found: "+httpFilter)
 			}
 		})
 	}
 }
 
-func TestGetInboundMeshTCPFilterChain(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-
-	// Mock calls used to build the HTTP connection manager
-	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
-	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-api").AnyTimes()
-	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
-		Enable: false,
-	}).AnyTimes()
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableMulticlusterMode: true,
-	}).AnyTimes()
-	mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
-
-	lb := &listenerBuilder{
-		meshCatalog:     mockCatalog,
-		cfg:             mockConfigurator,
-		serviceIdentity: tests.BookbuyerServiceIdentity,
-	}
-
-	proxyService := tests.BookbuyerService
-
+func TestBuildInboundTCPFilterChain(t *testing.T) {
 	testCases := []struct {
 		name           string
 		permissiveMode bool
-		port           uint16
+		trafficMatch   *trafficpolicy.TrafficMatch
 
 		expectedFilterChainMatch *xds_listener.FilterChainMatch
 		expectedFilterNames      []string
@@ -338,28 +414,105 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 		{
 			name:           "inbound TCP filter chain with permissive mode disabled",
 			permissiveMode: false,
-			port:           80,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_80_http",
+				Cluster:             "ns1/svc1_90_http",
+				DestinationPort:     80,
+				DestinationProtocol: "tcp",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+			},
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 80},
-				ServerNames:          []string{proxyService.ServerName()},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{wellknown.RoleBasedAccessControl, wellknown.TCPProxy},
+			expectedFilterNames: []string{envoy.L4RBACFilterName, envoy.TCPProxyFilterName},
 			expectError:         false,
 		},
-
 		{
 			name:           "inbound TCP filter chain with permissive mode enabled",
 			permissiveMode: true,
-			port:           90,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				Cluster:             "ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "tcp",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+			},
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
 				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
-				ServerNames:          []string{proxyService.ServerName()},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
 			},
-			expectedFilterNames: []string{wellknown.TCPProxy},
+			expectedFilterNames: []string{envoy.TCPProxyFilterName},
+			expectError:         false,
+		},
+		{
+			name:           "inbound TCP filter chain with local TCP rate limiting enabled",
+			permissiveMode: true,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				Cluster:             "ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "tcp",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+				RateLimit: &policyv1alpha1.RateLimitSpec{
+					Local: &policyv1alpha1.LocalRateLimitSpec{
+						TCP: &policyv1alpha1.TCPLocalRateLimitSpec{
+							Connections: 100,
+							Unit:        "minute",
+						},
+					},
+				},
+			},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
+				TransportProtocol:    "tls",
+				ApplicationProtocols: []string{"osm"},
+			},
+			expectedFilterNames: []string{envoy.L4LocalRateLimitFilterName, envoy.TCPProxyFilterName},
+			expectError:         false,
+		},
+		{
+			name:           "inbound TCP filter chain with global TCP rate limiting enabled",
+			permissiveMode: true,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				Cluster:             "ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "http",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+				RateLimit: &policyv1alpha1.RateLimitSpec{
+					Global: &policyv1alpha1.GlobalRateLimitSpec{
+						TCP: &policyv1alpha1.TCPGlobalRateLimitSpec{
+							RateLimitService: policyv1alpha1.RateLimitServiceSpec{
+								Host: "foo.bar",
+								Port: 8080,
+							},
+							Descriptors: []policyv1alpha1.TCPRateLimitDescriptor{
+								{
+									Entries: []policyv1alpha1.TCPRateLimitDescriptorEntry{
+										{
+											Key:   "k1",
+											Value: "v1",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
+				TransportProtocol:    "tls",
+				ApplicationProtocols: []string{"osm"},
+			},
+			expectedFilterNames: []string{envoy.L4GlobalRateLimitFilterName, envoy.TCPProxyFilterName},
 			expectError:         false,
 		},
 	}
@@ -367,10 +520,10 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 	trafficTargets := []trafficpolicy.TrafficTargetWithRoutes{
 		{
 			Name:        "ns-1/test-1",
-			Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+			Destination: identity.ServiceIdentity("sa-1.ns-1"),
 			Sources: []identity.ServiceIdentity{
-				identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-				identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+				identity.ServiceIdentity("sa-2.ns-2"),
+				identity.ServiceIdentity("sa-3.ns-3"),
 			},
 			TCPRouteMatches: nil,
 		},
@@ -379,17 +532,15 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
-
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
-			if !tc.permissiveMode {
-				// mock catalog calls used to build the RBAC filter
-				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.serviceIdentity).Return(trafficTargets, nil).Times(1)
+			lb := &listenerBuilder{
+				proxyIdentity:  tests.BookbuyerServiceIdentity,
+				permissiveMesh: tc.permissiveMode,
+				trafficTargets: trafficTargets,
 			}
 
-			proxyService.TargetPort = tc.port
-			filterChain, err := lb.getInboundMeshTCPFilterChain(proxyService)
+			filterChain, err := lb.buildInboundTCPFilterChain(tc.trafficMatch)
 
-			assert.Equal(err != nil, tc.expectError)
+			assert.Equal(err != nil, tc.expectError, err)
 			assert.Equal(filterChain.FilterChainMatch, tc.expectedFilterChainMatch)
 			assert.Len(filterChain.Filters, len(tc.expectedFilterNames))
 			for i, filter := range filterChain.Filters {
@@ -399,15 +550,8 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 	}
 }
 
-// Tests getOutboundFilterChainMatchForService and ensures the filter chain match returned is as expected
-func TestGetOutboundFilterChainMatchForService(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-
-	lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceIdentity, mockConfigurator, nil)
-
+// Tests buildOutboundFilterChainMatch and ensures the filter chain match returned is as expected
+func TestBuildOutboundFilterChainMatch(t *testing.T) {
 	testCases := []struct {
 		name                     string
 		trafficMatch             trafficpolicy.TrafficMatch
@@ -504,121 +648,87 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
-			filterChainMatch, err := lb.getOutboundFilterChainMatchForService(tc.trafficMatch)
+
+			filterChainMatch, err := buildOutboundFilterChainMatch(tc.trafficMatch)
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedFilterChainMatch, filterChainMatch)
 		})
 	}
 }
 
-func TestGetOutboundTCPFilter(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	type testCase struct {
-		name                   string
-		trafficMatch           trafficpolicy.TrafficMatch
-		expectedTCPProxyConfig *xds_tcp_proxy.TcpProxy
-		expectError            bool
-	}
-
-	testCases := []testCase{
+func TestBuildOutboundFilterChains(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		policy               *trafficpolicy.OutboundMeshTrafficPolicy
+		expectedFilterChains int
+	}{
 		{
-			name: "TCP filter for upstream without any traffic split policies",
-			trafficMatch: trafficpolicy.TrafficMatch{
-				Name: "test",
-				WeightedClusters: []service.WeightedCluster{
+			name: "multiple HTTP and TCP traffic matches",
+			policy: &trafficpolicy.OutboundMeshTrafficPolicy{
+				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
-						ClusterName: "bar/foo_14001",
-						Weight:      100,
-					},
-				},
-			},
-			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
-				StatPrefix:       "outbound-mesh-tcp-proxy_test",
-				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: "bar/foo_14001"},
-			},
-			expectError: false,
-		},
-		{
-			name: "TCP filter for upstream with matching traffic split policy",
-			trafficMatch: trafficpolicy.TrafficMatch{
-				Name: "test",
-				WeightedClusters: []service.WeightedCluster{
-					{
-						ClusterName: "bar/foo-v1_14001",
-						Weight:      10,
+						Name:                "1",
+						DestinationPort:     80,
+						DestinationProtocol: "http",
+						DestinationIPRanges: []string{"1.1.1.1/32"},
 					},
 					{
-						ClusterName: "bar/foo-v2_14001",
-						Weight:      90,
+						Name:                "2",
+						DestinationPort:     90,
+						DestinationProtocol: "grpc",
+						DestinationIPRanges: []string{"1.1.1.1/32"},
 					},
-				},
-			},
-			expectedTCPProxyConfig: &xds_tcp_proxy.TcpProxy{
-				StatPrefix: "outbound-mesh-tcp-proxy_test",
-				ClusterSpecifier: &xds_tcp_proxy.TcpProxy_WeightedClusters{
-					WeightedClusters: &xds_tcp_proxy.TcpProxy_WeightedCluster{
-						Clusters: []*xds_tcp_proxy.TcpProxy_WeightedCluster_ClusterWeight{
+					{
+						Name:                "3",
+						DestinationPort:     100,
+						DestinationProtocol: "tcp",
+						WeightedClusters: []service.WeightedCluster{
 							{
-								Name:   "bar/foo-v1_14001",
-								Weight: 10,
-							},
-							{
-								Name:   "bar/foo-v2_14001",
-								Weight: 90,
+								ClusterName: "foo",
+								Weight:      100,
 							},
 						},
+						DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
+					},
+					{
+						Name:                "4",
+						DestinationPort:     100,
+						DestinationProtocol: "tcp-server-first",
+						WeightedClusters: []service.WeightedCluster{
+							{
+								ClusterName: "foo",
+								Weight:      40,
+							},
+							{
+								ClusterName: "bar",
+								Weight:      60,
+							},
+						},
+						DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
 					},
 				},
 			},
-			expectError: false,
+			expectedFilterChains: 4,
+		},
+		{
+			name:                 "nil OutboundMeshTrafficPolicy should result in 0 filter chains",
+			policy:               nil,
+			expectedFilterChains: 0,
+		},
+		{
+			name:                 "nil TrafficMatch should result in 0 filter chains",
+			policy:               &trafficpolicy.OutboundMeshTrafficPolicy{TrafficMatches: nil},
+			expectedFilterChains: 0,
 		},
 	}
 
-	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+			lb := &listenerBuilder{outboundMeshTrafficPolicy: tc.policy}
 
-			lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceIdentity, mockConfigurator, nil)
-			filter, err := lb.getOutboundTCPFilter(tc.trafficMatch)
-
-			assert := tassert.New(t)
-			assert.Equal(tc.expectError, err != nil)
-
-			actualConfig := &xds_tcp_proxy.TcpProxy{}
-			err = filter.GetTypedConfig().UnmarshalTo(actualConfig)
-			assert.Nil(err)
-			assert.Equal(wellknown.TCPProxy, filter.Name)
-
-			assert.Equal(tc.expectedTCPProxyConfig.ClusterSpecifier, actualConfig.ClusterSpecifier)
-
-			assert.Equal(tc.expectedTCPProxyConfig.StatPrefix, actualConfig.StatPrefix)
+			actual := lb.buildOutboundFilterChains()
+			a.Len(actual, tc.expectedFilterChains)
 		})
 	}
-}
-
-func TestGetOutboundHTTPFilter(t *testing.T) {
-	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	lb := &listenerBuilder{
-		cfg: mockConfigurator,
-	}
-
-	mockConfigurator.EXPECT().IsTracingEnabled()
-	mockConfigurator.EXPECT().GetTracingEndpoint()
-	mockConfigurator.EXPECT().GetInboundExternalAuthConfig().Return(auth.ExtAuthConfig{
-		Enable: false,
-	}).AnyTimes()
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-		EnableWASMStats: false,
-	}).AnyTimes()
-
-	filter, err := lb.getOutboundHTTPFilter(route.OutboundRouteConfigName)
-	assert.NoError(err)
-	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
 }

@@ -8,13 +8,12 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/pkg/errors"
+
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
@@ -77,14 +76,14 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 
 			meshInfoList, err := getMeshInfoList(versionCmd.config, versionCmd.clientset)
 			if err != nil {
-				return errors.Wrapf(err, "unable to list meshes within the cluster")
+				return fmt.Errorf("unable to list meshes within the cluster: %w", err)
 			}
 
 			for _, m := range meshInfoList {
 				versionCmd.namespace = m.namespace
 				meshVer, err := versionCmd.getMeshVersion()
 				if err != nil {
-					multiError = multierror.Append(multiError, errors.Wrap(err, fmt.Sprintf("Failed to get mesh version for mesh %s in namespace %s", m.name, m.namespace)))
+					multiError = multierror.Append(multiError, fmt.Errorf("Failed to get mesh version for mesh %s in namespace %s: %w", m.name, m.namespace, err))
 				}
 				verInfo.remoteVersionInfoList = append(verInfo.remoteVersionInfoList, meshVer)
 			}
@@ -96,9 +95,9 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 			if !settings.IsManaged() && !versionCmd.versionOnly {
 				latestReleaseVersion, err := getLatestReleaseVersion()
 				if err != nil {
-					multiError = multierror.Append(multiError, errors.Wrapf(err, "Failed to get latest release information"))
+					multiError = multierror.Append(multiError, fmt.Errorf("Failed to get latest release information: %w", err))
 				} else if err := outputLatestReleaseVersion(versionCmd.out, latestReleaseVersion, cliVersionInfo.Version); err != nil {
-					multiError = multierror.Append(multiError, errors.Wrapf(err, "Failed to output latest release information"))
+					multiError = multierror.Append(multiError, fmt.Errorf("Failed to output latest release information: %w", err))
 				}
 			}
 
@@ -116,12 +115,12 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 func (v *versionCmd) setKubeClientset() error {
 	config, err := settings.RESTClientGetter().ToRESTConfig()
 	if err != nil {
-		return errors.Wrap(err, "Error fetching kubeconfig")
+		return fmt.Errorf("Error fetching kubeconfig")
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return errors.Wrap(err, "Could not access Kubernetes cluster, check kubeconfig")
+		return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig")
 	}
 	v.clientset = clientset
 	return nil
@@ -153,24 +152,27 @@ func (v *versionCmd) getMeshVersion() (*remoteVersionInfo, error) {
 }
 
 func (r *remoteVersion) proxyGetMeshVersion(pod string, namespace string, clientset kubernetes.Interface) (*version.Info, error) {
-	resp, err := clientset.CoreV1().Pods(namespace).ProxyGet("", pod, strconv.Itoa(constants.OSMHTTPServerPort), httpserverconstants.VersionPath, nil).DoRaw(context.TODO())
+	resp, err := clientset.CoreV1().Pods(namespace).ProxyGet("", pod, strconv.Itoa(constants.OSMHTTPServerPort), constants.VersionPath, nil).DoRaw(context.TODO())
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error retrieving mesh version from pod [%s] in namespace [%s]", pod, namespace)
+		return nil, fmt.Errorf("Error retrieving mesh version from pod [%s] in namespace [%s]: %w", pod, namespace, err)
 	}
 	if len(resp) == 0 {
-		return nil, errors.Errorf("Empty response received from pod [%s] in namespace [%s]", pod, namespace)
+		return nil, fmt.Errorf("Empty response received from pod [%s] in namespace [%s]: %w", pod, namespace, err)
 	}
 
 	versionInfo := &version.Info{}
 	err = json.Unmarshal(resp, versionInfo)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error unmarshalling retrieved mesh version from pod [%s] in namespace [%s]", pod, namespace)
+		return nil, fmt.Errorf("Error unmarshalling retrieved mesh version from pod [%s] in namespace [%s]: %w", pod, namespace, err)
 	}
 
 	return versionInfo, nil
 }
 
 func (v *versionCmd) outputPrettyVersionInfo(remoteVerList []*remoteVersionInfo) string {
+	if len(remoteVerList) == 0 {
+		return "Unable to find OSM control plane in the cluster\n"
+	}
 	table := "\nMESH NAME\tMESH NAMESPACE\tVERSION\tGIT COMMIT\tBUILD DATE\n"
 	for _, remoteVersionInfo := range remoteVerList {
 		if remoteVersionInfo != nil && remoteVersionInfo.meshName != "" {

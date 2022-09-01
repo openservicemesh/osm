@@ -4,13 +4,13 @@ import (
 	"github.com/google/uuid"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func getProxy(kubeClient kubernetes.Interface, proxyCertCommonName certificate.CommonName, porxyCertSerialNumber certificate.SerialNumber) (*envoy.Proxy, error) {
+func getSidecarProxy(kubeClient kubernetes.Interface, proxyUUID uuid.UUID, svcIdentity identity.ServiceIdentity) (*envoy.Proxy, error) {
 	bookbuyerPodLabels := map[string]string{
 		constants.AppLabel:               tests.BookbuyerService.Name,
 		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
@@ -43,5 +43,5 @@ func getProxy(kubeClient kubernetes.Interface, proxyCertCommonName certificate.C
 		}
 	}
 
-	return envoy.NewProxy(proxyCertCommonName, porxyCertSerialNumber, nil)
+	return envoy.NewProxy(envoy.KindSidecar, proxyUUID, svcIdentity, nil, 1), nil
 }

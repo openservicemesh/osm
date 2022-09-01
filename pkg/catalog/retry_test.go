@@ -2,37 +2,35 @@ package catalog
 
 import (
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 func TestGetRetryPolicy(t *testing.T) {
+	var thresholdUintVal uint32 = 3
+	thresholdTimeoutDuration := metav1.Duration{Duration: time.Duration(5 * time.Second)}
+	thresholdBackoffDuration := metav1.Duration{Duration: time.Duration(1 * time.Second)}
+
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockServiceProvider := service.NewMockProvider(mockCtrl)
-	mockEndpointsProvider := endpoint.NewMockProvider(mockCtrl)
-	mockCfg := configurator.NewMockConfigurator(mockCtrl)
 	mockPolicyController := policy.NewMockController(mockCtrl)
-	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockCompute := compute.NewMockInterface(mockCtrl)
 	mc := &MeshCatalog{
-		serviceProviders:   []service.Provider{mockServiceProvider},
-		endpointsProviders: []endpoint.Provider{mockEndpointsProvider},
-		configurator:       mockCfg,
-		policyController:   mockPolicyController,
-		kubeController:     mockKubeController,
+		policyController: mockPolicyController,
+		Interface:        mockCompute,
 	}
-	retrySrc := identity.ServiceIdentity("sa1.ns.cluster.local")
+	retrySrc := identity.ServiceIdentity("sa1.ns")
 
 	testcases := []struct {
 		name                string
@@ -67,9 +65,9 @@ func TestGetRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "5xx",
-							PerTryTimeout:            "2ns",
-							NumRetries:               3,
-							RetryBackoffBaseInterval: "4s",
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							NumRetries:               &thresholdUintVal,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -77,9 +75,9 @@ func TestGetRetryPolicy(t *testing.T) {
 			destSvc: service.MeshService{Name: "s1", Namespace: "b"},
 			expectedRetryPolicy: &policyV1alpha1.RetryPolicySpec{
 				RetryOn:                  "5xx",
-				PerTryTimeout:            "2ns",
-				NumRetries:               3,
-				RetryBackoffBaseInterval: "4s",
+				PerTryTimeout:            &thresholdTimeoutDuration,
+				NumRetries:               &thresholdUintVal,
+				RetryBackoffBaseInterval: &thresholdBackoffDuration,
 			},
 		},
 		{
@@ -112,9 +110,9 @@ func TestGetRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "5xx",
-							PerTryTimeout:            "2ns",
-							NumRetries:               3,
-							RetryBackoffBaseInterval: "4s",
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							NumRetries:               &thresholdUintVal,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -122,9 +120,9 @@ func TestGetRetryPolicy(t *testing.T) {
 			destSvc: service.MeshService{Name: "s1", Namespace: "b"},
 			expectedRetryPolicy: &policyV1alpha1.RetryPolicySpec{
 				RetryOn:                  "5xx",
-				PerTryTimeout:            "2ns",
-				NumRetries:               3,
-				RetryBackoffBaseInterval: "4s",
+				PerTryTimeout:            &thresholdTimeoutDuration,
+				NumRetries:               &thresholdUintVal,
+				RetryBackoffBaseInterval: &thresholdBackoffDuration,
 			},
 		},
 		{
@@ -147,9 +145,9 @@ func TestGetRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "5xx",
-							PerTryTimeout:            "2ns",
-							NumRetries:               3,
-							RetryBackoffBaseInterval: "4s",
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							NumRetries:               &thresholdUintVal,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -169,9 +167,9 @@ func TestGetRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "4xx",
-							PerTryTimeout:            "4s",
-							NumRetries:               6,
-							RetryBackoffBaseInterval: "7us",
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							NumRetries:               &thresholdUintVal,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -179,9 +177,9 @@ func TestGetRetryPolicy(t *testing.T) {
 			destSvc: service.MeshService{Name: "s1", Namespace: "b"},
 			expectedRetryPolicy: &policyV1alpha1.RetryPolicySpec{
 				RetryOn:                  "5xx",
-				PerTryTimeout:            "2ns",
-				NumRetries:               3,
-				RetryBackoffBaseInterval: "4s",
+				PerTryTimeout:            &thresholdTimeoutDuration,
+				NumRetries:               &thresholdUintVal,
+				RetryBackoffBaseInterval: &thresholdBackoffDuration,
 			},
 		},
 		{
@@ -214,9 +212,9 @@ func TestGetRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "5xx",
-							PerTryTimeout:            "2ns",
-							NumRetries:               3,
-							RetryBackoffBaseInterval: "4s",
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							NumRetries:               &thresholdUintVal,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -230,7 +228,13 @@ func TestGetRetryPolicy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha2.FeatureFlags{EnableRetryPolicy: tc.retryPolicyFlag}).Times(1)
+			mockCompute.EXPECT().GetMeshConfig().Return(
+				v1alpha2.MeshConfig{
+					Spec: v1alpha2.MeshConfigSpec{
+						FeatureFlags: v1alpha2.FeatureFlags{EnableRetryPolicy: tc.retryPolicyFlag},
+					},
+				},
+			).AnyTimes()
 			mockPolicyController.EXPECT().ListRetryPolicies(gomock.Any()).Return(tc.retryCRDs).Times(1)
 
 			res := mc.getRetryPolicy(retrySrc, tc.destSvc)

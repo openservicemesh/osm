@@ -6,21 +6,13 @@ import (
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_ext_authz "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/openservicemesh/osm/pkg/auth"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 )
-
-func (lb *listenerBuilder) getExtAuthConfig() *auth.ExtAuthConfig {
-	extAuthConfig := lb.cfg.GetInboundExternalAuthConfig()
-	if extAuthConfig.Enable {
-		return &extAuthConfig
-	}
-	return nil
-}
 
 // getExtAuthzHTTPFilter returns an envoy HttpFilter given an ExternAuthConfig configuration
 func getExtAuthzHTTPFilter(extAuthConfig *auth.ExtAuthConfig) *xds_hcm.HttpFilter {
@@ -53,7 +45,7 @@ func getExtAuthzHTTPFilter(extAuthConfig *auth.ExtAuthConfig) *xds_hcm.HttpFilte
 	}
 
 	return &xds_hcm.HttpFilter{
-		Name: wellknown.HTTPExternalAuthorization,
+		Name: envoy.HTTPExtAuthzFilterName,
 		ConfigType: &xds_hcm.HttpFilter_TypedConfig{
 			TypedConfig: extAuthMarshalled,
 		},

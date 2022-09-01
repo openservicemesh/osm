@@ -24,30 +24,10 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '9091'
     spec:
+      {{- if .Values.osm.osmBootstrap.affinity }}
       affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/os
-                operator: In
-                values:
-                - linux
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                - amd64
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - osm-bootstrap
-              topologyKey: kubernetes.io/hostname
-            weight: 100
+      {{- toYaml .Values.osm.osmBootstrap.affinity | nindent 8 }}
+      {{- end }}
       priorityClassName: system-node-critical
       serviceAccountName: {{ .Release.Name }}
       {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
@@ -74,8 +54,6 @@ spec:
               containerPort: 9443
             - name: "metrics"
               containerPort: 9091
-            - name: "health"
-              containerPort: 9095
           command: ['/osm-bootstrap']
           args: [
             "--verbosity", "{{.Values.osm.controllerLogLevel}}",
@@ -83,10 +61,15 @@ spec:
             "--osm-version", "{{ .Chart.AppVersion }}",
             "--ca-bundle-secret-name", "{{.Values.osm.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.osm.certificateProvider.kind}}",
+            "--trust-domain", "{{.Values.osm.trustDomain}}",
+            "--enable-mesh-root-certificate={{.Values.osm.featureFlags.enableMeshRootCertificate}}",
             {{ if eq .Values.osm.certificateProvider.kind "vault" }}
             "--vault-host", "{{.Values.osm.vault.host}}",
+            "--vault-port", "{{.Values.osm.vault.port}}",
             "--vault-protocol", "{{.Values.osm.vault.protocol}}",
             "--vault-token", "{{.Values.osm.vault.token}}",
+            "--vault-token-secret-name",  "{{ .Values.osm.vault.secret.name }}",
+            "--vault-token-secret-key",  "{{ .Values.osm.vault.secret.key }}",
             {{- end }}
             "--cert-manager-issuer-name", "{{.Values.osm.certmanager.issuerName}}",
             "--cert-manager-issuer-kind", "{{.Values.osm.certmanager.issuerKind}}",
@@ -106,14 +89,14 @@ spec:
             httpGet:
               scheme: HTTP
               path: /healthz
-              port: 9095
+              port: 9091
           livenessProbe:
             initialDelaySeconds: 5
             timeoutSeconds: 5
             httpGet:
               scheme: HTTP
               path: /healthz
-              port: 9095
+              port: 9091
           env:
             # The BOOTSTRAP_POD_NAME env variable sets pod name dynamically, used by osm-bootstrap to register events
             - name: BOOTSTRAP_POD_NAME
@@ -124,7 +107,11 @@ spec:
       imagePullSecrets:
 {{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
     {{- end }}
-    {{- if .Values.osm.controlPlaneTolerations }}
+      {{- if .Values.osm.osmBootstrap.nodeSelector }}
+      nodeSelector:
+      {{- toYaml .Values.osm.osmBootstrap.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.osmBootstrap.tolerations }}
       tolerations:
-{{ toYaml .Values.osm.controlPlaneTolerations | indent 8 }}
-    {{- end }}
+      {{- toYaml .Values.osm.osmBootstrap.tolerations | nindent 8 }}
+      {{- end }}

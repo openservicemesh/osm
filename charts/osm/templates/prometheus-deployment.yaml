@@ -22,9 +22,6 @@ spec:
       {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
       {{- include "restricted.securityContext" . | nindent 6 }}
       {{- end }}
-      nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
       containers:
       - name: prometheus
         ports:
@@ -56,4 +53,16 @@ spec:
           name: osm-prometheus-server-conf
       - name: prometheus-storage-volume
         emptyDir: {}
+      {{- if .Values.osm.prometheus.affinity }}
+      affinity:
+      {{- toYaml .Values.osm.prometheus.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.prometheus.nodeSelector }}
+      nodeSelector:
+      {{- toYaml .Values.osm.prometheus.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.prometheus.tolerations }}
+      tolerations:
+      {{- toYaml .Values.osm.prometheus.tolerations | nindent 8 }}
+      {{- end }}
 {{- end }}

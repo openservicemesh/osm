@@ -8,6 +8,8 @@ on:
       - "docs/**"
       - "**.md"
       - "scripts/cleanup/**"
+      - "CODEOWNERS"
+      - "OWNERS"
   pull_request:
     branches:
       - main
@@ -16,6 +18,8 @@ on:
       - "docs/**"
       - "**.md"
       - "scripts/cleanup/**"
+      - "CODEOWNERS"
+      - "OWNERS"
 env:
   CI_WAIT_FOR_OK_SECONDS: 60
   CI_MAX_ITERATIONS_THRESHOLD: 60
@@ -40,10 +44,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version-file: go.mod
+          cache: true
       - name: go build deps
         run: make embed-files-test
       - name: golangci-lint
@@ -58,10 +63,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version-file: go.mod
+          cache: true
       - name: go mod tidy
         run: make go-mod-tidy
       - name: Codegen checks
@@ -73,10 +79,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version-file: go.mod
+          cache: true
       - name: go mod tidy
         run: make go-mod-tidy
       - name: gomock checks
@@ -97,24 +104,42 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Restore Module Cache
-        uses: actions/cache@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-gomod2-
-      - name: Restore Build Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/go-build
-          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
+          go-version-file: go.mod
+          cache: true
       - name: Go Build
         run: make build-ci
+
+  build-fips:
+    name: Go build (FIPS)
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/oss/go/microsoft/golang:1.19-fips-cbl-mariner2.0
+      env:
+        FIPS: 1
+        GNUPGHOME: /root/.gnupg
+    steps:
+      - name: Yum Update
+        run: |
+          yum update -y
+          yum install -y make git gcc gcc-c++ glibc-devel openssl-devel bash ca-certificates
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            /root/.cache/go-build
+            /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Go Build
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          make build-ci
 
   unittest:
     name: Go test
@@ -123,22 +148,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Restore Module Cache
-        uses: actions/cache@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-gomod2-
-      - name: Restore Build Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/go-build
-          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
+          go-version-file: go.mod
+          cache: true
       - name: go mod tidy
         run: make go-mod-tidy
       - name: Test
@@ -149,34 +163,38 @@ jobs:
         with:
           flags: unittests
 
-  scenarios_tests:
-    name: Test various Envoy + SMI configuration scenarios
+  unittest-fips:
+    name: Go test (FIPS)
     runs-on: ubuntu-latest
-    needs: build
+    container:
+      image: mcr.microsoft.com/oss/go/microsoft/golang:1.19-fips-cbl-mariner2.0
+      env:
+        GNUPGHOME: /root/.gnupg
+        GOFIPS: 1
+        FIPS: 1
+    needs: build-fips
     steps:
+      - name: Yum Update
+        run: |
+          yum update -y
+          yum install -y make git gcc gcc-c++ glibc-devel openssl-devel bash ca-certificates
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Restore Module Cache
-        uses: actions/cache@v2
+      - name: Setup Go Cache
+        uses: actions/cache@v3
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          path: |
+            /root/.cache/go-build
+            /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-gomod2-
-      - name: Restore Build Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/go-build
-          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
-      - name: Test
+            ${{ runner.os }}-go-
+      - name: go mod tidy
         run: |
-          touch .env
-          make kind-up
-          go test -v ./tests/scenarios/...
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          make go-mod-tidy
+      - name: Test
+        run: make go-test
 
   imagescan:
     name: Scan images for security vulnerabilities
@@ -196,79 +214,84 @@ jobs:
       - name: Scan docker images for vulnerabilities
         run: make trivy-scan-images
 
+  imagescan-fips:
+    name: Scan images for security vulnerabilities (FIPS)
+    runs-on: ubuntu-latest
+    env:
+      CTR_TAG: ${{ github.sha }}-fips
+      CTR_REGISTRY: "localhost:5000"
+      FIPS: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build docker images
+        env:
+          DOCKER_BUILDX_OUTPUT: type=docker
+        run: make docker-build-osm
+      - name: Setup Trivy
+        run: make trivy-ci-setup
+      - name: Scan docker images for vulnerabilities
+        run: make trivy-scan-images
+
   e2etest:
     name: Go test e2e
     runs-on: ubuntu-latest
     needs: build
     strategy:
       matrix:
+        k8s_version: [""]
+        focus: [""]
         bucket: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        include:
+          - k8s_version: v1.22.9
+            focus: "Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP"
+            bucket: ".*"
+          - k8s_version: v1.23.6
+            focus: "Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP"
+            bucket: ".*"
+          - k8s_version: v1.24.1
+            focus: "Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP"
+            bucket: ".*"
     env:
       CTR_TAG: ${{ github.sha }}
       CTR_REGISTRY: "localhost:5000" # unused for kind, but currently required in framework
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Restore Module Cache
-        uses: actions/cache@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-gomod2-
-      - name: Restore Build Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/go-build
-          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
+          go-version-file: go.mod
+          cache: true
       - name: Build test dependencies
         env:
           DOCKER_BUILDX_OUTPUT: type=docker
         run: make docker-build-osm build-osm docker-build-tcp-echo-server
-      # PR Tests
-      - name: Run PR tests
-        id: pr_test
-        if: ${{ github.event_name == 'pull_request' }}
+      - name: Run tests
+        id: test
         env:
           K8S_NAMESPACE: "osm-system"
-        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\]'
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -kindClusterVersion='${{ matrix.k8s_version }}' -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\].*${{ matrix.focus }}'
         continue-on-error: true
-      - name: Upload PR test logs
-        if: ${{ steps.pr_test.conclusion != 'skipped' }}
+      - name: Set Logs name
+        if: ${{ steps.test.conclusion != 'skipped' }}
+        run: |
+          if [[ -n "${{ matrix.k8s_version }}" ]]; then
+            echo "ARTIFACT_NAME=test_logs_k8s_version_${{ matrix.k8s_version }}" >> $GITHUB_ENV
+          else
+            echo "ARTIFACT_NAME=test_logs_bucket_${{ matrix.bucket }}" >> $GITHUB_ENV
+          fi
+      - name: Upload test logs
+        if: ${{ steps.test.conclusion != 'skipped' }}
         uses: actions/upload-artifact@v2
         with:
-          name: pr_test_logs_bucket_${{ matrix.bucket }}
+          name: ${{ env.ARTIFACT_NAME }}
           path: /tmp/test**/*
-      - name: Check continue PR tests
-        if: ${{ steps.pr_test.conclusion != 'skipped' && steps.pr_test.outcome == 'failure'}}
+      - name: Check continue tests
+        if: ${{ steps.test.conclusion != 'skipped' && steps.test.outcome == 'failure'}}
         run: exit 1
-      - name: Clean PR tests
-        if: ${{ steps.pr_test.conclusion != 'skipped' }}
-        run: rm -rf /tmp/test*
-
-      # Push Tests
-      - name: Run Push tests
-        id: push_test
-        if: ${{ github.event_name == 'push' }}
-        env:
-          K8S_NAMESPACE: "osm-system"
-        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Bucket ${{ matrix.bucket }}\]'
-        continue-on-error: true
-      - name: Upload Push test logs
-        if: ${{ steps.push_test.conclusion != 'skipped' }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: push_test_logs_bucket_${{ matrix.bucket }}
-          path: /tmp/test**/*
-      - name: Check continue Push tests
-        if: ${{ steps.push_test.conclusion != 'skipped' && steps.push_test.outcome == 'failure'}}
-        run: exit 1
-      - name: Clean Push tests logs
-        if: ${{ steps.push_test.conclusion != 'skipped' }}
+      - name: Clean tests
+        if: ${{ steps.test.conclusion != 'skipped' }}
         run: rm -rf /tmp/test*
 
   integration-tresor:
@@ -278,27 +301,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
-      - name: Restore Module Cache
-        uses: actions/cache@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-gomod2-
-
-      - name: Restore Build Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/go-build
-          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-
-      - name: Setup Go 1.17
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
-        id: go
-
+          go-version-file: go.mod
+          cache: true
       - name: Run Simulation w/ Tresor, SMI policies, egress disabled and reconciler disabled
         env:
           CERT_MANAGER: "tresor"
@@ -306,6 +313,7 @@ jobs:
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "0"
           ENABLE_EGRESS: "false"
           ENABLE_RECONCILER: "false"
+          PERMISSIVE_MODE: "false"
           DEPLOY_TRAFFIC_SPLIT: "true"
           CTR_TAG: ${{ github.sha }}
           USE_PRIVATE_REGISTRY: "false"

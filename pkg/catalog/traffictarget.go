@@ -29,7 +29,7 @@ func (mc *MeshCatalog) ListOutboundServiceIdentities(downstream identity.Service
 func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
 	var trafficTargets []trafficpolicy.TrafficTargetWithRoutes
 
-	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+	if mc.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode {
 		return nil, nil
 	}
 
@@ -139,8 +139,7 @@ func trafficTargetIdentityToSvcAccount(identitySubject smiAccess.IdentityBinding
 
 // trafficTargetIdentityToServiceIdentity returns an identity of the form <namespace>/<service-account>
 func trafficTargetIdentityToServiceIdentity(identitySubject smiAccess.IdentityBindingSubject) identity.ServiceIdentity {
-	svcAccount := trafficTargetIdentityToSvcAccount(identitySubject)
-	return identity.GetKubernetesServiceIdentity(svcAccount, identity.ClusterLocalTrustDomain)
+	return trafficTargetIdentityToSvcAccount(identitySubject).ToServiceIdentity()
 }
 
 // trafficTargetIdentitiesToSvcAccounts returns a list of Service Accounts from the given list of identities from a Traffic Target
@@ -177,10 +176,17 @@ func (mc *MeshCatalog) getTCPRouteMatchesFromTrafficTarget(trafficTarget smiAcce
 		}
 
 		tcpRouteMatch := trafficpolicy.TCPRouteMatch{
-			Ports: tcpRoute.Spec.Matches.Ports,
+			Ports: toUint16Slice(tcpRoute.Spec.Matches.Ports),
 		}
 		matches = append(matches, tcpRouteMatch)
 	}
 
 	return matches, nil
+}
+
+func toUint16Slice(ports []int) (ret []uint16) {
+	for _, port := range ports {
+		ret = append(ret, uint16(port))
+	}
+	return ret
 }

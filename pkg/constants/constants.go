@@ -94,8 +94,8 @@ const (
 	// CertificationAuthorityRootValidityPeriod is when the root certificate expires
 	CertificationAuthorityRootValidityPeriod = 87600 * time.Hour // a decade
 
-	// XDSCertificateValidityPeriod is the TTL of the certificates used for Envoy to xDS communication.
-	XDSCertificateValidityPeriod = 87600 * time.Hour // a decade
+	// OSMCertificateValidityPeriod is the TTL of the certificates used in the OSM control plane or for Envoy to xDS communication.
+	OSMCertificateValidityPeriod = 87600 * time.Hour // a decade
 
 	// DefaultCABundleSecretName is the default name of the secret for the OSM CA bundle
 	DefaultCABundleSecretName = "osm-ca-bundle" // #nosec G101: Potential hardcoded credentials
@@ -152,6 +152,33 @@ const (
 	CRDConversionWebhookPort = 9443
 )
 
+// HealthProbe constants
+const (
+	// LivenessProbePort is the port to use for liveness probe
+	LivenessProbePort = int32(15901)
+
+	// ReadinessProbePort is the port to use for readiness probe
+	ReadinessProbePort = int32(15902)
+
+	// StartupProbePort is the port to use for startup probe
+	StartupProbePort = int32(15903)
+
+	// HealthcheckPort is the port to use for healthcheck probe
+	HealthcheckPort = int32(15904)
+
+	// LivenessProbePath is the path to use for liveness probe
+	LivenessProbePath = "/osm-liveness-probe"
+
+	// ReadinessProbePath is the path to use for readiness probe
+	ReadinessProbePath = "/osm-readiness-probe"
+
+	// StartupProbePath is the path to use for startup probe
+	StartupProbePath = "/osm-startup-probe"
+
+	// HealthcheckPath is the path to use for healthcheck probe
+	HealthcheckPath = "/osm-healthcheck"
+)
+
 // Annotations used by the control plane
 const (
 	// SidecarInjectionAnnotation is the annotation used for sidecar injection
@@ -159,6 +186,30 @@ const (
 
 	// MetricsAnnotation is the annotation used for enabling/disabling metrics
 	MetricsAnnotation = "openservicemesh.io/metrics"
+)
+
+// Annotations and labels used by the MeshRootCertificate
+const (
+	// MRCStateValidatingRollout is the validating rollout status option for the State of the MeshRootCertificate
+	MRCStateValidatingRollout = "validatingRollout"
+
+	// MRCStateIssuingRollout is the issuing rollout status option for the State of the MeshRootCertificate
+	MRCStateIssuingRollout = "issuingRollout"
+
+	// MRCStateActive is the active status option for the State of the MeshRootCertificate
+	MRCStateActive = "active"
+
+	// MRCStateIssuingRollback is the issuing rollback status option for the State of the MeshRootCertificate
+	MRCStateIssuingRollback = "issuingRollback"
+
+	// MRCStateValidatingRollback is the validating rollback status option for the State of the MeshRootCertificate
+	MRCStateValidatingRollback = "validatingRollback"
+
+	// MRCStateInactive is the inactive status option for the State of the MeshRootCertificate
+	MRCStateInactive = "inactive"
+
+	// MRCStateError is the error status option for the State of the MeshRootCertificate
+	MRCStateError = "error"
 )
 
 // Labels used by the control plane
@@ -213,6 +264,18 @@ const (
 	ProtocolTCPServerFirst = "tcp-server-first"
 )
 
+// HTTPProtocolVersion defines the HTTP protocol version to use
+const (
+	// ProtocolH2c refers to the H2C protocol
+	ProtocolH2C = "h2c"
+
+	// ProtocolHTTP2 refers to HTTP2 protocol
+	ProtocolHTTP2 = "http2"
+
+	// ProtocolHTTP1 refers to HTTP1 protocol
+	ProtocolHTTP1 = "http1"
+)
+
 // Operating systems.
 const (
 	// OSWindows is the name for Windows operating system.
@@ -224,9 +287,41 @@ const (
 
 // Logging contexts
 const (
-	// field key string for context
+	// LogFieldContext is the key used to specify the logging context
 	LogFieldContext = "context"
+)
 
-	// multicluster field value for context field.
-	LogContextMulticluster = "multicluster"
+// Control plane HTTP server paths
+const (
+	// OSMControllerReadinessPath is the path at which OSM controller serves readiness probes
+	OSMControllerReadinessPath = "/health/ready"
+
+	// OSMControllerLivenessPath is the path at which OSM controller serves liveness probes
+	OSMControllerLivenessPath = "/health/alive"
+
+	// OSMControllerSMIVersionPath is the path at which OSM controller servers SMI version info
+	OSMControllerSMIVersionPath = "/smi/version"
+
+	// MetricsPath is the path at which OSM controller serves metrics
+	MetricsPath = "/metrics"
+
+	// VersionPath is the path at which OSM controller serves version info
+	VersionPath = "/version"
+
+	// WebhookHealthPath is the path at which the webooks serve health probes
+	WebhookHealthPath = "/healthz"
+)
+
+// OSM HTTP Server Responses
+const (
+	// ServiceReadyResponse is the response returned by the server to indicate it is ready
+	ServiceReadyResponse = "Service is ready"
+
+	// ServiceAliveResponse is the response returned by the server to indicate it is alive
+	ServiceAliveResponse = "Service is alive"
+)
+
+var (
+	// SupportedProtocolsInMesh is a list of the protocols OSM supports for in-mesh traffic
+	SupportedProtocolsInMesh = []string{ProtocolTCPServerFirst, ProtocolHTTP, ProtocolTCP, ProtocolGRPC}
 )

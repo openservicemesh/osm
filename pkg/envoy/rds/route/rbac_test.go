@@ -7,7 +7,6 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	xds_http_rbac "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
@@ -30,31 +29,15 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceIdentities: mapset.NewSetFromSlice([]interface{}{
-					identity.K8sServiceAccount{Name: "foo", Namespace: "ns-1"}.ToServiceIdentity(),
-					identity.K8sServiceAccount{Name: "bar", Namespace: "ns-2"}.ToServiceIdentity(),
-				}),
+				AllowedPrincipals: mapset.NewSet(
+					identity.K8sServiceAccount{Name: "foo", Namespace: "ns-1"}.AsPrincipal("cluster.local"),
+					identity.K8sServiceAccount{Name: "bar", Namespace: "ns-2"}.AsPrincipal("cluster.local"),
+				),
 			},
 			expectedRBACPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
-					{
-						Identifier: &xds_rbac.Principal_OrIds{
-							OrIds: &xds_rbac.Principal_Set{
-								Ids: []*xds_rbac.Principal{
-									rbac.GetAuthenticatedPrincipal("foo.ns-1.cluster.local"),
-								},
-							},
-						},
-					},
-					{
-						Identifier: &xds_rbac.Principal_OrIds{
-							OrIds: &xds_rbac.Principal_Set{
-								Ids: []*xds_rbac.Principal{
-									rbac.GetAuthenticatedPrincipal("bar.ns-2.cluster.local"),
-								},
-							},
-						},
-					},
+					rbac.GetAuthenticatedPrincipal("foo.ns-1.cluster.local"),
+					rbac.GetAuthenticatedPrincipal("bar.ns-2.cluster.local"),
 				},
 				Permissions: []*xds_rbac.Permission{
 					{
@@ -71,9 +54,9 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceIdentities: mapset.NewSetFromSlice([]interface{}{
-					identity.WildcardServiceIdentity, // setting a wildcard will result in all downstream identities being allowed
-				}),
+				AllowedPrincipals: mapset.NewSet(
+					identity.WildcardPrincipal, // setting a wildcard will result in all downstream identities being allowed
+				),
 			},
 			expectedRBACPolicy: &xds_rbac.Policy{
 				Principals: []*xds_rbac.Principal{
@@ -90,13 +73,12 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "invalid trafficpolicy rule with Rule.AllowedServiceIdentities not specified",
+			name: "invalid trafficpolicy rule with Rule.AllowedPrincipals not specified",
 			rule: &trafficpolicy.Rule{
 				Route: trafficpolicy.RouteWeightedClusters{
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
-				AllowedServiceIdentities: nil,
 			},
 			expectedRBACPolicy: nil,
 			expectError:        true,
@@ -107,7 +89,7 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 		t.Run(fmt.Sprintf("Test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			rbacFilter, err := buildInboundRBACFilterForRule(tc.rule)
+			rbacFilter, err := buildInboundRBACFilterForRule(tc.rule, "cluster.local")
 
 			assert.Equal(tc.expectError, err != nil)
 			if err != nil {
@@ -115,9 +97,8 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 				return
 			}
 
-			marshalled := rbacFilter[wellknown.HTTPRoleBasedAccessControl]
 			httpRBACPerRoute := &xds_http_rbac.RBACPerRoute{}
-			err = marshalled.UnmarshalTo(httpRBACPerRoute)
+			err = rbacFilter.UnmarshalTo(httpRBACPerRoute)
 			assert.Nil(err)
 
 			rbacRules := httpRBACPerRoute.Rbac.Rules

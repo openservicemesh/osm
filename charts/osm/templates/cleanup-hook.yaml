@@ -76,7 +76,7 @@ spec:
         - name: garbage-collector
           image: "{{ include "osmCRDs.image" . }}"
           imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
-          # NOTE: any changes to resources being cleaned up should be updated in the lists/commands in the uninstall guide (https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/uninstall.md#uninstall-osm-control-plane-and-remove-user-provided-resources) and the uninstall troubleshooting guide (https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/uninstall.md)
+          # NOTE: any changes to resources being cleaned up should be updated in the lists/commands in the uninstall guide (https://github.com/openservicemesh/osm-docs/blob/main/content/en/docs/guides/uninstall.md#uninstall-osm-control-plane-and-remove-user-provided-resources) and the uninstall troubleshooting guide (https://github.com/openservicemesh/osm-docs/blob/main/content/en/docs/guides/troubleshooting/uninstall.md)
           command:
             - sh
             - -c
@@ -84,13 +84,23 @@ spec:
              kubectl replace -f /osm-crds;
              kubectl delete --ignore-not-found meshconfig -n '{{ include "osm.namespace" . }}' osm-mesh-config;
              kubectl delete --ignore-not-found secret -n '{{ include "osm.namespace" . }}' {{ .Values.osm.caBundleSecretName }};
+             kubectl delete --ignore-not-found meshrootcertificate -n '{{ include "osm.namespace" . }}' osm-mesh-root-certificate;
              kubectl delete mutatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.osm.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-injector --ignore-not-found;
              kubectl delete validatingwebhookconfiguration -l app.kubernetes.io/name=openservicemesh.io,app.kubernetes.io/instance={{ .Values.osm.meshName }},app.kubernetes.io/version={{ .Chart.AppVersion }},app=osm-controller --ignore-not-found;
-      nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
 {{- if .Values.osm.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
 {{- end }}
+      {{- if .Values.osm.cleanup.affinity }}
+      affinity:
+      {{- toYaml .Values.osm.cleanup.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.cleanup.nodeSelector }}
+      nodeSelector:
+      {{- toYaml .Values.osm.cleanup.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.cleanup.tolerations }}
+      tolerations:
+      {{- toYaml .Values.osm.cleanup.tolerations | nindent 8 }}
+      {{- end }}
 

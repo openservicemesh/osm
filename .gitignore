@@ -45,7 +45,8 @@ creds.json
 screenlog.*
 demo/bin/
 *.tgz
-!**/charts/*.tgz # dependency charts pulled by Helm
+# dependency charts pulled by Helm
+!**/charts/*.tgz
 *.wasm
 
 ## Ignore test coverage files
@@ -65,6 +66,7 @@ bootstrap.yaml
 
 # Test result folders
 test-[0-9]*/
+bm_profiles/
 
 # hugo static site generator
 .DS_Store

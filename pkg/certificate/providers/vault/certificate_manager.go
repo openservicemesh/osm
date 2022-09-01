@@ -8,7 +8,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -24,8 +23,6 @@ const (
 	issuingCAField    = "issuing_ca"
 	commonNameField   = "common_name"
 	ttlField          = "ttl"
-
-	decade = 8765 * time.Hour
 )
 
 // New constructs a new certificate client using Vault's cert-manager
@@ -68,24 +65,6 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	return newCert(cn, secret, time.Now().Add(validityPeriod)), nil
 }
 
-// GetRootCertificate returns the root certificate.
-func (cm *CertManager) GetRootCertificate() (*certificate.Certificate, error) {
-	// Create a temp certificate to determine the public part of the issuing CA
-	cert, err := cm.IssueCertificate("localhost", decade)
-	if err != nil {
-		return nil, err
-	}
-
-	//TODO(2068): implement a delete cert
-	return &certificate.Certificate{
-		CommonName:   constants.CertificationAuthorityCommonName,
-		SerialNumber: cert.GetSerialNumber(),
-		Expiration:   time.Now().Add(decade),
-		CertChain:    cert.CertChain,
-		IssuingCA:    cert.IssuingCA,
-	}, err
-}
-
 func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time) *certificate.Certificate {
 	return &certificate.Certificate{
 		CommonName:   cn,
@@ -94,5 +73,6 @@ func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time
 		CertChain:    pem.Certificate(secret.Data[certificateField].(string)),
 		PrivateKey:   []byte(secret.Data[privateKeyField].(string)),
 		IssuingCA:    pem.RootCertificate(secret.Data[issuingCAField].(string)),
+		TrustedCAs:   pem.RootCertificate(secret.Data[issuingCAField].(string)),
 	}
 }

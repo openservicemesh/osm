@@ -2,12 +2,13 @@ package debugger
 
 import (
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/k8s"
 )
@@ -17,21 +18,19 @@ func TestGetHandlers(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 
-	mockCertDebugger := NewMockCertificateManagerDebugger(mockCtrl)
+	cm := tresorFake.NewFake(time.Hour)
 	mockXdsDebugger := NewMockXDSDebugger(mockCtrl)
 	mockCatalogDebugger := NewMockMeshCatalogDebugger(mockCtrl)
-	mockConfig := configurator.NewMockConfigurator(mockCtrl)
 	client := testclient.NewSimpleClientset()
 	mockKubeController := k8s.NewMockController(mockCtrl)
-	proxyRegistry := registry.NewProxyRegistry(nil, nil)
+	proxyRegistry := registry.NewProxyRegistry()
 
-	ds := NewDebugConfig(mockCertDebugger,
+	ds := NewDebugConfig(cm,
 		mockXdsDebugger,
 		mockCatalogDebugger,
 		proxyRegistry,
 		nil,
 		client,
-		mockConfig,
 		mockKubeController,
 		nil)
 

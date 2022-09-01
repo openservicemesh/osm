@@ -6,7 +6,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -42,12 +41,12 @@ func newMetricsEnable(out io.Writer) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return fmt.Errorf("Error fetching kubeconfig: %w", err)
 			}
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
+				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %w", err)
 			}
 			enableCmd.clientSet = clientset
 			return enableCmd.run()
@@ -71,7 +70,7 @@ func (cmd *metricsEnableCmd) run() error {
 
 		namespace, err := cmd.clientSet.CoreV1().Namespaces().Get(ctx, ns, metav1.GetOptions{})
 		if err != nil {
-			return errors.Errorf("Failed to retrieve namespace [%s]: %v", ns, err)
+			return fmt.Errorf("Failed to retrieve namespace [%s]: %w", ns, err)
 		}
 
 		// Check if the namespace belongs to a mesh, if not return an error
@@ -80,7 +79,7 @@ func (cmd *metricsEnableCmd) run() error {
 			return err
 		}
 		if !monitored {
-			return errors.Errorf("Namespace [%s] does not belong to a mesh, missing annotation %q",
+			return fmt.Errorf("Namespace [%s] does not belong to a mesh, missing annotation %q",
 				ns, constants.OSMKubeResourceMonitorAnnotation)
 		}
 
@@ -97,13 +96,13 @@ func (cmd *metricsEnableCmd) run() error {
 
 		_, err = cmd.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 		if err != nil {
-			return errors.Errorf("Failed to enable metrics in namespace [%s]: %v", ns, err)
+			return fmt.Errorf("Failed to enable metrics in namespace [%s]: %w", ns, err)
 		}
 
 		// For existing pods in this namespace that are already part of the mesh, add the prometheus
 		// scraping annotations.
 		if err := cmd.enableMetricsForPods(ns); err != nil {
-			return errors.Errorf("Failed to enable metrics for existing pod in namespace [%s]: %v", ns, err)
+			return fmt.Errorf("Failed to enable metrics for existing pod in namespace [%s]: %w", ns, err)
 		}
 
 		fmt.Fprintf(cmd.out, "Metrics successfully enabled in namespace [%s]\n", ns)

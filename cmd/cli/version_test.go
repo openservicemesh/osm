@@ -2,9 +2,9 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
-	"github.com/pkg/errors"
 	tassert "github.com/stretchr/testify/assert"
 
 	corev1 "k8s.io/api/core/v1"
@@ -62,8 +62,8 @@ func TestGetMeshVersion(t *testing.T) {
 					},
 				},
 			},
-			proxyGetMeshVersionErr: errors.Errorf("Error retrieving mesh version from pod [controllerPod] in namespace [test]"),
-			expectedErr:            errors.Errorf("Error retrieving mesh version from pod [controllerPod] in namespace [test]"),
+			proxyGetMeshVersionErr: fmt.Errorf("Error retrieving mesh version from pod [controllerPod] in namespace [test]"),
+			expectedErr:            fmt.Errorf("Error retrieving mesh version from pod [controllerPod] in namespace [test]"),
 		},
 		{
 			name:      "mesh in namespace and remote version found",
@@ -216,8 +216,8 @@ func TestOutputPrettyVersionInfo(t *testing.T) {
 		},
 		{
 			name:                  "mesh versions with no remote version info",
-			remoteVersionInfoList: nil,
-			expected:              "\nMESH NAME\tMESH NAMESPACE\tVERSION\tGIT COMMIT\tBUILD DATE\n",
+			remoteVersionInfoList: []*remoteVersionInfo{},
+			expected:              "Unable to find OSM control plane in the cluster\n",
 		},
 	}
 

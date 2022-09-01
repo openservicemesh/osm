@@ -5,12 +5,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-var log = logger.New("cert-provider-util")
+var log = logger.New("certificate/provider")
 
 // Kind specifies the certificate provider kind
 type Kind string
@@ -36,40 +37,31 @@ var (
 	ValidCertificateProviders = []Kind{TresorKind, VaultKind, CertManagerKind}
 )
 
-// Config is a type that stores config related to certificate providers and implements generic utility functions
-type Config struct {
-	kubeClient kubernetes.Interface
-	kubeConfig *rest.Config
-	cfg        configurator.Configurator
+// Options is an interface that contains required fields to convert the old style options to the new style MRC for
+// each provider type.
+// TODO(#4502): Remove this interface, and all of the options below.
+type Options interface {
+	Validate() error
 
-	providerKind       Kind
-	providerNamespace  string
-	caBundleSecretName string
-
-	// tresorOptions is the options for 'Tresor' certificate provider
-	tresorOptions TresorOptions
-
-	// vaultOptions is the options for 'Hashicorp Vault' certificate provider
-	vaultOptions VaultOptions
-
-	// certManagerOptions is the options for 'cert-manager.io' certiticate provider
-	certManagerOptions CertManagerOptions
-
-	msgBroker *messaging.Broker
+	AsProviderSpec() v1alpha2.ProviderSpec
 }
 
 // TresorOptions is a type that specifies 'Tresor' certificate provider options
 type TresorOptions struct {
 	// No options at the moment
+	SecretName string
 }
 
 // VaultOptions is a type that specifies 'Hashicorp Vault' certificate provider options
 type VaultOptions struct {
-	VaultProtocol string
-	VaultHost     string
-	VaultToken    string
-	VaultRole     string
-	VaultPort     int
+	VaultProtocol             string
+	VaultHost                 string
+	VaultToken                string // TODO(#4745): Remove after deprecating the osm.vault.token option. Replace with VaultTokenSecretName
+	VaultRole                 string
+	VaultPort                 int
+	VaultTokenSecretNamespace string
+	VaultTokenSecretName      string
+	VaultTokenSecretKey       string
 }
 
 // CertManagerOptions is a type that specifies 'cert-manager.io' certificate provider options
@@ -77,4 +69,25 @@ type CertManagerOptions struct {
 	IssuerName  string
 	IssuerKind  string
 	IssuerGroup string
+}
+
+// MRCCompatClient is a backwards compatible client to convert old certificate options into an MRC.
+// It's intent is to match the custom interface that will wrap the MRC k8s informer.
+// TODO(#4502): Remove this entirely once we are fully onboarded to MRC informers.
+type MRCCompatClient struct {
+	MRCProviderGenerator
+	mrc *v1alpha2.MeshRootCertificate
+}
+
+// MRCProviderGenerator knows how to convert a given MRC to its appropriate provider.
+type MRCProviderGenerator struct {
+	kubeClient kubernetes.Interface
+	kubeConfig *rest.Config // used to generate a CertificateManager client.
+
+	// TODO(#4711): move these to the compat client once we have added these fields to the MRC.
+	KeyBitSize int
+
+	// TODO(#4745): Remove after deprecating the osm.vault.token option.
+	DefaultVaultToken string
+	caExtractorFunc   func(certificate.Issuer) (pem.RootCertificate, error)
 }

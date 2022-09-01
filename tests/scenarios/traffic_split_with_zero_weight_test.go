@@ -1,8 +1,8 @@
 package scenarios
 
 import (
-	"fmt"
 	"testing"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -17,16 +17,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -127,10 +123,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.AsPrincipal("cluster.local")),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -140,10 +136,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.AsPrincipal("cluster.local")),
 						},
 					},
 				},
@@ -170,10 +166,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.AsPrincipal("cluster.local")),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -183,10 +179,10 @@ func TestRDSRespose(t *testing.T) {
 									Weight:      100,
 								}),
 							},
-							AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.ToServiceIdentity()),
+							}.AsPrincipal("cluster.local")),
 						},
 					},
 				},
@@ -216,7 +212,6 @@ func TestRDSRespose(t *testing.T) {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 			kubeClient := testclient.NewSimpleClientset()
 			proxy, err := getBookstoreV1Proxy(kubeClient)
@@ -234,16 +229,6 @@ func TestRDSRespose(t *testing.T) {
 			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
-
-			mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{
-				EnableWASMStats: false,
-			}).AnyTimes()
-
-			proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-				return []service.MeshService{tests.BookstoreV1Service}, nil
-			}), nil)
-
 			outboundTestPort := 8888 // Port used for the outbound services in this test
 			inboundTestPort := 80    // Port used for the inbound services in this test
 			expectedInboundMeshPolicy := &trafficpolicy.InboundMeshTrafficPolicy{HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{inboundTestPort: tc.expectedInboundPolicies}}
@@ -252,8 +237,12 @@ func TestRDSRespose(t *testing.T) {
 			mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(expectedOutboundMeshPolicy).AnyTimes()
 			mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
+			mockCatalog.EXPECT().GetMeshConfig().AnyTimes()
+			mockCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
-			resources, err := rds.NewResponse(mockCatalog, proxy, nil, mockConfigurator, nil, proxyRegistry)
+			cm := tresorFake.NewFake(1 * time.Hour)
+
+			resources, err := rds.NewResponse(mockCatalog, proxy, nil, cm, nil)
 			assert.Nil(err)
 			assert.NotNil(resources)
 
@@ -359,7 +348,5 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 		}
 	}
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", tests.ProxyUUID, envoy.KindSidecar, tests.BookstoreServiceIdentity, tests.Namespace))
-	certSerialNumber := certificate.SerialNumber("123456")
-	return envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookstoreServiceIdentity, nil, 1), nil
 }

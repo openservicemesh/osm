@@ -5,9 +5,8 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"fmt"
 	"time"
-
-	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
@@ -24,7 +23,7 @@ func New(
 	}
 
 	if keySize == 0 {
-		return nil, errors.New("key bit size cannot be zero")
+		return nil, fmt.Errorf("key bit size cannot be zero")
 	}
 
 	certManager := CertManager{
@@ -50,12 +49,12 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGeneratingPrivateKey)).
 			Msgf("Error generating private key for certificate with CN=%s", cn)
-		return nil, errors.Wrap(err, errGeneratingPrivateKey.Error())
+		return nil, fmt.Errorf("%s: %w", errGeneratingPrivateKey.Error(), err)
 	}
 
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		return nil, errors.Wrap(err, errGeneratingSerialNumber.Error())
+		return nil, fmt.Errorf("%s: %w", errGeneratingSerialNumber.Error(), err)
 	}
 
 	now := time.Now()
@@ -81,6 +80,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMCert)).
 			Msg("Error decoding Root Certificate's PEM")
+		return nil, fmt.Errorf("%s: %w", errCreateCert.Error(), err)
 	}
 
 	rsaKeyRoot, err := certificate.DecodePEMPrivateKey(cm.ca.GetPrivateKey())
@@ -88,6 +88,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMPrivateKey)).
 			Msg("Error decoding Root Certificate's Private Key PEM ")
+		return nil, fmt.Errorf("%s: %w", errCreateCert.Error(), err)
 	}
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, x509Root, &certPrivKey.PublicKey, rsaKeyRoot)
@@ -95,7 +96,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingCert)).
 			Msgf("Error issuing x509.CreateCertificate command for SerialNumber=%s", serialNumber)
-		return nil, errors.Wrap(err, errCreateCert.Error())
+		return nil, fmt.Errorf("%s: %w", errCreateCert.Error(), err)
 	}
 
 	certPEM, err := certificate.EncodeCertDERtoPEM(derBytes)
@@ -120,6 +121,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		CertChain:    certPEM,
 		PrivateKey:   privKeyPEM,
 		IssuingCA:    pem.RootCertificate(cm.ca.GetCertificateChain()),
+		TrustedCAs:   pem.RootCertificate(cm.ca.GetCertificateChain()),
 		Expiration:   template.NotAfter,
 	}
 

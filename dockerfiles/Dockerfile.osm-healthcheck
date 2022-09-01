@@ -1,14 +1,18 @@
-ARG GO_VERSION
-FROM --platform=$BUILDPLATFORM golang:$GO_VERSION AS builder
+ARG GO_BASE_IMAGE
+ARG FINAL_BASE_IMAGE
+FROM --platform=$BUILDPLATFORM $GO_BASE_IMAGE AS builder
 ARG LDFLAGS
 ARG TARGETOS
 ARG TARGETARCH
+ARG CGO_ENABLED
+ARG GO_BUILD_FLAGS
 
 WORKDIR /osm
 COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
-    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o osm-healthcheck -ldflags "$LDFLAGS" ./cmd/osm-healthcheck
+    CGO_ENABLED=$CGO_ENABLED GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o osm-healthcheck -ldflags "$LDFLAGS" $GO_BUILD_FLAGS ./cmd/osm-healthcheck
 
-FROM gcr.io/distroless/static
+FROM $FINAL_BASE_IMAGE
+ENV GOFIPS=1
 COPY --from=builder /osm/osm-healthcheck /

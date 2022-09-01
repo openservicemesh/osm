@@ -36,9 +36,7 @@ func TestGetEventHandlers(t *testing.T) {
 			stop := make(chan struct{})
 			msgBroker := messaging.NewBroker(stop)
 
-			eventType := EventTypes{}
-
-			eventFuncs := GetEventHandlerFuncs(tc.filter, eventType, msgBroker)
+			eventFuncs := GetEventHandlerFuncs(tc.filter, msgBroker)
 			obj := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1",

@@ -10,11 +10,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -91,7 +90,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 										Weight:      100,
 									}),
 								},
-								AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
 					},
@@ -159,7 +158,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 										Weight:      100,
 									}),
 								},
-								AllowedServiceIdentities: mapset.NewSet(identity.ServiceIdentity("ingressGw.ingressGwNs.cluster.local")),
+								AllowedPrincipals: mapset.NewSet("ingressGw.ingressGwNs.cluster.local"),
 							},
 						},
 					},
@@ -228,7 +227,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 										Weight:      100,
 									}),
 								},
-								AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
 					},
@@ -327,7 +326,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 										Weight:      100,
 									}),
 								},
-								AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
 					},
@@ -390,28 +389,20 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			mockServiceProvider := service.NewMockProvider(mockCtrl)
-			mockEndpointsProvider := endpoint.NewMockProvider(mockCtrl)
-			mockCfg := configurator.NewMockConfigurator(mockCtrl)
+			mockProvider := compute.NewMockInterface(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
-			mockKubeController := k8s.NewMockController(mockCtrl)
 
 			meshCatalog := &MeshCatalog{
-				serviceProviders:   []service.Provider{mockServiceProvider},
-				endpointsProviders: []endpoint.Provider{mockEndpointsProvider},
-				configurator:       mockCfg,
-				policyController:   mockPolicyController,
-				kubeController:     mockKubeController,
+				Interface:        mockProvider,
+				policyController: mockPolicyController,
 			}
 
 			// Note: if AnyTimes() is used with a mock function, it implies the function may or may not be called
 			// depending on the test case.
 			mockPolicyController.EXPECT().GetIngressBackendPolicy(tc.meshSvc).Return(tc.ingressBackend).AnyTimes()
-			mockServiceProvider.EXPECT().GetID().Return("mock").AnyTimes()
-			mockEndpointsProvider.EXPECT().ListEndpointsForService(ingressSourceSvc).Return(ingressBackendSvcEndpoints).AnyTimes()
-			mockEndpointsProvider.EXPECT().ListEndpointsForService(sourceSvcWithoutEndpoints).Return(nil).AnyTimes()
-			mockEndpointsProvider.EXPECT().GetID().Return("mock").AnyTimes()
-			mockKubeController.EXPECT().UpdateStatus(gomock.Any()).Return(nil, nil).AnyTimes()
+			mockProvider.EXPECT().ListEndpointsForService(ingressSourceSvc).Return(ingressBackendSvcEndpoints).AnyTimes()
+			mockProvider.EXPECT().ListEndpointsForService(sourceSvcWithoutEndpoints).Return(nil).AnyTimes()
+			mockProvider.EXPECT().UpdateIngressBackendStatus(gomock.Any()).Return(nil, nil).AnyTimes()
 
 			actual, err := meshCatalog.GetIngressTrafficPolicy(tc.meshSvc)
 			assert.Equal(tc.expectError, err != nil)

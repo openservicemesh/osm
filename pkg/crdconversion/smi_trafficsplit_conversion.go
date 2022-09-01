@@ -1,9 +1,9 @@
 package crdconversion
 
 import (
+	"fmt"
 	"net/http"
 
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -19,7 +19,7 @@ func convertTrafficSplit(Object *unstructured.Unstructured, toVersion string) (*
 	fromVersion := Object.GetAPIVersion()
 
 	if toVersion == fromVersion {
-		return nil, errors.Errorf("TrafficSplit: conversion from a version to itself should not call the webhook: %s", toVersion)
+		return nil, fmt.Errorf("TrafficSplit: conversion from a version to itself should not call the webhook: %s", toVersion)
 	}
 
 	log.Debug().Msg("TrafficSplit: successfully converted object")

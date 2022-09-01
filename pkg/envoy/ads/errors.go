@@ -1,12 +1,11 @@
 package ads
 
-import (
-	"github.com/pkg/errors"
-)
+import "fmt"
 
-var errUnknownTypeURL = errors.New("unknown TypeUrl")
-var errCreatingResponse = errors.New("creating response")
-var errGrpcClosed = errors.New("grpc closed")
-var errTooManyConnections = errors.New("too many connections")
-var errServiceAccountMismatch = errors.New("service account mismatch in nodeid vs xds certificate common name")
-var errUnsuportedXDSRequest = errors.New("Unsupported XDS server connection type")
+var errUnknownTypeURL = fmt.Errorf("unknown TypeUrl")
+var errCreatingResponse = fmt.Errorf("creating response")
+var errGrpcClosed = fmt.Errorf("grpc closed")
+var errTooManyConnections = fmt.Errorf("too many connections")
+var errServiceAccountMismatch = fmt.Errorf("service account mismatch in nodeid vs xds certificate common name")
+var errUnsuportedXDSRequest = fmt.Errorf("Unsupported XDS server connection type")
+var errInvalidCertificateCN = fmt.Errorf("invalid cn")

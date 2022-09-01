@@ -13,12 +13,16 @@ import (
 
 // TrafficAttribute describes the attributes of the traffic
 type TrafficAttribute struct {
-	SrcPod      *types.NamespacedName
-	DstPod      *types.NamespacedName
-	DstService  *types.NamespacedName
-	DstHost     string
-	DstPort     uint16
-	AppProtocol string
+	SrcPod         *types.NamespacedName
+	SrcService     *types.NamespacedName
+	DstPod         *types.NamespacedName
+	DstService     *types.NamespacedName
+	IngressBackend *types.NamespacedName
+	DstPort        uint16
+	ExternalHost   string
+	ExternalPort   uint16
+	AppProtocol    string
+	IsIngress      bool
 }
 
 // PodConnectivityVerifier implements the Verifier interface for pod connectivity

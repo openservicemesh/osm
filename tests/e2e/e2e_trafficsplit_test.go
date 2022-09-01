@@ -16,7 +16,7 @@ import (
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment backed with Traffic split test",
+var _ = OSMDescribe("Basic traffic split scenarios",
 	OSMDescribeInfo{
 		Tier:   1,
 		Bucket: 5,
@@ -59,6 +59,7 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 		namespaces     = []string{serverNamespace}
 
 		clientContainerName = "client-container"
+		serverAppName       = "test"
 	)
 
 	for i := 0; i < numberOfClientServices; i++ {
@@ -83,7 +84,7 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 		Expect(Td.AddNsToMesh(true, namespaces...)).To(Succeed())
 
 		// Create server apps
-		for _, serverApp := range serverServices {
+		for i, serverApp := range serverServices {
 			svcAccDef, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 				SimpleDeploymentAppDef{
 					DeploymentName:     serverApp,
@@ -96,6 +97,7 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 					AppProtocol:        appProtocol,
 					Command:            HttpbinCmd,
 					OS:                 Td.ClusterOS,
+					Labels:             map[string]string{constants.AppLabel: serverAppName, "version": fmt.Sprintf("v%d", i)},
 				})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -239,6 +241,7 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 			Ports:       []int{DefaultUpstreamServicePort},
 			AppProtocol: appProtocol,
 			OS:          Td.ClusterOS,
+			Labels:      map[string]string{constants.AppLabel: serverAppName},
 		})
 		Expect(err).NotTo(HaveOccurred())
 

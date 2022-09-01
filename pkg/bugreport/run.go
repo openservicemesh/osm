@@ -6,8 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -26,7 +24,7 @@ func (c *Config) Run() error {
 	// Create staging directory
 	stagingDir, err := ioutil.TempDir("", "osm_bug_report_")
 	if err != nil {
-		return errors.Wrap(err, "Error creating temp directory needed for creating bug report. Aborting")
+		return fmt.Errorf("Error creating temp directory needed for creating bug report. Aborting: %w", err)
 	}
 	c.stagingDir = stagingDir
 	fmt.Fprintf(c.Stdout, "[+] Created staging dir %s to generate bug report\n", stagingDir)
@@ -55,25 +53,16 @@ func (c *Config) Run() error {
 	c.endSection()
 
 	// Generate report for control plane pods
-	fmt.Fprintf(c.Stdout, "[+] Collecting information from control plane pods\n")
-	if err := c.collectControlPlaneLogs(); err != nil {
-		c.completionFailure("Error getting control plane logs")
-		return errors.Wrap(err, "Error getting control plane pods")
-	}
-	c.completionSuccess("Finished generating report for control plane pods")
+	fmt.Fprintf(c.Stdout, "[+] Collecting information from control plane\n")
+	c.collectControlPlaneLogs()
+	c.completionSuccess("Finished generating report for control plane")
 	c.endSection()
 
 	// Generate report for ingress
 	if c.CollectIngress {
 		fmt.Fprintf(c.Stdout, "[+] Collecting ingress information\n")
-		if err := c.collectIngressReport(); err != nil {
-			c.completionFailure("Error getting ingress")
-			return errors.Wrap(err, "Error getting ingress")
-		}
-		if err := c.collectIngressControllerReport(); err != nil {
-			c.completionFailure("Error getting ingress controller")
-			return errors.Wrap(err, "Error getting ingress controller")
-		}
+		c.collectIngressReport()
+		c.collectIngressControllerReport()
 		c.completionSuccess("Finished generating report for ingress")
 		c.endSection()
 	}
@@ -83,7 +72,7 @@ func (c *Config) Run() error {
 		outFd, err := ioutil.TempFile("", "*_osm-bug-report.tar.gz")
 		if err != nil {
 			c.completionFailure("Error creating temp file for bug report")
-			return errors.Wrap(err, "Error creating bug report")
+			return fmt.Errorf("Error creating bug report: %w", err)
 		}
 		c.OutFile = outFd.Name()
 	}
@@ -92,7 +81,7 @@ func (c *Config) Run() error {
 	fmt.Fprintf(c.Stdout, "[+] Collecting information from individual app namespaces\n")
 	if err := c.archive(stagingDir, c.OutFile); err != nil {
 		c.completionFailure("Error archiving bug report")
-		return errors.Wrap(err, "Error creating bug report")
+		return fmt.Errorf("Error creating bug report: %w", err)
 	}
 	// Remove staging dir
 	if err := os.RemoveAll(c.stagingDir); err != nil {
@@ -107,7 +96,7 @@ func checkPrereq() error {
 	requiredTools := []string{"osm", "kubectl"}
 	for _, tool := range requiredTools {
 		if !pathExists(tool) {
-			return errors.Errorf("Prerequisite not met: %s not found", tool)
+			return fmt.Errorf("Prerequisite not met: %s not found", tool)
 		}
 	}
 	return nil
@@ -132,12 +121,12 @@ func (c *Config) completionFailure(format string, a ...interface{}) {
 
 func runCmdAndWriteToFile(cmdList []string, outFile string) error {
 	if len(cmdList) == 0 {
-		return errors.New("Atleast 1 command must be provided, none provided")
+		return fmt.Errorf("Atleast 1 command must be provided, none provided")
 	}
 
 	// Create parent directory if it doesn't exist
 	if err := os.MkdirAll(filepath.Dir(outFile), 0700); err != nil {
-		return errors.Wrapf(err, "Error creating parent directory for path: %s", outFile)
+		return fmt.Errorf("Error creating parent directory for path: %s: %w", outFile, err)
 	}
 
 	cmd := exec.Command(cmdList[0], cmdList[1:]...) //#nosec G204

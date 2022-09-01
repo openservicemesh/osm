@@ -1,9 +1,10 @@
 package verifier
 
 import (
+	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type fakeConfigGetter struct {
@@ -21,7 +22,16 @@ func (f fakeConfigGetter) Get() (*Config, error) {
 		return nil, err
 	}
 	if cfg == nil {
-		return nil, errors.Errorf("parsed Envoy config %s is empty", f.configFilePath)
+		return nil, fmt.Errorf("parsed Envoy config %s is empty", f.configFilePath)
 	}
 	return cfg, nil
+}
+
+type fakeHTTPProber struct {
+	err error
+}
+
+// Probe returns the error specified in the fakeHTTPProber
+func (f fakeHTTPProber) Probe(_ types.NamespacedName) error {
+	return f.err
 }

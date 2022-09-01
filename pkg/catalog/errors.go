@@ -1,8 +1,8 @@
 package catalog
 
-import "github.com/pkg/errors"
+import "fmt"
 
 var (
 	// errNoTrafficSpecFoundForTrafficPolicy is an error for when OSM cannot find a traffic spec for the given traffic policy.
-	errNoTrafficSpecFoundForTrafficPolicy = errors.New("no traffic spec found for the traffic policy")
+	errNoTrafficSpecFoundForTrafficPolicy = fmt.Errorf("no traffic spec found for the traffic policy")
 )

@@ -67,7 +67,7 @@ The Proxy Control Plane's availability is of foremost importance when it comes t
 
 ### (2) Certificate Manager
 Certificate Manager is a component that provides each service participating in the service mesh with a TLS certificate.
-These service certificates are used to establish and encrypt connections between services using mTLS.
+These service certificates are used to establish and encrypt connections between services using mTLS. Learn more about [Certificate Management](docs/certificate_management.md).
 
 ### (3) Endpoints Providers
 Endpoints Providers are one or more components that communicate with the compute platforms (Kubernetes clusters, on-prem machines, or cloud-providers' VMs) participating in the service mesh. Endpoints providers resolve service names into lists of IP addresses. The Endpoints Providers understand the specific primitives of the compute provider they are implemented for, such as virtual machines, virtual machine scale sets, and Kubernetes clusters.
@@ -167,7 +167,7 @@ Each Envoy proxy will be bootstrapped with a proxy certificate, which will be us
 This kind of certificate is different than the one issued for service-to-service mTLS communication.
 OSM declares a type `ProxyCertificate` for these certificates.
 We refer to these certificates as `ProxyCertificate` in the [interfaces](#interfaces) declarations section of this document.
-This certificate's Common Name leverages the DNS-1123 standard with the following format: `<proxy-UUID>.<service-name>.<service-namespace>`. The chosen format allows us to uniquely identify the connected proxy (`proxy-UUID`) and the namespaced service, which this proxy belongs to (`service-name.service-namespace`).
+This certificate's Common Name leverages the DNS-1123 standard with the following format: `<proxy-UUID>.<service-account>.<service-namespace>.<trust-domain>`. The chosen format allows us to uniquely identify the connected proxy (`proxy-UUID`) and the namespaced service, which this proxy belongs to (`service-account.service-namespace`).
 
 ### (E) Policy
 The policy component referenced in the diagram above (E) is any [SMI Spec resource](https://github.com/deislabs/smi-spec#service-mesh-interface) referencing the [service (C)](#c-service). For instance, `TrafficSplit`, referencing a services `bookstore`, and `bookstore-v1`:
@@ -207,6 +207,8 @@ The **intersection** of the set of issued `ProxyCertificates` ∩ connected `Pro
   - The `Proxy`'s service membership is determined by the Pod's service membership. OSM identifies the Pod when the Envoy established gRPC to XDS and presents client certificate. Then CN of the cert contains a unique ID assigned to the pod and a Kubernetes namespace where the pod resides. Once XDS parses the CN of the connected Envoy, Pod context is available. From Pod we determine Service membership, Pod's ServiceAccount and other Kubernetes context.
   - There is one unique `ProxyCertificate` issued to one `Proxy`, which is dedicated to one unique `Endpoint` (pod). OSM limits the number of services served by a proxy to 1 for simplicity.
   - A mesh `Service` is constructed by one or more `ProxyCertificate` + `Proxy` + `Endpoint`
+
+Learn more about [Service Identity](docs/identity.md).
 
 
 ## Pod lifecycle
@@ -302,15 +304,9 @@ type MeshCataloger interface {
 	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
 	ExpectProxy(certificate.CommonName)
 
-  // GetServicesForProxy returns a list of services the given Envoy is a member of based on its certificate,
+  // ListServicesForProxy returns a list of services the given Envoy is a member of based on its certificate,
   // which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
-	GetServicesForProxy(*envoy.Proxy) ([]service.MeshService, error)
-
-	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
-	RegisterProxy(*envoy.Proxy)
-
-	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
-	UnregisterProxy(*envoy.Proxy)
+	ListServicesForProxy(*envoy.Proxy) ([]service.MeshService, error)
 
 	// GetServicesForServiceIdentity returns a list of services corresponding to a service identity
 	GetServicesForServiceIdentity(identity.ServiceIdentityt) ([]service.MeshService, error)
@@ -458,14 +454,8 @@ type Manager interface {
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
 
-	// GetCertificate returns a certificate given its Common Name (CN)
-	GetCertificate(CommonName) (*Certificate, error)
-
 	// RotateCertificate rotates an existing certificate.
 	RotateCertificate(CommonName) (*Certificate, error)
-
-	// GetRootCertificate returns the root certificate.
-	GetRootCertificate() (*Certificate, error)
 
 	// ListCertificates lists all certificates issued
 	ListCertificates() ([]*Certificate, error)

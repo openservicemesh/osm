@@ -17,8 +17,34 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/errcode"
 )
+
+// New will construct a new certificate client using Jetstack's cert-manager,
+func New(
+	client cmversionedclient.Interface,
+	namespace string,
+	issuerRef cmmeta.ObjectReference,
+	keySize int) (*CertManager, error) {
+	informerFactory := cminformers.NewSharedInformerFactory(client, time.Second*30)
+	crLister := informerFactory.Certmanager().V1().CertificateRequests().Lister().CertificateRequests(namespace)
+
+	// TODO: pass through graceful shutdown
+	informerFactory.Start(make(chan struct{}))
+
+	if keySize == 0 {
+		return nil, errors.New("key bit size cannot be zero")
+	}
+
+	return &CertManager{
+		namespace: namespace,
+		client:    client.CertmanagerV1().CertificateRequests(namespace),
+		issuerRef: issuerRef,
+		crLister:  crLister,
+		keySize:   keySize,
+	}, nil
+}
 
 // certificateFromCertificateRequest will construct a certificate.Certificate
 // from a given CertificateRequest and private key.
@@ -32,13 +58,23 @@ func (cm *CertManager) certificateFromCertificateRequest(cr *cmapi.CertificateRe
 		return nil, err
 	}
 
+	ca := cr.Status.CA
+	if len(ca) == 0 {
+		ca = cert.RawIssuer
+	}
+
+	if len(ca) == 0 {
+		return nil, fmt.Errorf("CA not found in certificate request %s/%s", cr.Namespace, cr.Name)
+	}
+
 	return &certificate.Certificate{
 		CommonName:   certificate.CommonName(cert.Subject.CommonName),
 		SerialNumber: certificate.SerialNumber(cert.SerialNumber.String()),
 		Expiration:   cert.NotAfter,
 		CertChain:    cr.Status.Certificate,
 		PrivateKey:   privateKey,
-		IssuingCA:    cm.ca.IssuingCA,
+		IssuingCA:    pem.RootCertificate(ca),
+		TrustedCAs:   pem.RootCertificate(ca),
 	}, nil
 }
 
@@ -53,7 +89,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGeneratingPrivateKey)).
 			Msgf("Error generating private key for certificate with CN=%s", cn)
-		return nil, fmt.Errorf("failed to generate private key for certificate with CN=%s: %s", cn, err)
+		return nil, fmt.Errorf("failed to generate private key for certificate with CN=%s: %w", cn, err)
 	}
 
 	privKeyPEM, err := certificate.EncodeKeyDERtoPEM(certPrivKey)
@@ -79,7 +115,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingCertReq)).
 			Msg("error creating certificate request")
-		return nil, fmt.Errorf("error creating x509 certificate request: %s", err)
+		return nil, fmt.Errorf("error creating x509 certificate request: %w", err)
 	}
 
 	csrPEM, err := certificate.EncodeCertReqDERtoPEM(csrDER)
@@ -87,7 +123,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEncodingCertDERtoPEM)).
 			Msg("error encoding cert request DER to PEM")
-		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %s", cn, err)
+		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %w", cn, err)
 	}
 
 	cr := &cmapi.CertificateRequest{
@@ -131,31 +167,4 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	}()
 
 	return cert, nil
-}
-
-// New will construct a new certificate client using Jetstack's cert-manager,
-func New(
-	ca *certificate.Certificate,
-	client cmversionedclient.Interface,
-	namespace string,
-	issuerRef cmmeta.ObjectReference,
-	keySize int) (*CertManager, error) {
-	informerFactory := cminformers.NewSharedInformerFactory(client, time.Second*30)
-	crLister := informerFactory.Certmanager().V1().CertificateRequests().Lister().CertificateRequests(namespace)
-
-	// TODO: pass through graceful shutdown
-	informerFactory.Start(make(chan struct{}))
-
-	if keySize == 0 {
-		return nil, errors.New("key bit size cannot be zero")
-	}
-
-	return &CertManager{
-		ca:        ca,
-		namespace: namespace,
-		client:    client.CertmanagerV1().CertificateRequests(namespace),
-		issuerRef: issuerRef,
-		crLister:  crLister,
-		keySize:   keySize,
-	}, nil
 }

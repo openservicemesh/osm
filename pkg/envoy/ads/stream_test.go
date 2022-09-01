@@ -10,48 +10,8 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 )
-
-func TestIsCNForProxy(t *testing.T) {
-	type testCase struct {
-		name     string
-		cn       certificate.CommonName
-		proxy    *envoy.Proxy
-		expected bool
-	}
-
-	certSerialNumber := certificate.SerialNumber("123456")
-
-	testCases := []testCase{
-		{
-			name: "workload CN belongs to proxy",
-			cn:   certificate.CommonName("svc-acc.namespace.cluster.local"),
-			proxy: func() *envoy.Proxy {
-				p, _ := envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.%s.svc-acc.namespace", uuid.New(), envoy.KindSidecar)), certSerialNumber, nil)
-				return p
-			}(),
-			expected: true,
-		},
-		{
-			name: "workload CN does not belong to proxy",
-			cn:   certificate.CommonName("svc-acc.namespace.cluster.local"),
-			proxy: func() *envoy.Proxy {
-				p, _ := envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.%s.svc-acc-foo.namespace", uuid.New(), envoy.KindSidecar)), certSerialNumber, nil)
-				return p
-			}(),
-			expected: false,
-		},
-	}
-
-	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			assert := tassert.New(t)
-
-			actual := isCNforProxy(tc.proxy, tc.cn)
-			assert.Equal(tc.expected, actual)
-		})
-	}
-}
 
 func findSliceElem(slice []string, elem string) bool {
 	for _, v := range slice {
@@ -81,4 +41,51 @@ func TestMapsetToSliceConvFunctions(t *testing.T) {
 	assert.True(findSliceElem(nameSlice, "B"))
 	assert.True(findSliceElem(nameSlice, "C"))
 	assert.False(findSliceElem(nameSlice, "D"))
+}
+
+func TestGetCertificateCommonNameMeta(t *testing.T) {
+	testCases := []struct {
+		name     string
+		uuid     uuid.UUID
+		identity identity.ServiceIdentity
+		err      error
+	}{
+		{
+			name:     "valid cn",
+			uuid:     uuid.New(),
+			identity: identity.New("foo", "bar"),
+		},
+		{
+			name:     "invalid uuid",
+			uuid:     uuid.Nil,
+			identity: identity.New("foo", "bar"),
+		},
+		{
+			name:     "invalid identity",
+			uuid:     uuid.New(),
+			identity: identity.New("foo", ""),
+			err:      errInvalidCertificateCN,
+		},
+		{
+			name: "no identity",
+			uuid: uuid.New(),
+			err:  errInvalidCertificateCN,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tc.uuid, envoy.KindSidecar, tc.identity))
+
+			kind, uuid, si, err := getCertificateCommonNameMeta(cn)
+
+			assert.Equal(tc.err, err)
+
+			if err == nil {
+				assert.Equal(envoy.KindSidecar, kind)
+				assert.Equal(tc.uuid, uuid)
+				assert.Equal(tc.identity, si)
+			}
+		})
+	}
 }

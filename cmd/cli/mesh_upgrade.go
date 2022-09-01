@@ -6,7 +6,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -120,7 +119,7 @@ func (u *meshUpgradeCmd) resolveValues() (map[string]interface{}, error) {
 	vals := make(map[string]interface{})
 	for _, val := range u.setOptions {
 		if err := strvals.ParseInto(val, vals); err != nil {
-			return nil, errors.Wrap(err, "invalid format for --set")
+			return nil, fmt.Errorf("invalid format for --set: %w", err)
 		}
 	}
 	return vals, nil

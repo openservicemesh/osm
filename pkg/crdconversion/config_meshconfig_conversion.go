@@ -1,9 +1,9 @@
 package crdconversion
 
 import (
+	"fmt"
 	"net/http"
 
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -19,7 +19,7 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 	fromVersion := obj.GetAPIVersion()
 
 	if toVersion == fromVersion {
-		return nil, errors.Errorf("MeshConfig: conversion from a version to itself should not call the webhook: %s", toVersion)
+		return nil, fmt.Errorf("MeshConfig: conversion from a version to itself should not call the webhook: %s", toVersion)
 	}
 
 	log.Debug().Msgf("MeshConfig conversion request: from-version=%s, to-version=%s", fromVersion, toVersion)
@@ -32,7 +32,7 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 			// necessary at this moment.
 
 		default:
-			return nil, errors.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
+			return nil, fmt.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
 		}
 
 	case "config.openservicemesh.io/v1alpha2":
@@ -55,11 +55,11 @@ func convertMeshConfig(obj *unstructured.Unstructured, toVersion string) (*unstr
 				}
 			}
 		default:
-			return nil, errors.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
+			return nil, fmt.Errorf("Unexpected conversion to-version for MeshConfig resource: %s", toVersion)
 		}
 
 	default:
-		return nil, errors.Errorf("Unexpected conversion from-version for MeshConfig resource: %s", fromVersion)
+		return nil, fmt.Errorf("Unexpected conversion from-version for MeshConfig resource: %s", fromVersion)
 	}
 
 	log.Debug().Msg("MeshConfig: successfully converted object")

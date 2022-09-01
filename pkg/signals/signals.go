@@ -10,7 +10,7 @@ import (
 var exitSignals = []os.Signal{os.Interrupt, syscall.SIGTERM} // SIGTERM is POSIX specific
 
 // RegisterExitHandlers returns a stop channel to wait on exit signals
-func RegisterExitHandlers() (stop chan struct{}) {
+func RegisterExitHandlers(shutdownFuncs ...func()) (stop chan struct{}) {
 	stop = make(chan struct{})
 	s := make(chan os.Signal, len(exitSignals))
 	signal.Notify(s, exitSignals...)
@@ -20,6 +20,11 @@ func RegisterExitHandlers() (stop chan struct{}) {
 		// a stop signal to all other goroutines observing this channel.
 		<-s
 		close(stop)
+
+		// execute our shutdown functions
+		for _, f := range shutdownFuncs {
+			f()
+		}
 	}()
 
 	return stop

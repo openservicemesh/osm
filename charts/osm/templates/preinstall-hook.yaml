@@ -72,21 +72,19 @@ spec:
             - --verbosity={{ .Values.osm.controllerLogLevel }}
             - --enforce-single-mesh={{ .Values.osm.enforceSingleMesh }}
             - --namespace={{ include "osm.namespace" . }}
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                - key: kubernetes.io/os
-                  operator: In
-                  values:
-                    - linux
-                - key: kubernetes.io/arch
-                  operator: In
-                  values:
-                    - amd64
-                    - arm64
 {{- if .Values.osm.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.osm.imagePullSecrets | indent 8 }}
 {{- end }}
+      {{- if .Values.osm.preinstall.affinity }}
+      affinity:
+      {{- toYaml .Values.osm.preinstall.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.preinstall.nodeSelector }}
+      nodeSelector:
+      {{- toYaml .Values.osm.preinstall.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.osm.preinstall.tolerations }}
+      tolerations:
+      {{- toYaml .Values.osm.preinstall.tolerations | nindent 8 }}
+      {{- end }}

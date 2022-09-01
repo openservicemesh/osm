@@ -11,7 +11,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -29,12 +28,12 @@ func (s *Server) getTypeResources(proxy *envoy.Proxy, request *xds_discovery.Dis
 		return nil, errUnknownTypeURL
 	}
 
-	if s.cfg.IsDebugServerEnabled() {
-		s.trackXDSLog(proxy.GetCertificateCommonName(), typeURI)
+	if s.catalog.GetMeshConfig().Spec.Observability.EnableDebugServer {
+		s.trackXDSLog(proxy.GetName(), typeURI)
 	}
 
 	// Invoke XDS handler
-	resources, err := handler(s.catalog, proxy, request, s.cfg, s.certManager, s.proxyRegistry)
+	resources, err := handler(s.catalog, proxy, request, s.certManager, s.proxyRegistry)
 	if err != nil {
 		xdsPathTimeTrack(startedAt, typeURI, proxy, false)
 		return nil, errCreatingResponse
@@ -48,7 +47,7 @@ func (s *Server) getTypeResources(proxy *envoy.Proxy, request *xds_discovery.Dis
 // for, and will have them sent to the proxy server.
 // If no DiscoveryRequest is passed, an empty one for the TypeURI is created
 // TODO(draychev): Convert to variadic function: https://github.com/openservicemesh/osm/issues/3127
-func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, typeURIsToSend ...envoy.TypeURI) error {
+func (s *Server) sendResponse(proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, request *xds_discovery.DiscoveryRequest, typeURIsToSend ...envoy.TypeURI) error {
 	thereWereErrors := false
 
 	// A nil request indicates a change on mesh configuration, OSM will trigger an update
@@ -132,7 +131,7 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 		proto, err := anypb.New(res.(proto.Message))
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
-				Msgf("Error marshalling resource %s for proxy %s", typeURI, proxy.GetCertificateSerialNumber())
+				Msgf("Error marshalling resource %s for proxy %s", typeURI, proxy.GetName())
 			continue
 		}
 		// Add resource to response
@@ -161,7 +160,7 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 
 	// Send the response
 	if err := (*server).Send(response); err != nil {
-		metricsstore.DefaultMetricsStore.ProxyResponseSendErrorCount.WithLabelValues(proxy.GetCertificateCommonName().String(), string(typeURI)).Inc()
+		metricsstore.DefaultMetricsStore.ProxyResponseSendErrorCount.WithLabelValues(proxy.UUID.String(), proxy.Identity.String(), string(typeURI)).Inc()
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrSendingDiscoveryResponse)).
 			Str("proxy", proxy.String()).Msgf("Error sending response for typeURI %s to proxy", typeURI.Short())
 		return err
@@ -169,7 +168,7 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 
 	// Sending discovery response succeeded, record last resources sent
 	proxy.SetLastResourcesSent(typeURI, resourcesSent)
-	metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount.WithLabelValues(proxy.GetCertificateCommonName().String(), string(typeURI)).Inc()
+	metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount.WithLabelValues(proxy.UUID.String(), proxy.Identity.String(), string(typeURI)).Inc()
 
 	return nil
 }

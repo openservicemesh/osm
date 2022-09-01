@@ -1,3 +1,5 @@
+// Package database allows the bookwarehouse service to store
+// total books data into MySQL persistent storage
 package database
 
 import (

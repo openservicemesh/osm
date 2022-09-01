@@ -12,10 +12,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-var _ = OSMDescribe("Test TrafficSplit where each backend shares the same ServiceAccount",
+var _ = OSMDescribe("TrafficSplit where each backend has the same ServiceAccount",
 	OSMDescribeInfo{
 		Tier:   1,
 		Bucket: 9,
@@ -42,6 +43,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				clientServices = []string{}
 				serverServices = []string{}
 				allNamespaces  = []string{serverNamespace} // 1 namespace for all server services (for the trafficsplit)
+				serverAppName  = "test"
 			)
 
 			for i := 0; i < numberOfClientServices; i++ {
@@ -74,7 +76,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				_, err := Td.CreateServiceAccount(serverNamespace, svcAcc)
 				Expect(err).NotTo(HaveOccurred())
 
-				for _, serverApp := range serverServices {
+				for i, serverApp := range serverServices {
 					_, deploymentDef, svcDef, err := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
 							DeploymentName:     serverApp,
@@ -86,6 +88,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 							Ports:              []int{DefaultUpstreamServicePort},
 							Command:            HttpbinCmd,
 							OS:                 Td.ClusterOS,
+							Labels:             map[string]string{constants.AppLabel: serverAppName, "version": fmt.Sprintf("v%d", i)},
 						})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -111,6 +114,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 				}
 				wg.Add(1)
 				go func() {
+					defer GinkgoRecover()
 					defer wg.Done()
 					Expect(Td.WaitForPodsRunningReady(serverNamespace, 200*time.Second, numberOfServerServices*serverReplicaSet, nil)).To(Succeed())
 				}()
@@ -141,6 +145,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 
 					wg.Add(1)
 					go func(app string) {
+						defer GinkgoRecover()
 						defer wg.Done()
 						Expect(Td.WaitForPodsRunningReady(app, 200*time.Second, clientReplicaSet, nil)).To(Succeed())
 					}(clientApp)
@@ -175,6 +180,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 					Namespace:   serverNamespace,
 					Ports:       []int{DefaultUpstreamServicePort},
 					OS:          Td.ClusterOS,
+					Labels:      map[string]string{constants.AppLabel: serverAppName},
 				})
 				Expect(err).NotTo(HaveOccurred())
 

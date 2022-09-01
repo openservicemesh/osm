@@ -1,17 +1,19 @@
 package lds
 
 import (
+	"fmt"
+
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // NewResponse creates a new Listener Discovery Response.
@@ -19,77 +21,102 @@ import (
 // 1. Inbound listener to handle incoming traffic
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
-	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
-			Str("proxy", proxy.String()).Msgf("Error retrieving ServiceAccount for proxy")
-		return nil, err
-	}
-
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cm *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	var ldsResources []types.Resource
 
 	var statsHeaders map[string]string
-	if featureflags := cfg.GetFeatureFlags(); featureflags.EnableWASMStats {
+	meshConfig := meshCatalog.GetMeshConfig()
+
+	if meshConfig.Spec.FeatureFlags.EnableWASMStats {
 		statsHeaders = proxy.StatsHeaders()
 	}
 
-	lb := newListenerBuilder(meshCatalog, proxyIdentity, cfg, statsHeaders)
-
-	if proxy.Kind() == envoy.KindGateway && cfg.GetFeatureFlags().EnableMulticlusterMode {
-		gatewayListener, err := lb.buildMulticlusterGatewayListener()
-
-		if err != nil {
-			log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error building multicluster gateway listener")
-			return ldsResources, err
-		}
-		ldsResources = append(ldsResources, gatewayListener)
-		return ldsResources, nil
-	}
-
-	// --- OUTBOUND -------------------
-	outboundListener, err := lb.newOutboundListener()
-	if err != nil {
-		log.Error().Err(err).Str("proxy", proxy.String()).Msg("Error building outbound listener")
-	} else {
-		if outboundListener == nil {
-			// This check is important to prevent attempting to configure a listener without a filter chain which
-			// otherwise results in an error.
-			log.Debug().Str("proxy", proxy.String()).Msg("Not programming nil outbound listener")
-		} else {
-			ldsResources = append(ldsResources, outboundListener)
-		}
-	}
-
-	// --- INBOUND -------------------
-	inboundListener := newInboundListener()
-
-	svcList, err := proxyRegistry.ListProxyServices(proxy)
+	svcList, err := meshCatalog.ListServicesForProxy(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
 			Str("proxy", proxy.String()).Msgf("Error looking up MeshServices associated with proxy")
 		return nil, err
 	}
-	// Create inbound filter chains per service behind proxy
-	for _, proxyService := range svcList {
-		// Add in-mesh filter chains
-		inboundSvcFilterChains := lb.getInboundMeshFilterChains(proxyService)
-		inboundListener.FilterChains = append(inboundListener.FilterChains, inboundSvcFilterChains...)
 
-		// Add ingress filter chains
-		ingressFilterChains := lb.getIngressFilterChains(proxyService)
-		inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChains...)
+	// --- OUTBOUND -------------------
+	outboundLis := ListenerBuilder().
+		Name(OutboundListenerName).
+		ProxyIdentity(proxy.Identity).
+		Address(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort).
+		TrafficDirection(xds_core.TrafficDirection_OUTBOUND).
+		PermissiveMesh(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode).
+		OutboundMeshTrafficPolicy(meshCatalog.GetOutboundMeshTrafficPolicy(proxy.Identity)).
+		ActiveHealthCheck(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks)
+
+	if meshConfig.Spec.Traffic.EnableEgress {
+		outboundLis.PermissiveEgress(true)
+	} else {
+		egressPolicy, err := meshCatalog.GetEgressTrafficPolicy(proxy.Identity)
+		if err != nil {
+			return nil, fmt.Errorf("error building LDS response: %w", err)
+		}
+		outboundLis.EgressTrafficPolicy(egressPolicy)
+	}
+	if meshConfig.Spec.Observability.Tracing.Enable {
+		outboundLis.TracingEndpoint(utils.GetTracingEndpoint(meshConfig))
+	}
+	if meshConfig.Spec.FeatureFlags.EnableWASMStats {
+		outboundLis.WASMStatsHeaders(statsHeaders)
 	}
 
-	if len(inboundListener.FilterChains) > 0 {
-		// Inbound filter chains can be empty if the there both ingress and in-mesh policies are not configured.
-		// Configuring a listener without a filter chain is an error.
+	outboundListener, err := outboundLis.Build()
+	if err != nil {
+		return nil, fmt.Errorf("error building outbound listener for proxy %s: %w", proxy, err)
+	}
+	if outboundListener == nil {
+		// This check is important to prevent attempting to configure a listener without a filter chain which
+		// otherwise results in an error.
+		log.Debug().Str("proxy", proxy.String()).Msg("Not programming nil outbound listener")
+	} else {
+		ldsResources = append(ldsResources, outboundListener)
+	}
+
+	// --- INBOUND -------------------
+	inboundLis := ListenerBuilder().
+		Name(InboundListenerName).
+		ProxyIdentity(proxy.Identity).
+		TrustDomain(cm.GetTrustDomain()).
+		Address(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort).
+		TrafficDirection(xds_core.TrafficDirection_INBOUND).
+		DefaultInboundListenerFilters().
+		PermissiveMesh(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode).
+		InboundMeshTrafficPolicy(meshCatalog.GetInboundMeshTrafficPolicy(proxy.Identity, svcList)).
+		IngressTrafficPolicies(meshCatalog.GetIngressTrafficPolicies(svcList)).
+		ActiveHealthCheck(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks).
+		SidecarSpec(meshConfig.Spec.Sidecar)
+
+	trafficTargets, err := meshCatalog.ListInboundTrafficTargetsWithRoutes(proxy.Identity)
+	if err != nil {
+		return nil, fmt.Errorf("error building inbound listener: %w", err)
+	}
+	inboundLis.TrafficTargets(trafficTargets)
+
+	if meshConfig.Spec.Observability.Tracing.Enable {
+		inboundLis.TracingEndpoint(utils.GetTracingEndpoint(meshConfig))
+	}
+	if extAuthzConfig := utils.ExternalAuthConfigFromMeshConfig(meshConfig); extAuthzConfig.Enable {
+		inboundLis.ExtAuthzConfig(&extAuthzConfig)
+	}
+	if meshConfig.Spec.FeatureFlags.EnableWASMStats {
+		inboundLis.WASMStatsHeaders(statsHeaders)
+	}
+
+	inboundListener, err := inboundLis.Build()
+	if err != nil {
+		return nil, fmt.Errorf("error building inbound listener for proxy %s: %w", proxy, err)
+	}
+	if inboundListener != nil {
 		ldsResources = append(ldsResources, inboundListener)
 	}
 
-	if pod, err := envoy.GetPodFromCertificate(proxy.GetCertificateCommonName(), meshCatalog.GetKubeController()); err != nil {
+	if enabled, err := meshCatalog.IsMetricsEnabled(proxy); err != nil {
 		log.Warn().Str("proxy", proxy.String()).Msgf("Could not find pod for connecting proxy, no metadata was recorded")
-	} else if k8s.IsMetricsEnabled(pod) {
+	} else if enabled {
 		// Build Prometheus listener config
 		prometheusConnManager := getPrometheusConnectionManager()
 		if prometheusListener, err := buildPrometheusListener(prometheusConnManager); err != nil {
@@ -100,14 +127,4 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	return ldsResources, nil
-}
-
-// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcIdentity identity.ServiceIdentity, cfg configurator.Configurator, statsHeaders map[string]string) *listenerBuilder {
-	return &listenerBuilder{
-		meshCatalog:     meshCatalog,
-		serviceIdentity: svcIdentity,
-		cfg:             cfg,
-		statsHeaders:    statsHeaders,
-	}
 }

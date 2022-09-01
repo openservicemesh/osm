@@ -5,8 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	pemEnc "encoding/pem"
-
-	"github.com/pkg/errors"
+	"fmt"
 
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 )
@@ -20,7 +19,7 @@ func EncodeCertDERtoPEM(derBytes []byte) (pem.Certificate, error) {
 		Bytes: derBytes,
 	}
 	if err := pemEnc.Encode(certOut, &block); err != nil {
-		return nil, errors.Wrap(err, errEncodeCert.Error())
+		return nil, fmt.Errorf("%s: %w", errEncodeCert.Error(), err)
 	}
 	return certOut.Bytes(), nil
 }
@@ -30,14 +29,14 @@ func EncodeKeyDERtoPEM(priv *rsa.PrivateKey) (pem.PrivateKey, error) {
 	keyOut := &bytes.Buffer{}
 	privBytes, err := x509.MarshalPKCS8PrivateKey(priv)
 	if err != nil {
-		return nil, errors.Wrap(err, errMarshalPrivateKey.Error())
+		return nil, fmt.Errorf("%s: %w", errMarshalPrivateKey.Error(), err)
 	}
 	block := pemEnc.Block{
 		Type:  TypePrivateKey,
 		Bytes: privBytes,
 	}
 	if err := pemEnc.Encode(keyOut, &block); err != nil {
-		return nil, errors.Wrap(err, errEncodeKey.Error())
+		return nil, fmt.Errorf("%s: %w", errEncodeKey.Error(), err)
 	}
 	return keyOut.Bytes(), nil
 }
@@ -96,7 +95,7 @@ func EncodeCertReqDERtoPEM(derBytes []byte) (pem.CertificateRequest, error) {
 		Bytes: derBytes,
 	}
 	if err := pemEnc.Encode(csrPEM, &block); err != nil {
-		return nil, errors.Wrap(err, errEncodeCert.Error())
+		return nil, fmt.Errorf("%s: %w", errEncodeCert.Error(), err)
 	}
 	return csrPEM.Bytes(), nil
 }

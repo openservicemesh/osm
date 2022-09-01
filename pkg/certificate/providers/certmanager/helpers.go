@@ -8,27 +8,7 @@ import (
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
-
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/pem"
 )
-
-// NewRootCertificateFromPEM is a helper returning a *certificate.Certificate
-// from the PEM components given.
-func NewRootCertificateFromPEM(pemCert pem.Certificate) (*certificate.Certificate, error) {
-	cert, err := certificate.DecodePEMCertificate(pemCert)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decoded root certificate: %s", err)
-	}
-
-	return &certificate.Certificate{
-		CommonName:   certificate.CommonName(cert.Subject.CommonName),
-		SerialNumber: certificate.SerialNumber(cert.SerialNumber.String()),
-		CertChain:    pemCert,
-		Expiration:   cert.NotAfter,
-		IssuingCA:    pem.RootCertificate(pemCert),
-	}, nil
-}
 
 // WaitForCertificateRequestReady waits for the CertificateRequest resource to
 // enter a Ready state.
@@ -47,7 +27,7 @@ func (cm *CertManager) waitForCertificateReady(name string, timeout time.Duratio
 			}
 
 			if err != nil {
-				return false, fmt.Errorf("error getting CertificateRequest %s: %v", name, err)
+				return false, fmt.Errorf("error getting CertificateRequest %s: %w", name, err)
 			}
 
 			isReady := certificateRequestHasCondition(cr, cmapi.CertificateRequestCondition{

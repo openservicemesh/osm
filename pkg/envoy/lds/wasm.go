@@ -11,32 +11,24 @@ import (
 	xds_wasm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/wasm/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	xds_wasm_ext "github.com/envoyproxy/go-control-plane/envoy/extensions/wasm/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/pkg/errors"
 
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
 //go:embed stats.wasm
 var statsWASMBytes []byte
 
-func (lb *listenerBuilder) getWASMStatsHeaders() map[string]string {
-	if lb.cfg.GetFeatureFlags().EnableWASMStats {
-		return lb.statsHeaders
-	}
-
-	return nil
-}
-
-func getWASMStatsConfig(statsHeaders map[string]string) ([]*xds_hcm.HttpFilter, *xds_hcm.LocalReplyConfig, error) {
+func getWASMStatsConfig(wasmStatsHeaders map[string]string) ([]*xds_hcm.HttpFilter, *xds_hcm.LocalReplyConfig, error) {
 	statsFilter, err := getStatsWASMFilter()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "Error gettings WASM Stats filter")
+		return nil, nil, fmt.Errorf("Error gettings WASM Stats filter: %w", err)
 	}
 
-	headerFilter, err := getAddHeadersFilter(statsHeaders)
+	headerFilter, err := getAddHeadersFilter(wasmStatsHeaders)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "Error getting WASM stats Header filter")
+		return nil, nil, fmt.Errorf("Error getting WASM stats Header filter: %w", err)
 	}
 
 	var filters []*xds_hcm.HttpFilter
@@ -53,7 +45,7 @@ func getWASMStatsConfig(statsHeaders map[string]string) ([]*xds_hcm.HttpFilter, 
 		// HTTP responses with the "unknown" value hardcoded because we don't
 		// know the intended destination of the request.
 		var localReplyHeaders []*envoy_config_core_v3.HeaderValueOption
-		for k := range statsHeaders {
+		for k := range wasmStatsHeaders {
 			localReplyHeaders = append(localReplyHeaders, &envoy_config_core_v3.HeaderValueOption{
 				Header: &envoy_config_core_v3.HeaderValue{
 					Key:   k,
@@ -95,11 +87,11 @@ func getAddHeadersFilter(headers map[string]string) (*xds_hcm.HttpFilter, error)
 
 	luaAny, err := anypb.New(lua)
 	if err != nil {
-		return nil, errors.Wrap(err, "error marshaling Lua filter")
+		return nil, fmt.Errorf("error marshaling Lua filter: %w", err)
 	}
 
 	return &xds_hcm.HttpFilter{
-		Name: wellknown.Lua,
+		Name: envoy.HTTPLuaFilterName,
 		ConfigType: &xds_hcm.HttpFilter_TypedConfig{
 			TypedConfig: luaAny,
 		},
@@ -133,7 +125,7 @@ func getStatsWASMFilter() (*xds_hcm.HttpFilter, error) {
 
 	wasmAny, err := anypb.New(wasmPlug)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error marshalling Wasm config")
+		return nil, fmt.Errorf("Error marshalling Wasm config: %w", err)
 	}
 
 	return &xds_hcm.HttpFilter{

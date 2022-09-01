@@ -22,13 +22,13 @@ type proxyResponseJob struct {
 }
 
 // GetDoneCh returns the channel, which when closed, indicates the job has been finished.
-func (proxyJob *proxyResponseJob) GetDoneCh() <-chan struct{} {
+func (proxyJob *proxyResponseJob) GetDoneCh() chan struct{} {
 	return proxyJob.done
 }
 
 // Run implementation for `server.sendResponse` job
 func (proxyJob *proxyResponseJob) Run() {
-	err := (*proxyJob.xdsServer).sendResponse(proxyJob.proxy, proxyJob.adsStream, proxyJob.request, proxyJob.xdsServer.cfg, proxyJob.typeURIs...)
+	err := (*proxyJob.xdsServer).sendResponse(proxyJob.proxy, proxyJob.adsStream, proxyJob.request, proxyJob.typeURIs...)
 	if err != nil {
 		log.Error().Err(err).Str("proxy", proxyJob.proxy.String()).Msgf("Failed to create and send %v update to proxy", proxyJob.typeURIs)
 	}
@@ -37,12 +37,5 @@ func (proxyJob *proxyResponseJob) Run() {
 
 // JobName implementation for this job, for logging purposes
 func (proxyJob *proxyResponseJob) JobName() string {
-	return fmt.Sprintf("sendJob-%s", proxyJob.proxy.GetCertificateSerialNumber())
-}
-
-// Hash implementation for this job to hash into the worker queues
-func (proxyJob *proxyResponseJob) Hash() uint64 {
-	// Uses proxy hash to always serialize work for the same proxy to the same worker,
-	// this avoid out-of-order mishandling of envoy updates by multiple workers
-	return proxyJob.proxy.GetHash()
+	return fmt.Sprintf("sendJob-%s", proxyJob.proxy.GetName())
 }

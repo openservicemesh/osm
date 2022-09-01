@@ -40,6 +40,16 @@ type MeshConfigSpec struct {
 	FeatureFlags FeatureFlags `json:"featureFlags,omitempty"`
 }
 
+// LocalProxyMode is a type alias representing the way the envoy sidecar proxies to the main application
+type LocalProxyMode string
+
+const (
+	// LocalProxyModeLocalhost indicates the the sidecar should communicate with the main application over localhost
+	LocalProxyModeLocalhost LocalProxyMode = "Localhost"
+	// LocalProxyModePodIP indicates that the sidecar should communicate with the main application via the pod ip
+	LocalProxyModePodIP LocalProxyMode = "PodIP"
+)
+
 // SidecarSpec is the type used to represent the specifications for the proxy sidecar.
 type SidecarSpec struct {
 	// EnablePrivilegedInitContainer defines a boolean indicating whether the init container for a meshed pod should run as privileged.
@@ -77,6 +87,9 @@ type SidecarSpec struct {
 
 	// ECDHCurves defines a list of ECDH curves that TLS connection supports. If not specified, the curves are [X25519, P-256] for non-FIPS build and P-256 for builds using BoringSSL FIPS.
 	ECDHCurves []string `json:"ecdhCurves,omitempty"`
+
+	// LocalProxyMode defines the network interface the envoy proxy will use to send traffic to the backend service application. Acceptable values are [`Localhost`, `PodIP`]. The default is `Localhost`
+	LocalProxyMode LocalProxyMode `json:"localProxyMode,omitempty"`
 }
 
 // TrafficSpec is the type used to represent OSM's traffic management configuration.
@@ -103,6 +116,11 @@ type TrafficSpec struct {
 	// InboundExternalAuthorization defines a ruleset that, if enabled, will configure a remote external authorization endpoint
 	// for all inbound and ingress traffic in the mesh.
 	InboundExternalAuthorization ExternalAuthzSpec `json:"inboundExternalAuthorization,omitempty"`
+
+	// NetworkInterfaceExclusionList defines a global list of network interface
+	// names to exclude from inbound and outbound traffic interception by the
+	// sidecar proxy.
+	NetworkInterfaceExclusionList []string `json:"networkInterfaceExclusionList"`
 }
 
 // ObservabilitySpec is the type to represent OSM's observability configurations.
@@ -194,11 +212,11 @@ type FeatureFlags struct {
 	// EnableWASMStats defines if WASM Stats are enabled.
 	EnableWASMStats bool `json:"enableWASMStats"`
 
-	// EnableEgressPolicy defines if OSM's Egress policy is enabled.
+	// EnableEgressPolicy defines if OSM's EgressPolicy API is enabled.
+	// DEPRECATED, do not use.
+	// Disable mesh-wide global egress by setting 'spec.traffic.enableEgress'
+	// to 'false' to implicitly enable the usage of EgressPolicy API.
 	EnableEgressPolicy bool `json:"enableEgressPolicy"`
-
-	// EnableMulticlusterMode defines if Multicluster mode is enabled.
-	EnableMulticlusterMode bool `json:"enableMulticlusterMode"`
 
 	// EnableSnapshotCacheMode defines if XDS server starts with snapshot cache.
 	EnableSnapshotCacheMode bool `json:"enableSnapshotCacheMode"`

@@ -15,8 +15,8 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/compute"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/policy"
 
@@ -28,7 +28,6 @@ import (
 func TestGetEgressTrafficPolicy(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
-	mockCfg := configurator.NewMockConfigurator(mockCtrl)
 
 	defer mockCtrl.Finish()
 
@@ -95,11 +94,12 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
-
+						Name:                "egress-http.80",
 						DestinationPort:     80, // Used by foo.com and bar.com
 						DestinationProtocol: "http",
 					},
 					{
+						Name:                "egress-http.90",
 						DestinationPort:     90, // Used by baz.com
 						DestinationProtocol: "http",
 					},
@@ -222,10 +222,12 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
+						Name:                "egress-http.80",
 						DestinationPort:     80, // Used by foo.com and bar.com
 						DestinationProtocol: "http",
 					},
 					{
+						Name:                "egress-tcp.100",
 						DestinationPort:     100, // Used by foo.com
 						DestinationProtocol: "tcp",
 						Cluster:             "100",
@@ -321,12 +323,14 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
+						Name:                "egress-https.100",
 						DestinationPort:     100,
 						DestinationProtocol: "https",
 						ServerNames:         []string{"foo.com"},
 						Cluster:             "100",
 					},
 					{
+						Name:                "egress-tcp.100",
 						DestinationPort:     100,
 						DestinationProtocol: "tcp",
 						Cluster:             "100",
@@ -375,6 +379,7 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
+						Name:                "egress-https.100",
 						DestinationPort:     100,
 						DestinationProtocol: "https",
 						ServerNames:         []string{"foo.com"},
@@ -427,7 +432,7 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 		},
 	}
 
-	testSourceIdentity := identity.ServiceIdentity("foo.bar.cluster.local")
+	testSourceIdentity := identity.ServiceIdentity("foo.bar")
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
@@ -440,13 +445,14 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(tc.egressPolicies).Times(1)
 			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
 
+			mockCompute := compute.NewMockInterface(mockCtrl)
 			mc := &MeshCatalog{
 				meshSpec:         mockMeshSpec,
-				configurator:     mockCfg,
+				Interface:        mockCompute,
 				policyController: mockPolicyController,
 			}
 
-			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableEgressPolicy: true}).Times(1)
+			mockCompute.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{Spec: configv1alpha2.MeshConfigSpec{Traffic: configv1alpha2.TrafficSpec{EnableEgress: false}}}).Times(1) // Enables EgressPolicy
 
 			actual, err := mc.GetEgressTrafficPolicy(testSourceIdentity)
 			assert.Equal(tc.expectError, err != nil)

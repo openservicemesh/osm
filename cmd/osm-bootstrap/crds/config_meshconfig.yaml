@@ -116,6 +116,13 @@ spec:
                       type: array
                       items:
                         type: string
+                    localProxyMode:
+                      description: Sets the destination ip address the envoy proxy will use when connecting to the backend application. Acceptable values are [Localhost, PodIP]. The default value is Localhost
+                      type: string
+                      enum:
+                        - Localhost
+                        - PodIP
+                      default: Localhost
                 traffic:
                   description: Configuration for traffic management
                   type: object
@@ -149,6 +156,11 @@ spec:
                         type: integer
                         minimum: 1
                         maximum: 65535
+                    networkInterfaceExclusionList:
+                      description: NetworkInterfaceExclusionList defines a global list of network interface names to exclude from inbound and outbound traffic interception by the sidecar proxy.
+                      type: array
+                      items:
+                        type: string
                     enablePermissiveTrafficPolicyMode:
                       description: True for allowing traffic to flow between client and service pods within the mesh without SMI traffic policies, i.e. no traffic policy enforcement in the mesh. If set to false, enables deny-all traffic policy in mesh i.e. an SMI Traffic Target is necessary for services to communicate.
                       type: boolean
@@ -255,8 +267,10 @@ spec:
                       type: boolean
                     enableEgressPolicy:
                       type: boolean
+                      description: DEPRECATED, do not use. Set 'taffic.enableEgress' to 'false' to use EgressPolicy API.
                     enableMulticlusterMode:
                       type: boolean
+                      description: DEPRECATED, no longer used
                     enableSnapshotCacheMode:
                       type: boolean
                     enableAsyncProxyServiceMapping:
@@ -459,6 +473,7 @@ spec:
                       type: boolean
                     enableMulticlusterMode:
                       type: boolean
+                      description: DEPRECATED, no longer used
                     enableSnapshotCacheMode:
                       type: boolean
                     enableAsyncProxyServiceMapping:

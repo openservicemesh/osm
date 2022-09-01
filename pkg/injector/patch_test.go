@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
@@ -16,8 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -127,7 +128,6 @@ func TestCreatePatch(t *testing.T) {
 
 			client := fake.NewSimpleClientset()
 			mockCtrl := gomock.NewController(t)
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockNsController := k8s.NewMockController(mockCtrl)
 			mockNsController.EXPECT().GetNamespace(namespace).Return(tc.namespace).AnyTimes()
 			_, err := client.CoreV1().Namespaces().Create(context.TODO(), tc.namespace, metav1.CreateOptions{})
@@ -136,23 +136,20 @@ func TestCreatePatch(t *testing.T) {
 			wh := &mutatingWebhook{
 				kubeClient:          client,
 				kubeController:      mockNsController,
-				certManager:         tresorFake.NewFake(nil),
-				configurator:        mockConfigurator,
+				certManager:         tresorFake.NewFake(1 * time.Hour),
 				nonInjectNamespaces: mapset.NewSet(),
 			}
 
-			mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return("envoy-linux-image").AnyTimes()
-			mockConfigurator.EXPECT().GetEnvoyImage().Return("envoy-windows-image").AnyTimes()
-			mockConfigurator.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
-
-			if tc.os == constants.OSLinux {
-				mockConfigurator.EXPECT().IsPrivilegedInitContainer().Return(false).Times(1)
-			}
-
-			mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
-			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
-			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).Times(1)
-			mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
+			mockNsController.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+				Spec: v1alpha2.MeshConfigSpec{
+					Sidecar: v1alpha2.SidecarSpec{
+						EnvoyWindowsImage:  "envoy-linux-image",
+						EnvoyImage:         "envoy-windows-image",
+						InitContainerImage: "init-container-image",
+						Resources:          corev1.ResourceRequirements{},
+					},
+				},
+			}).AnyTimes()
 
 			pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, tc.os)
 
@@ -164,7 +161,7 @@ func TestCreatePatch(t *testing.T) {
 				Object:    runtime.RawExtension{Raw: raw},
 				DryRun:    &tc.dryRun,
 			}
-			rawPatches, err := wh.createPatch(&pod, req, proxyUUID)
+			rawPatches, err := wh.createPatch(pod, req, proxyUUID)
 			assert.NoError(err)
 			patches := string(rawPatches)
 
@@ -200,7 +197,7 @@ func TestCreatePatch(t *testing.T) {
 			}
 
 			newUUID := uuid.New()
-			rawPatches, err = wh.createPatch(&pod, req, newUUID)
+			rawPatches, err = wh.createPatch(pod, req, newUUID)
 			assert.NoError(err)
 
 			patches = string(rawPatches)
@@ -229,14 +226,12 @@ func TestCreatePatch(t *testing.T) {
 		assert := tassert.New(t)
 		client := fake.NewSimpleClientset()
 		mockCtrl := gomock.NewController(t)
-		mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 		mockNsController := k8s.NewMockController(mockCtrl)
 
 		wh := &mutatingWebhook{
 			kubeClient:          client,
 			kubeController:      mockNsController,
-			certManager:         tresorFake.NewFake(nil),
-			configurator:        mockConfigurator,
+			certManager:         tresorFake.NewFake(1 * time.Hour),
 			nonInjectNamespaces: mapset.NewSet(),
 		}
 
@@ -247,8 +242,7 @@ func TestCreatePatch(t *testing.T) {
 				Name: namespace,
 			},
 		}).AnyTimes()
-		mockConfigurator.EXPECT().GetEnvoyImage().Return("").AnyTimes()
-		mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
+		mockNsController.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{}).AnyTimes()
 
 		pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, constants.OSLinux)
 
@@ -259,7 +253,7 @@ func TestCreatePatch(t *testing.T) {
 			Namespace: namespace,
 			Object:    runtime.RawExtension{Raw: raw},
 		}
-		_, err = wh.createPatch(&pod, req, proxyUUID)
+		_, err = wh.createPatch(pod, req, proxyUUID)
 		assert.Error(err)
 	})
 }
@@ -315,15 +309,21 @@ func TestVerifyPrerequisites(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			assert := tassert.New(t)
-			mockCfg := configurator.NewMockConfigurator(mockCtrl)
+			mockK8s := k8s.NewMockController(mockCtrl)
 
 			wh := &mutatingWebhook{
-				configurator: mockCfg,
+				kubeController: mockK8s,
 			}
 
-			mockCfg.EXPECT().GetEnvoyImage().Return(tc.linuxImage).AnyTimes()
-			mockCfg.EXPECT().GetEnvoyWindowsImage().Return(tc.windowsImage).AnyTimes()
-			mockCfg.EXPECT().GetInitContainerImage().Return(tc.initImage).AnyTimes()
+			mockK8s.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+				Spec: v1alpha2.MeshConfigSpec{
+					Sidecar: v1alpha2.SidecarSpec{
+						EnvoyWindowsImage:  tc.windowsImage,
+						EnvoyImage:         tc.linuxImage,
+						InitContainerImage: tc.initImage,
+					},
+				},
+			}).AnyTimes()
 
 			err := wh.verifyPrerequisites(tc.podOS)
 			assert.Equal(tc.expectErr, err != nil)

@@ -5,10 +5,10 @@
 package catalog
 
 import (
-	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -22,15 +22,9 @@ var (
 
 // MeshCatalog is the struct for the service catalog
 type MeshCatalog struct {
-	endpointsProviders []endpoint.Provider
-	serviceProviders   []service.Provider
-	meshSpec           smi.MeshSpec
-	configurator       configurator.Configurator
-
-	// This is the kubernetes client that operates async caches to avoid issuing synchronous
-	// calls through kubeClient and instead relies on background cache synchronization and local
-	// lookups
-	kubeController k8s.Controller
+	compute.Interface
+	meshSpec    smi.MeshSpec
+	certManager *certificate.Manager
 
 	// policyController implements the functionality related to the resources part of the policy.openservicemesh.io
 	// API group, such as egress.
@@ -39,11 +33,10 @@ type MeshCatalog struct {
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
+	compute.Interface
+
 	// ListOutboundServicesForIdentity list the services the given service identity is allowed to initiate outbound connections to
 	ListOutboundServicesForIdentity(identity.ServiceIdentity) []service.MeshService
-
-	// ListOutboundServicesForMulticlusterGateway lists the upstream services for the multicluster gateway
-	ListOutboundServicesForMulticlusterGateway() []service.MeshService
 
 	// ListInboundServiceIdentities lists the downstream service identities that are allowed to connect to the given service identity
 	ListInboundServiceIdentities(identity.ServiceIdentity) []identity.ServiceIdentity
@@ -51,14 +44,15 @@ type MeshCataloger interface {
 	// ListOutboundServiceIdentities lists the upstream service identities the given service identity are allowed to connect to
 	ListOutboundServiceIdentities(identity.ServiceIdentity) []identity.ServiceIdentity
 
-	// ListServiceIdentitiesForService lists the service identities associated with the given service
-	ListServiceIdentitiesForService(service.MeshService) []identity.ServiceIdentity
-
 	// ListAllowedUpstreamEndpointsForService returns the list of endpoints over which the downstream client identity
 	// is allowed access the upstream service
 	ListAllowedUpstreamEndpointsForService(identity.ServiceIdentity, service.MeshService) []endpoint.Endpoint
 
+	// GetIngressTrafficPolicies returns a list of IngressTrafficPolicy objects for the given MeshService list
+	GetIngressTrafficPolicies([]service.MeshService) []*trafficpolicy.IngressTrafficPolicy
+
 	// GetIngressTrafficPolicy returns the ingress traffic policy for the given mesh service
+	// TODO: deprecate in favor of GetIngressTrafficPolicies
 	GetIngressTrafficPolicy(service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error)
 
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service identity
@@ -66,9 +60,6 @@ type MeshCataloger interface {
 
 	// GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity.
 	GetEgressTrafficPolicy(identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error)
-
-	// GetKubeController returns the kube controller instance handling the current cluster
-	GetKubeController() k8s.Controller
 
 	// GetOutboundMeshTrafficPolicy returns the outbound mesh traffic policy for the given downstream identity
 	GetOutboundMeshTrafficPolicy(identity.ServiceIdentity) *trafficpolicy.OutboundMeshTrafficPolicy

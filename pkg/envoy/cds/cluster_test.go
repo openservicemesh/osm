@@ -8,7 +8,6 @@ import (
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -18,7 +17,6 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -91,6 +89,16 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Cluster without circuit breaker but with valid UpstreamTrafficSetting should not error/panic",
+			clusterConfig: trafficpolicy.MeshClusterConfig{
+				Name:    "default/bookstore-v1_14001",
+				Service: upstreamSvc,
+				UpstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -106,81 +114,8 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 				assert.Nil(remoteCluster.HealthChecks)
 			}
 
-			if tc.clusterConfig.UpstreamTrafficSetting != nil {
+			if tc.expectedCircuitBreakerThreshold != nil {
 				assert.Equal(tc.expectedCircuitBreakerThreshold, remoteCluster.CircuitBreakers)
-			}
-		})
-	}
-}
-
-func TestGetMulticlusterGatewayUpstreamServiceCluster(t *testing.T) {
-	upstreamSvc := service.MeshService{
-		Namespace:  "ns1",
-		Name:       "s1",
-		TargetPort: 8080,
-	}
-
-	testCases := []struct {
-		name                        string
-		expectedClusterType         xds_cluster.Cluster_DiscoveryType
-		expectedLbPolicy            xds_cluster.Cluster_LbPolicy
-		expectedLocalityLbEndpoints []*xds_endpoint.LocalityLbEndpoints
-		addHealthCheck              bool
-	}{
-		{
-			name:                "Gateway upstream cluster configuration with health checks configured",
-			expectedClusterType: xds_cluster.Cluster_STRICT_DNS,
-			expectedLbPolicy:    xds_cluster.Cluster_ROUND_ROBIN,
-			expectedLocalityLbEndpoints: []*xds_endpoint.LocalityLbEndpoints{
-				{
-					LbEndpoints: []*xds_endpoint.LbEndpoint{{
-						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
-							Endpoint: &xds_endpoint.Endpoint{
-								Address: envoy.GetAddress("s1.ns1.svc.cluster.local", uint32(8080)),
-							},
-						},
-					}},
-				},
-			},
-			addHealthCheck: true,
-		},
-		{
-			name:                "Gateway upstream cluster configuration with health checks not configured",
-			expectedClusterType: xds_cluster.Cluster_STRICT_DNS,
-			expectedLbPolicy:    xds_cluster.Cluster_ROUND_ROBIN,
-			expectedLocalityLbEndpoints: []*xds_endpoint.LocalityLbEndpoints{
-				{
-					LbEndpoints: []*xds_endpoint.LbEndpoint{{
-						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
-							Endpoint: &xds_endpoint.Endpoint{
-								Address: envoy.GetAddress("s1.ns1.svc.cluster.local", uint32(8080)),
-							},
-						},
-					}},
-				},
-			},
-			addHealthCheck: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-			mockCtrl := gomock.NewController(t)
-			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-
-			remoteCluster, err := getMulticlusterGatewayUpstreamServiceCluster(mockCatalog, upstreamSvc, tc.addHealthCheck)
-			assert.NoError(err)
-			assert.Equal(tc.expectedClusterType, remoteCluster.GetType())
-			assert.Equal(tc.expectedLbPolicy, remoteCluster.LbPolicy)
-			assert.Equal(len(tc.expectedLocalityLbEndpoints), len(remoteCluster.LoadAssignment.Endpoints))
-			assert.ElementsMatch(tc.expectedLocalityLbEndpoints, remoteCluster.LoadAssignment.Endpoints)
-			assert.Equal(remoteCluster.LoadAssignment.ClusterName, upstreamSvc.ServerName())
-
-			if tc.addHealthCheck {
-				assert.NotNil(remoteCluster.HealthChecks)
-			} else {
-				assert.Nil(remoteCluster.HealthChecks)
 			}
 		})
 	}
@@ -296,7 +231,7 @@ func TestGetPrometheusCluster(t *testing.T) {
 
 func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 	assert := tassert.New(t)
-	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
+	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getHTTPProtocolOptions(""))
 	assert.Nil(err)
 
 	var thresholdUintVal uint32 = 3
@@ -440,7 +375,7 @@ func TestGetEgressClusters(t *testing.T) {
 }
 
 func TestGetDNSResolvableEgressCluster(t *testing.T) {
-	typedHTTPProtocolOptions, _ := getTypedHTTPProtocolOptions(getDefaultHTTPProtocolOptions())
+	typedHTTPProtocolOptions, _ := getTypedHTTPProtocolOptions(getHTTPProtocolOptions(""))
 
 	testCases := []struct {
 		name            string

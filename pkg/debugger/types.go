@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -24,21 +23,14 @@ var log = logger.New("debugger")
 
 // DebugConfig implements the DebugServer interface.
 type DebugConfig struct {
-	certDebugger        CertificateManagerDebugger
+	certDebugger        *certificate.Manager
 	xdsDebugger         XDSDebugger
 	meshCatalogDebugger MeshCatalogDebugger
 	proxyRegistry       *registry.ProxyRegistry
 	kubeConfig          *rest.Config
 	kubeClient          kubernetes.Interface
 	kubeController      k8s.Controller
-	configurator        configurator.Configurator
 	msgBroker           *messaging.Broker
-}
-
-// CertificateManagerDebugger is an interface with methods for debugging certificate issuance.
-type CertificateManagerDebugger interface {
-	// ListIssuedCertificates returns the current list of certificates in OSM's cache.
-	ListIssuedCertificates() []*certificate.Certificate
 }
 
 // MeshCatalogDebugger is an interface with methods for debugging Mesh Catalog.
@@ -49,6 +41,7 @@ type MeshCatalogDebugger interface {
 
 // XDSDebugger is an interface providing debugging server with methods introspecting XDS.
 type XDSDebugger interface {
-	// GetXDSLog returns a log of the XDS responses sent to Envoy proxies.
-	GetXDSLog() *map[certificate.CommonName]map[envoy.TypeURI][]time.Time
+	// GetXDSLog returns a log of the XDS responses sent to Envoy proxies. It is keyed by proxy.GetName(), which is
+	// of the form <identity>:<uuid>.
+	GetXDSLog() map[string]map[envoy.TypeURI][]time.Time
 }

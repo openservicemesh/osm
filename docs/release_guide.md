@@ -13,10 +13,10 @@ This guide describes the process to create a GitHub Release for this project.
 Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the following steps.
 
 - [Release Guide](#release-guide)
-  - [Release Candidates](#release-candidates)
   - [Create a release branch](#create-a-release-branch)
   - [Add changes to be backported](#add-changes-to-be-backported)
   - [Create and push the pre-release Git tag](#create-and-push-the-pre-release-git-tag)
+    - [A note about FIPS](#a-note-about-fips)
   - [Update release branch with patches and versioning changes](#update-release-branch-with-patches-and-versioning-changes)
   - [Create and push the release Git tag](#create-and-push-the-release-git-tag)
   - [Add release notes](#add-release-notes)
@@ -72,6 +72,10 @@ osm-injector: sha256:d2e96d99a311b120c4afd7bd3248f75d0766c98bd121a979a343e438e9c
 osm-crds: sha256:359a4a6b031d0f72848d6bedc742b34b60323ebc5d5001071c0695130b694efd
 osm-bootstrap: sha256:fd159fdb965cc0d3d7704afaf673862b5e92257925fc3f6345810f98bb6246f8
 ```
+
+### A note about FIPS
+
+The previous step will create and push AMD64-based Docker images for the FIPS version of the OSM control plane to DockerHub. Because GitHub Actions doesn't support remote hosted ARM runners, FIPS ARM images for OSM will only be available via Microsoft Artifact Registry.
 
 ## Update release branch with patches and versioning changes
 
@@ -130,7 +134,7 @@ Follow the [Generating API Reference Documentation](/docs/api_reference/README.m
 
 ### 4. Update error code documentation
 
-On the docs site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md) to update the OSM error code table.
+On the docs site's main branch, edit the file [https://github.com/openservicemesh/osm-docs/blob/main/content/en/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blob/main/content/en/docs/guides/troubleshooting/control_plane_error_codes.md) to update the OSM error code table.
 
 1. Build OSM on the release branch.
 1. Generate the mapping of OSM error codes and their descriptions using the `osm support` cli tool.
@@ -146,7 +150,7 @@ On the docs site's main branch, edit the file [https://github.com/openservicemes
     | E1001      | The specified log level could not be set in the system.                          |
    ```
 
-1. Copy the table and replace the existing table in the file [https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blob/main/content/docs/guides/troubleshooting/control_plane_error_codes.md).
+1. Copy the table and replace the existing table in the file [https://github.com/openservicemesh/osm-docs/blob/main/content/en/docs/guides/troubleshooting/control_plane_error_codes.md](https://github.com/openservicemesh/osm-docs/blob/main/content/en/docs/guides/troubleshooting/control_plane_error_codes.md).
 1. If there were updates to the table, make a PR in the OSM docs repository.
 
 

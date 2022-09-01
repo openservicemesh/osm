@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/openservicemesh/osm/pkg/httpserver/constants"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -50,7 +50,7 @@ func (httpProbe HTTPProbe) Probe() (int, error) {
 		transport := &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
-				MinVersion:         tls.VersionTLS13,
+				MinVersion:         constants.MinTLSVersion,
 			},
 		}
 		client.Transport = transport
@@ -131,4 +131,12 @@ func LivenessHandler(probes []Probes, urlProbes []HTTPProbe) http.Handler {
 
 		setProbeResponse(w, http.StatusOK, constants.ServiceAliveResponse)
 	})
+}
+
+// SimpleHandler returns a simple http handler for health checks.
+func SimpleHandler(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte("Health OK")); err != nil {
+		log.Error().Err(err).Msg("Error writing bytes for crd-conversion webhook health check handler")
+	}
 }

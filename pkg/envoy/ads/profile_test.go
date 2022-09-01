@@ -1,7 +1,6 @@
 package ads
 
 import (
-	"fmt"
 	"testing"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -10,15 +9,14 @@ import (
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 func TestValidateResourcesRequestResponse(t *testing.T) {
 	assert := tassert.New(t)
-	proxy, err := envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.sidecar.foo.bar", uuid.New())), certificate.SerialNumber("123"), tests.NewMockAddress("1.2.3.4"))
-	assert.Nil(err)
+	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), tests.NewMockAddress("1.2.3.4"), 1)
 
 	testCases := []struct {
 		request          *xds_discovery.DiscoveryRequest
