@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
@@ -15,6 +16,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -168,10 +170,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -207,10 +209,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -473,10 +475,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 								{
 									Route: trafficpolicy.RouteWeightedClusters{
@@ -493,10 +495,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -532,10 +534,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 								{
 									Route: trafficpolicy.RouteWeightedClusters{
@@ -552,10 +554,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -721,10 +723,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -758,10 +760,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -797,10 +799,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -914,7 +916,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -941,7 +943,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -970,7 +972,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -1116,10 +1118,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									AllowedPrincipals: mapset.NewSet("sa2.ns2.cluster.local"),
 								},
 							},
 						},
@@ -1287,15 +1286,15 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(
+									AllowedPrincipals: mapset.NewSet(
 										identity.K8sServiceAccount{
 											Name:      "sa2",
 											Namespace: "ns2",
-										}.ToServiceIdentity(),
+										}.AsPrincipal("cluster.local"),
 										identity.K8sServiceAccount{
 											Name:      "sa3",
 											Namespace: "ns3",
-										}.ToServiceIdentity()),
+										}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -1331,15 +1330,15 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(
+									AllowedPrincipals: mapset.NewSet(
 										identity.K8sServiceAccount{
 											Name:      "sa2",
 											Namespace: "ns2",
-										}.ToServiceIdentity(),
+										}.AsPrincipal("cluster.local"),
 										identity.K8sServiceAccount{
 											Name:      "sa3",
 											Namespace: "ns3",
-										}.ToServiceIdentity()),
+										}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -1503,10 +1502,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -1542,10 +1541,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -1653,7 +1652,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -1680,7 +1679,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -1825,10 +1824,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 										}),
 										RateLimit: perRouteRateLimitConfig,
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -1866,10 +1865,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 										}),
 										RateLimit: perRouteRateLimitConfig,
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -1953,7 +1952,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 										}),
 										RateLimit: perRouteRateLimitConfig,
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -1984,7 +1983,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 										}),
 										RateLimit: perRouteRateLimitConfig,
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -2014,6 +2013,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
+			fakeCertManager := tresorFake.NewFake(nil, 1*time.Hour)
+
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
@@ -2025,6 +2026,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				policyController:   mockPolicyController,
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
 				serviceProviders:   []service.Provider{mockServiceProvider},
+				certManager:        fakeCertManager,
 				configurator:       mockCfg,
 				meshSpec:           mockMeshSpec,
 			}
