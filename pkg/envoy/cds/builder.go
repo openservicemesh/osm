@@ -6,10 +6,13 @@ import (
 	"strings"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
+
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	extensions_upstream_http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
@@ -28,8 +31,116 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
+type clusterBuilder struct {
+	proxyIdentity identity.ServiceIdentity
+
+	outboundMeshTrafficClusterConfigs []*trafficpolicy.MeshClusterConfig
+
+	inboundMeshTrafficClusterConfigs []*trafficpolicy.MeshClusterConfig
+
+	egressTrafficClusterConfigs []*trafficpolicy.EgressClusterConfig
+
+	sidecarSpec configv1alpha2.SidecarSpec
+
+	egressEnabled bool
+
+	metricsEnabled bool
+
+	envoyTracingAddress *xds_core.Address
+}
+
+func NewClusterBuilder() *clusterBuilder { //nolint: revive // unexported-return
+	return &clusterBuilder{}
+}
+
+func (b *clusterBuilder) SetProxyIdentity(identity identity.ServiceIdentity) *clusterBuilder {
+	b.proxyIdentity = identity
+	return b
+}
+
+func (b *clusterBuilder) SetSidecarSpec(spec configv1alpha2.SidecarSpec) *clusterBuilder {
+	b.sidecarSpec = spec
+	return b
+}
+
+func (b *clusterBuilder) SetOutboundMeshTrafficClusterConfigs(outboundMeshTrafficClusterConfigs []*trafficpolicy.MeshClusterConfig) *clusterBuilder {
+	b.outboundMeshTrafficClusterConfigs = outboundMeshTrafficClusterConfigs
+	return b
+}
+
+func (b *clusterBuilder) SetInboundMeshTrafficClusterConfigs(inboundMeshTrafficClusterConfigs []*trafficpolicy.MeshClusterConfig) *clusterBuilder {
+	b.inboundMeshTrafficClusterConfigs = inboundMeshTrafficClusterConfigs
+	return b
+}
+
+func (b *clusterBuilder) SetEgressTrafficClusterConfigs(egressTrafficClusterConfigs []*trafficpolicy.EgressClusterConfig) *clusterBuilder {
+	b.egressTrafficClusterConfigs = egressTrafficClusterConfigs
+	return b
+}
+
+func (b *clusterBuilder) SetEgressEnabled(egressEnabled bool) *clusterBuilder {
+	b.egressEnabled = egressEnabled
+	return b
+}
+
+func (b *clusterBuilder) SetMetricsEnabled(metricsEnabled bool) *clusterBuilder {
+	b.metricsEnabled = metricsEnabled
+	return b
+}
+
+func (b *clusterBuilder) SetEnvoyTracingAddress(tracingAddress *xds_core.Address) *clusterBuilder {
+	b.envoyTracingAddress = tracingAddress
+	return b
+}
+
+func (b *clusterBuilder) tracingEnabled() bool {
+	return b.envoyTracingAddress != nil
+}
+
 // replacer used to configure an Envoy cluster's altStatName
 var replacer = strings.NewReplacer(".", "_", ":", "_")
+
+func (b *clusterBuilder) Build() ([]types.Resource, error) {
+	var clusters []*xds_cluster.Cluster
+
+	// Build upstream clusters based on allowed outbound traffic policies
+	if b.outboundMeshTrafficClusterConfigs != nil {
+		clusters = append(clusters, b.buildUpstreamClusters()...)
+	}
+
+	// Build local clusters based on allowed inbound traffic policies
+	if b.inboundMeshTrafficClusterConfigs != nil {
+		clusters = append(clusters, b.buildLocalClusters()...)
+	}
+
+	// Add egress clusters based on applied policies
+	if b.egressTrafficClusterConfigs != nil {
+		clusters = append(clusters, b.getEgressClusters()...)
+	}
+
+	// Add an outbound passthrough cluster for egress if global mesh-wide Egress is enabled
+	if b.egressEnabled {
+		outboundPassthroughCluster, err := getOriginalDestinationEgressCluster(envoy.OutboundPassthroughCluster, nil)
+		if err != nil {
+			log.Error().Err(err).Str(errcode.Kind, errcode.ErrGettingOrgDstEgressCluster.String()).
+				Msgf("Failed to passthrough cluster for egress for proxy %s", envoy.OutboundPassthroughCluster)
+			return nil, err
+		}
+		clusters = append(clusters, outboundPassthroughCluster)
+	}
+
+	// Add an inbound prometheus cluster (from Prometheus to localhost)
+	if b.metricsEnabled {
+		clusters = append(clusters, getPrometheusCluster())
+	}
+
+	// Add an outbound tracing cluster (from localhost to tracing sink)
+	if b.tracingEnabled() {
+		clusters = append(clusters, b.getTracingCluster())
+	}
+
+	return removeDups(clusters), nil
+}
 
 // getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
@@ -204,15 +315,36 @@ func getPrometheusCluster() *xds_cluster.Cluster {
 	}
 }
 
+func (b *clusterBuilder) getTracingCluster() *xds_cluster.Cluster {
+	return &xds_cluster.Cluster{
+		Name:        constants.EnvoyTracingCluster,
+		AltStatName: constants.EnvoyTracingCluster,
+		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+			Type: xds_cluster.Cluster_LOGICAL_DNS,
+		},
+		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
+		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
+			ClusterName: constants.EnvoyTracingCluster,
+			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*xds_endpoint.LbEndpoint{{
+						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+							Endpoint: &xds_endpoint.Endpoint{
+								Address: b.envoyTracingAddress,
+							},
+						},
+					}},
+				},
+			},
+		},
+	}
+}
+
 // getEgressClusters returns a slice of XDS cluster objects for the given egress cluster configs.
 // If the cluster config is invalid, an error is logged and the corresponding cluster config is ignored.
-func getEgressClusters(clusterConfigs []*trafficpolicy.EgressClusterConfig) []*xds_cluster.Cluster {
-	if clusterConfigs == nil {
-		return nil
-	}
-
+func (b *clusterBuilder) getEgressClusters() []*xds_cluster.Cluster {
 	var egressClusters []*xds_cluster.Cluster
-	for _, config := range clusterConfigs {
+	for _, config := range b.egressTrafficClusterConfigs {
 		switch config.Host {
 		case "":
 			// Cluster config does not have a Host specified, route it to its original destination.
@@ -326,19 +458,19 @@ func formatAltStatNameForPrometheus(clusterName string) string {
 	return replacer.Replace(clusterName)
 }
 
-func upstreamClustersFromClusterConfigs(downstreamIdentity identity.ServiceIdentity, configs []*trafficpolicy.MeshClusterConfig, sidecarSpec configv1alpha2.SidecarSpec) []*xds_cluster.Cluster {
+func (b *clusterBuilder) buildUpstreamClusters() []*xds_cluster.Cluster {
 	var clusters []*xds_cluster.Cluster
 
-	for _, c := range configs {
-		clusters = append(clusters, getUpstreamServiceCluster(downstreamIdentity, *c, sidecarSpec))
+	for _, c := range b.outboundMeshTrafficClusterConfigs {
+		clusters = append(clusters, getUpstreamServiceCluster(b.proxyIdentity, *c, b.sidecarSpec))
 	}
 	return clusters
 }
 
-func localClustersFromClusterConfigs(configs []*trafficpolicy.MeshClusterConfig) []*xds_cluster.Cluster {
+func (b *clusterBuilder) buildLocalClusters() []*xds_cluster.Cluster {
 	var clusters []*xds_cluster.Cluster
 
-	for _, c := range configs {
+	for _, c := range b.inboundMeshTrafficClusterConfigs {
 		clusters = append(clusters, getLocalServiceCluster(*c))
 	}
 	return clusters
@@ -415,4 +547,20 @@ func applyUpstreamTrafficSetting(upstreamTrafficSetting *policyv1alpha1.Upstream
 			upstreamCluster.MaxRequestsPerConnection = wrapperspb.UInt32(*connectionSettings.HTTP.MaxRequestsPerConnection)
 		}
 	}
+}
+
+func removeDups(clusters []*xds_cluster.Cluster) []types.Resource {
+	alreadyAdded := mapset.NewSet()
+	var cdsResources []types.Resource
+	for _, cluster := range clusters {
+		if alreadyAdded.Contains(cluster.Name) {
+			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDuplicateClusters)).
+				Msgf("Found duplicate clusters with name %s; duplicate will not be sent to proxy.", cluster.Name)
+			continue
+		}
+		alreadyAdded.Add(cluster.Name)
+		cdsResources = append(cdsResources, cluster)
+	}
+
+	return cdsResources
 }
