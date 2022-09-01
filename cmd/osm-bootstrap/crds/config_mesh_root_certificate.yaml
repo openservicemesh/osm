@@ -30,6 +30,8 @@ spec:
       - mrc
     singular: meshrootcertificate
     plural: meshrootcertificates
+  conversion:
+    strategy: None
   versions:
     - name: v1alpha2
       served: true
