@@ -13,6 +13,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
@@ -779,7 +780,8 @@ func TestIngressBackendValidator(t *testing.T) {
 			)
 			assert.NoError(err)
 
-			policyClient := k8s.NewClient("osm-namespace", "osm-mesh-config", informerCollection, fakeClient, broker)
+			k8sClient := k8s.NewClient("osm-namespace", "osm-mesh-config", informerCollection, fakeClient, broker)
+			policyClient := kube.NewClient(k8sClient)
 			pv := &policyValidator{
 				policyClient: policyClient,
 			}
@@ -1303,7 +1305,8 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 			)
 			assert.NoError(err)
 
-			policyClient := k8s.NewClient("test-namespace", "test-mesh-config", informerCollection, fakeClient, broker)
+			k8sClient := k8s.NewClient("test-namespace", "test-mesh-config", informerCollection, fakeClient, broker)
+			policyClient := kube.NewClient(k8sClient)
 
 			pv := &policyValidator{
 				policyClient: policyClient,
@@ -1313,7 +1316,7 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 				// monitor namespaces
 				err := informerCollection.Add(informers.InformerKeyNamespace, newNsK8sObj(testNs), t)
 				assert.Nil(err)
-				assert.True(policyClient.IsMonitoredNamespace(testNs))
+				assert.True(k8sClient.IsMonitoredNamespace(testNs))
 			}
 
 			// Block until we start getting upstreamtrafficsetting updates

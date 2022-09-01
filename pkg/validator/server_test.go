@@ -19,6 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	computekube "github.com/openservicemesh/osm/pkg/compute/kube"
 	policyFake "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
@@ -163,8 +164,9 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 		policyClient := policyFake.NewSimpleClientset()
 		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, policyClient, broker)
+		compute := computekube.NewClient(k8sClient)
 		ctx, cancel := context.WithCancel(context.Background())
-		err = NewValidatingWebhook(ctx, webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, k8sClient)
+		err = NewValidatingWebhook(ctx, webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, compute)
 		tassert.NoError(t, err)
 		cancel()
 	})
@@ -182,7 +184,8 @@ func TestNewValidatingWebhook(t *testing.T) {
 		policyClient := policyFake.NewSimpleClientset()
 		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, policyClient, broker)
 
-		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, k8sClient)
+		compute := computekube.NewClient(k8sClient)
+		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, compute)
 		tassert.NoError(t, err)
 	})
 
@@ -200,8 +203,9 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 		policyClient := policyFake.NewSimpleClientset()
 		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, policyClient, broker)
+		compute := computekube.NewClient(k8sClient)
 
-		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, k8sClient)
+		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, compute)
 		tassert.NoError(t, err)
 	})
 }

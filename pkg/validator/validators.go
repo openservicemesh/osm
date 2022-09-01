@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/compute"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -68,7 +68,7 @@ type validateFunc func(req *admissionv1.AdmissionRequest) (*admissionv1.Admissio
 
 // policyValidator is a validator that has access to a policy
 type policyValidator struct {
-	policyClient k8s.PassthroughInterface
+	policyClient compute.Interface
 }
 
 func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
@@ -112,7 +112,7 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 			Protocol:   backend.Port.Protocol,
 		}
 
-		if matchingPolicy := kc.policyClient.GetIngressBackendPolicy(fakeMeshSvc); matchingPolicy != nil && matchingPolicy.Name != ingressBackend.Name {
+		if matchingPolicy := kc.policyClient.GetIngressBackendPolicy(fakeMeshSvc.Namespace, fakeMeshSvc.Name, int(fakeMeshSvc.TargetPort)); matchingPolicy != nil && matchingPolicy.Name != ingressBackend.Name {
 			// we've found a duplicate
 			if unique := conflictingIngressBackends.Add(matchingPolicy); !unique {
 				// we've already found the conflicts for this resource

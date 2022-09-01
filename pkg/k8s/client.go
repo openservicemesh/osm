@@ -490,8 +490,7 @@ func (c *Client) GetOSMNamespace() string {
 	return c.osmNamespace
 }
 
-// ListEgressPolicies lists the Egress policies for the given source identity based on service accounts
-func (c *Client) ListEgressPolicies(source identity.K8sServiceAccount) []*policyv1alpha1.Egress {
+func (c *Client) ListEgressPolicies() []*policyv1alpha1.Egress {
 	var policies []*policyv1alpha1.Egress
 
 	for _, egressIface := range c.informers.List(osminformers.InformerKeyEgress) {
@@ -500,23 +499,18 @@ func (c *Client) ListEgressPolicies(source identity.K8sServiceAccount) []*policy
 		if !c.IsMonitoredNamespace(egressPolicy.Namespace) {
 			continue
 		}
-
-		for _, sourceSpec := range egressPolicy.Spec.Sources {
-			if sourceSpec.Kind == kindSvcAccount && sourceSpec.Name == source.Name && sourceSpec.Namespace == source.Namespace {
-				policies = append(policies, egressPolicy)
-			}
-		}
+		policies = append(policies, egressPolicy)
 	}
 
 	return policies
 }
 
 // GetIngressBackendPolicy returns the IngressBackend policy for the given backend MeshService
-func (c *Client) GetIngressBackendPolicy(svc service.MeshService) *policyv1alpha1.IngressBackend {
+func (c *Client) GetIngressBackendPolicy(namespace, svcName string, targetPort int) *policyv1alpha1.IngressBackend {
 	for _, ingressBackendIface := range c.informers.List(osminformers.InformerKeyIngressBackend) {
 		ingressBackend := ingressBackendIface.(*policyv1alpha1.IngressBackend)
 
-		if ingressBackend.Namespace != svc.Namespace {
+		if ingressBackend.Namespace != namespace {
 			continue
 		}
 
@@ -525,7 +519,7 @@ func (c *Client) GetIngressBackendPolicy(svc service.MeshService) *policyv1alpha
 		// using a validating webhook.
 		for _, backend := range ingressBackend.Spec.Backends {
 			// we need to check ports to allow ingress to multiple ports on the same svc
-			if backend.Name == svc.Name && backend.Port.Number == int(svc.TargetPort) {
+			if backend.Name == svcName && backend.Port.Number == int(targetPort) {
 				return ingressBackend
 			}
 		}
@@ -534,105 +528,51 @@ func (c *Client) GetIngressBackendPolicy(svc service.MeshService) *policyv1alpha
 	return nil
 }
 
+func (c *Client) ListIngressBackendPolicies() []*policyv1alpha1.IngressBackend {
+	var backends []*policyv1alpha1.IngressBackend
+
+	for _, ingressBackendIface := range c.informers.List(osminformers.InformerKeyIngressBackend) {
+		backend := ingressBackendIface.(*policyv1alpha1.IngressBackend)
+		if !c.IsMonitoredNamespace(backend.Namespace) {
+			continue
+		}
+
+		backends = append(backends, backend)
+	}
+
+	return backends
+}
+
 // ListRetryPolicies returns the retry policies for the given source identity based on service accounts.
-func (c *Client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyv1alpha1.Retry {
+func (c *Client) ListRetryPolicies() []*policyv1alpha1.Retry {
 	var retries []*policyv1alpha1.Retry
 
 	for _, retryInterface := range c.informers.List(osminformers.InformerKeyRetry) {
-		retry := retryInterface.(*policyv1alpha1.Retry)
-		if retry.Spec.Source.Kind == kindSvcAccount && retry.Spec.Source.Name == source.Name && retry.Spec.Source.Namespace == source.Namespace {
-			retries = append(retries, retry)
+		policy := retryInterface.(*policyv1alpha1.Retry)
+		if !c.IsMonitoredNamespace(policy.Namespace) {
+			continue
 		}
+
+		retries = append(retries, policy)
 	}
 
 	return retries
 }
 
-// GetUpstreamTrafficSettingByNamespace returns the UpstreamTrafficSetting resource that matches the namespace
-func (c *Client) GetUpstreamTrafficSettingByNamespace(namespace *types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting {
-	if namespace == nil {
-		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
-		return nil
-	}
-
-	// Filter by namespaced name
-	resource, exists, err := c.informers.GetByKey(osminformers.InformerKeyUpstreamTrafficSetting, namespace.String())
-	if exists && err == nil {
-		return resource.(*policyv1alpha1.UpstreamTrafficSetting)
-	}
-	return nil
-}
-
-// GetUpstreamTrafficSettingByService returns the UpstreamTrafficSetting resource that matches the given service
-func (c *Client) GetUpstreamTrafficSettingByService(meshService *service.MeshService) *policyv1alpha1.UpstreamTrafficSetting {
-	if meshService == nil {
-		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
-		return nil
-	}
+// ListUpstreamTrafficSettings returns the all UpstreamTrafficSetting resources
+func (c *Client) ListUpstreamTrafficSettings() []*policyv1alpha1.UpstreamTrafficSetting {
+	var settings []*policyv1alpha1.UpstreamTrafficSetting
 
 	// Filter by MeshService
 	for _, resource := range c.informers.List(osminformers.InformerKeyUpstreamTrafficSetting) {
-		upstreamTrafficSetting := resource.(*policyv1alpha1.UpstreamTrafficSetting)
+		setting := resource.(*policyv1alpha1.UpstreamTrafficSetting)
 
-		if upstreamTrafficSetting.Namespace == meshService.Namespace &&
-			upstreamTrafficSetting.Spec.Host == meshService.FQDN() {
-			return upstreamTrafficSetting
+		if !c.IsMonitoredNamespace(setting.Namespace) {
+			continue
 		}
+
+		settings = append(settings, setting)
 	}
 
-	return nil
-}
-
-// GetUpstreamTrafficSettingByHost returns the UpstreamTrafficSetting resource that matches the host
-func (c *Client) GetUpstreamTrafficSettingByHost(host string) *policyv1alpha1.UpstreamTrafficSetting {
-	if host == "" {
-		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
-		return nil
-	}
-
-	// Filter by MeshService
-	for _, resource := range c.informers.List(osminformers.InformerKeyUpstreamTrafficSetting) {
-		upstreamTrafficSetting := resource.(*policyv1alpha1.UpstreamTrafficSetting)
-
-		if upstreamTrafficSetting.Spec.Host == host {
-			return upstreamTrafficSetting
-		}
-	}
-
-	return nil
-}
-
-// DetectIngressBackendConflicts detects conflicts between the given IngressBackend resources
-func DetectIngressBackendConflicts(x policyv1alpha1.IngressBackend, y policyv1alpha1.IngressBackend) []error {
-	var conflicts []error // multiple conflicts could exist
-
-	// Check if the backends conflict
-	xSet := mapset.NewSet()
-	type setKey struct {
-		name string
-		port int
-	}
-	for _, backend := range x.Spec.Backends {
-		key := setKey{
-			name: backend.Name,
-			port: backend.Port.Number,
-		}
-		xSet.Add(key)
-	}
-	ySet := mapset.NewSet()
-	for _, backend := range y.Spec.Backends {
-		key := setKey{
-			name: backend.Name,
-			port: backend.Port.Number,
-		}
-		ySet.Add(key)
-	}
-
-	duplicates := xSet.Intersect(ySet)
-	for b := range duplicates.Iter() {
-		err := fmt.Errorf("Backend %s specified in %s and %s conflicts", b.(setKey).name, x.Name, y.Name)
-		conflicts = append(conflicts, err)
-	}
-
-	return conflicts
+	return settings
 }

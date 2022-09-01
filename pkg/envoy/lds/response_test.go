@@ -48,8 +48,8 @@ func TestNewResponse(t *testing.T) {
 	}
 	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
 	provider := compute.NewMockInterface(mockCtrl)
-	provider.EXPECT().ListEgressPolicies(gomock.Any()).Return(nil).AnyTimes()
-	provider.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(nil).AnyTimes()
 

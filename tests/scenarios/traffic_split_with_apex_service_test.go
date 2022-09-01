@@ -36,8 +36,8 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	provider.EXPECT().GetTargetPortForServicePort(gomock.Any(), gomock.Any()).Return(uint16(8888), nil).AnyTimes()
 	provider.EXPECT().ListServicesForProxy(gomock.Any()).Return(nil, nil).AnyTimes()
 
-	provider.EXPECT().ListEgressPolicies(gomock.Any()).Return(nil).AnyTimes()
-	provider.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(nil).AnyTimes()
 	for _, svc := range services {

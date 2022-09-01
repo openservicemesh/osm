@@ -249,7 +249,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
 
-	if err := validator.NewValidatingWebhook(ctx, validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, certManager, kubeClient, k8sClient); err != nil {
+	if err := validator.NewValidatingWebhook(ctx, validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, certManager, kubeClient, computeClient); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, fmt.Sprintf("Error starting the validating webhook server: %s", err))
 	}
 

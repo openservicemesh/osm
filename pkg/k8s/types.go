@@ -78,11 +78,6 @@ const (
 	UpstreamTrafficSetting InformerKey = "UpstreamTrafficSetting"
 )
 
-const (
-	// kindSvcAccount is the ServiceAccount kind
-	kindSvcAccount = "ServiceAccount"
-)
-
 // Client is the type used to represent the k8s client for the native k8s resources
 type Client struct {
 	policyClient   policyv1alpha1Client.Interface
@@ -145,21 +140,18 @@ type PassthroughInterface interface {
 
 	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
 
-	// ListEgressPolicies lists the Egress policies for the given source identity
-	ListEgressPolicies(identity.K8sServiceAccount) []*policyv1alpha1.Egress
+	// ListEgressPolicies lists the all Egress policies
+	ListEgressPolicies() []*policyv1alpha1.Egress
+
+	// ListIngressBackends lists the all IngressBackend policies
+	ListIngressBackendPolicies() []*policyv1alpha1.IngressBackend
 
 	// GetIngressBackendPolicy returns the IngressBackend policy for the given backend MeshService
-	GetIngressBackendPolicy(service.MeshService) *policyv1alpha1.IngressBackend
+	GetIngressBackendPolicy(string, string, int) *policyv1alpha1.IngressBackend
 
-	// ListRetryPolicies returns the Retry policies for the given source identity
-	ListRetryPolicies(identity.K8sServiceAccount) []*policyv1alpha1.Retry
+	// ListRetryPolicies returns the all retry policies
+	ListRetryPolicies() []*policyv1alpha1.Retry
 
-	// GetUpstreamTrafficSettingByService returns the UpstreamTrafficSetting resource that matches the MeshService
-	GetUpstreamTrafficSettingByService(*service.MeshService) *policyv1alpha1.UpstreamTrafficSetting
-
-	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the namespace
-	GetUpstreamTrafficSettingByNamespace(*types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting
-
-	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the host
-	GetUpstreamTrafficSettingByHost(string) *policyv1alpha1.UpstreamTrafficSetting
+	// ListUpstreamTrafficSettings returns all UpstreamTrafficSetting resources
+	ListUpstreamTrafficSettings() []*policyv1alpha1.UpstreamTrafficSetting
 }

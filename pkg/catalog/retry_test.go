@@ -232,7 +232,7 @@ func TestGetRetryPolicy(t *testing.T) {
 					},
 				},
 			).AnyTimes()
-			mockCompute.EXPECT().ListRetryPolicies(gomock.Any()).Return(tc.retryCRDs).Times(1)
+			mockCompute.EXPECT().ListRetryPoliciesForServiceAccount(gomock.Any()).Return(tc.retryCRDs).Times(1)
 
 			res := mc.getRetryPolicy(retrySrc, tc.destSvc)
 			assert.Equal(tc.expectedRetryPolicy, res)
