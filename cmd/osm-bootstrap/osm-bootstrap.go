@@ -11,13 +11,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	clientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apiclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -28,19 +26,14 @@ import (
 	"k8s.io/kubectl/pkg/util"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/health"
-	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/crdconversion"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/reconciler"
 	"github.com/openservicemesh/osm/pkg/signals"
@@ -68,7 +61,6 @@ var (
 	certProviderKind          string
 	enableMeshRootCertificate bool
 
-	tresorOptions      providers.TresorOptions
 	vaultOptions       providers.VaultOptions
 	certManagerOptions providers.CertManagerOptions
 
@@ -124,21 +116,6 @@ func init() {
 	_ = admissionv1.AddToScheme(scheme)
 }
 
-// TODO(#4502): This function can be deleted once we get rid of cert options.
-func getCertOptions() (providers.Options, error) {
-	switch providers.Kind(certProviderKind) {
-	case providers.TresorKind:
-		tresorOptions.SecretName = caBundleSecretName
-		return tresorOptions, nil
-	case providers.VaultKind:
-		vaultOptions.VaultTokenSecretNamespace = osmNamespace
-		return vaultOptions, nil
-	case providers.CertManagerKind:
-		return certManagerOptions, nil
-	}
-	return nil, fmt.Errorf("unknown certificate provider kind: %s", certProviderKind)
-}
-
 func main() {
 	log.Info().Msgf("Starting osm-bootstrap %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 	if err := parseFlags(); err != nil {
@@ -161,7 +138,6 @@ func main() {
 	}
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
-	crdClient := apiclient.NewForConfigOrDie(kubeConfig)
 	apiServerClient := clientset.NewForConfigOrDie(kubeConfig)
 	configClient, err := configClientset.NewForConfig(kubeConfig)
 	if err != nil {
@@ -194,7 +170,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Error initializing Kubernetes events recorder")
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	stop := signals.RegisterExitHandlers(cancel)
 
@@ -203,47 +179,8 @@ func main() {
 		metricsstore.DefaultMetricsStore.ErrCodeCounter,
 		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
 		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
-		metricsstore.DefaultMetricsStore.ConversionWebhookResourceTotal,
 		metricsstore.DefaultMetricsStore.ReconciliationTotal,
 	)
-
-	msgBroker := messaging.NewBroker(stop)
-
-	informerCollection, err := informers.NewInformerCollection(meshName, stop,
-		informers.WithKubeClient(kubeClient),
-		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
-	)
-
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
-	}
-
-	certOpts, err := getCertOptions()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error getting certificate options")
-	}
-
-	k8sClient := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, nil, msgBroker)
-
-	var certManager *certificate.Manager
-	if enableMeshRootCertificate {
-		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace, certOpts, k8sClient, informerCollection, 5*time.Second)
-		if err != nil {
-			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
-				"Error initializing certificate manager of kind %s from MRC", certProviderKind)
-		}
-	} else {
-		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, osmNamespace, certOpts, k8sClient, 5*time.Second, trustDomain)
-		if err != nil {
-			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
-				"Error initializing certificate manager of kind %s", certProviderKind)
-		}
-	}
-
-	// Initialize the crd conversion webhook server to support the conversion of OSM's CRDs
-	if err := crdconversion.NewConversionWebhook(ctx, crdClient, certManager, osmNamespace); err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, fmt.Sprintf("Error creating crd conversion webhook: %s", err))
-	}
 
 	version.SetMetric()
 	/*

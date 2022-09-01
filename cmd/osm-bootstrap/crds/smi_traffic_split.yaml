@@ -30,6 +30,8 @@ spec:
     - ts
     plural: trafficsplits
     singular: trafficsplit
+  conversion:
+    strategy: None
   versions:
     - name: v1alpha4
       served: false

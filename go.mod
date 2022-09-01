@@ -30,7 +30,6 @@ require (
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mitchellh/gox v1.0.1
 	github.com/mitchellh/hashstructure/v2 v2.0.1
-	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/norwoodj/helm-docs v1.4.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo v1.16.5

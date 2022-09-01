@@ -29,6 +29,8 @@ spec:
       - htr
     plural: httproutegroups
     singular: httproutegroup
+  conversion:
+    strategy: None
   versions:
     - name: v1alpha4
       served: true
