@@ -155,6 +155,20 @@ func (mr *MockControllerMockRecorder) GetTargetPortForServicePort(arg0, arg1 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortForServicePort", reflect.TypeOf((*MockController)(nil).GetTargetPortForServicePort), arg0, arg1)
 }
 
+// GetUpstreamTrafficSettingByKey mocks base method.
+func (m *MockController) GetUpstreamTrafficSettingByKey(arg0 string) *v1alpha1.UpstreamTrafficSetting {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUpstreamTrafficSettingByKey", arg0)
+	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
+	return ret0
+}
+
+// GetUpstreamTrafficSettingByKey indicates an expected call of GetUpstreamTrafficSettingByKey.
+func (mr *MockControllerMockRecorder) GetUpstreamTrafficSettingByKey(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSettingByKey", reflect.TypeOf((*MockController)(nil).GetUpstreamTrafficSettingByKey), arg0)
+}
+
 // IsMonitoredNamespace mocks base method.
 func (m *MockController) IsMonitoredNamespace(arg0 string) bool {
 	m.ctrl.T.Helper()

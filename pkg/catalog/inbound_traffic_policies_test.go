@@ -1800,7 +1800,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Namespace: "ns1",
 					},
 					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
-						Host: "s1.ns1.svc.cluster.local",
+						Host:      "s1.ns1.svc.cluster.local",
 						RateLimit: virtualHostLocalRateLimitConfig,
 						HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
 							{
@@ -1815,7 +1815,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Namespace: "ns1",
 					},
 					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
-						Host: "s2.ns1.svc.cluster.local",
+						Host:      "s2.ns1.svc.cluster.local",
 						RateLimit: virtualHostLocalRateLimitConfig,
 						HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
 							{
@@ -1956,7 +1956,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Namespace: "ns1",
 					},
 					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
-						Host: "s1.ns1.svc.cluster.local",
+						Host:      "s1.ns1.svc.cluster.local",
 						RateLimit: virtualHostLocalRateLimitConfig,
 						HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
 							{
@@ -1971,7 +1971,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Namespace: "ns1",
 					},
 					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
-						Host: "s2.ns1.svc.cluster.local",
+						Host:      "s2.ns1.svc.cluster.local",
 						RateLimit: virtualHostLocalRateLimitConfig,
 						HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
 							{
@@ -2092,7 +2092,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Namespace: "ns1",
 					},
 					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
-						Host: "s1.ns1.svc.cluster.local",
+						Host:      "s1.ns1.svc.cluster.local",
 						RateLimit: virtualHostGlobalRateLimitConfig,
 						HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
 							{
@@ -2107,7 +2107,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Namespace: "ns1",
 					},
 					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
-						Host: "s2.ns1.svc.cluster.local",
+						Host:      "s2.ns1.svc.cluster.local",
 						RateLimit: virtualHostGlobalRateLimitConfig,
 						HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
 							{

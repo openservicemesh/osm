@@ -3,8 +3,10 @@ package kube
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -13,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
@@ -20,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -832,7 +836,6 @@ func TestListServicesForProxy(t *testing.T) {
 	}
 }
 
-
 func TestDetectIngressBackendConflicts(t *testing.T) {
 	testCases := []struct {
 		name              string
@@ -1018,6 +1021,660 @@ func TestDetectIngressBackendConflicts(t *testing.T) {
 
 			conflicts := DetectIngressBackendConflicts(tc.x, tc.y)
 			a.Len(conflicts, tc.conflictsExpected)
+		})
+	}
+}
+
+func TestListEgressPoliciesForSourceAccount(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
+
+	testCases := []struct {
+		name             string
+		allEgresses      []*policyv1alpha1.Egress
+		source           identity.K8sServiceAccount
+		expectedEgresses []*policyv1alpha1.Egress
+	}{
+		{
+			name: "matching egress policy not found for source identity test/sa-3",
+			allEgresses: []*policyv1alpha1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "egress-1",
+						Namespace: "test",
+					},
+					Spec: policyv1alpha1.EgressSpec{
+						Sources: []policyv1alpha1.EgressSourceSpec{
+							{
+								Kind:      "ServiceAccount",
+								Name:      "sa-1",
+								Namespace: "test",
+							},
+							{
+								Kind:      "ServiceAccount",
+								Name:      "sa-2",
+								Namespace: "test",
+							},
+						},
+						Hosts: []string{"foo.com"},
+						Ports: []policyv1alpha1.PortSpec{
+							{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+				},
+			},
+			source:           identity.K8sServiceAccount{Name: "sa-3", Namespace: "test"},
+			expectedEgresses: nil,
+		},
+		{
+			name: "matching egress policy found for source identity test/sa-1",
+			allEgresses: []*policyv1alpha1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "egress-1",
+						Namespace: "test",
+					},
+					Spec: policyv1alpha1.EgressSpec{
+						Sources: []policyv1alpha1.EgressSourceSpec{
+							{
+								Kind:      "ServiceAccount",
+								Name:      "sa-1",
+								Namespace: "test",
+							},
+							{
+								Kind:      "ServiceAccount",
+								Name:      "sa-2",
+								Namespace: "test",
+							},
+						},
+						Hosts: []string{"foo.com"},
+						Ports: []policyv1alpha1.PortSpec{
+							{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+				},
+			},
+			source: identity.K8sServiceAccount{Name: "sa-1", Namespace: "test"},
+			expectedEgresses: []*policyv1alpha1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "egress-1",
+						Namespace: "test",
+					},
+					Spec: policyv1alpha1.EgressSpec{
+						Sources: []policyv1alpha1.EgressSourceSpec{
+							{
+								Kind:      "ServiceAccount",
+								Name:      "sa-1",
+								Namespace: "test",
+							},
+							{
+								Kind:      "ServiceAccount",
+								Name:      "sa-2",
+								Namespace: "test",
+							},
+						},
+						Hosts: []string{"foo.com"},
+						Ports: []policyv1alpha1.PortSpec{
+							{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+
+			c := NewClient(mockKubeController)
+			a.Nil(err)
+			a.NotNil(c)
+
+			// Create fake egress policies
+			for _, egressPolicy := range tc.allEgresses {
+				_ = ic.Add(informers.InformerKeyEgress, egressPolicy, t)
+			}
+
+			mockKubeController.EXPECT().ListEgressPolicies().Return(tc.allEgresses).AnyTimes()
+			actual := c.ListEgressPoliciesForServiceAccount(tc.source)
+			a.ElementsMatch(tc.expectedEgresses, actual)
+		})
+	}
+}
+
+func TestGetIngressBackendPolicy(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
+
+	testCases := []struct {
+		name                   string
+		allResources           []*policyv1alpha1.IngressBackend
+		backend                service.MeshService
+		expectedIngressBackend *policyv1alpha1.IngressBackend
+	}{
+		{
+			name: "IngressBackend policy found",
+			allResources: []*policyv1alpha1.IngressBackend{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-backend-1",
+						Namespace: "test",
+					},
+					Spec: policyv1alpha1.IngressBackendSpec{
+						Backends: []policyv1alpha1.BackendSpec{
+							{
+								Name: "backend1", // matches the backend specified in the test case
+								Port: policyv1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+							{
+								Name: "backend2",
+								Port: policyv1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyv1alpha1.IngressSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-backend-2",
+						Namespace: "test",
+					},
+					Spec: policyv1alpha1.IngressBackendSpec{
+						Backends: []policyv1alpha1.BackendSpec{
+							{
+								Name: "backend3", // does not match the backend specified in the test case
+								Port: policyv1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyv1alpha1.IngressSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+			},
+			backend: service.MeshService{Name: "backend1", Namespace: "test", TargetPort: 80, Protocol: "http"},
+			expectedIngressBackend: &policyv1alpha1.IngressBackend{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-backend-1",
+					Namespace: "test",
+				},
+				Spec: policyv1alpha1.IngressBackendSpec{
+					Backends: []policyv1alpha1.BackendSpec{
+						{
+							Name: "backend1",
+							Port: policyv1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+						{
+							Name: "backend2",
+							Port: policyv1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyv1alpha1.IngressSourceSpec{
+						{
+							Kind:      "Service",
+							Name:      "client",
+							Namespace: "foo",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "IngressBackend policy namespace does not match MeshService.Namespace",
+			allResources: []*policyv1alpha1.IngressBackend{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-backend-1",
+						Namespace: "test",
+					},
+					Spec: policyv1alpha1.IngressBackendSpec{
+						Backends: []policyv1alpha1.BackendSpec{
+							{
+								Name: "backend1", // matches the backend specified in the test case
+								Port: policyv1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+							{
+								Name: "backend2",
+								Port: policyv1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyv1alpha1.IngressSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ingress-backend-2",
+						Namespace: "test",
+					},
+					Spec: policyv1alpha1.IngressBackendSpec{
+						Backends: []policyv1alpha1.BackendSpec{
+							{
+								Name: "backend2", // does not match the backend specified in the test case
+								Port: policyv1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyv1alpha1.IngressSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+			},
+			backend:                service.MeshService{Name: "backend1", Namespace: "test-1"}, // Namespace does not match IngressBackend.Namespace
+			expectedIngressBackend: nil,
+		},
+		{
+			name:                   "IngressBackend policy not found",
+			allResources:           []*policyv1alpha1.IngressBackend{},
+			backend:                service.MeshService{Name: "backend1", Namespace: "test"},
+			expectedIngressBackend: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+
+			c := NewClient(mockKubeController)
+			a.Nil(err)
+			a.NotNil(c)
+
+			// Create fake ingress backends
+			for _, ingressBackend := range tc.allResources {
+				_ = ic.Add(informers.InformerKeyIngressBackend, ingressBackend, t)
+			}
+
+			mockKubeController.EXPECT().ListIngressBackendPolicies().Return(tc.allResources).AnyTimes()
+
+			actual := c.GetIngressBackendPolicyForService(tc.backend)
+			a.Equal(tc.expectedIngressBackend, actual)
+		})
+	}
+}
+
+func TestListRetryPolicy(t *testing.T) {
+	var thresholdUintVal uint32 = 3
+	thresholdTimeoutDuration := metav1.Duration{Duration: time.Duration(5 * time.Second)}
+	thresholdBackoffDuration := metav1.Duration{Duration: time.Duration(1 * time.Second)}
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
+
+	testCases := []struct {
+		name            string
+		allRetries      []*policyv1alpha1.Retry
+		source          identity.K8sServiceAccount
+		expectedRetries []*policyv1alpha1.Retry
+	}{
+		{
+			name: "matching retry policy not found for source identity test/sa-3",
+			allRetries: []*policyv1alpha1.Retry{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "retry-1",
+						Namespace: "test",
+					},
+					Spec: policyv1alpha1.RetrySpec{
+						Source: policyv1alpha1.RetrySrcDstSpec{
+							Kind:      "ServiceAccount",
+							Name:      "sa-1",
+							Namespace: "test",
+						},
+						Destinations: []policyv1alpha1.RetrySrcDstSpec{
+							{
+								Kind:      "Service",
+								Name:      "s1",
+								Namespace: "test",
+							},
+							{
+								Kind:      "Service",
+								Name:      "s2",
+								Namespace: "test",
+							},
+						},
+						RetryPolicy: policyv1alpha1.RetryPolicySpec{
+							RetryOn:                  "",
+							NumRetries:               &thresholdUintVal,
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
+						},
+					},
+				},
+			},
+			source:          identity.K8sServiceAccount{Name: "sa-3", Namespace: "test"},
+			expectedRetries: nil,
+		},
+		{
+			name: "matching retry policy found for source identity test/sa-1",
+			allRetries: []*policyv1alpha1.Retry{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "retry-1",
+						Namespace: "test",
+					},
+					Spec: policyv1alpha1.RetrySpec{
+						Source: policyv1alpha1.RetrySrcDstSpec{
+							Kind:      "ServiceAccount",
+							Name:      "sa-1",
+							Namespace: "test",
+						},
+						Destinations: []policyv1alpha1.RetrySrcDstSpec{
+							{
+								Kind:      "Service",
+								Name:      "s1",
+								Namespace: "test",
+							},
+							{
+								Kind:      "Service",
+								Name:      "s2",
+								Namespace: "test",
+							},
+						},
+						RetryPolicy: policyv1alpha1.RetryPolicySpec{
+							RetryOn:                  "",
+							NumRetries:               &thresholdUintVal,
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
+						},
+					},
+				},
+			},
+			source: identity.K8sServiceAccount{Name: "sa-1", Namespace: "test"},
+			expectedRetries: []*policyv1alpha1.Retry{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "retry-1",
+						Namespace: "test",
+					},
+					Spec: policyv1alpha1.RetrySpec{
+						Source: policyv1alpha1.RetrySrcDstSpec{
+							Kind:      "ServiceAccount",
+							Name:      "sa-1",
+							Namespace: "test",
+						},
+						Destinations: []policyv1alpha1.RetrySrcDstSpec{
+							{
+								Kind:      "Service",
+								Name:      "s1",
+								Namespace: "test",
+							},
+							{
+								Kind:      "Service",
+								Name:      "s2",
+								Namespace: "test",
+							},
+						},
+						RetryPolicy: policyv1alpha1.RetryPolicySpec{
+							RetryOn:                  "",
+							NumRetries:               &thresholdUintVal,
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+
+			c := NewClient(mockKubeController)
+			a.Nil(err)
+			a.NotNil(c)
+
+			// Create fake retry policies
+			for _, retryPolicy := range tc.allRetries {
+				err := ic.Add(informers.InformerKeyRetry, retryPolicy, t)
+				a.Nil(err)
+			}
+
+			mockKubeController.EXPECT().ListRetryPolicies().Return(tc.allRetries).AnyTimes()
+
+			actual := c.ListRetryPoliciesForServiceAccount(tc.source)
+			a.ElementsMatch(tc.expectedRetries, actual)
+		})
+	}
+}
+
+func TestGetUpstreamTrafficSettingByService(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
+
+	testCases := []struct {
+		name         string
+		allResources []*policyv1alpha1.UpstreamTrafficSetting
+		service      *service.MeshService
+		expected     *policyv1alpha1.UpstreamTrafficSetting
+	}{
+		{
+			name: "MeshService has matching UpstreamTrafficSetting",
+			allResources: []*policyv1alpha1.UpstreamTrafficSetting{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "u1",
+						Namespace: "ns1",
+					},
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+						Host: "s1.ns1.svc.cluster.local",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "u2",
+						Namespace: "ns1",
+					},
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+						Host: "s2.ns1.svc.cluster.local",
+					},
+				},
+			},
+			service: &service.MeshService{Name: "s1", Namespace: "ns1"},
+			expected: &policyv1alpha1.UpstreamTrafficSetting{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "u1",
+					Namespace: "ns1",
+				},
+				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+					Host: "s1.ns1.svc.cluster.local",
+				},
+			},
+		},
+		{
+			name: "MeshService that does not match any UpstreamTrafficSetting",
+			allResources: []*policyv1alpha1.UpstreamTrafficSetting{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "u1",
+						Namespace: "ns1",
+					},
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+						Host: "s1.ns1.svc.cluster.local",
+					},
+				},
+			},
+			service:  &service.MeshService{Name: "s3", Namespace: "ns1"},
+			expected: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+
+			c := NewClient(mockKubeController)
+			a.Nil(err)
+			a.NotNil(c)
+
+			// Create fake egress policies
+			for _, resource := range tc.allResources {
+				_ = ic.Add(informers.InformerKeyUpstreamTrafficSetting, resource, t)
+			}
+
+			mockKubeController.EXPECT().ListUpstreamTrafficSettings().Return(tc.allResources).AnyTimes()
+
+			actual := c.GetUpstreamTrafficSettingByService(tc.service)
+			a.Equal(tc.expected, actual)
+		})
+	}
+}
+
+func TestGetUpstreamTrafficSettingByNamespace(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController.EXPECT().IsMonitoredNamespace("ns1").Return(true).AnyTimes()
+
+	name1 := &types.NamespacedName{Namespace: "ns1", Name: "u1"}
+	name2 := &types.NamespacedName{Namespace: "ns1", Name: "u2"}
+	name3 := &types.NamespacedName{Namespace: "ns1", Name: "u3"}
+	resource1 := &policyv1alpha1.UpstreamTrafficSetting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "u1",
+			Namespace: "ns1",
+		},
+		Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+			Host: "s1.ns1.svc.cluster.local",
+		},
+	}
+	resource2 := &policyv1alpha1.UpstreamTrafficSetting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "u2",
+			Namespace: "ns1",
+		},
+		Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+			Host: "s2.ns1.svc.cluster.local",
+		},
+	}
+
+	testCases := []struct {
+		name         string
+		allResources []*policyv1alpha1.UpstreamTrafficSetting
+		namespace    *types.NamespacedName
+		expected     *policyv1alpha1.UpstreamTrafficSetting
+	}{
+		{
+			name:         "UpstreamTrafficSetting namespaced name found",
+			allResources: []*policyv1alpha1.UpstreamTrafficSetting{resource1, resource2},
+			namespace:    name1,
+			expected:     resource1,
+		},
+		{
+			name:         "UpstreamTrafficSetting namespaced name not found",
+			allResources: []*policyv1alpha1.UpstreamTrafficSetting{resource1},
+			namespace:    name3,
+			expected:     nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+
+			c := NewClient(mockKubeController)
+			a.Nil(err)
+			a.NotNil(c)
+
+			// Create fake egress policies
+			for _, resource := range tc.allResources {
+				_ = ic.Add(informers.InformerKeyUpstreamTrafficSetting, resource, t)
+			}
+
+			mockKubeController.EXPECT().ListUpstreamTrafficSettings().Return(tc.allResources).AnyTimes()
+			mockKubeController.EXPECT().GetUpstreamTrafficSettingByKey(name1.String()).Return(resource1).AnyTimes()
+			mockKubeController.EXPECT().GetUpstreamTrafficSettingByKey(name2.String()).Return(resource2).AnyTimes()
+			mockKubeController.EXPECT().GetUpstreamTrafficSettingByKey(name3.String()).Return(nil).AnyTimes()
+
+			actual := c.GetUpstreamTrafficSettingByNamespace(tc.namespace)
+			a.Equal(tc.expected, actual)
 		})
 	}
 }

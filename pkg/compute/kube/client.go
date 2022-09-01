@@ -301,7 +301,18 @@ func (c *client) ListEgressPoliciesForServiceAccount(source identity.K8sServiceA
 
 // GetIngressBackendPolicyForService returns the IngressBackend policy for the given backend MeshService
 func (c *client) GetIngressBackendPolicyForService(svc service.MeshService) *policyv1alpha1.IngressBackend {
-	return c.kubeController.GetIngressBackendPolicy(svc.Namespace, svc.Name, int(svc.TargetPort))
+	for _, ingressBackend := range c.kubeController.ListIngressBackendPolicies() {
+		// Return the first IngressBackend corresponding to the given MeshService.
+		// Multiple IngressBackend policies for the same backend will be prevented
+		// using a validating webhook.
+		for _, backend := range ingressBackend.Spec.Backends {
+			// we need to check ports to allow ingress to multiple ports on the same svc
+			if backend.Name == svc.Name && backend.Port.Number == int(svc.TargetPort) {
+				return ingressBackend
+			}
+		}
+	}
+	return nil
 }
 
 // ListRetryPoliciesForServiceAccount returns the retry policies for the given source identity based on service accounts.
@@ -324,14 +335,7 @@ func (c *client) GetUpstreamTrafficSettingByNamespace(namespace *types.Namespace
 		return nil
 	}
 
-	// Filter by namespace
-	for _, setting := range c.kubeController.ListUpstreamTrafficSettings() {
-		if setting.Namespace == namespace.String() {
-			return setting
-		}
-	}
-
-	return nil
+	return c.kubeController.GetUpstreamTrafficSettingByKey(namespace.String())
 }
 
 // GetUpstreamTrafficSettingByService returns the UpstreamTrafficSetting resource that matches the given service

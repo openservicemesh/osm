@@ -576,3 +576,12 @@ func (c *Client) ListUpstreamTrafficSettings() []*policyv1alpha1.UpstreamTraffic
 
 	return settings
 }
+
+// GetUpstreamTrafficSettingByNamespace returns the UpstreamTrafficSetting resources with matching namespaced name
+func (c *Client) GetUpstreamTrafficSettingByKey(key string) *policyv1alpha1.UpstreamTrafficSetting {
+	resource, exists, err := c.informers.GetByKey(osminformers.InformerKeyUpstreamTrafficSetting, key)
+	if exists && err == nil {
+		return resource.(*policyv1alpha1.UpstreamTrafficSetting)
+	}
+	return nil
+}

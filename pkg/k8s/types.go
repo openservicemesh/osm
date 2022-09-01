@@ -154,4 +154,7 @@ type PassthroughInterface interface {
 
 	// ListUpstreamTrafficSettings returns all UpstreamTrafficSetting resources
 	ListUpstreamTrafficSettings() []*policyv1alpha1.UpstreamTrafficSetting
+
+	// GetUpstreamTrafficSettingByNamespace returns the UpstreamTrafficSetting resources with matching namespaced name
+	GetUpstreamTrafficSettingByKey(string) *policyv1alpha1.UpstreamTrafficSetting
 }
