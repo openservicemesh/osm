@@ -490,6 +490,7 @@ func (c *Client) GetOSMNamespace() string {
 	return c.osmNamespace
 }
 
+// ListEgressPolicies lists the all Egress policies
 func (c *Client) ListEgressPolicies() []*policyv1alpha1.Egress {
 	var policies []*policyv1alpha1.Egress
 
@@ -505,29 +506,7 @@ func (c *Client) ListEgressPolicies() []*policyv1alpha1.Egress {
 	return policies
 }
 
-// GetIngressBackendPolicy returns the IngressBackend policy for the given backend MeshService
-func (c *Client) GetIngressBackendPolicy(namespace, svcName string, targetPort int) *policyv1alpha1.IngressBackend {
-	for _, ingressBackendIface := range c.informers.List(osminformers.InformerKeyIngressBackend) {
-		ingressBackend := ingressBackendIface.(*policyv1alpha1.IngressBackend)
-
-		if ingressBackend.Namespace != namespace {
-			continue
-		}
-
-		// Return the first IngressBackend corresponding to the given MeshService.
-		// Multiple IngressBackend policies for the same backend will be prevented
-		// using a validating webhook.
-		for _, backend := range ingressBackend.Spec.Backends {
-			// we need to check ports to allow ingress to multiple ports on the same svc
-			if backend.Name == svcName && backend.Port.Number == int(targetPort) {
-				return ingressBackend
-			}
-		}
-	}
-
-	return nil
-}
-
+// ListIngressBackendPolicies lists the all IngressBackend policies
 func (c *Client) ListIngressBackendPolicies() []*policyv1alpha1.IngressBackend {
 	var backends []*policyv1alpha1.IngressBackend
 
@@ -577,9 +556,9 @@ func (c *Client) ListUpstreamTrafficSettings() []*policyv1alpha1.UpstreamTraffic
 	return settings
 }
 
-// GetUpstreamTrafficSettingByNamespace returns the UpstreamTrafficSetting resources with matching namespaced name
-func (c *Client) GetUpstreamTrafficSettingByKey(key string) *policyv1alpha1.UpstreamTrafficSetting {
-	resource, exists, err := c.informers.GetByKey(osminformers.InformerKeyUpstreamTrafficSetting, key)
+// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resources with namespaced name
+func (c *Client) GetUpstreamTrafficSetting(namespace *types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting {
+	resource, exists, err := c.informers.GetByKey(osminformers.InformerKeyUpstreamTrafficSetting, namespace.String())
 	if exists && err == nil {
 		return resource.(*policyv1alpha1.UpstreamTrafficSetting)
 	}

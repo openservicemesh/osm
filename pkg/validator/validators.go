@@ -112,7 +112,7 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 			Protocol:   backend.Port.Protocol,
 		}
 
-		if matchingPolicy := kc.policyClient.GetIngressBackendPolicy(fakeMeshSvc.Namespace, fakeMeshSvc.Name, int(fakeMeshSvc.TargetPort)); matchingPolicy != nil && matchingPolicy.Name != ingressBackend.Name {
+		if matchingPolicy := kc.policyClient.GetIngressBackendPolicyForService(fakeMeshSvc); matchingPolicy != nil && matchingPolicy.Name != ingressBackend.Name {
 			// we've found a duplicate
 			if unique := conflictingIngressBackends.Add(matchingPolicy); !unique {
 				// we've already found the conflicts for this resource

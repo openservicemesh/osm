@@ -54,20 +54,6 @@ func (mr *MockInterfaceMockRecorder) GetHostnamesForService(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostnamesForService", reflect.TypeOf((*MockInterface)(nil).GetHostnamesForService), arg0, arg1)
 }
 
-// GetIngressBackendPolicy mocks base method.
-func (m *MockInterface) GetIngressBackendPolicy(arg0, arg1 string, arg2 int) *v1alpha1.IngressBackend {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetIngressBackendPolicy", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v1alpha1.IngressBackend)
-	return ret0
-}
-
-// GetIngressBackendPolicy indicates an expected call of GetIngressBackendPolicy.
-func (mr *MockInterfaceMockRecorder) GetIngressBackendPolicy(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressBackendPolicy", reflect.TypeOf((*MockInterface)(nil).GetIngressBackendPolicy), arg0, arg1, arg2)
-}
-
 // GetIngressBackendPolicyForService mocks base method.
 func (m *MockInterface) GetIngressBackendPolicyForService(arg0 service.MeshService) *v1alpha1.IngressBackend {
 	m.ctrl.T.Helper()
@@ -153,6 +139,20 @@ func (mr *MockInterfaceMockRecorder) GetTargetPortForServicePort(arg0, arg1 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortForServicePort", reflect.TypeOf((*MockInterface)(nil).GetTargetPortForServicePort), arg0, arg1)
 }
 
+// GetUpstreamTrafficSetting mocks base method.
+func (m *MockInterface) GetUpstreamTrafficSetting(arg0 *types.NamespacedName) *v1alpha1.UpstreamTrafficSetting {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUpstreamTrafficSetting", arg0)
+	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
+	return ret0
+}
+
+// GetUpstreamTrafficSetting indicates an expected call of GetUpstreamTrafficSetting.
+func (mr *MockInterfaceMockRecorder) GetUpstreamTrafficSetting(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSetting", reflect.TypeOf((*MockInterface)(nil).GetUpstreamTrafficSetting), arg0)
+}
+
 // GetUpstreamTrafficSettingByHost mocks base method.
 func (m *MockInterface) GetUpstreamTrafficSettingByHost(arg0 string) *v1alpha1.UpstreamTrafficSetting {
 	m.ctrl.T.Helper()
@@ -165,20 +165,6 @@ func (m *MockInterface) GetUpstreamTrafficSettingByHost(arg0 string) *v1alpha1.U
 func (mr *MockInterfaceMockRecorder) GetUpstreamTrafficSettingByHost(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSettingByHost", reflect.TypeOf((*MockInterface)(nil).GetUpstreamTrafficSettingByHost), arg0)
-}
-
-// GetUpstreamTrafficSettingByKey mocks base method.
-func (m *MockInterface) GetUpstreamTrafficSettingByKey(arg0 string) *v1alpha1.UpstreamTrafficSetting {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUpstreamTrafficSettingByKey", arg0)
-	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
-	return ret0
-}
-
-// GetUpstreamTrafficSettingByKey indicates an expected call of GetUpstreamTrafficSettingByKey.
-func (mr *MockInterfaceMockRecorder) GetUpstreamTrafficSettingByKey(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSettingByKey", reflect.TypeOf((*MockInterface)(nil).GetUpstreamTrafficSettingByKey), arg0)
 }
 
 // GetUpstreamTrafficSettingByNamespace mocks base method.

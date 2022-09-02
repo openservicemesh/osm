@@ -335,7 +335,7 @@ func (c *client) GetUpstreamTrafficSettingByNamespace(namespace *types.Namespace
 		return nil
 	}
 
-	return c.kubeController.GetUpstreamTrafficSettingByKey(namespace.String())
+	return c.kubeController.GetUpstreamTrafficSetting(namespace)
 }
 
 // GetUpstreamTrafficSettingByService returns the UpstreamTrafficSetting resource that matches the given service

@@ -146,15 +146,12 @@ type PassthroughInterface interface {
 	// ListIngressBackends lists the all IngressBackend policies
 	ListIngressBackendPolicies() []*policyv1alpha1.IngressBackend
 
-	// GetIngressBackendPolicy returns the IngressBackend policy for the given backend MeshService
-	GetIngressBackendPolicy(string, string, int) *policyv1alpha1.IngressBackend
-
 	// ListRetryPolicies returns the all retry policies
 	ListRetryPolicies() []*policyv1alpha1.Retry
 
 	// ListUpstreamTrafficSettings returns all UpstreamTrafficSetting resources
 	ListUpstreamTrafficSettings() []*policyv1alpha1.UpstreamTrafficSetting
 
-	// GetUpstreamTrafficSettingByNamespace returns the UpstreamTrafficSetting resources with matching namespaced name
-	GetUpstreamTrafficSettingByKey(string) *policyv1alpha1.UpstreamTrafficSetting
+	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resources with namespaced name
+	GetUpstreamTrafficSetting(*types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting
 }

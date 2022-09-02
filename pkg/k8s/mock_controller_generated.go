@@ -55,20 +55,6 @@ func (mr *MockControllerMockRecorder) GetEndpoints(arg0 interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEndpoints", reflect.TypeOf((*MockController)(nil).GetEndpoints), arg0)
 }
 
-// GetIngressBackendPolicy mocks base method.
-func (m *MockController) GetIngressBackendPolicy(arg0, arg1 string, arg2 int) *v1alpha1.IngressBackend {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetIngressBackendPolicy", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v1alpha1.IngressBackend)
-	return ret0
-}
-
-// GetIngressBackendPolicy indicates an expected call of GetIngressBackendPolicy.
-func (mr *MockControllerMockRecorder) GetIngressBackendPolicy(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressBackendPolicy", reflect.TypeOf((*MockController)(nil).GetIngressBackendPolicy), arg0, arg1, arg2)
-}
-
 // GetMeshConfig mocks base method.
 func (m *MockController) GetMeshConfig() v1alpha2.MeshConfig {
 	m.ctrl.T.Helper()
@@ -155,18 +141,18 @@ func (mr *MockControllerMockRecorder) GetTargetPortForServicePort(arg0, arg1 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortForServicePort", reflect.TypeOf((*MockController)(nil).GetTargetPortForServicePort), arg0, arg1)
 }
 
-// GetUpstreamTrafficSettingByKey mocks base method.
-func (m *MockController) GetUpstreamTrafficSettingByKey(arg0 string) *v1alpha1.UpstreamTrafficSetting {
+// GetUpstreamTrafficSetting mocks base method.
+func (m *MockController) GetUpstreamTrafficSetting(arg0 *types.NamespacedName) *v1alpha1.UpstreamTrafficSetting {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUpstreamTrafficSettingByKey", arg0)
+	ret := m.ctrl.Call(m, "GetUpstreamTrafficSetting", arg0)
 	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
 	return ret0
 }
 
-// GetUpstreamTrafficSettingByKey indicates an expected call of GetUpstreamTrafficSettingByKey.
-func (mr *MockControllerMockRecorder) GetUpstreamTrafficSettingByKey(arg0 interface{}) *gomock.Call {
+// GetUpstreamTrafficSetting indicates an expected call of GetUpstreamTrafficSetting.
+func (mr *MockControllerMockRecorder) GetUpstreamTrafficSetting(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSettingByKey", reflect.TypeOf((*MockController)(nil).GetUpstreamTrafficSettingByKey), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSetting", reflect.TypeOf((*MockController)(nil).GetUpstreamTrafficSetting), arg0)
 }
 
 // IsMonitoredNamespace mocks base method.

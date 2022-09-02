@@ -1669,9 +1669,9 @@ func TestGetUpstreamTrafficSettingByNamespace(t *testing.T) {
 			}
 
 			mockKubeController.EXPECT().ListUpstreamTrafficSettings().Return(tc.allResources).AnyTimes()
-			mockKubeController.EXPECT().GetUpstreamTrafficSettingByKey(name1.String()).Return(resource1).AnyTimes()
-			mockKubeController.EXPECT().GetUpstreamTrafficSettingByKey(name2.String()).Return(resource2).AnyTimes()
-			mockKubeController.EXPECT().GetUpstreamTrafficSettingByKey(name3.String()).Return(nil).AnyTimes()
+			mockKubeController.EXPECT().GetUpstreamTrafficSetting(name1).Return(resource1).AnyTimes()
+			mockKubeController.EXPECT().GetUpstreamTrafficSetting(name2).Return(resource2).AnyTimes()
+			mockKubeController.EXPECT().GetUpstreamTrafficSetting(name3).Return(nil).AnyTimes()
 
 			actual := c.GetUpstreamTrafficSettingByNamespace(tc.namespace)
 			a.Equal(tc.expected, actual)
