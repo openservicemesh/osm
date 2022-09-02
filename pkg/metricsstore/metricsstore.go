@@ -62,10 +62,6 @@ type MetricsStore struct {
 	// generated for both validating and mutating webhooks
 	AdmissionWebhookResponseTotal *prometheus.CounterVec
 
-	// ConversionWebhookResponseTotal counts the resources converted by
-	// conversion webhooks
-	ConversionWebhookResourceTotal *prometheus.CounterVec
-
 	/*
 	 * Certificate metrics
 	 */
@@ -208,12 +204,6 @@ func init() {
 		Name:      "admission_webhook_response_total",
 		Help:      "Counter for responses sent by admission webhooks",
 	}, []string{"kind", "success"})
-
-	defaultMetricsStore.ConversionWebhookResourceTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: metricsRootNamespace,
-		Name:      "conversion_webhook_resource_total",
-		Help:      "Counter for resources converted by conversion webhooks",
-	}, []string{"kind", "from_version", "to_version", "success"})
 
 	/*
 	 * Certificate metrics
