@@ -192,9 +192,22 @@ func main() {
 	httpServer.AddHandler(httpserverconstants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
 	// Version
 	httpServer.AddHandler(httpserverconstants.VersionPath, version.GetVersionHandler())
-	// Webhook
-	httpServer.AddHandler(webhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
+	// Health
+	healthMux := http.NewServeMux()
+	healthMux.Handle(webhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
 
+	healthServer := &http.Server{
+		Addr:    fmt.Sprintf(":%d", healthPort),
+		Handler: healthMux,
+	}
+
+	go func() {
+		if err := healthServer.ListenAndServe(); err != nil {
+			log.Error().Err(err).Msg("crd-converter health server failed to start")
+			return
+		}
+	}()
+	
 	err = httpServer.Start()
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
