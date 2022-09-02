@@ -12,3 +12,4 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 FROM gcr.io/distroless/static
 COPY --from=builder /osm/osm-bootstrap /
+COPY ./cmd/osm-bootstrap/crds /osm-crds/
