@@ -7,6 +7,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 )
 
@@ -14,27 +15,31 @@ import (
 // to observe MRCs (via List() and Watch()) as well as generate
 // `certificate.Provider`s from those MRCs
 type MRCComposer struct {
+	computeClient compute.Interface
+	// TODO(#4863): remove this once informer is collapsed into k8s.client
 	informerCollection *informers.InformerCollection
+
 	MRCProviderGenerator
 }
 
-// List returns the MRCs stored in the informerCollection's store
+// List returns the MRCs in the mesh
 func (m *MRCComposer) List() ([]*v1alpha2.MeshRootCertificate, error) {
-	// informers return slice of pointers so we'll convert them to value types before returning
-	mrcPtrs := m.informerCollection.List(informers.InformerKeyMeshRootCertificate)
-	var mrcs []*v1alpha2.MeshRootCertificate
-	for _, mrcPtr := range mrcPtrs {
-		if mrcPtr == nil {
-			continue
-		}
-		mrc, ok := mrcPtr.(*v1alpha2.MeshRootCertificate)
-		if !ok {
-			continue
-		}
-		mrcs = append(mrcs, mrc)
-	}
+	return m.computeClient.ListMeshRootCertificates()
+}
 
-	return mrcs, nil
+// Get returns the specified MRC
+func (m *MRCComposer) Get(name string) *v1alpha2.MeshRootCertificate {
+	return m.computeClient.GetMeshRootCertificate(name)
+}
+
+// UpdateStatus updates the status of the MRC and returns the updated MRC
+func (m *MRCComposer) UpdateStatus(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	return m.computeClient.UpdateMeshRootCertificateStatus(obj)
+}
+
+// Update updates the spec of the MRC and returns the updated MRC
+func (m *MRCComposer) Update(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	return m.computeClient.UpdateMeshRootCertificate(obj)
 }
 
 // Watch returns a channel that receives events whenever MRCs are added, updated, and deleted

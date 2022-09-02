@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	fakeConfigClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
@@ -151,8 +152,8 @@ func TestGetCertificateManager(t *testing.T) {
 
 func TestGetCertificateManagerFromMRC(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	k8sMock := k8s.NewMockController(mockCtrl)
-	k8sMock.EXPECT().GetMeshConfig().AnyTimes()
+	mockCompute := compute.NewMockInterface(mockCtrl)
+	mockCompute.EXPECT().GetMeshConfig().AnyTimes()
 
 	type testCase struct {
 		name        string
@@ -690,7 +691,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 			assert.NoError(err)
 			assert.NotNil(ic)
 
-			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, k8sMock, ic, 1*time.Hour)
+			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, mockCompute, ic, 1*time.Hour)
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)

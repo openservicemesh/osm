@@ -134,6 +134,21 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent,
 	return c.mrcChannel, nil
 }
 
+// Get returns the pre-generated MRC
+func (c *fakeMRCClient) Get(name string) *v1alpha2.MeshRootCertificate {
+	return &v1alpha2.MeshRootCertificate{Spec: v1alpha2.MeshRootCertificateSpec{TrustDomain: "fake.example.com"}}
+}
+
+// Update returns the updated MRC
+func (c *fakeMRCClient) Update(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	return obj, nil
+}
+
+// UpdateStatus returns the updated MRC
+func (c *fakeMRCClient) UpdateStatus(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	return obj, nil
+}
+
 // NewFake constructs a fake certificate client using a certificate
 func NewFake(checkInterval time.Duration) *certificate.Manager {
 	getValidityDuration := func() time.Duration { return 1 * time.Hour }

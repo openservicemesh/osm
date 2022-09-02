@@ -30,6 +30,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/health"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/httpserver"
@@ -198,7 +199,9 @@ func main() {
 	}
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
-	kubeController := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, policyClient, configClient, msgBroker, k8s.Namespaces)
+	k8sClient := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, policyClient, configClient, msgBroker, k8s.Namespaces)
+
+	computeClient := kube.NewClient(k8sClient)
 
 	certOpts, err := getCertOptions()
 	if err != nil {
@@ -208,14 +211,14 @@ func main() {
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
 		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, kubeController, informerCollection, 5*time.Second)
+			certOpts, computeClient, informerCollection, 5*time.Second)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s from MRC", certProviderKind)
 		}
 	} else {
 		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, kubeController, 5*time.Second, trustDomain)
+			certOpts, k8sClient, 5*time.Second, trustDomain)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s", certProviderKind)
@@ -223,7 +226,7 @@ func main() {
 	}
 
 	// Initialize the sidecar injector webhook
-	if err := injector.NewMutatingWebhook(ctx, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, osmVersion, webhookTimeout, enableReconciler, corev1.PullPolicy(osmContainerPullPolicy)); err != nil {
+	if err := injector.NewMutatingWebhook(ctx, kubeClient, certManager, k8sClient, meshName, osmNamespace, webhookConfigName, osmVersion, webhookTimeout, enableReconciler, corev1.PullPolicy(osmContainerPullPolicy)); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, fmt.Sprintf("Error creating sidecar injector webhook: %s", err))
 	}
 

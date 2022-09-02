@@ -211,6 +211,9 @@ const (
 	// MRCStateError is the error status option for the State of the MeshRootCertificate
 	MRCStateError = "error"
 
+	// MRCStateValidating is the validating status option for the State of the MeshRootCertificate
+	MRCStateValidating = "validating"
+
 	// MRCIntentPassive is the passive option for the Intent of the MeshRootCertificate
 	MRCIntentPassive = "passive"
 
@@ -219,6 +222,9 @@ const (
 
 	// MRCComponentStatusUnknown is the unknown status option for the component status of the MeshRootCertificate
 	MRCComponentStatusUnknown = "Unknown"
+
+	// MRCComponentStatusValidating is the validating status option for the component status of the MeshRootCertificate
+	MRCComponentStatusValidating = "Validating"
 
 	// MRCConditionStatusUnknown is the unknown status option for the condition status of the MeshRootCertificate
 	MRCConditionStatusUnknown = "Unknown"

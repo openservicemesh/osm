@@ -124,6 +124,9 @@ type Manager struct {
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
 type MRCClient interface {
 	List() ([]*v1alpha2.MeshRootCertificate, error)
+	Get(name string) *v1alpha2.MeshRootCertificate
+	UpdateStatus(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error)
+	Update(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error)
 	MRCEventBroker
 
 	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.
@@ -154,4 +157,17 @@ type MRCEventBroker interface {
 	// MRCs. Watch returns a channel that emits events, and
 	// an error if the subscription goes awry.
 	Watch(context.Context) (<-chan MRCEvent, error)
+}
+
+// UpdateMRCStatus updates the status of an MRC to the desired state
+type UpdateMRCStatus func(ctx context.Context, mrc *v1alpha2.MeshRootCertificate) error
+
+// CheckMRCStatus checks if the MRC status is in the desired state
+type CheckMRCStatus func(ctx context.Context, mrc *v1alpha2.MeshRootCertificate) (bool, error)
+
+// MRCReconciler defines the actions of a reconciler used to determine when and how to update an MRC's status
+type MRCReconciler struct {
+	mrcName      string
+	updateStatus UpdateMRCStatus
+	checkStatus  CheckMRCStatus
 }
