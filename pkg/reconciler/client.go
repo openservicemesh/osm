@@ -73,6 +73,7 @@ func (c *client) initCustomResourceDefinitionMonitor() {
 	c.informers[CrdInformerKey] = informerFactory
 
 	// Add event handler to informer
+	log.Debug().Msg("Adding event handler crd event handler to CustomResourceDefinition informer")
 	c.informers[CrdInformerKey].AddEventHandler(c.crdEventHandler())
 }
 

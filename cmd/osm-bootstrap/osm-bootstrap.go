@@ -12,13 +12,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	clientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apiclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubectl/pkg/util"
 
@@ -66,7 +65,6 @@ var (
 	certProviderKind          string
 	enableMeshRootCertificate bool
 
-	tresorOptions      providers.TresorOptions
 	vaultOptions       providers.VaultOptions
 	certManagerOptions providers.CertManagerOptions
 
@@ -122,8 +120,7 @@ func init() {
 	_ = admissionv1.AddToScheme(scheme)
 }
 
-func applyOrUpdateCRDs(kubeConfig *rest.Config) {
-	crdClient := apiclient.NewForConfigOrDie(kubeConfig)
+func applyOrUpdateCRDs(crdClient *clientset.Clientset) {
 	scheme = runtime.NewScheme()
 	if err := apiv1.AddToScheme(scheme); err != nil {
 		log.Fatal().Err(err).Msg("Error adding CRD to scheme")
@@ -153,24 +150,30 @@ func applyOrUpdateCRDs(kubeConfig *rest.Config) {
 		crdList[crd.Name] = crd
 	}
 
-	for crdName, origCRD := range crdList {
-		crd, err := crdClient.CustomResourceDefinitions().Get(context.Background(), crdName, metav1.GetOptions{})
+	for crdName, newCRD := range crdList {
+		newCRD.Labels[constants.ReconcileLabel] = strconv.FormatBool(enableReconciler)
+		origCRD, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.Background(), crdName, metav1.GetOptions{})
+		// If there was an error, but it was not a not found error, then we should fail.
+		if err != nil && !apierrors.IsNotFound(err) {
+			log.Fatal().Err(err).Msgf("error getting CRD %s", crdName)
+		}
+
+		origCRD.Labels[constants.ReconcileLabel] = strconv.FormatBool(enableReconciler)
+
 		if apierrors.IsNotFound(err) {
-			log.Info().Msgf("CRD %s not found, creating CRD", crdName)
-			if err := util.CreateApplyAnnotation(origCRD, unstructured.UnstructuredJSONScheme); err != nil {
+			log.Info().Msgf("crds %s not found, creating CRD", crdName)
+			if err := util.CreateApplyAnnotation(newCRD, unstructured.UnstructuredJSONScheme); err != nil {
 				log.Fatal().Err(err).Msgf("Error applying annotation to CRD %s", crdName)
 			}
-			_, err = crdClient.CustomResourceDefinitions().Create(context.Background(), origCRD, metav1.CreateOptions{})
+			_, err = crdClient.ApiextensionsV1().CustomResourceDefinitions().Create(context.Background(), newCRD, metav1.CreateOptions{})
 			if err != nil {
-				log.Fatal().Err(err).Msgf("Error creating CRD %s", crdName)
+				log.Fatal().Err(err).Msgf("error creating CRD %s", crdName)
 			}
 		} else {
-			log.Info().Msgf("Patching conversion webhook configuration for crd: %s, setting to \"None\"", crdName)
-			crd.Spec.Conversion = &apiv1.CustomResourceConversion{
-				Strategy: apiv1.NoneConverter,
-			}
-			if _, err = crdClient.CustomResourceDefinitions().Update(context.Background(), crd, metav1.UpdateOptions{}); err != nil {
-				log.Fatal().Err(err).Msgf("Error updating conversion webhook configuration for crd : %s", crdName)
+			log.Info().Msgf("patching conversion webhook configuration for crd: %s, setting to \"None\"", crdName)
+			origCRD.Spec = newCRD.Spec
+			if _, err = crdClient.ApiextensionsV1().CustomResourceDefinitions().Update(context.Background(), origCRD, metav1.UpdateOptions{}); err != nil {
+				log.Fatal().Err(err).Msgf("error updating conversion webhook configuration for crd : %s", crdName)
 			}
 			log.Info().Msgf("successfully set conversion webhook configuration for crd : %s to \"None\"", crdName)
 		}
@@ -212,7 +215,7 @@ func main() {
 		namespace:    osmNamespace,
 	}
 
-	applyOrUpdateCRDs(kubeConfig)
+	applyOrUpdateCRDs(apiServerClient)
 
 	err = bootstrap.ensureMeshConfig()
 	if err != nil {
@@ -264,6 +267,7 @@ func main() {
 	}
 
 	if enableReconciler {
+		log.Debug().Msgf("we are logging debug logs...")
 		log.Info().Msgf("OSM reconciler enabled for custom resource definitions")
 		err = reconciler.NewReconcilerClient(kubeClient, apiServerClient, meshName, osmVersion, stop, reconciler.CrdInformerKey)
 		if err != nil {
