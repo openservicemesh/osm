@@ -11,17 +11,22 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/pflag"
+	"gopkg.in/yaml.v2"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	clientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apiclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubectl/pkg/util"
 
@@ -61,6 +66,7 @@ var (
 	certProviderKind          string
 	enableMeshRootCertificate bool
 
+	tresorOptions      providers.TresorOptions
 	vaultOptions       providers.VaultOptions
 	certManagerOptions providers.CertManagerOptions
 
@@ -116,6 +122,53 @@ func init() {
 	_ = admissionv1.AddToScheme(scheme)
 }
 
+func applyOrUpdateCRDs(kubeConfig *rest.Config) {
+	crdClient := apiclient.NewForConfigOrDie(kubeConfig)
+	files, err := filepath.Glob("/osm-crds/*.yaml")
+	crdList := make(map[string]*apiv1.CustomResourceDefinition, len(files))
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error generating CRD file names")
+	}
+	for _, f := range files {
+		// Cleaning the file path removes the go-sec G304 warning.
+		yamlBytes, err := os.ReadFile(filepath.Clean(f))
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Error reading CRD file %s", f)
+		}
+		crd := &apiv1.CustomResourceDefinition{}
+		err = yaml.Unmarshal(yamlBytes, crd)
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Error decoding CRD file %s", f)
+		}
+
+		crdList[crd.Name] = crd
+	}
+
+	for crdName, origCRD := range crdList {
+		crd, err := crdClient.CustomResourceDefinitions().Get(context.Background(), crdName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			log.Info().Msgf("CRD %s not found, creating CRD", crdName)
+			if err := util.CreateApplyAnnotation(origCRD, unstructured.UnstructuredJSONScheme); err != nil {
+				log.Fatal().Err(err).Msgf("Error applying annotation to CRD %s", crdName)
+			}
+			_, err = crdClient.CustomResourceDefinitions().Create(context.Background(), origCRD, metav1.CreateOptions{})
+			if err != nil {
+				log.Fatal().Err(err).Msgf("Error creating CRD %s", crdName)
+			}
+		} else {
+			log.Info().Msgf("Patching conversion webhook configuration for crd: %s, setting to \"None\"", crdName)
+			crd.Spec.Conversion = &apiv1.CustomResourceConversion{
+				Strategy: apiv1.NoneConverter,
+			}
+			if _, err = crdClient.CustomResourceDefinitions().Update(context.Background(), crd, metav1.UpdateOptions{}); err != nil {
+				log.Fatal().Err(err).Msgf("Error updating conversion webhook configuration for crd : %s", crdName)
+			}
+			log.Info().Msgf("successfully set conversion webhook configuration for crd : %s to \"None\"", crdName)
+		}
+	}
+}
+
 func main() {
 	log.Info().Msgf("Starting osm-bootstrap %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 	if err := parseFlags(); err != nil {
@@ -150,6 +203,8 @@ func main() {
 		configClient: configClient,
 		namespace:    osmNamespace,
 	}
+
+	applyOrUpdateCRDs(kubeConfig)
 
 	err = bootstrap.ensureMeshConfig()
 	if err != nil {

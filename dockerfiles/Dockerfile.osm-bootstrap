@@ -10,8 +10,8 @@ ARG GO_BUILD_FLAGS
 WORKDIR /osm
 COPY . .
 RUN if [ $(command -v yum) ]; then \
-      yum update -y && \
-      yum install -y ca-certificates; \
+    yum update -y && \
+    yum install -y ca-certificates; \
     fi
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
@@ -21,3 +21,4 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM $FINAL_BASE_IMAGE
 ENV GOFIPS=1
 COPY --from=builder /osm/osm-bootstrap /
+COPY ./cmd/osm-bootstrap/crds/* /osm-crds/
