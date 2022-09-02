@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/pflag"
-	"gopkg.in/yaml.v2"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -24,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -124,7 +124,15 @@ func init() {
 
 func applyOrUpdateCRDs(kubeConfig *rest.Config) {
 	crdClient := apiclient.NewForConfigOrDie(kubeConfig)
+	scheme = runtime.NewScheme()
+	if err := apiv1.AddToScheme(scheme); err != nil {
+		log.Fatal().Err(err).Msg("Error adding CRD to scheme")
+	}
+	codecs := serializer.NewCodecFactory(scheme)
+	decode := codecs.UniversalDeserializer().Decode
+
 	files, err := filepath.Glob("/osm-crds/*.yaml")
+
 	crdList := make(map[string]*apiv1.CustomResourceDefinition, len(files))
 
 	if err != nil {
@@ -132,12 +140,12 @@ func applyOrUpdateCRDs(kubeConfig *rest.Config) {
 	}
 	for _, f := range files {
 		// Cleaning the file path removes the go-sec G304 warning.
-		yamlBytes, err := os.ReadFile(filepath.Clean(f))
+		yaml, err := os.ReadFile(filepath.Clean(f))
 		if err != nil {
 			log.Fatal().Err(err).Msgf("Error reading CRD file %s", f)
 		}
 		crd := &apiv1.CustomResourceDefinition{}
-		err = yaml.Unmarshal(yamlBytes, crd)
+		_, _, err = decode(yaml, nil, crd)
 		if err != nil {
 			log.Fatal().Err(err).Msgf("Error decoding CRD file %s", f)
 		}
