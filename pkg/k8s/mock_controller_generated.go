@@ -141,6 +141,20 @@ func (mr *MockControllerMockRecorder) GetTargetPortForServicePort(arg0, arg1 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortForServicePort", reflect.TypeOf((*MockController)(nil).GetTargetPortForServicePort), arg0, arg1)
 }
 
+// GetUpstreamTrafficSetting mocks base method.
+func (m *MockController) GetUpstreamTrafficSetting(arg0 *types.NamespacedName) *v1alpha1.UpstreamTrafficSetting {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUpstreamTrafficSetting", arg0)
+	ret0, _ := ret[0].(*v1alpha1.UpstreamTrafficSetting)
+	return ret0
+}
+
+// GetUpstreamTrafficSetting indicates an expected call of GetUpstreamTrafficSetting.
+func (mr *MockControllerMockRecorder) GetUpstreamTrafficSetting(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSetting", reflect.TypeOf((*MockController)(nil).GetUpstreamTrafficSetting), arg0)
+}
+
 // IsMonitoredNamespace mocks base method.
 func (m *MockController) IsMonitoredNamespace(arg0 string) bool {
 	m.ctrl.T.Helper()
@@ -153,6 +167,34 @@ func (m *MockController) IsMonitoredNamespace(arg0 string) bool {
 func (mr *MockControllerMockRecorder) IsMonitoredNamespace(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMonitoredNamespace", reflect.TypeOf((*MockController)(nil).IsMonitoredNamespace), arg0)
+}
+
+// ListEgressPolicies mocks base method.
+func (m *MockController) ListEgressPolicies() []*v1alpha1.Egress {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEgressPolicies")
+	ret0, _ := ret[0].([]*v1alpha1.Egress)
+	return ret0
+}
+
+// ListEgressPolicies indicates an expected call of ListEgressPolicies.
+func (mr *MockControllerMockRecorder) ListEgressPolicies() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEgressPolicies", reflect.TypeOf((*MockController)(nil).ListEgressPolicies))
+}
+
+// ListIngressBackendPolicies mocks base method.
+func (m *MockController) ListIngressBackendPolicies() []*v1alpha1.IngressBackend {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListIngressBackendPolicies")
+	ret0, _ := ret[0].([]*v1alpha1.IngressBackend)
+	return ret0
+}
+
+// ListIngressBackendPolicies indicates an expected call of ListIngressBackendPolicies.
+func (mr *MockControllerMockRecorder) ListIngressBackendPolicies() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIngressBackendPolicies", reflect.TypeOf((*MockController)(nil).ListIngressBackendPolicies))
 }
 
 // ListMonitoredNamespaces mocks base method.
@@ -182,6 +224,20 @@ func (m *MockController) ListPods() []*v1.Pod {
 func (mr *MockControllerMockRecorder) ListPods() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPods", reflect.TypeOf((*MockController)(nil).ListPods))
+}
+
+// ListRetryPolicies mocks base method.
+func (m *MockController) ListRetryPolicies() []*v1alpha1.Retry {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListRetryPolicies")
+	ret0, _ := ret[0].([]*v1alpha1.Retry)
+	return ret0
+}
+
+// ListRetryPolicies indicates an expected call of ListRetryPolicies.
+func (mr *MockControllerMockRecorder) ListRetryPolicies() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRetryPolicies", reflect.TypeOf((*MockController)(nil).ListRetryPolicies))
 }
 
 // ListServiceAccounts mocks base method.
@@ -225,6 +281,20 @@ func (m *MockController) ListServices() []*v1.Service {
 func (mr *MockControllerMockRecorder) ListServices() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*MockController)(nil).ListServices))
+}
+
+// ListUpstreamTrafficSettings mocks base method.
+func (m *MockController) ListUpstreamTrafficSettings() []*v1alpha1.UpstreamTrafficSetting {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUpstreamTrafficSettings")
+	ret0, _ := ret[0].([]*v1alpha1.UpstreamTrafficSetting)
+	return ret0
+}
+
+// ListUpstreamTrafficSettings indicates an expected call of ListUpstreamTrafficSettings.
+func (mr *MockControllerMockRecorder) ListUpstreamTrafficSettings() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUpstreamTrafficSettings", reflect.TypeOf((*MockController)(nil).ListUpstreamTrafficSettings))
 }
 
 // ServiceToMeshServices mocks base method.

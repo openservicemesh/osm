@@ -52,5 +52,5 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{}).AnyTimes()
 
 	return NewMeshCatalog(mockMeshSpec, tresorFake.NewFake(1*time.Hour),
-		nil, stop, provider, messaging.NewBroker(stop))
+		stop, provider, messaging.NewBroker(stop))
 }

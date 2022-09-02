@@ -10,6 +10,11 @@ const (
 	providerName = "kubernetes"
 )
 
+const (
+	// kindSvcAccount is the ServiceAccount kind
+	kindSvcAccount = "ServiceAccount"
+)
+
 var (
 	log = logger.New("kube-provider")
 )

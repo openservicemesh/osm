@@ -16,7 +16,6 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
-	"github.com/openservicemesh/osm/pkg/policy"
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -579,12 +578,10 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 
 			mockProvider := compute.NewMockInterface(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockPolicyController := policy.NewMockController(mockCtrl)
 
 			mc := MeshCatalog{
-				Interface:        mockProvider,
-				meshSpec:         mockMeshSpec,
-				policyController: mockPolicyController,
+				Interface: mockProvider,
+				meshSpec:  mockMeshSpec,
 			}
 
 			// Mock calls to k8s client caches
@@ -632,11 +629,11 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				}).AnyTimes()
 
 			// Mock calls to UpstreamTrafficSetting lookups
-			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).DoAndReturn(
-				func(opt policy.UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting {
+			mockProvider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).DoAndReturn(
+				func(meshService *service.MeshService) *policyv1alpha1.UpstreamTrafficSetting {
 					// In this test, only service ns1/<p1|p2> has UpstreamTrafficSetting configured
-					if opt.MeshService != nil &&
-						(*opt.MeshService == meshSvc1P1 || *opt.MeshService == meshSvc1P2) {
+					if meshService != nil &&
+						(*meshService == meshSvc1P1 || *meshService == meshSvc1P2) {
 						return &upstreamTrafficSettingSvc1
 					}
 					return nil

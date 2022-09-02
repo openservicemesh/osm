@@ -18,7 +18,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/compute"
 
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/policy"
 
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -437,19 +436,18 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockPolicyController := policy.NewMockController(mockCtrl)
 
 			for _, rg := range tc.httpRouteGroups {
 				mockMeshSpec.EXPECT().GetHTTPRouteGroup(fmt.Sprintf("%s/%s", rg.Namespace, rg.Name)).Return(rg).AnyTimes()
 			}
-			mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(tc.egressPolicies).Times(1)
-			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
 
 			mockCompute := compute.NewMockInterface(mockCtrl)
+			mockCompute.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(tc.egressPolicies).Times(1)
+			mockCompute.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
+			mockCompute.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
 			mc := &MeshCatalog{
-				meshSpec:         mockMeshSpec,
-				Interface:        mockCompute,
-				policyController: mockPolicyController,
+				meshSpec:  mockMeshSpec,
+				Interface: mockCompute,
 			}
 
 			mockCompute.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{Spec: configv1alpha2.MeshConfigSpec{Traffic: configv1alpha2.TrafficSpec{EnableEgress: false}}}).Times(1) // Enables EgressPolicy

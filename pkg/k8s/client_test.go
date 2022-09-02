@@ -1,8 +1,11 @@
 package k8s
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
+	gomock "github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
@@ -32,6 +35,7 @@ import (
 
 var (
 	testMeshName = "mesh"
+	testNs       = "test-ns"
 )
 
 func TestIsMonitoredNamespace(t *testing.T) {
@@ -1326,4 +1330,295 @@ func TestMetricsHandler(t *testing.T) {
 	})
 	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 0` + "\n"))
 	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 0` + "\n"))
+}
+
+func TestListEgressPolicies(t *testing.T) {
+	egressNsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+		},
+	}
+
+	outMeshResource := &policyv1alpha1.Egress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "egress-1",
+			Namespace: "wrong-ns",
+		},
+		Spec: policyv1alpha1.EgressSpec{
+			Sources: []policyv1alpha1.EgressSourceSpec{
+				{
+					Kind:      "ServiceAccount",
+					Name:      "sa-1",
+					Namespace: testNs,
+				},
+				{
+					Kind:      "ServiceAccount",
+					Name:      "sa-2",
+					Namespace: testNs,
+				},
+			},
+			Hosts: []string{"foo.com"},
+			Ports: []policyv1alpha1.PortSpec{
+				{
+					Number:   80,
+					Protocol: "http",
+				},
+			},
+		},
+	}
+	inMeshResource := &policyv1alpha1.Egress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "egress-1",
+			Namespace: testNs,
+		},
+		Spec: policyv1alpha1.EgressSpec{
+			Sources: []policyv1alpha1.EgressSourceSpec{
+				{
+					Kind:      "ServiceAccount",
+					Name:      "sa-1",
+					Namespace: testNs,
+				},
+				{
+					Kind:      "ServiceAccount",
+					Name:      "sa-2",
+					Namespace: testNs,
+				},
+			},
+			Hosts: []string{"foo.com"},
+			Ports: []policyv1alpha1.PortSpec{
+				{
+					Number:   80,
+					Protocol: "http",
+				},
+			},
+		},
+	}
+
+	testCases := []struct {
+		name             string
+		allEgresses      []*policyv1alpha1.Egress
+		expectedEgresses []*policyv1alpha1.Egress
+	}{
+		{
+			name:             "Only return egress resources for monitored namespaces",
+			allEgresses:      []*policyv1alpha1.Egress{inMeshResource, outMeshResource},
+			expectedEgresses: []*policyv1alpha1.Egress{inMeshResource},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil,
+				informers.WithPolicyClient(fakeClient),
+				informers.WithKubeClient(testclient.NewSimpleClientset()))
+			a.Nil(err)
+
+			c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, fakeClient, nil)
+			a.Nil(err)
+			a.NotNil(c)
+
+			// monitor namespaces
+			err = c.informers.Add(informers.InformerKeyNamespace, egressNsObj, t)
+			a.Nil(err)
+
+			// Create fake egress policies
+			for _, egressPolicy := range tc.allEgresses {
+				_ = c.informers.Add(informers.InformerKeyEgress, egressPolicy, t)
+			}
+
+			policies := c.ListEgressPolicies()
+			a.ElementsMatch(tc.expectedEgresses, policies)
+		})
+	}
+}
+
+func TestListRetryPolicy(t *testing.T) {
+	policyNsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+		},
+	}
+
+	var thresholdUintVal uint32 = 3
+	thresholdTimeoutDuration := metav1.Duration{Duration: time.Duration(5 * time.Second)}
+	thresholdBackoffDuration := metav1.Duration{Duration: time.Duration(1 * time.Second)}
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockKubeController := NewMockController(mockCtrl)
+	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
+
+	outMeshResource := &policyv1alpha1.Retry{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "retry-1",
+			Namespace: "wrong-ns",
+		},
+		Spec: policyv1alpha1.RetrySpec{
+			Source: policyv1alpha1.RetrySrcDstSpec{
+				Kind:      "ServiceAccount",
+				Name:      "sa-1",
+				Namespace: testNs,
+			},
+			Destinations: []policyv1alpha1.RetrySrcDstSpec{
+				{
+					Kind:      "Service",
+					Name:      "s1",
+					Namespace: testNs,
+				},
+				{
+					Kind:      "Service",
+					Name:      "s2",
+					Namespace: testNs,
+				},
+			},
+			RetryPolicy: policyv1alpha1.RetryPolicySpec{
+				RetryOn:                  "",
+				NumRetries:               &thresholdUintVal,
+				PerTryTimeout:            &thresholdTimeoutDuration,
+				RetryBackoffBaseInterval: &thresholdBackoffDuration,
+			},
+		},
+	}
+	inMeshResource := &policyv1alpha1.Retry{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "retry-1",
+			Namespace: testNs,
+		},
+		Spec: policyv1alpha1.RetrySpec{
+			Source: policyv1alpha1.RetrySrcDstSpec{
+				Kind:      "ServiceAccount",
+				Name:      "sa-1",
+				Namespace: testNs,
+			},
+			Destinations: []policyv1alpha1.RetrySrcDstSpec{
+				{
+					Kind:      "Service",
+					Name:      "s1",
+					Namespace: testNs,
+				},
+				{
+					Kind:      "Service",
+					Name:      "s2",
+					Namespace: testNs,
+				},
+			},
+			RetryPolicy: policyv1alpha1.RetryPolicySpec{
+				RetryOn:                  "",
+				NumRetries:               &thresholdUintVal,
+				PerTryTimeout:            &thresholdTimeoutDuration,
+				RetryBackoffBaseInterval: &thresholdBackoffDuration,
+			},
+		},
+	}
+
+	testCases := []struct {
+		name            string
+		allRetries      []*policyv1alpha1.Retry
+		expectedRetries []*policyv1alpha1.Retry
+	}{
+		{
+			name:            "Only return retry resources for monitored namespaces",
+			allRetries:      []*policyv1alpha1.Retry{inMeshResource, outMeshResource},
+			expectedRetries: []*policyv1alpha1.Retry{inMeshResource},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil,
+				informers.WithPolicyClient(fakeClient),
+				informers.WithKubeClient(testclient.NewSimpleClientset()),
+			)
+			a.Nil(err)
+			c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, fakeClient, nil)
+			a.Nil(err)
+			a.NotNil(c)
+
+			// monitor namespaces
+			err = c.informers.Add(informers.InformerKeyNamespace, policyNsObj, t)
+			a.Nil(err)
+
+			// Create fake retry policies
+			for _, retryPolicy := range tc.allRetries {
+				err := c.informers.Add(informers.InformerKeyRetry, retryPolicy, t)
+				a.Nil(err)
+			}
+
+			policies := c.ListRetryPolicies()
+			a.ElementsMatch(tc.expectedRetries, policies)
+		})
+	}
+}
+
+func TestListUpstreamTrafficSetting(t *testing.T) {
+	settingNsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+		},
+	}
+
+	inMeshResource := &policyv1alpha1.UpstreamTrafficSetting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "u1",
+			Namespace: testNs,
+		},
+		Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+			Host: "s1.ns1.svc.cluster.local",
+		},
+	}
+	outMeshResource := &policyv1alpha1.UpstreamTrafficSetting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "u1",
+			Namespace: "wrong-ns",
+		},
+		Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+			Host: "s1.ns1.svc.cluster.local",
+		},
+	}
+	testCases := []struct {
+		name         string
+		allResources []*policyv1alpha1.UpstreamTrafficSetting
+		expected     []*policyv1alpha1.UpstreamTrafficSetting
+	}{
+		{
+			name:         "Only return upstream traffic settings for monitored namespaces",
+			allResources: []*policyv1alpha1.UpstreamTrafficSetting{inMeshResource, outMeshResource},
+			expected:     []*policyv1alpha1.UpstreamTrafficSetting{inMeshResource},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil,
+				informers.WithPolicyClient(fakeClient),
+				informers.WithKubeClient(testclient.NewSimpleClientset()),
+			)
+			a.Nil(err)
+			c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, fakeClient, nil)
+			a.Nil(err)
+			a.NotNil(c)
+
+			// monitor namespaces
+			err = c.informers.Add(informers.InformerKeyNamespace, settingNsObj, t)
+			a.Nil(err)
+
+			// Create fake upstream traffic settings
+			for _, resource := range tc.allResources {
+				_ = c.informers.Add(informers.InformerKeyUpstreamTrafficSetting, resource, t)
+			}
+
+			actual := c.ListUpstreamTrafficSettings()
+			a.Equal(tc.expected, actual)
+		})
+	}
 }

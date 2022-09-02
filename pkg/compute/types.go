@@ -1,6 +1,10 @@
 package compute
 
 import (
+	"k8s.io/apimachinery/pkg/types"
+
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -37,4 +41,22 @@ type Interface interface {
 
 	// ListServicesForProxy gets the services that map to the given proxy.
 	ListServicesForProxy(p *envoy.Proxy) ([]service.MeshService, error)
+
+	// ListEgressPoliciesForServiceAccount lists the Egress policies for the given source identity based on service accounts
+	ListEgressPoliciesForServiceAccount(sa identity.K8sServiceAccount) []*policyv1alpha1.Egress
+
+	// GetIngressBackendPolicyForService returns the IngressBackend policy for the given backend MeshService
+	GetIngressBackendPolicyForService(svc service.MeshService) *policyv1alpha1.IngressBackend
+
+	// ListRetryPoliciesForServiceAccount returns the retry policies for the given source identity based on service accounts.
+	ListRetryPoliciesForServiceAccount(source identity.K8sServiceAccount) []*policyv1alpha1.Retry
+
+	// GetUpstreamTrafficSettingByNamespace returns the UpstreamTrafficSetting resource that matches the namespace
+	GetUpstreamTrafficSettingByNamespace(ns *types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting
+
+	// GetUpstreamTrafficSettingByService returns the UpstreamTrafficSetting resource that matches the given service
+	GetUpstreamTrafficSettingByService(meshService *service.MeshService) *policyv1alpha1.UpstreamTrafficSetting
+
+	// GetUpstreamTrafficSettingByHost returns the UpstreamTrafficSetting resource that matches the host
+	GetUpstreamTrafficSettingByHost(host string) *policyv1alpha1.UpstreamTrafficSetting
 }

@@ -68,6 +68,14 @@ const (
 	MeshConfig InformerKey = "MeshConfig"
 	// MeshRootCertificate lookup identifier
 	MeshRootCertificate InformerKey = "MeshRootCertificate"
+	// Egress lookup identifier
+	Egress InformerKey = "Egress"
+	// IngressBackend lookup identifier
+	IngressBackend InformerKey = "IngressBackend"
+	// Retry lookup identifier
+	Retry InformerKey = "Retry"
+	// UpstreamTrafficSetting lookup identifier
+	UpstreamTrafficSetting InformerKey = "UpstreamTrafficSetting"
 )
 
 // Client is the type used to represent the k8s client for the native k8s resources
@@ -131,4 +139,19 @@ type PassthroughInterface interface {
 	UpdateUpstreamTrafficSettingStatus(obj *policyv1alpha1.UpstreamTrafficSetting) (*policyv1alpha1.UpstreamTrafficSetting, error)
 
 	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
+
+	// ListEgressPolicies lists the all Egress policies
+	ListEgressPolicies() []*policyv1alpha1.Egress
+
+	// ListIngressBackends lists the all IngressBackend policies
+	ListIngressBackendPolicies() []*policyv1alpha1.IngressBackend
+
+	// ListRetryPolicies returns the all retry policies
+	ListRetryPolicies() []*policyv1alpha1.Retry
+
+	// ListUpstreamTrafficSettings returns all UpstreamTrafficSetting resources
+	ListUpstreamTrafficSettings() []*policyv1alpha1.UpstreamTrafficSetting
+
+	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resources with namespaced name
+	GetUpstreamTrafficSetting(*types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting
 }

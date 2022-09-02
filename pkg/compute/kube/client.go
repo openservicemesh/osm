@@ -8,8 +8,10 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/openservicemesh/osm/pkg/compute"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 
@@ -18,9 +20,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 )
-
-// Ensure interface compliance
-var _ compute.Interface = (*client)(nil)
 
 // NewClient returns a client that has all components necessary to connect to and maintain state of a Kubernetes cluster.
 func NewClient(kubeController k8s.Controller) *client { //nolint: revive // unexported-return
@@ -283,4 +282,127 @@ func (c *client) GetHostnamesForService(svc service.MeshService, localNamespace 
 	}...)
 
 	return hostnames
+}
+
+// ListEgressPoliciesForServiceAccount lists the Egress policies for the given source identity based on service accounts
+func (c *client) ListEgressPoliciesForServiceAccount(source identity.K8sServiceAccount) []*policyv1alpha1.Egress {
+	var policies []*policyv1alpha1.Egress
+
+	for _, egress := range c.kubeController.ListEgressPolicies() {
+		for _, sourceSpec := range egress.Spec.Sources {
+			if sourceSpec.Kind == kindSvcAccount && sourceSpec.Name == source.Name && sourceSpec.Namespace == source.Namespace {
+				policies = append(policies, egress)
+			}
+		}
+	}
+
+	return policies
+}
+
+// GetIngressBackendPolicyForService returns the IngressBackend policy for the given backend MeshService
+func (c *client) GetIngressBackendPolicyForService(svc service.MeshService) *policyv1alpha1.IngressBackend {
+	for _, ingressBackend := range c.kubeController.ListIngressBackendPolicies() {
+		// Return the first IngressBackend corresponding to the given MeshService.
+		// Multiple IngressBackend policies for the same backend will be prevented
+		// using a validating webhook.
+		for _, backend := range ingressBackend.Spec.Backends {
+			// we need to check ports to allow ingress to multiple ports on the same svc
+			if backend.Name == svc.Name && backend.Port.Number == int(svc.TargetPort) {
+				return ingressBackend
+			}
+		}
+	}
+	return nil
+}
+
+// ListRetryPoliciesForServiceAccount returns the retry policies for the given source identity based on service accounts.
+func (c *client) ListRetryPoliciesForServiceAccount(source identity.K8sServiceAccount) []*policyv1alpha1.Retry {
+	var retries []*policyv1alpha1.Retry
+
+	for _, retry := range c.kubeController.ListRetryPolicies() {
+		if retry.Spec.Source.Kind == kindSvcAccount && retry.Spec.Source.Name == source.Name && retry.Spec.Source.Namespace == source.Namespace {
+			retries = append(retries, retry)
+		}
+	}
+
+	return retries
+}
+
+// GetUpstreamTrafficSettingByNamespace returns the UpstreamTrafficSetting resource that matches the namespace
+func (c *client) GetUpstreamTrafficSettingByNamespace(namespace *types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting {
+	if namespace == nil {
+		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
+		return nil
+	}
+
+	return c.kubeController.GetUpstreamTrafficSetting(namespace)
+}
+
+// GetUpstreamTrafficSettingByService returns the UpstreamTrafficSetting resource that matches the given service
+func (c *client) GetUpstreamTrafficSettingByService(meshService *service.MeshService) *policyv1alpha1.UpstreamTrafficSetting {
+	if meshService == nil {
+		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
+		return nil
+	}
+
+	// Filter by MeshService
+	for _, setting := range c.kubeController.ListUpstreamTrafficSettings() {
+		if setting != nil && setting.Namespace == meshService.Namespace && setting.Spec.Host == meshService.FQDN() {
+			return setting
+		}
+	}
+
+	return nil
+}
+
+// GetUpstreamTrafficSettingByHost returns the UpstreamTrafficSetting resource that matches the host
+func (c *client) GetUpstreamTrafficSettingByHost(host string) *policyv1alpha1.UpstreamTrafficSetting {
+	if host == "" {
+		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
+		return nil
+	}
+
+	// Filter by Host
+	for _, setting := range c.kubeController.ListUpstreamTrafficSettings() {
+		if setting.Spec.Host == host {
+			return setting
+		}
+	}
+
+	return nil
+}
+
+// DetectIngressBackendConflicts detects conflicts between the given IngressBackend resources
+func DetectIngressBackendConflicts(x policyv1alpha1.IngressBackend, y policyv1alpha1.IngressBackend) []error {
+	var conflicts []error // multiple conflicts could exist
+
+	// Check if the backends conflict
+	xSet := mapset.NewSet()
+	type setKey struct {
+		name string
+		port int
+	}
+	for _, backend := range x.Spec.Backends {
+		key := setKey{
+			name: backend.Name,
+			port: backend.Port.Number,
+		}
+		xSet.Add(key)
+	}
+	ySet := mapset.NewSet()
+	for _, backend := range y.Spec.Backends {
+		key := setKey{
+			name: backend.Name,
+			port: backend.Port.Number,
+		}
+		ySet.Add(key)
+	}
+
+	duplicates := xSet.Intersect(ySet)
+	for b := range duplicates.Iter() {
+		err := fmt.Errorf("Backend %s specified in %s and %s conflicts", b.(setKey).name, x.Name, y.Name)
+		conflicts = append(conflicts, err)
+	}
+
+	return conflicts
 }

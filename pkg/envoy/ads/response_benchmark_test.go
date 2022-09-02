@@ -18,7 +18,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 
@@ -54,7 +53,6 @@ func setupTestServer(b *testing.B) {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
 	kubeController := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, informerCollection, policyClient, msgBroker)
-	policyController := policy.NewPolicyController(informerCollection, kubeController, msgBroker)
 	kubeProvider := kube.NewClient(kubeController)
 
 	meshConfig := configv1alpha2.MeshConfig{
@@ -113,7 +111,6 @@ func setupTestServer(b *testing.B) {
 	mc := catalog.NewMeshCatalog(
 		meshSpec,
 		certManager,
-		policyController,
 		stop,
 		kubeProvider,
 		msgBroker,

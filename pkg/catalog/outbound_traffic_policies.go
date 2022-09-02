@@ -7,7 +7,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -54,8 +53,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			Name:                          meshSvc.EnvoyClusterName(),
 			Service:                       meshSvc,
 			EnableEnvoyActiveHealthChecks: mc.GetMeshConfig().Spec.FeatureFlags.EnableEnvoyActiveHealthChecks,
-			UpstreamTrafficSetting: mc.policyController.GetUpstreamTrafficSetting(
-				policy.UpstreamTrafficSettingGetOpt{MeshService: &meshSvc}),
+			UpstreamTrafficSetting:        mc.GetUpstreamTrafficSettingByService(&meshSvc),
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfigForServicePort)
 

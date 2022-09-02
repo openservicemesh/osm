@@ -16,13 +16,13 @@ import (
 	smiSplitClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned/fake"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	policyFake "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/webhook"
@@ -52,9 +52,9 @@ func BenchmarkDoValidation(b *testing.B) {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
 	k8sClient := k8s.NewClient("osm-ns", tests.OsmMeshConfigName, informerCollection, policyClient, msgBroker)
-	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
+	compute := kube.NewClient(k8sClient)
 	kv := &policyValidator{
-		policyClient: policyController,
+		policyClient: compute,
 	}
 
 	w := httptest.NewRecorder()
