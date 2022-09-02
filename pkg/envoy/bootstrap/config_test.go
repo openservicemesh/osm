@@ -142,7 +142,7 @@ static_resources:
         port_value: 15901
     filter_chains:
     - filters:
-      - name: http_connection_manager
+      - name: envoy.filters.network.http_connection_manager
         typed_config:
           '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
           access_log:
@@ -195,7 +195,7 @@ static_resources:
         port_value: 15902
     filter_chains:
     - filters:
-      - name: http_connection_manager
+      - name: envoy.filters.network.http_connection_manager
         typed_config:
           '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
           access_log:
@@ -248,7 +248,7 @@ static_resources:
         port_value: 15903
     filter_chains:
     - filters:
-      - name: http_connection_manager
+      - name: envoy.filters.network.http_connection_manager
         typed_config:
           '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
           access_log:
