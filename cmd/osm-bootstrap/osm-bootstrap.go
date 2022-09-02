@@ -9,34 +9,36 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strconv"
+	"net/http"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	clientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubectl/pkg/util"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/crdconversion"
-	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/reconciler"
 	"github.com/openservicemesh/osm/pkg/signals"
@@ -47,6 +49,8 @@ const (
 	meshConfigName          = "osm-mesh-config"
 	presetMeshConfigName    = "preset-mesh-config"
 	presetMeshConfigJSONKey = "preset-mesh-config.json"
+	webhookHealthPath       = "/healthz"
+	healthPort              = 9095
 )
 
 var (
@@ -57,11 +61,8 @@ var (
 	meshName           string
 	osmVersion         string
 
-	crdConverterConfig crdconversion.Config
-
 	certProviderKind string
 
-	tresorOptions      providers.TresorOptions
 	vaultOptions       providers.VaultOptions
 	certManagerOptions providers.CertManagerOptions
 
@@ -147,6 +148,8 @@ func main() {
 		namespace:        osmNamespace,
 	}
 
+	applyOrUpdateCRDs(crdClient)
+
 	err = bootstrap.ensureMeshConfig()
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Error setting up default MeshConfig %s from ConfigMap %s", meshConfigName, presetMeshConfigName)
@@ -158,37 +161,27 @@ func main() {
 		log.Fatal().Err(err).Msg("Error initializing Kubernetes events recorder")
 	}
 
-	stop := signals.RegisterExitHandlers()
 	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	stop := signals.RegisterExitHandlers()
 
 	// Start the default metrics store
 	metricsstore.DefaultMetricsStore.Start(
 		metricsstore.DefaultMetricsStore.ErrCodeCounter,
 		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
 		metricsstore.DefaultMetricsStore.HTTPResponseDuration,
-		metricsstore.DefaultMetricsStore.ConversionWebhookResourceTotal,
 	)
 
-	msgBroker := messaging.NewBroker(stop)
-
-	// Initialize Configurator to retrieve mesh specific config
-	cfg := configurator.NewConfigurator(configClient, stop, osmNamespace, osmMeshConfigName, msgBroker)
-
-	// Intitialize certificate manager/provider
-	certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
-		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions, msgBroker)
-
-	certManager, _, err := certProviderConfig.GetCertificateManager()
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
-			"Error initializing certificate manager of kind %s", certProviderKind)
-	}
-
-	// Initialize the crd conversion webhook server to support the conversion of OSM's CRDs
-	crdConverterConfig.ListenPort = constants.CRDConversionWebhookPort
-	if err := crdconversion.NewConversionWebhook(crdConverterConfig, kubeClient, crdClient, certManager, osmNamespace, enableReconciler, stop); err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating crd conversion webhook")
+	/*
+	 * Initialize osm-bootstrap's HTTP server
+	 */
+	if enableReconciler {
+		log.Info().Msgf("OSM reconciler enabled for custom resource definitions")
+		err = reconciler.NewReconcilerClient(kubeClient, apiServerClient, meshName, osmVersion, stop, reconciler.CrdInformerKey)
+		if err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client for custom resource definitions")
+			log.Fatal().Err(err).Msgf("Failed to create reconcile client for custom resource definitions")
+		}
 	}
 
 	/*
@@ -199,22 +192,79 @@ func main() {
 	httpServer.AddHandler(httpserverconstants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
 	// Version
 	httpServer.AddHandler(httpserverconstants.VersionPath, version.GetVersionHandler())
-	// Start HTTP server
+	// Webhook
+	httpServer.AddHandler(webhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
+
 	err = httpServer.Start()
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
 	}
 
-	if enableReconciler {
-		log.Info().Msgf("OSM reconciler enabled for custom resource definitions")
-		err = reconciler.NewReconcilerClient(kubeClient, apiServerClient, meshName, osmVersion, stop, reconciler.CrdInformerKey)
-		if err != nil {
-			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client for custom resource definitions")
-		}
+	<-stop
+	cancel()
+	log.Info().Msgf("Stopping osm-bootstrap %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
+}
+
+func healthHandler(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte("Health OK")); err != nil {
+		log.Error().Err(err).Msg("Error writing bytes for webhook health check handler")
+	}
+}
+
+func applyOrUpdateCRDs(crdClient *apiclient.ApiextensionsV1Client) {
+	crdFiles, err := filepath.Glob("/osm-crds/*.yaml")
+
+	if err != nil {
+		log.Fatal().Err(err).Msgf("error reading files from /osm-crds")
 	}
 
-	<-stop
-	log.Info().Msgf("Stopping osm-bootstrap %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
+	scheme = runtime.NewScheme()
+	codecs := serializer.NewCodecFactory(scheme)
+	decode := codecs.UniversalDeserializer().Decode
+
+	for _, file := range crdFiles {
+		yaml, err := os.ReadFile(filepath.Clean(file))
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Error reading CRD file %s", file)
+		}
+
+		crd := &apiv1.CustomResourceDefinition{}
+		_, _, err = decode(yaml, nil, crd)
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Error decoding CRD file %s", file)
+		}
+
+		crd.Labels[constants.ReconcileLabel] = strconv.FormatBool(enableReconciler)
+
+		crdExisting, err := crdClient.CustomResourceDefinitions().Get(context.Background(), crd.Name, metav1.GetOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			log.Fatal().Err(err).Msgf("error getting CRD %s", crd.Name)
+		}
+
+		if apierrors.IsNotFound(err) {
+			log.Info().Msgf("crds %s not found, creating CRD", crd.Name)
+			if err := util.CreateApplyAnnotation(crd, unstructured.UnstructuredJSONScheme); err != nil {
+				log.Fatal().Err(err).Msgf("Error applying annotation to CRD %s", crd.Name)
+			}
+			if _, err = crdClient.CustomResourceDefinitions().Create(context.Background(), crd, metav1.CreateOptions{}); err != nil {
+				log.Fatal().Err(err).Msgf("Error creating crd : %s", crd.Name)
+			}
+			log.Info().Msgf("Successfully created crd: %s", crd.Name)
+		} else {
+			log.Info().Msgf("Patching conversion webhook configuration for crd: %s, setting to \"None\"", crd.Name)
+
+			crdExisting.Labels[constants.ReconcileLabel] = strconv.FormatBool(enableReconciler)
+			crdExisting.Spec = crd.Spec
+			crdExisting.Spec.Conversion = &apiv1.CustomResourceConversion{
+				Strategy: apiv1.NoneConverter,
+			}
+			if _, err = crdClient.CustomResourceDefinitions().Update(context.Background(), crdExisting, metav1.UpdateOptions{}); err != nil {
+				log.Fatal().Err(err).Msgf("Error updating conversion webhook configuration for crd : %s", crd.Name)
+			}
+			log.Info().Msgf("successfully set conversion webhook configuration for crd : %s to \"None\"", crd.Name)
+		}
+	}
 }
 
 func (b *bootstrap) createDefaultMeshConfig() error {
