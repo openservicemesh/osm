@@ -198,6 +198,9 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 			a.Len(tc.virtualHost.Routes, 1)
 			a.ElementsMatch(tc.expectedWeightedCluster.Clusters, tc.virtualHost.Routes[0].GetRoute().GetWeightedClusters().Clusters)
 			a.Equal(tc.expectedWeightedCluster.TotalWeight, tc.virtualHost.Routes[0].GetRoute().GetWeightedClusters().TotalWeight)
+			check()
 		})
 	}
 }
+
+func check() {}
