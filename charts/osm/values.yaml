@@ -32,19 +32,19 @@ osm:
     # -- Image digest (defaults to latest compatible tag)
     digest:
       # -- osm-controller's image digest
-      osmController: sha256:cd990e6a9dc43236b9c20ff1b7b451aa5e0901e09fa9ee19b38291b81c9c0186
+      osmController: sha256:f1c85bc569b0461dbed133eeee59c95fd7e6fc976fa8eaace90e287b19729f62
       # -- osm-injector's image digest
-      osmInjector: sha256:d6ac4f1f1da81c595ebf86cc879fd5e77f1e56580d83663b0d91674cd2fc7d73
+      osmInjector: sha256:469faab39fa3dd28428d0f5ce4add0d16fa2db03465da4b3c6810a6d0bb7c8ee
       # -- Sidecar init container's image digest
-      osmSidecarInit: sha256:84e89596d7abbf84799b60980ff494767ef80c4a6500b9dac61c8057a53f2a20
+      osmSidecarInit: sha256:6068da0e9dd2e99ffe2d47ef704c234f8c47ea6eab80ff00f6eb153b040f084a
       # -- osm-crds' image digest
-      osmCRDs: sha256:76cc48c844717a2e924702c610e83c85c3a5997b27e192dcf175ecd5351c690e
+      osmCRDs: sha256:18f0261bc90927206e902049352d40112dd3aa8f59de99aa04f41793cce85cbf
       # -- osm-boostrap's image digest
-      osmBootstrap: sha256:0631c1f69e2e1e5ae8796cfea8a63791a861d6d4ce514af2c45337f47f08070c
+      osmBootstrap: sha256:8a7eefe821aa6afb2f58ba696375f9c693320605c0f8706df6e3b00cca4466f0
       # -- osm-preinstall's image digest
-      osmPreinstall: sha256:921e0d51372db1582ece8fbbfc4790e802c4248c1cf3fd6836c3176b04cc95ed
+      osmPreinstall: sha256:a7de42180c172825e50063862470328ecba0bb94b8b4a3c6a549bf584abfd2b0
       # -- osm-healthcheck's image digest
-      osmHealthcheck: sha256:4dd1a529d612ffc46bfbbdaf04c51c8aec9bbb082a35ed2656e1dba348078c26
+      osmHealthcheck: sha256:7ed7e7810a468f929790be98d5eff186f5a3d5a92c0857102dc6d2a4ad0967e7
 
 
   # -- `osm-controller` image pull secret
