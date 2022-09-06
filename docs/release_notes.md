@@ -4,6 +4,8 @@
 
 ### Notable changes
 
+- Remove CRD conversion webhook (the webhook does not act differently than how if the CRD conversion strategy was set to `None`)
+- Fixed ingress backend SAN's (the trust domain was getting appended to the provided SAN)
 - Custom trust domains (i.e. certificate CommonNames) are now supported
 - The authentication token used to configure the Hashicorp Vault certificate provider can now be passed in using a secretRef
 - Envoy has been updated to v1.22 and uses the `envoyproxy/envoy-distroless` image instead of the deprecated `envoyproxy/envoy-alpine` image.
