@@ -29,6 +29,8 @@ spec:
       - tt
     plural: traffictargets
     singular: traffictarget
+  conversion:
+    strategy: None
   versions:
     - name: v1alpha3
       served: true
