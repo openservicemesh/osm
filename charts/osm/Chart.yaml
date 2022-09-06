@@ -14,11 +14,11 @@ type: application
 
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
-version: 1.1.1
+version: 1.1.2
 
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application.
-appVersion: v1.1.1
+appVersion: v1.1.2
 
 # This specifies the minimum Kubernetes version OSM is compatible with.
 kubeVersion: ">= 1.20.0-0"

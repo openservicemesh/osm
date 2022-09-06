@@ -4,6 +4,7 @@
 
 ### Notable changes
 
+- Remove CRD conversion webhook (the webhook does not act differently than how if the CRD conversion strategy was set to `None`)
 - Circuit breaking support for traffic directed to in-mesh and external destinations
 
 ### Breaking changes
