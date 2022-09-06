@@ -106,14 +106,14 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.grafana.image | string | `"grafana/grafana:8.2.2"` | Image used for Grafana |
 | osm.grafana.port | int | `3000` | Grafana service's port |
 | osm.grafana.rendererImage | string | `"grafana/grafana-image-renderer:3.2.1"` | Image used for Grafana Renderer |
-| osm.image.digest | object | `{"osmBootstrap":"sha256:2a6c578845e183a76ef9907e20eede729b17641b56009c3e0270f0836cb7a5de","osmCRDs":"sha256:3d16cd6a20da3ab01917af360b92c727a351df8eef7a223a733f2ecb70ce4340","osmController":"sha256:141f6fb543e6670378f08a6d4d417171fa053ce66cb27e09b9e31b26008671c5","osmHealthcheck":"sha256:321bb886c0d0f44c47d66fc8f76b4916ea0ce8cca1cdfa58d3ea7423264f0e43","osmInjector":"sha256:e27681aad2052893c11140094b58390054d97a6be0045ef2e90c056098d2d181","osmPreinstall":"sha256:b95cbd95ecd77e5c336a264c7a0d835ff76ccb7977a37f5c309feab703a93ec8","osmSidecarInit":"sha256:d105a2c634059ebe0d75a869717b4e33120e7eb14f112f49b204dfb8cf3f262d"}` | Image digest (defaults to latest compatible tag) |
-| osm.image.digest.osmBootstrap | string | `"sha256:2a6c578845e183a76ef9907e20eede729b17641b56009c3e0270f0836cb7a5de"` | osm-boostrap's image digest |
-| osm.image.digest.osmCRDs | string | `"sha256:3d16cd6a20da3ab01917af360b92c727a351df8eef7a223a733f2ecb70ce4340"` | osm-crds' image digest |
-| osm.image.digest.osmController | string | `"sha256:141f6fb543e6670378f08a6d4d417171fa053ce66cb27e09b9e31b26008671c5"` | osm-controller's image digest |
-| osm.image.digest.osmHealthcheck | string | `"sha256:321bb886c0d0f44c47d66fc8f76b4916ea0ce8cca1cdfa58d3ea7423264f0e43"` | osm-healthcheck's image digest |
-| osm.image.digest.osmInjector | string | `"sha256:e27681aad2052893c11140094b58390054d97a6be0045ef2e90c056098d2d181"` | osm-injector's image digest |
-| osm.image.digest.osmPreinstall | string | `"sha256:b95cbd95ecd77e5c336a264c7a0d835ff76ccb7977a37f5c309feab703a93ec8"` | osm-preinstall's image digest |
-| osm.image.digest.osmSidecarInit | string | `"sha256:d105a2c634059ebe0d75a869717b4e33120e7eb14f112f49b204dfb8cf3f262d"` | Sidecar init container's image digest |
+| osm.image.digest | object | `{"osmBootstrap":"sha256:0631c1f69e2e1e5ae8796cfea8a63791a861d6d4ce514af2c45337f47f08070c","osmCRDs":"sha256:76cc48c844717a2e924702c610e83c85c3a5997b27e192dcf175ecd5351c690e","osmController":"sha256:cd990e6a9dc43236b9c20ff1b7b451aa5e0901e09fa9ee19b38291b81c9c0186","osmHealthcheck":"sha256:4dd1a529d612ffc46bfbbdaf04c51c8aec9bbb082a35ed2656e1dba348078c26","osmInjector":"sha256:d6ac4f1f1da81c595ebf86cc879fd5e77f1e56580d83663b0d91674cd2fc7d73","osmPreinstall":"sha256:921e0d51372db1582ece8fbbfc4790e802c4248c1cf3fd6836c3176b04cc95ed","osmSidecarInit":"sha256:84e89596d7abbf84799b60980ff494767ef80c4a6500b9dac61c8057a53f2a20"}` | Image digest (defaults to latest compatible tag) |
+| osm.image.digest.osmBootstrap | string | `"sha256:0631c1f69e2e1e5ae8796cfea8a63791a861d6d4ce514af2c45337f47f08070c"` | osm-boostrap's image digest |
+| osm.image.digest.osmCRDs | string | `"sha256:76cc48c844717a2e924702c610e83c85c3a5997b27e192dcf175ecd5351c690e"` | osm-crds' image digest |
+| osm.image.digest.osmController | string | `"sha256:cd990e6a9dc43236b9c20ff1b7b451aa5e0901e09fa9ee19b38291b81c9c0186"` | osm-controller's image digest |
+| osm.image.digest.osmHealthcheck | string | `"sha256:4dd1a529d612ffc46bfbbdaf04c51c8aec9bbb082a35ed2656e1dba348078c26"` | osm-healthcheck's image digest |
+| osm.image.digest.osmInjector | string | `"sha256:d6ac4f1f1da81c595ebf86cc879fd5e77f1e56580d83663b0d91674cd2fc7d73"` | osm-injector's image digest |
+| osm.image.digest.osmPreinstall | string | `"sha256:921e0d51372db1582ece8fbbfc4790e802c4248c1cf3fd6836c3176b04cc95ed"` | osm-preinstall's image digest |
+| osm.image.digest.osmSidecarInit | string | `"sha256:84e89596d7abbf84799b60980ff494767ef80c4a6500b9dac61c8057a53f2a20"` | Sidecar init container's image digest |
 | osm.image.name | object | `{"osmBootstrap":"osm-bootstrap","osmCRDs":"osm-crds","osmController":"osm-controller","osmHealthcheck":"osm-healthcheck","osmInjector":"osm-injector","osmPreinstall":"osm-preinstall","osmSidecarInit":"init"}` | Image name defaults |
 | osm.image.name.osmBootstrap | string | `"osm-bootstrap"` | osm-boostrap's image name |
 | osm.image.name.osmCRDs | string | `"osm-crds"` | osm-crds' image name |
