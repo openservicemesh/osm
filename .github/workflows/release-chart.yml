@@ -1,8 +1,5 @@
 name: Release Helm Chart
-on:
-  push:
-    tags:
-      - "v*"
+on: workflow_dispatch
 
 jobs:
   release:
