@@ -6,8 +6,6 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
@@ -278,13 +276,9 @@ func TestNewResponse(t *testing.T) {
 			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().ListServicesForProxy(proxy).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
 			// Empty discovery request
-			discoveryRequest := xds_discovery.DiscoveryRequest{
-				ResourceNames: []string{},
-			}
-
 			mc := tresorFake.NewFake(1 * time.Hour)
 
-			resources, err := NewResponse(mockCatalog, proxy, &discoveryRequest, mc, nil)
+			resources, err := NewResponse(mockCatalog, proxy, mc, nil)
 			assert.Nil(err)
 			assert.NotNil(resources)
 
@@ -412,68 +406,4 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 	}
 
 	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookstoreServiceIdentity, nil, 1), nil
-}
-
-func TestResponseRequestCompletion(t *testing.T) {
-	assert := tassert.New(t)
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
-
-	uuid := uuid.New()
-	testProxy := envoy.NewProxy(envoy.KindSidecar, uuid, identity.New("some-service", "some-namespace"), nil, 1)
-
-	mc := tresorFake.NewFake(1 * time.Hour)
-
-	mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(nil).AnyTimes()
-	mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
-	mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
-	mockCatalog.EXPECT().GetMeshConfig().AnyTimes()
-	mockCatalog.EXPECT().ListServicesForProxy(testProxy).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
-
-	testCases := []struct {
-		request *xds_discovery.DiscoveryRequest
-	}{
-		{
-			request: &xds_discovery.DiscoveryRequest{
-				ResourceNames: []string{"foo", "bar"},
-			},
-		},
-		{
-			request: &xds_discovery.DiscoveryRequest{
-				ResourceNames: []string{"rds-inbound", "rds-outbound", "ingress", "bar", "doge"},
-			},
-		},
-		{
-			request: &xds_discovery.DiscoveryRequest{
-				ResourceNames: []string{},
-			},
-		},
-		{
-			request: nil,
-		},
-	}
-
-	for _, tc := range testCases {
-		resources, err := NewResponse(mockCatalog, testProxy, tc.request, mc, nil)
-		assert.Nil(err)
-
-		if tc.request != nil {
-			requestMapset := mapset.NewSet()
-			for idx := range tc.request.ResourceNames {
-				requestMapset.Add(tc.request.ResourceNames[idx])
-			}
-
-			responseMapset := mapset.NewSet()
-			for _, res := range resources {
-				responseMapset.Add(cache.GetResourceName(res))
-			}
-
-			// verify all request resources where fulfilled
-			diffMapset := requestMapset.Difference(responseMapset)
-			assert.Equal(0, diffMapset.Cardinality())
-		}
-	}
 }

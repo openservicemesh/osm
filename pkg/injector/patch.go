@@ -44,7 +44,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	originalHealthProbes := rewriteHealthProbes(pod)
 
 	// Create the bootstrap configuration for the Envoy proxy for the given pod
-	envoyBootstrapConfigName := bootstrapSecretPrefix + proxyUUID.String()
+	envoyBootstrapConfigName := bootstrapConfigName(proxyUUID)
 
 	// This needs to occur before replacing the label below.
 	originalUUID, alreadyInjected := getProxyUUID(pod)
@@ -61,12 +61,12 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		// with the same UUID, so instead we change the UUID, and create a new bootstrap config, copied from the original,
 		// with the proxy UUID changed.
 		oldConfigName := bootstrapSecretPrefix + originalUUID
-		if _, err := wh.createEnvoyBootstrapFromExisting(envoyBootstrapConfigName, oldConfigName, namespace, bootstrapCertificate); err != nil {
+		if _, err := wh.createEnvoyBootstrapFromExisting(proxyUUID, oldConfigName, namespace, bootstrapCertificate); err != nil {
 			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for already-injected pod: service-account=%s, namespace=%s, certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
 			return nil, err
 		}
 	default:
-		if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
+		if _, err = wh.createEnvoyBootstrapConfig(proxyUUID, namespace, bootstrapCertificate, originalHealthProbes); err != nil {
 			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
 			return nil, err
 		}
@@ -236,4 +236,8 @@ func getProxyUUID(pod *corev1.Pod) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func bootstrapConfigName(proxyUUID uuid.UUID) string {
+	return bootstrapSecretPrefix + proxyUUID.String()
 }

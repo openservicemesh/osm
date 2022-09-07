@@ -53,7 +53,7 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	mc := tresorFake.NewFake(1 * time.Hour)
 	a.NotNil(a)
 
-	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mc, nil)
+	resources, err := rds.NewResponse(meshCatalog, proxy, mc, nil)
 	a.Nil(err)
 	a.Len(resources, 1) // only outbound routes configured for this test
 

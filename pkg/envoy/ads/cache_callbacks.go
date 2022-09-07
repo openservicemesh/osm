@@ -3,6 +3,8 @@ package ads
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
@@ -52,14 +54,16 @@ func (s *Server) OnStreamOpen(ctx context.Context, streamID int64, typ string) e
 		certRotations, unsubRotations := s.certManager.SubscribeRotations(proxy.Identity.String())
 		defer unsubRotations()
 
+		// schedule one update for this proxy initially.
+		s.scheduleUpdate(proxy)
 		for {
 			select {
 			case <-proxyUpdateChan:
 				log.Debug().Str("proxy", proxy.String()).Msg("Broadcast update received")
-				s.update(proxy)
+				s.scheduleUpdate(proxy)
 			case <-certRotations:
 				log.Debug().Str("proxy", proxy.String()).Msg("Certificate has been updated for proxy")
-				s.update(proxy)
+				s.scheduleUpdate(proxy)
 			case <-ctx.Done():
 				return
 			}
@@ -68,15 +72,33 @@ func (s *Server) OnStreamOpen(ctx context.Context, streamID int64, typ string) e
 	return nil
 }
 
-func (s *Server) update(proxy *envoy.Proxy) {
-	ch := s.workqueues.AddJob(&proxyResponseJob{
-		proxy:     proxy,
-		xdsServer: s,
-		typeURIs:  envoy.XDSResponseOrder,
-		done:      make(chan struct{}),
-	})
-	<-ch
-	close(ch)
+func (s *Server) scheduleUpdate(proxy *envoy.Proxy) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	s.workqueues.AddJob(
+		func() {
+			t := time.Now()
+			log.Debug().Msgf("Starting update for proxy %s", proxy.String())
+
+			if err := s.update(proxy); err != nil {
+				log.Error().Err(err).Str("proxy", proxy.String()).Msg("Error generating resources for proxy")
+			}
+			log.Debug().Msgf("Update for proxy %s took took %v", proxy.String(), time.Since(t))
+			wg.Done()
+		})
+	wg.Wait()
+}
+
+func (s *Server) update(proxy *envoy.Proxy) error {
+	resources, err := s.GenerateResources(proxy)
+	if err != nil {
+		return err
+	}
+	if err := s.ServeResources(proxy, resources); err != nil {
+		return err
+	}
+	log.Debug().Msgf("successfully updated resources for proxy %s", proxy.String())
+	return nil
 }
 
 // OnStreamClosed is called on stream closed
@@ -100,8 +122,8 @@ func (s *Server) OnStreamRequest(streamID int64, req *discovery.DiscoveryRequest
 }
 
 // OnStreamResponse is called when a response is being sent to a request
-func (s *Server) OnStreamResponse(_ context.Context, aa int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
-	log.Debug().Msgf("OnStreamResponse RESP: type: %s, v: %s, nonce: %s, NumResources: %d", resp.TypeUrl, resp.VersionInfo, resp.Nonce, len(resp.Resources))
+func (s *Server) OnStreamResponse(_ context.Context, streamID int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
+	log.Debug().Msgf("OnStreamResponse RESP: %d type: %s, v: %s, nonce: %s, NumResources: %d", streamID, resp.TypeUrl, resp.VersionInfo, resp.Nonce, len(resp.Resources))
 }
 
 // --- Fetch request types. Callback interfaces still requires these to be defined

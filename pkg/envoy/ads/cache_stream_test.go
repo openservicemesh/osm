@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
 
@@ -12,36 +11,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 )
-
-func findSliceElem(slice []string, elem string) bool {
-	for _, v := range slice {
-		if v == elem {
-			return true
-		}
-	}
-	return false
-}
-
-func TestMapsetToSliceConvFunctions(t *testing.T) {
-	assert := tassert.New(t)
-
-	discRequest := &xds_discovery.DiscoveryRequest{TypeUrl: "TestTypeurl"}
-	discRequest.ResourceNames = []string{"A", "B", "C"}
-
-	nameSet := getRequestedResourceNamesSet(discRequest)
-
-	assert.True(nameSet.Contains("A"))
-	assert.True(nameSet.Contains("B"))
-	assert.True(nameSet.Contains("C"))
-	assert.False(nameSet.Contains("D"))
-
-	nameSlice := getResourceSliceFromMapset(nameSet)
-
-	assert.True(findSliceElem(nameSlice, "A"))
-	assert.True(findSliceElem(nameSlice, "B"))
-	assert.True(findSliceElem(nameSlice, "C"))
-	assert.False(findSliceElem(nameSlice, "D"))
-}
 
 func TestGetCertificateCommonNameMeta(t *testing.T) {
 	testCases := []struct {

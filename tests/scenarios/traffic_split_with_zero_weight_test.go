@@ -242,7 +242,7 @@ func TestRDSRespose(t *testing.T) {
 
 			cm := tresorFake.NewFake(1 * time.Hour)
 
-			resources, err := rds.NewResponse(mockCatalog, proxy, nil, cm, nil)
+			resources, err := rds.NewResponse(mockCatalog, proxy, cm, nil)
 			assert.Nil(err)
 			assert.NotNil(resources)
 

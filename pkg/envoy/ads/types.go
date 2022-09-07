@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 
@@ -27,7 +26,7 @@ var (
 type Server struct {
 	catalog       catalog.MeshCataloger
 	proxyRegistry *registry.ProxyRegistry
-	xdsHandlers   map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, *certificate.Manager, *registry.ProxyRegistry) ([]types.Resource, error)
+	xdsHandlers   map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *certificate.Manager, *registry.ProxyRegistry) ([]types.Resource, error)
 	// xdsLog is a map of key proxy.GetName(), which is of the form <identity>:<uuid> to map xds TypeURI to a slice of timestamps
 	xdsLog         map[string]map[envoy.TypeURI][]time.Time
 	xdsMapLogMutex sync.Mutex
@@ -40,8 +39,6 @@ type Server struct {
 	// ---
 	// SnapshotCache implementation structrues below
 	// Used to maintain a unique ID per stream. Must be accessed with the atomic package.
-	nextStreamID  int64
-	cacheEnabled  bool
 	snapshotCache cachev3.SnapshotCache
 	// When snapshot cache is enabled, we (currently) don't keep track of proxy information, however different
 	// config versions have to be provided to the cache as we keep adding snapshots. The following map

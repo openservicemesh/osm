@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -21,7 +20,7 @@ import (
 // 1. Inbound listener to handle incoming traffic
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cm *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, cm *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	var ldsResources []types.Resource
 
 	var statsHeaders map[string]string
