@@ -22,7 +22,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/lds"
-	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	envoySecrets "github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -627,9 +627,9 @@ func (v *EnvoyConfigVerifier) findHTTPRouteForService(svc *corev1.Service, route
 
 		var desiredConfigName string
 		if isOutbound {
-			desiredConfigName = route.GetOutboundMeshRouteConfigNameForPort(int(meshSvc.Port))
+			desiredConfigName = rds.GetOutboundMeshRouteConfigNameForPort(int(meshSvc.Port))
 		} else {
-			desiredConfigName = route.GetInboundMeshRouteConfigNameForPort(int(meshSvc.TargetPort))
+			desiredConfigName = rds.GetInboundMeshRouteConfigNameForPort(int(meshSvc.TargetPort))
 		}
 
 		if err := findHTTPRouteConfig(routeConfigs, desiredConfigName, meshSvc.FQDN()); err != nil {
@@ -805,7 +805,7 @@ func (v *EnvoyConfigVerifier) findEgressHTTPRoute(routeConfigs []*xds_route.Rout
 	}
 
 	port := int(v.configAttr.trafficAttr.ExternalPort)
-	desiredRouteConfigName := route.GetEgressRouteConfigNameForPort(port)
+	desiredRouteConfigName := rds.GetEgressRouteConfigNameForPort(port)
 
 	var config *xds_route.RouteConfiguration
 	for _, c := range routeConfigs {

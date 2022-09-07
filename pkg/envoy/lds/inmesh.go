@@ -11,7 +11,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -75,7 +75,7 @@ func (lb *listenerBuilder) buildInboundHTTPFilterChain(trafficMatch *trafficpoli
 		fb.TCPGlobalRateLimit(trafficMatch.RateLimit.Global.TCP)
 	}
 
-	routeCfgName := route.GetInboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort)
+	routeCfgName := rds.GetInboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort)
 	fb.httpConnManager().StatsPrefix(routeCfgName).
 		RouteConfigName(routeCfgName)
 
@@ -257,7 +257,7 @@ func buildOutboundFilterChainMatch(trafficMatch trafficpolicy.TrafficMatch) (*xd
 
 func (lb *listenerBuilder) buildOutboundHTTPFilterChain(trafficMatch trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
 	// Get HTTP filter for service
-	filter, err := lb.buildOutboundHTTPFilter(route.GetOutboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort))
+	filter, err := lb.buildOutboundHTTPFilter(rds.GetOutboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting HTTP filter for traffic match %s", trafficMatch.Name)
 		return nil, err
