@@ -29,7 +29,7 @@ func (s *Server) getTypeResources(proxy *envoy.Proxy, request *xds_discovery.Dis
 	}
 
 	if s.catalog.GetMeshConfig().Spec.Observability.EnableDebugServer {
-		s.trackXDSLog(proxy.GetName(), typeURI)
+		s.trackXDSLog(proxy.UUID.String(), typeURI)
 	}
 
 	// Invoke XDS handler
@@ -131,7 +131,7 @@ func (s *Server) SendDiscoveryResponse(proxy *envoy.Proxy, request *xds_discover
 		proto, err := anypb.New(res.(proto.Message))
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
-				Msgf("Error marshalling resource %s for proxy %s", typeURI, proxy.GetName())
+				Msgf("Error marshalling resource %s for proxy %s", typeURI, proxy)
 			continue
 		}
 		// Add resource to response

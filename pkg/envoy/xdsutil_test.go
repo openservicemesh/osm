@@ -284,53 +284,6 @@ var _ = Describe("Test Envoy tools", func() {
 			Expect(actual).To(Equal(expected))
 		})
 	})
-
-	Context("Test GetEnvoyServiceNodeID()", func() {
-		It("", func() {
-			actual := GetEnvoyServiceNodeID("-nodeID-", "-workload-kind-", "-workload-name-")
-			expected := "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/-nodeID-/$(POD_NAME)/-workload-kind-/-workload-name-"
-			Expect(actual).To(Equal(expected))
-		})
-	})
-
-	Context("Test ParseEnvoyServiceNodeID()", func() {
-		It("", func() {
-			serviceNodeID := GetEnvoyServiceNodeID("-nodeID-", "-workload-kind-", "-workload-name-")
-			meta, err := ParseEnvoyServiceNodeID(serviceNodeID)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(meta.UID).To(Equal("$(POD_UID)"))
-			Expect(meta.Namespace).To(Equal("$(POD_NAMESPACE)"))
-			Expect(meta.IP).To(Equal("$(POD_IP)"))
-			Expect(meta.ServiceAccount.Name).To(Equal("$(SERVICE_ACCOUNT)"))
-			Expect(meta.ServiceAccount.Namespace).To(Equal("$(POD_NAMESPACE)"))
-			Expect(meta.EnvoyNodeID).To(Equal("-nodeID-"))
-			Expect(meta.Name).To(Equal("$(POD_NAME)"))
-			Expect(meta.WorkloadKind).To(Equal("-workload-kind-"))
-			Expect(meta.WorkloadName).To(Equal("-workload-name-"))
-		})
-
-		It("handles when not all fields are defined", func() {
-			serviceNodeID := "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/-nodeID-"
-			meta, err := ParseEnvoyServiceNodeID(serviceNodeID)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(meta.UID).To(Equal("$(POD_UID)"))
-			Expect(meta.Namespace).To(Equal("$(POD_NAMESPACE)"))
-			Expect(meta.IP).To(Equal("$(POD_IP)"))
-			Expect(meta.ServiceAccount.Name).To(Equal("$(SERVICE_ACCOUNT)"))
-			Expect(meta.ServiceAccount.Namespace).To(Equal("$(POD_NAMESPACE)"))
-			Expect(meta.EnvoyNodeID).To(Equal("-nodeID-"))
-			Expect(meta.Name).To(Equal(""))
-			Expect(meta.WorkloadKind).To(Equal(""))
-			Expect(meta.WorkloadName).To(Equal(""))
-		})
-
-		It("should error when there are less than 5 chunks in the serviceNodeID string", func() {
-			// this 'serviceNodeID' will yield 2 chunks
-			serviceNodeID := "$(POD_UID)/$(POD_NAMESPACE)"
-			_, err := ParseEnvoyServiceNodeID(serviceNodeID)
-			Expect(err).To(HaveOccurred())
-		})
-	})
 })
 
 func TestGetCIDRRangeFromStr(t *testing.T) {

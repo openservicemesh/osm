@@ -66,7 +66,7 @@ const (
 )
 
 // BuildInboundMeshRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
-func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy, wasmStatsEnabled bool, trustDomain string) []*xds_route.RouteConfiguration {
+func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy, statsHeaders map[string]string, trustDomain string) []*xds_route.RouteConfiguration {
 	var routeConfigs []*xds_route.RouteConfiguration
 
 	// An Envoy RouteConfiguration will exist for each HTTP upstream port.
@@ -80,15 +80,13 @@ func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*traf
 			applyInboundVirtualHostConfig(virtualHost, config)
 			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
 		}
-		if wasmStatsEnabled {
-			for k, v := range proxy.StatsHeaders() {
-				routeConfig.ResponseHeadersToAdd = append(routeConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
-					Header: &core.HeaderValue{
-						Key:   k,
-						Value: v,
-					},
-				})
-			}
+		for k, v := range statsHeaders {
+			routeConfig.ResponseHeadersToAdd = append(routeConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
+				Header: &core.HeaderValue{
+					Key:   k,
+					Value: v,
+				},
+			})
 		}
 		routeConfigs = append(routeConfigs, routeConfig)
 	}

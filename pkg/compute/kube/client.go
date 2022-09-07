@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
@@ -405,4 +406,44 @@ func DetectIngressBackendConflicts(x policyv1alpha1.IngressBackend, y policyv1al
 	}
 
 	return conflicts
+}
+
+// GetProxyStatsHeaders returns stats headers for the given proxy.
+func (c *client) GetProxyStatsHeaders(p *envoy.Proxy) (map[string]string, error) {
+	pod, err := c.kubeController.GetPodForProxy(p)
+	if err != nil {
+		log.Warn().Str("proxy", p.String()).Msg("Could not find pod for connecting proxy. No metadata was recorded.")
+		return nil, err
+	}
+
+	workloadKind := "unknown"
+	workloadName := "unknown"
+	for _, ref := range pod.GetOwnerReferences() {
+		if ref.Controller != nil && *ref.Controller {
+			workloadKind = ref.Kind
+			workloadName = ref.Name
+			// Assume ReplicaSets are controlled by a Deployment unless their names
+			// do not contain a hyphen. This aligns with the behavior of the
+			// Prometheus config in the OSM Helm chart.
+			hyp := strings.LastIndex(workloadName, "-")
+			if workloadKind == "ReplicaSet" && hyp >= 0 {
+				workloadKind = "Deployment"
+				workloadName = workloadName[:hyp]
+			}
+			break
+		}
+	}
+
+	return map[string]string{
+		"osm-stats-pod":       pod.Name,
+		"osm-stats-namespace": pod.Namespace,
+		"osm-stats-kind":      workloadKind,
+		"osm-stats-name":      workloadName,
+	}, nil
+}
+
+// VerifyProxy attempts to lookup a pod that matches the given proxy instance by service identity, namespace, and UUID.
+func (c *client) VerifyProxy(proxy *envoy.Proxy) error {
+	_, err := c.kubeController.GetPodForProxy(proxy)
+	return err
 }

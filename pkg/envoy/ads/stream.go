@@ -51,12 +51,6 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	streamID := atomic.AddInt64(&s.nextStreamID, 1)
 	proxy := envoy.NewProxy(kind, uuid, si, utils.GetIPFromContext(server.Context()), streamID)
 
-	if err := s.recordPodMetadata(proxy); err == errServiceAccountMismatch {
-		// Service Account mismatch
-		log.Error().Err(err).Str("proxy", proxy.String()).Msg("Mismatched service account for proxy")
-		return err
-	}
-
 	s.proxyRegistry.RegisterProxy(proxy)
 
 	defer s.proxyRegistry.UnregisterProxy(streamID)
@@ -334,45 +328,4 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (envoy.ProxyKind, u
 	}
 
 	return envoy.ProxyKind(chunks[1]), proxyUUID, identity.New(chunks[2], chunks[3]), nil
-}
-
-// recordPodMetadata records pod metadata and verifies the certificate issued for this pod
-// is for the same service account as seen on the pod's service account
-func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
-	pod, err := s.kubecontroller.GetPodForProxy(p)
-	if err != nil {
-		log.Warn().Str("proxy", p.String()).Msg("Could not find pod for connecting proxy. No metadata was recorded.")
-		return nil
-	}
-
-	workloadKind := ""
-	workloadName := ""
-	for _, ref := range pod.GetOwnerReferences() {
-		if ref.Controller != nil && *ref.Controller {
-			workloadKind = ref.Kind
-			workloadName = ref.Name
-			break
-		}
-	}
-
-	p.PodMetadata = &envoy.PodMetadata{
-		UID:       string(pod.UID),
-		Name:      pod.Name,
-		Namespace: pod.Namespace,
-		ServiceAccount: identity.K8sServiceAccount{
-			Namespace: pod.Namespace,
-			Name:      pod.Spec.ServiceAccountName,
-		},
-		WorkloadKind: workloadKind,
-		WorkloadName: workloadName,
-	}
-
-	// Verify Service account matches (cert to pod Service Account)
-	if p.Identity.ToK8sServiceAccount() != p.PodMetadata.ServiceAccount {
-		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMismatchedServiceAccount)).Str("proxy", p.String()).
-			Msgf("Service Account referenced in NodeID (%s) does not match Service Account in Certificate (%s). This proxy is not allowed to join the mesh.", p.PodMetadata.ServiceAccount, p.Identity.ToK8sServiceAccount())
-		return errServiceAccountMismatch
-	}
-
-	return nil
 }

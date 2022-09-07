@@ -96,6 +96,21 @@ func (mr *MockInterfaceMockRecorder) GetOSMNamespace() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOSMNamespace", reflect.TypeOf((*MockInterface)(nil).GetOSMNamespace))
 }
 
+// GetProxyStatsHeaders mocks base method.
+func (m *MockInterface) GetProxyStatsHeaders(arg0 *envoy.Proxy) (map[string]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProxyStatsHeaders", arg0)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetProxyStatsHeaders indicates an expected call of GetProxyStatsHeaders.
+func (mr *MockInterfaceMockRecorder) GetProxyStatsHeaders(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProxyStatsHeaders", reflect.TypeOf((*MockInterface)(nil).GetProxyStatsHeaders), arg0)
+}
+
 // GetResolvableEndpointsForService mocks base method.
 func (m *MockInterface) GetResolvableEndpointsForService(arg0 service.MeshService) []endpoint.Endpoint {
 	m.ctrl.T.Helper()
@@ -393,4 +408,18 @@ func (m *MockInterface) UpdateUpstreamTrafficSettingStatus(arg0 *v1alpha1.Upstre
 func (mr *MockInterfaceMockRecorder) UpdateUpstreamTrafficSettingStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUpstreamTrafficSettingStatus", reflect.TypeOf((*MockInterface)(nil).UpdateUpstreamTrafficSettingStatus), arg0)
+}
+
+// VerifyProxy mocks base method.
+func (m *MockInterface) VerifyProxy(arg0 *envoy.Proxy) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VerifyProxy", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// VerifyProxy indicates an expected call of VerifyProxy.
+func (mr *MockInterfaceMockRecorder) VerifyProxy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyProxy", reflect.TypeOf((*MockInterface)(nil).VerifyProxy), arg0)
 }

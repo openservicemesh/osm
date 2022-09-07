@@ -38,9 +38,7 @@ func (s *Server) OnStreamOpen(ctx context.Context, streamID int64, typ string) e
 
 	proxy := envoy.NewProxy(kind, uuid, si, utils.GetIPFromContext(ctx), streamID)
 
-	if err := s.recordPodMetadata(proxy); err == errServiceAccountMismatch {
-		// Service Account mismatch
-		log.Error().Err(err).Str("proxy", proxy.String()).Msg("Mismatched service account for proxy")
+	if err := s.catalog.VerifyProxy(proxy); err != nil {
 		return err
 	}
 

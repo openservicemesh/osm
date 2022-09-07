@@ -27,15 +27,18 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	var statsHeaders map[string]string
 	meshConfig := meshCatalog.GetMeshConfig()
 
-	if meshConfig.Spec.FeatureFlags.EnableWASMStats {
-		statsHeaders = proxy.StatsHeaders()
-	}
-
 	svcList, err := meshCatalog.ListServicesForProxy(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
 			Str("proxy", proxy.String()).Msgf("Error looking up MeshServices associated with proxy")
 		return nil, err
+	}
+
+	if meshConfig.Spec.FeatureFlags.EnableWASMStats {
+		statsHeaders, err = meshCatalog.GetProxyStatsHeaders(proxy)
+		if err != nil {
+			log.Err(err).Msgf("Error getting proxy stats headers for proxy %s", proxy)
+		}
 	}
 
 	// --- OUTBOUND -------------------
