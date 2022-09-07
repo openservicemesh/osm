@@ -153,7 +153,7 @@ spec:
                     - required: ["vault"]
                     - required: ["tresor"]
             intent:
-              description: Specifies the intent of the MeshRootCertificate can be (Active, Passive)
+              description: Intent specifies the role of the MeshRootCertificate, can be active or passive
               type: string
             status:
               type: object

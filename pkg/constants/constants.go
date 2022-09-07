@@ -217,6 +217,9 @@ const (
 	// MRCIntentPassive is the passive option for the Intent of the MeshRootCertificate
 	MRCIntentPassive = "passive"
 
+	// MRCIntentActive is the active option for the Intent of the MeshRootCertificate
+	MRCIntentActive = "active"
+
 	// MRCComponentStatusUnknown is the unknown status option for the component status of the MeshRootCertificate
 	MRCComponentStatusUnknown = "Unknown"
 

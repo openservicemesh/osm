@@ -171,7 +171,7 @@ type MeshRootCertificateStatus struct {
 	// All states are specified in constants.go
 	State string `json:"state"`
 
-	// Set of statuses for each certificate component in the cluster (e.g. webhooks, bootstrap, etc.).
+	// Set of statuses for each certificate component in the cluster (e.g. webhooks, bootstrap, etc.)
 	ComponentStatuses MeshRootCertificateComponentStatuses `json:"componentStatuses"`
 
 	// List of status conditions to indicate the status of a MeshRootCertificate.

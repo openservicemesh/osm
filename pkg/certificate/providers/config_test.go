@@ -188,6 +188,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 						},
 					},
 				},
+				Intent: constants.MRCIntentPassive,
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
 					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
