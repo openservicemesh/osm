@@ -28,7 +28,7 @@ def remove_securityContext(yaml_stream):
 
     return yaml_stream
 
-def dockerfile_gen(binary_name):
+def dockerfile_gen(binary_name, additionalCommands=[]):
     tilt_dockerfile_header = """
 FROM gcr.io/distroless/base:debug as tilt
 WORKDIR /
@@ -36,8 +36,8 @@ COPY ./{} /{}
 """.format(binary_name, binary_name)
 
     return "\n".join([
-        tilt_dockerfile_header,
-    ])
+        tilt_dockerfile_header
+    ] + additionalCommands)
 
 local("kubectl create ns osm-system || true", quiet = True)
 
@@ -74,8 +74,8 @@ local_resource(
 
 local_resource(
   'bootstrap-compile',
-  'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./build/osm-bootstrap ./cmd/osm-bootstrap',
-  deps=['./cmd/osm-bootstrap/osm-bootstrap.go', 'pkg'],
+  'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./build/osm-bootstrap ./cmd/osm-bootstrap && cp -r ./cmd/osm-bootstrap/crds ./build',
+  deps=['./cmd/osm-bootstrap/osm-bootstrap.go', 'pkg', './cmd/osm-bootstrap/crds'],
   labels=['compile']
 )
 
@@ -112,13 +112,6 @@ docker_build_with_restart(
       ]
 )
 
-docker_build(
-    'openservicemesh/osm-crds',
-    dockerfile='./dockerfiles/Dockerfile.osm-crds',
-    context='./cmd/osm-bootstrap/crds/',
-    platform = 'linux/amd64'
-)
-
 docker_build_with_restart(
     'openservicemesh/osm-injector',
     context='./build/',
@@ -137,9 +130,10 @@ docker_build_with_restart(
     'openservicemesh/osm-bootstrap',
     context='./build/',
     target='tilt',
-    dockerfile_contents = dockerfile_gen('osm-bootstrap'),
+    dockerfile_contents = dockerfile_gen('osm-bootstrap', ["COPY ./crds/* /osm-crds/"]),
     only=[
-        'osm-bootstrap'
+        'osm-bootstrap',
+        'crds/'
     ],
     entrypoint=['/osm-bootstrap'],
     live_update=[
