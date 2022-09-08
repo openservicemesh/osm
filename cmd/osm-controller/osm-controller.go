@@ -54,10 +54,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
-const (
-	xdsServerCertificateCommonName = "ads"
-)
-
 var (
 	verbosity                  string
 	meshName                   string // An ID that uniquely identifies an OSM instance
@@ -238,14 +234,9 @@ func main() {
 
 	proxyRegistry := registry.NewProxyRegistry()
 
-	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, certificate.Internal)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing XDS certificate to ADS server")
-	}
-
 	// Create and start the ADS gRPC service
 	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, k8sClient.GetMeshConfig().Spec.Observability.EnableDebugServer, osmNamespace, certManager, k8sClient, msgBroker)
-	if err := xdsServer.Start(ctx, cancel, constants.ADSServerPort, adsCert); err != nil {
+	if err := xdsServer.Start(ctx, cancel, constants.ADSServerPort); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
 
