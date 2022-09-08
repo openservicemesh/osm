@@ -68,7 +68,7 @@ func (ds DebugConfig) printProxies(w http.ResponseWriter) {
 
 func (ds DebugConfig) getConfigDump(streamID int64, w http.ResponseWriter) {
 	proxy := ds.proxyRegistry.GetConnectedProxy(streamID)
-	if proxy != nil {
+	if proxy == nil {
 		msg := fmt.Sprintf("Proxy for Stream ID %d not found, may have been disconnected", streamID)
 		log.Error().Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
