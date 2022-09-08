@@ -72,7 +72,7 @@ func (s *Server) withXdsLogMutex(f func()) {
 }
 
 // Start starts the ADS server
-func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int, adsCert *certificate.Certificate) error {
+func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int) error {
 	grpcServer, lis, err := NewGrpc(ServerType, port, xdsServerCertificateCommonName, s.certManager)
 	if err != nil {
 		return fmt.Errorf("error starting ADS server: %w", err)
