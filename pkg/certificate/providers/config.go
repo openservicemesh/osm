@@ -65,8 +65,8 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 			Spec: v1alpha2.MeshRootCertificateSpec{
 				Provider:    option.AsProviderSpec(),
 				TrustDomain: trustDomain,
+				Intent:      constants.MRCIntentPassive,
 			},
-			Intent: constants.MRCIntentPassive,
 			Status: v1alpha2.MeshRootCertificateStatus{
 				State: constants.MRCStateActive,
 				ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{

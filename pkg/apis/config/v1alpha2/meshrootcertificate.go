@@ -17,13 +17,9 @@ type MeshRootCertificate struct {
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec is the MeshRootCertificate config specification
+	// Spec is the MeshRootCertifte config specification
 	// +optional
 	Spec MeshRootCertificateSpec `json:"spec,omitempty"`
-
-	// Intent of the MeshRootCertificate resource
-	// +optional
-	Intent MeshRootCertificateIntent `json:"intent,omitempty"`
 
 	// Status of the MeshRootCertificate resource
 	// +optional
@@ -37,6 +33,9 @@ type MeshRootCertificateSpec struct {
 
 	// TrustDomain is the trust domain to use as a suffix in Common Names for new certificates.
 	TrustDomain string `json:"trustDomain"`
+
+	// Intent of the MeshRootCertificate resource
+	Intent MeshRootCertificateIntent `json:"intent"`
 }
 
 // ProviderSpec defines the certificate provider used by the mesh control plane

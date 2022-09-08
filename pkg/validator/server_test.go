@@ -173,7 +173,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 		cancel()
 	})
 
-	t.Run("successful startup with reconciler enabled and traffic target validation enabled", func(t *testing.T) {
+	t.Run("successful startup with reconciler enabled, traffic target validation enabled, and mrc validation enabled", func(t *testing.T) {
 		certManager := tresorFake.NewFake(1 * time.Hour)
 		enableReconciler = true
 
@@ -192,7 +192,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 	})
 
-	t.Run("successful startup with reconciler enabled and validation for traffic target disabled", func(t *testing.T) {
+	t.Run("successful startup with reconciler enabled and validation for traffic target disabled, and mrc validation enabled", func(t *testing.T) {
 		certManager := tresorFake.NewFake(1 * time.Hour)
 		enableReconciler = true
 		validateTrafficTarget = false

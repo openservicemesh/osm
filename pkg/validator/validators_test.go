@@ -1350,3 +1350,193 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 		})
 	}
 }
+
+func TestMeshRootCertificateValidator(t *testing.T) {
+	testCases := []struct {
+		name         string
+		input        *admissionv1.AdmissionRequest
+		expErrStr    string
+		existingMRCs int
+	}{
+		{
+			name: "MeshRootCertificate with invalid Tresor certificate provider update",
+			input: &admissionv1.AdmissionRequest{
+				Operation: admissionv1.Update,
+				Kind: metav1.GroupVersionKind{
+					Group:   "configv1alpha2",
+					Version: "config.openservicemesh.io",
+					Kind:    "MeshRootCertificate",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "config.openservicemesh.io/configv1alpha2",
+						"kind": "MeshRootCertificate",
+						"metadata": {
+							"name": "osm-mesh-root-certificate",
+							"namespace": "osm-system"
+						},
+						"spec": {
+							"trustDomain": "domain",
+							"intent": "active",
+							"provider": {
+								"tresor": {
+									"ca": {
+										"secretRef": {
+											"name": "osm-ca-bundle",
+											"namespace": "osm-system"
+										}
+									}
+								}
+							}
+						}
+					}
+					`),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "config.openservicemesh.io/configv1alpha2",
+						"kind": "MeshRootCertificate",
+						"metadata": {
+							"name": "osm-mesh-root-certificate",
+							"namespace": "osm-system"
+						},
+						"spec": {
+							"trustDomain": "domain",
+							"intent": "active",
+							"provider": {
+								"tresor": {
+									"ca": {
+										"secretRef": {
+											"name": "new-osm-ca-bundle",
+											"namespace": "test-namespace"
+										}
+									}
+								}
+							}
+						}
+					}
+					`),
+				},
+			},
+			expErrStr: "cannot update certificate provider settings for MRC osm-system/osm-mesh-root-certificate. Create a new MRC and initiate root certificate rotation to update the provider",
+		},
+		{
+			name: "MeshRootCertificate with invalid trust domain update",
+			input: &admissionv1.AdmissionRequest{
+				Operation: admissionv1.Update,
+				Kind: metav1.GroupVersionKind{
+					Group:   "configv1alpha2",
+					Version: "config.openservicemesh.io",
+					Kind:    "MeshRootCertificate",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "config.openservicemesh.io/configv1alpha2",
+						"kind": "MeshRootCertificate",
+						"metadata": {
+							"name": "osm-mesh-root-certificate",
+							"namespace": "osm-system"
+						},
+						"spec": {
+							"trustDomain": "newtrustdomain",
+							"intent": "active",
+							"provider": {
+								"tresor": {
+							 		"ca": {
+										"secretRef": {
+											"name": "osm-ca-bundle",
+											"namespace": "osm-system"
+							  			}
+							 		}
+								}
+							}
+						}
+					}
+					`),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "config.openservicemesh.io/configv1alpha2",
+						"kind": "MeshRootCertificate",
+						"metadata": {
+							"name": "osm-mesh-root-certificate",
+							"namespace": "osm-system"
+						},
+						"spec": {
+							"trustDomain": "oldtrustdomain",
+							"intent": "active",
+							"provider": {
+								"tresor": {
+							 		"ca": {
+										"secretRef": {
+											"name": "osm-ca-bundle",
+											"namespace": "osm-system"
+							  			}
+							 		}
+								}
+							}
+						}
+					}
+					`),
+				},
+			},
+			expErrStr: "cannot update trust domain for MRC osm-system/osm-mesh-root-certificate. Create a new MRC and initiate root certificate rotation to update the trust domain",
+		},
+		{
+			name: "MeshRootCertificate with invalid trust domain on create",
+			input: &admissionv1.AdmissionRequest{
+				Operation: admissionv1.Create,
+				Kind: metav1.GroupVersionKind{
+					Group:   "configv1alpha2",
+					Version: "config.openservicemesh.io",
+					Kind:    "MeshRootCertificate",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "config.openservicemesh.io/configv1alpha2",
+						"kind": "MeshRootCertificate",
+						"metadata": {
+							"name": "osm-mesh-root-certificate",
+							"namespace": "osm-system"
+						},
+						"spec": {
+							"trustDomain": "",
+							"intent": "active",
+							"provider": {
+								"tresor": {
+							 		"ca": {
+										"secretRef": {
+											"name": "osm-ca-bundle",
+											"namespace": "osm-system"
+							  			}
+							 		}
+								}
+							}
+						}
+					}
+					`),
+				},
+			},
+			expErrStr: "trustDomain must be non empty for MRC osm-system/osm-mesh-root-certificate",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			resp, err := meshRootCertificateValidator(tc.input)
+			if tc.expErrStr == "" {
+				assert.NoError(err)
+				assert.Nil(resp)
+			} else {
+				assert.Equal(tc.expErrStr, err.Error())
+				assert.Nil(resp)
+			}
+		})
+	}
+}

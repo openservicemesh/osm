@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"reflect"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
@@ -15,6 +16,7 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
 
@@ -264,5 +266,36 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 		}
 	}
 
+	return nil, nil
+}
+
+func meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	switch req.Operation {
+	case admissionv1.Create:
+		newMRC := &configv1alpha2.MeshRootCertificate{}
+		if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(newMRC); err != nil {
+			return nil, err
+		}
+
+		if newMRC.Spec.TrustDomain == "" {
+			return nil, fmt.Errorf("trustDomain must be non empty for MRC %s/%s", newMRC.GetNamespace(), newMRC.GetName())
+		}
+	case admissionv1.Update:
+		newMRC, oldMRC := &configv1alpha2.MeshRootCertificate{}, &configv1alpha2.MeshRootCertificate{}
+		if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(newMRC); err != nil {
+			return nil, err
+		}
+		if err := json.NewDecoder(bytes.NewBuffer(req.OldObject.Raw)).Decode(oldMRC); err != nil {
+			return nil, err
+		}
+
+		if !reflect.DeepEqual(oldMRC.Spec.Provider, newMRC.Spec.Provider) {
+			return nil, fmt.Errorf("cannot update certificate provider settings for MRC %s/%s. Create a new MRC and initiate root certificate rotation to update the provider", newMRC.GetNamespace(), newMRC.GetName())
+		}
+
+		if oldMRC.Spec.TrustDomain != newMRC.Spec.TrustDomain {
+			return nil, fmt.Errorf("cannot update trust domain for MRC %s/%s. Create a new MRC and initiate root certificate rotation to update the trust domain", newMRC.GetNamespace(), newMRC.GetName())
+		}
+	}
 	return nil, nil
 }

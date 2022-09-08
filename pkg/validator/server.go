@@ -11,6 +11,7 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/client-go/kubernetes"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -43,6 +44,7 @@ func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, 
 			policyv1alpha1.SchemeGroupVersion.WithKind("Egress").String():                 egressValidator,
 			policyv1alpha1.SchemeGroupVersion.WithKind("UpstreamTrafficSetting").String(): kv.upstreamTrafficSettingValidator,
 			smiAccess.SchemeGroupVersion.WithKind("TrafficTarget").String():               trafficTargetValidator,
+			configv1alpha2.SchemeGroupVersion.WithKind("MeshRootCertificate").String():    meshRootCertificateValidator,
 		},
 	}
 
