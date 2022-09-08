@@ -38,7 +38,7 @@ data:
         "serviceCertValidityDuration": {{.Values.osm.certificateProvider.serviceCertValidityDuration | mustToJson}},
         {{- if .Values.contour.enabled }}
         "ingressGateway": {
-          "subjectAltNames": ["osm-contour-envoy.{{include "osm.namespace" .}}.cluster.local"],
+          "subjectAltNames": ["osm-contour-envoy.{{include "osm.namespace" .}}.{{.Values.osm.trustDomain}}"],
           "validityDuration": "24h",
           "secret": {
             "name": "osm-contour-envoy-client-cert",
