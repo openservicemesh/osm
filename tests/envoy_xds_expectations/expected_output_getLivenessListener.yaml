@@ -44,9 +44,9 @@ filter_chains:
           name: local_service
           routes:
           - match:
-              prefix: /osm-liveness-probe
+              prefix: /osm-liveness-probe/my-cluster
             route:
-              cluster: liveness_cluster
+              cluster: my-container_liveness_cluster
               prefix_rewrite: /liveness
               timeout: 42s
       stat_prefix: health_probes_http

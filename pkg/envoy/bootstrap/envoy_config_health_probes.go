@@ -33,25 +33,25 @@ const (
 	startupListener   = "startup_listener"
 )
 
-func getLivenessCluster(originalProbe *models.HealthProbe) *xds_cluster.Cluster {
+func getLivenessCluster(clusterName string, originalProbe *models.HealthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
-	return getProbeCluster(livenessCluster, originalProbe.Port)
+	return getProbeCluster(clusterName, originalProbe.Port)
 }
 
-func getReadinessCluster(originalProbe *models.HealthProbe) *xds_cluster.Cluster {
+func getReadinessCluster(clusterName string, originalProbe *models.HealthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
-	return getProbeCluster(readinessCluster, originalProbe.Port)
+	return getProbeCluster(clusterName, originalProbe.Port)
 }
 
-func getStartupCluster(originalProbe *models.HealthProbe) *xds_cluster.Cluster {
+func getStartupCluster(clusterName string, originalProbe *models.HealthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
-	return getProbeCluster(startupCluster, originalProbe.Port)
+	return getProbeCluster(clusterName, originalProbe.Port)
 }
 
 func getProbeCluster(clusterName string, port int32) *xds_cluster.Cluster {
@@ -89,34 +89,32 @@ func getProbeCluster(clusterName string, port int32) *xds_cluster.Cluster {
 	}
 }
 
-func getLivenessListener(originalProbe *models.HealthProbe) (*xds_listener.Listener, error) {
-	if originalProbe == nil {
-		return nil, nil
-	}
-	return getProbeListener(livenessListener, livenessCluster, constants.LivenessProbePath, constants.LivenessProbePort, originalProbe)
+type probeListenerRoute struct {
+	pathPrefixMatch   string
+	clusterName       string
+	pathPrefixRewrite string
+	timeout           time.Duration
 }
 
-func getReadinessListener(originalProbe *models.HealthProbe) (*xds_listener.Listener, error) {
-	if originalProbe == nil {
-		return nil, nil
-	}
-	return getProbeListener(readinessListener, readinessCluster, constants.ReadinessProbePath, constants.ReadinessProbePort, originalProbe)
+type probeListenerBuilder struct {
+	listenerName      string
+	inboundPort       int32
+	virtualHostRoutes []probeListenerRoute
+	isHTTP            bool
+	httpsClusterName  string
 }
 
-func getStartupListener(originalProbe *models.HealthProbe) (*xds_listener.Listener, error) {
-	if originalProbe == nil {
+func (plb *probeListenerBuilder) Build() (*xds_listener.Listener, error) {
+	if plb.listenerName == "" || (plb.isHTTP && len(plb.virtualHostRoutes) == 0) {
 		return nil, nil
 	}
-	return getProbeListener(startupListener, startupCluster, constants.StartupProbePath, constants.StartupProbePort, originalProbe)
-}
 
-func getProbeListener(listenerName, clusterName, newPath string, port int32, originalProbe *models.HealthProbe) (*xds_listener.Listener, error) {
 	var filterChain *xds_listener.FilterChain
-	if originalProbe.IsHTTP {
-		httpAccessLog, err := getHTTPAccessLog()
-		if err != nil {
-			return nil, err
-		}
+	httpAccessLog, err := getHTTPAccessLog()
+	if err != nil {
+		return nil, err
+	}
+	if plb.isHTTP {
 		httpConnectionManager := &xds_http_connection_manager.HttpConnectionManager{
 			CodecType:  xds_http_connection_manager.HttpConnectionManager_AUTO,
 			StatPrefix: "health_probes_http",
@@ -127,7 +125,7 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 				RouteConfig: &xds_route.RouteConfiguration{
 					Name: "local_route",
 					VirtualHosts: []*xds_route.VirtualHost{
-						getVirtualHost(newPath, clusterName, originalProbe.Path, originalProbe.Timeout),
+						getVirtualHost(plb.virtualHostRoutes),
 					},
 				},
 			},
@@ -159,6 +157,9 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 			},
 		}
 	} else {
+		// NOTE: Only 1 HTTPS probe is supported per type (liveness, readiness, startup)
+		// This is due to the fact that we passthrough HTTPS and cannot do any kind of filtering on path
+		// Therefore, the last declared HTTPS probe will be the only one receiving traffic
 		tcpAccessLog, err := getTCPAccessLog()
 		if err != nil {
 			return nil, err
@@ -169,7 +170,7 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 				tcpAccessLog,
 			},
 			ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{
-				Cluster: clusterName,
+				Cluster: plb.httpsClusterName,
 			},
 		}
 		pbTCPProxy, err := anypb.New(tcpProxy)
@@ -191,13 +192,13 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 	}
 
 	return &xds_listener.Listener{
-		Name: listenerName,
+		Name: plb.listenerName,
 		Address: &xds_core.Address{
 			Address: &xds_core.Address_SocketAddress{
 				SocketAddress: &xds_core.SocketAddress{
 					Address: "0.0.0.0",
 					PortSpecifier: &xds_core.SocketAddress_PortValue{
-						PortValue: uint32(port),
+						PortValue: uint32(plb.inboundPort),
 					},
 				},
 			},
@@ -208,36 +209,40 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 	}, nil
 }
 
-func getVirtualHost(newPath, clusterName, originalProbePath string, routeTimeout time.Duration) *xds_route.VirtualHost {
-	if routeTimeout < 1*time.Second {
-		// This should never happen in practice because the minimum value in Kubernetes
-		// is set to 1. However it is easy to check and setting the timeout to 0 will lead
-		// to leaks.
-		routeTimeout = 1 * time.Second
+func getVirtualHost(routes []probeListenerRoute) *xds_route.VirtualHost {
+	var xdsRoutes []*xds_route.Route
+	for _, route := range routes {
+		routeTimeout := route.timeout
+		if routeTimeout < 1*time.Second {
+			// This should never happen in practice because the minimum value in Kubernetes
+			// is set to 1. However it is easy to check and setting the timeout to 0 will lead
+			// to leaks.
+			routeTimeout = 1 * time.Second
+		}
+		xdsRoutes = append(xdsRoutes, &xds_route.Route{
+			Match: &xds_route.RouteMatch{
+				PathSpecifier: &xds_route.RouteMatch_Prefix{
+					Prefix: route.pathPrefixMatch,
+				},
+			},
+			Action: &xds_route.Route_Route{
+				Route: &xds_route.RouteAction{
+					ClusterSpecifier: &xds_route.RouteAction_Cluster{
+						Cluster: route.clusterName,
+					},
+					PrefixRewrite: route.pathPrefixRewrite,
+					Timeout:       durationpb.New(routeTimeout),
+				},
+			},
+		})
 	}
+
 	return &xds_route.VirtualHost{
 		Name: "local_service",
 		Domains: []string{
 			"*",
 		},
-		Routes: []*xds_route.Route{
-			{
-				Match: &xds_route.RouteMatch{
-					PathSpecifier: &xds_route.RouteMatch_Prefix{
-						Prefix: newPath,
-					},
-				},
-				Action: &xds_route.Route_Route{
-					Route: &xds_route.RouteAction{
-						ClusterSpecifier: &xds_route.RouteAction_Cluster{
-							Cluster: clusterName,
-						},
-						PrefixRewrite: originalProbePath,
-						Timeout:       durationpb.New(routeTimeout),
-					},
-				},
-			},
-		},
+		Routes: xdsRoutes,
 	}
 }
 

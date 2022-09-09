@@ -65,10 +65,17 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		},
 	}
 
-	originalHealthProbes := models.HealthProbes{
-		Liveness:  &models.HealthProbe{Path: "/liveness", Port: 81},
-		Readiness: &models.HealthProbe{Path: "/readiness", Port: 82},
-		Startup:   &models.HealthProbe{Path: "/startup", Port: 83},
+	originalHealthProbes := map[string]models.HealthProbes{
+		"my-container": {
+			Liveness:  &models.HealthProbe{Path: "/liveness", Port: 81},
+			Readiness: &models.HealthProbe{Path: "/readiness", Port: 82},
+			Startup:   &models.HealthProbe{Path: "/startup", Port: 83},
+		},
+		"my-sidecar": {
+			Liveness:  &models.HealthProbe{Path: "/liveness", Port: 84},
+			Readiness: &models.HealthProbe{Path: "/readiness", Port: 85},
+			Startup:   &models.HealthProbe{Path: "/startup", Port: 86},
+		},
 	}
 
 	expectedRewrittenContainerPorts := []corev1.ContainerPort{

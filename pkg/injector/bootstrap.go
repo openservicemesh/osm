@@ -36,7 +36,7 @@ func (wh *mutatingWebhook) createEnvoyBootstrapFromExisting(proxyUUID uuid.UUID,
 	return wh.marshalAndSaveBootstrap(bootstrapConfigName(proxyUUID), namespace, config, cert)
 }
 
-func (wh *mutatingWebhook) createEnvoyBootstrapConfig(proxyUUID uuid.UUID, namespace string, cert *certificate.Certificate, originalHealthProbes models.HealthProbes) (*corev1.Secret, error) {
+func (wh *mutatingWebhook) createEnvoyBootstrapConfig(proxyUUID uuid.UUID, namespace string, cert *certificate.Certificate, originalHealthProbes map[string]models.HealthProbes) (*corev1.Secret, error) {
 	builder := bootstrap.Builder{
 		NodeID: proxyUUID.String(),
 

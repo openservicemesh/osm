@@ -25,10 +25,12 @@ func BenchmarkBuildEnvoyBootstrapConfig(b *testing.B) {
 		TLSMaxProtocolVersion: "TLSv1_2",
 		CipherSuites:          []string{"abc", "xyz"},
 		ECDHCurves:            []string{"ABC", "XYZ"},
-		OriginalHealthProbes: models.HealthProbes{
-			Liveness:  &models.HealthProbe{Path: "/liveness", Port: 81, IsHTTP: true},
-			Readiness: &models.HealthProbe{Path: "/readiness", Port: 82, IsHTTP: true},
-			Startup:   &models.HealthProbe{Path: "/startup", Port: 83, IsHTTP: true},
+		OriginalHealthProbes: map[string]models.HealthProbes{
+			"my-container": {
+				Liveness:  &models.HealthProbe{Path: "/liveness", Port: 81, IsHTTP: true},
+				Readiness: &models.HealthProbe{Path: "/readiness", Port: 82, IsHTTP: true},
+				Startup:   &models.HealthProbe{Path: "/startup", Port: 83, IsHTTP: true},
+			},
 		},
 	}
 

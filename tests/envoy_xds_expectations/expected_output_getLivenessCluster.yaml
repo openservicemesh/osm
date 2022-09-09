@@ -1,5 +1,5 @@
 load_assignment:
-  cluster_name: liveness_cluster
+  cluster_name: my-container_liveness_cluster
   endpoints:
   - lb_endpoints:
     - endpoint:
@@ -7,5 +7,5 @@ load_assignment:
           socket_address:
             address: 127.0.0.1
             port_value: 81
-name: liveness_cluster
+name: my-container_liveness_cluster
 type: STATIC

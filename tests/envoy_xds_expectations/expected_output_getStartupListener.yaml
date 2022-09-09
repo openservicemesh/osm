@@ -44,9 +44,9 @@ filter_chains:
           name: local_service
           routes:
           - match:
-              prefix: /osm-startup-probe
+              prefix: /osm-startup-probe/my-container
             route:
-              cluster: startup_cluster
+              cluster: my-container_startup_cluster
               prefix_rewrite: /startup
               timeout: 42s
       stat_prefix: health_probes_http
