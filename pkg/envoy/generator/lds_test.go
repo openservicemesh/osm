@@ -26,20 +26,13 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 func TestGenerateLDS(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-
 	stop := make(chan struct{})
-
-	mockMeshSpec.EXPECT().ListTrafficTargets(gomock.Any()).Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
-	mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
-	mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return([]*split.TrafficSplit{}).AnyTimes()
 
 	pod := tests.NewPodFixture(tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, map[string]string{
 		constants.AppLabel:               tests.BookbuyerService.Name,
@@ -50,6 +43,10 @@ func TestGenerateLDS(t *testing.T) {
 	}
 	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
 	provider := compute.NewMockInterface(mockCtrl)
+	provider.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
+	provider.EXPECT().ListTrafficTargetsByOptions(gomock.Any()).Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
+	provider.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
+	provider.EXPECT().ListTrafficSplitsByOptions(gomock.Any()).Return([]*split.TrafficSplit{}).AnyTimes()
 	provider.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
@@ -86,10 +83,9 @@ func TestGenerateLDS(t *testing.T) {
 	provider.EXPECT().ListServicesForProxy(proxy).Return([]service.MeshService{tests.BookbuyerService}, nil).AnyTimes()
 
 	meshCatalog := catalog.NewMeshCatalog(
-		mockMeshSpec,
+		provider,
 		tresorFake.NewFake(time.Hour),
 		stop,
-		provider,
 		messaging.NewBroker(stop),
 	)
 

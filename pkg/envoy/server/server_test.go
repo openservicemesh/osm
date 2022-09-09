@@ -40,6 +40,8 @@ var _ = Describe("Test ADS response functions", func() {
 	provider.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().ListTrafficTargets().Return(nil).AnyTimes()
+	provider.EXPECT().ListTrafficTargetsByOptions(gomock.Any()).Return(nil).AnyTimes()
 
 	mc := catalogFake.NewFakeMeshCatalog(provider)
 

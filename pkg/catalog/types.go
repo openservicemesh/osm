@@ -15,7 +15,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -26,7 +25,6 @@ var (
 // MeshCatalog is the struct for the service catalog
 type MeshCatalog struct {
 	compute.Interface
-	meshSpec    smi.MeshSpec
 	certManager *certificate.Manager
 }
 

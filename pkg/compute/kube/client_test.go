@@ -24,6 +24,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	smiAccessClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
+	smiSpecClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned/fake"
+	smiSplitClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned/fake"
+
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 
@@ -35,6 +41,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -2433,4 +2440,124 @@ func TestGetMeshService(t *testing.T) {
 			a.Equal(tc.expectErr, err != nil)
 		})
 	}
+}
+
+func TestListTrafficSplitsByOptions(t *testing.T) {
+	a := assert.New(t)
+
+	mockCtrl := gomock.NewController(t)
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
+
+	testNamespaceName := "test"
+	fakeClient := fakePolicyClient.NewSimpleClientset()
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient), informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet))
+	a.Nil(err)
+	c := NewClient(mockKubeController)
+
+	obj := &smiSplit.TrafficSplit{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-ListTrafficSplits",
+			Namespace: testNamespaceName,
+		},
+		Spec: smiSplit.TrafficSplitSpec{
+			Service: tests.BookstoreApexServiceName,
+			Backends: []smiSplit.TrafficSplitBackend{
+				{
+					Service: tests.BookstoreV1ServiceName,
+					Weight:  tests.Weight90,
+				},
+				{
+					Service: tests.BookstoreV2ServiceName,
+					Weight:  tests.Weight10,
+				},
+			},
+		},
+	}
+	err = ic.Add(informers.InformerKeyTrafficSplit, obj, t)
+	a.Nil(err)
+	mockKubeController.EXPECT().ListTrafficSplits().Return([]*smiSplit.TrafficSplit{obj}).AnyTimes()
+
+	// Verify
+	actual := c.ListTrafficSplits()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+
+	// Verify filter for apex service
+	filteredApexAvailable := c.ListTrafficSplitsByOptions(smi.WithTrafficSplitApexService(service.MeshService{Name: tests.BookstoreApexServiceName, Namespace: testNamespaceName}))
+	a.Len(filteredApexAvailable, 1)
+	a.Equal(obj, filteredApexAvailable[0])
+	filteredApexUnavailable := c.ListTrafficSplitsByOptions(smi.WithTrafficSplitApexService(tests.BookstoreV1Service))
+	a.Len(filteredApexUnavailable, 0)
+
+	// Verify filter for backend service
+	filteredBackendAvailable := c.ListTrafficSplitsByOptions(smi.WithTrafficSplitBackendService(service.MeshService{Name: tests.BookstoreV1ServiceName, Namespace: testNamespaceName}))
+	a.Len(filteredBackendAvailable, 1)
+	a.Equal(obj, filteredBackendAvailable[0])
+	filteredBackendNameMismatch := c.ListTrafficSplitsByOptions(smi.WithTrafficSplitBackendService(service.MeshService{Namespace: testNamespaceName, Name: "invalid"}))
+	a.Len(filteredBackendNameMismatch, 0)
+	filteredBackendNamespaceMismatch := c.ListTrafficSplitsByOptions(smi.WithTrafficSplitBackendService(service.MeshService{Namespace: "invalid", Name: tests.BookstoreV1ServiceName}))
+	a.Len(filteredBackendNamespaceMismatch, 0)
+}
+
+func TestListTrafficTargetsByOptions(t *testing.T) {
+	a := assert.New(t)
+
+	mockCtrl := gomock.NewController(t)
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
+
+	testNamespaceName := "test"
+	fakeClient := fakePolicyClient.NewSimpleClientset()
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient), informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet))
+	a.Nil(err)
+	c := NewClient(mockKubeController)
+
+	obj := &smiAccess.TrafficTarget{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "access.smi-spec.io/v1alpha3",
+			Kind:       "TrafficTarget",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-ListTrafficTargets",
+			Namespace: testNamespaceName,
+		},
+		Spec: smiAccess.TrafficTargetSpec{
+			Destination: smiAccess.IdentityBindingSubject{
+				Kind:      "ServiceAccount",
+				Name:      tests.BookstoreServiceAccountName,
+				Namespace: testNamespaceName,
+			},
+			Sources: []smiAccess.IdentityBindingSubject{{
+				Kind:      "ServiceAccount",
+				Name:      tests.BookbuyerServiceAccountName,
+				Namespace: testNamespaceName,
+			}},
+			Rules: []smiAccess.TrafficTargetRule{{
+				Kind:    "HTTPRouteGroup",
+				Name:    tests.RouteGroupName,
+				Matches: []string{tests.BuyBooksMatchName},
+			}},
+		},
+	}
+	err = ic.Add(informers.InformerKeyTrafficTarget, obj, t)
+	a.Nil(err)
+	mockKubeController.EXPECT().ListTrafficTargets().Return([]*smiAccess.TrafficTarget{obj}).AnyTimes()
+
+	// Verify
+	actual := c.ListTrafficTargets()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+
+	// Verify destination based filtering
+	filteredAvailable := c.ListTrafficTargetsByOptions(smi.WithTrafficTargetDestination(identity.K8sServiceAccount{Namespace: testNamespaceName, Name: tests.BookstoreServiceAccountName}))
+	a.Len(filteredAvailable, 1)
+	filteredUnavailable := c.ListTrafficTargetsByOptions(smi.WithTrafficTargetDestination(identity.K8sServiceAccount{Namespace: testNamespaceName, Name: "unavailable"}))
+	a.Len(filteredUnavailable, 0)
 }

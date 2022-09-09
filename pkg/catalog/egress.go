@@ -186,7 +186,7 @@ func (mc *MeshCatalog) buildHTTPRouteConfigs(egressPolicy *policyv1alpha1.Egress
 
 			// A TypedLocalObjectReference (Spec.Matches) is a reference to another object in the same namespace
 			httpRouteName := fmt.Sprintf("%s/%s", egressPolicy.Namespace, match.Name)
-			if httpRouteGroup := mc.meshSpec.GetHTTPRouteGroup(httpRouteName); httpRouteGroup == nil {
+			if httpRouteGroup := mc.Interface.GetHTTPRouteGroup(httpRouteName); httpRouteGroup == nil {
 				log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEgressSMIHTTPRouteGroupNotFound)).
 					Msgf("Error fetching HTTPRouteGroup resource %s referenced in Egress policy %s/%s", httpRouteName, egressPolicy.Namespace, egressPolicy.Name)
 			} else {

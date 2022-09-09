@@ -3,13 +3,16 @@
 package smi
 
 import (
-	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -18,36 +21,16 @@ var (
 	log = logger.New("smi-mesh-spec")
 )
 
-// Client is a type that implements the smi.MeshSpec interface related to Kubernetes SMI resources
-type Client struct {
-	informers      *informers.InformerCollection
-	kubeController k8s.Controller
-}
+const (
+	// ServiceAccountKind is the kind specified for the destination and sources in an SMI TrafficTarget policy
+	ServiceAccountKind = "ServiceAccount"
 
-// MeshSpec is an interface declaring functions, which provide the specs for a service mesh declared with SMI.
-type MeshSpec interface {
-	// ListTrafficSplits lists SMI TrafficSplit resources
-	ListTrafficSplits(...TrafficSplitListOption) []*split.TrafficSplit
+	// TCPRouteKind is the kind specified for the TCP route rules in an SMI Traffictarget policy
+	TCPRouteKind = "TCPRoute"
 
-	// ListServiceAccounts lists ServiceAccount resources specified in SMI TrafficTarget resources
-	ListServiceAccounts() []identity.K8sServiceAccount
-
-	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
-	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
-
-	// GetHTTPRouteGroup returns an SMI HTTPRouteGroup resource given its name of the form <namespace>/<name>
-	GetHTTPRouteGroup(string) *spec.HTTPRouteGroup
-
-	// ListTCPTrafficSpecs lists SMI TCPRoute resources
-	ListTCPTrafficSpecs() []*spec.TCPRoute
-
-	// GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>
-	GetTCPRoute(string) *spec.TCPRoute
-
-	// ListTrafficTargets lists SMI TrafficTarget resources. An optional filter can be applied to filter the
-	// returned list
-	ListTrafficTargets(...TrafficTargetListOption) []*access.TrafficTarget
-}
+	// HTTPRouteGroupKind is the kind specified for the HTTP route rules in an SMI Traffictarget policy
+	HTTPRouteGroupKind = "HTTPRouteGroup"
+)
 
 // TrafficTargetListOpt specifies the options used to filter TrafficTarget objects as a part of its lister
 type TrafficTargetListOpt struct {
@@ -93,4 +76,22 @@ func WithKubeController(c k8s.Controller) TrafficSplitListOption {
 	return func(o *TrafficSplitListOpt) {
 		o.KubeController = c
 	}
+}
+
+// GetSmiClientVersionHTTPHandler returns an http handler that returns supported smi version information
+func GetSmiClientVersionHTTPHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		versionInfo := map[string]string{
+			"TrafficTarget":  smiAccess.SchemeGroupVersion.String(),
+			"HTTPRouteGroup": smiSpecs.SchemeGroupVersion.String(),
+			"TCPRoute":       smiSpecs.SchemeGroupVersion.String(),
+			"TrafficSplit":   smiSplit.SchemeGroupVersion.String(),
+		}
+
+		if jsonVersionInfo, err := json.Marshal(versionInfo); err != nil {
+			log.Error().Err(err).Msgf("Error marshaling version info struct: %+v", versionInfo)
+		} else {
+			_, _ = fmt.Fprint(w, string(jsonVersionInfo))
+		}
+	})
 }

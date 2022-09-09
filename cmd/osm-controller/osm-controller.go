@@ -198,8 +198,6 @@ func main() {
 
 	k8sClient := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, policyClient, configClient, msgBroker)
 
-	meshSpec := smi.NewSMIClient(informerCollection, osmNamespace, k8sClient, msgBroker)
-
 	certOpts, err := getCertOptions()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
@@ -228,10 +226,9 @@ func main() {
 	ingress.Initialize(kubeClient, k8sClient, stop, certManager, msgBroker)
 
 	meshCatalog := catalog.NewMeshCatalog(
-		meshSpec,
+		computeClient,
 		certManager,
 		stop,
-		computeClient,
 		msgBroker,
 	)
 

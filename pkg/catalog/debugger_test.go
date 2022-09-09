@@ -9,8 +9,8 @@ import (
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -18,20 +18,20 @@ func TestListSMIPolicies(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+	mockCompute := compute.NewMockInterface(mockCtrl)
 
 	splits := []*smiSplit.TrafficSplit{&tests.TrafficSplit}
 	targets := []*smiAccess.TrafficTarget{&tests.TrafficTarget}
 	httpRoutes := []*smiSpecs.HTTPRouteGroup{&tests.HTTPRouteGroup}
 	svcAccounts := []identity.K8sServiceAccount{tests.BookbuyerServiceAccount}
 
-	mockMeshSpec.EXPECT().ListTrafficSplits().Return(splits)
-	mockMeshSpec.EXPECT().ListTrafficTargets().Return(targets)
-	mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return(httpRoutes)
-	mockMeshSpec.EXPECT().ListServiceAccounts().Return(svcAccounts)
+	mockCompute.EXPECT().ListTrafficSplits().Return(splits)
+	mockCompute.EXPECT().ListTrafficTargets().Return(targets)
+	mockCompute.EXPECT().ListHTTPTrafficSpecs().Return(httpRoutes)
+	mockCompute.EXPECT().ListServiceAccountsFromTrafficTargets().Return(svcAccounts)
 
 	mc := &MeshCatalog{
-		meshSpec: mockMeshSpec,
+		Interface: mockCompute,
 	}
 
 	a := assert.New(t)

@@ -13,7 +13,11 @@ import (
 
 	"k8s.io/utils/pointer"
 
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/smi"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -548,4 +552,85 @@ func (c *client) ListNamespaces() ([]string, error) {
 		names[i] = ns.Name
 	}
 	return names, nil
+}
+
+// ListTrafficSplits implements mesh.MeshSpec by returning the list of traffic splits.
+func (c *client) ListTrafficSplitsByOptions(options ...smi.TrafficSplitListOption) []*smiSplit.TrafficSplit {
+	var trafficSplits []*smiSplit.TrafficSplit
+
+	for _, trafficSplit := range c.kubeController.ListTrafficSplits() {
+		options = append(options, smi.WithKubeController(c.kubeController))
+
+		if filteredSplit := smi.FilterTrafficSplit(trafficSplit, options...); filteredSplit != nil {
+			trafficSplits = append(trafficSplits, filteredSplit)
+		}
+	}
+	return trafficSplits
+}
+
+// ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.
+func (c *client) ListTrafficTargetsByOptions(options ...smi.TrafficTargetListOption) []*smiAccess.TrafficTarget {
+	var trafficTargets []*smiAccess.TrafficTarget
+
+	for _, trafficTarget := range c.kubeController.ListTrafficTargets() {
+		if !smi.IsValidTrafficTarget(trafficTarget) {
+			continue
+		}
+
+		// Filter TrafficTarget based on the given options
+		if filteredTrafficTarget := FilterTrafficTarget(trafficTarget, options...); filteredTrafficTarget != nil {
+			trafficTargets = append(trafficTargets, trafficTarget)
+		}
+	}
+	return trafficTargets
+}
+
+
+// FilterTrafficTarget applies the given TrafficTargetListOption filter on the given TrafficTarget object
+func FilterTrafficTarget(trafficTarget *smiAccess.TrafficTarget, options ...smi.TrafficTargetListOption) *smiAccess.TrafficTarget {
+	if trafficTarget == nil {
+		return nil
+	}
+
+	o := &smi.TrafficTargetListOpt{}
+	for _, opt := range options {
+		opt(o)
+	}
+
+	if o.Destination.Name != "" && (o.Destination.Namespace != trafficTarget.Spec.Destination.Namespace ||
+		o.Destination.Name != trafficTarget.Spec.Destination.Name) {
+		return nil
+	}
+
+	return trafficTarget
+}
+
+// ListServiceAccountsFromTrafficTargets lists ServiceAccounts specified in SMI TrafficTarget resources
+func (c *client) ListServiceAccountsFromTrafficTargets() []identity.K8sServiceAccount {
+	var serviceAccounts []identity.K8sServiceAccount
+	for _, trafficTarget := range c.kubeController.ListTrafficTargets() {
+		if !smi.IsValidTrafficTarget(trafficTarget) {
+			continue
+		}
+
+		for _, sources := range trafficTarget.Spec.Sources {
+			// Only monitor sources in namespaces OSM is observing
+			if !c.kubeController.IsMonitoredNamespace(sources.Namespace) {
+				// Doesn't belong to namespaces we are observing
+				continue
+			}
+			namespacedServiceAccount := identity.K8sServiceAccount{
+				Namespace: sources.Namespace,
+				Name:      sources.Name,
+			}
+			serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
+		}
+
+		namespacedServiceAccount := identity.K8sServiceAccount{
+			Namespace: trafficTarget.Spec.Destination.Namespace,
+			Name:      trafficTarget.Spec.Destination.Name,
+		}
+		serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
+	}
+	return serviceAccounts
 }

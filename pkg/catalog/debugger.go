@@ -10,10 +10,10 @@ import (
 
 // ListSMIPolicies returns all policies OSM is aware of.
 func (mc *MeshCatalog) ListSMIPolicies() ([]*split.TrafficSplit, []identity.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget) {
-	trafficSplits := mc.meshSpec.ListTrafficSplits()
-	serviceAccounts := mc.meshSpec.ListServiceAccounts()
-	trafficSpecs := mc.meshSpec.ListHTTPTrafficSpecs()
-	trafficTargets := mc.meshSpec.ListTrafficTargets()
+	trafficSplits := mc.Interface.ListTrafficSplits()
+	serviceAccounts := mc.Interface.ListServiceAccountsFromTrafficTargets()
+	trafficSpecs := mc.Interface.ListHTTPTrafficSpecs()
+	trafficTargets := mc.Interface.ListTrafficTargets()
 
 	return trafficSplits, serviceAccounts, trafficSpecs, trafficTargets
 }

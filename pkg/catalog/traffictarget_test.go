@@ -21,9 +21,9 @@ func TestListInboundServiceIdentities(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+	mockCompute := compute.NewMockInterface(mockCtrl)
 	meshCatalog := MeshCatalog{
-		meshSpec: mockMeshSpec,
+		Interface: mockCompute,
 	}
 
 	testCases := []struct {
@@ -179,7 +179,7 @@ func TestListInboundServiceIdentities(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
-			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
+			mockCompute.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
 
 			actual := meshCatalog.ListInboundServiceIdentities(tc.serviceIdentity)
 			assert.ElementsMatch(actual, tc.expectedInboundServiceIdentities)
@@ -192,9 +192,9 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+	mockCompute := compute.NewMockInterface(mockCtrl)
 	meshCatalog := MeshCatalog{
-		meshSpec: mockMeshSpec,
+		Interface: mockCompute,
 	}
 
 	testCases := []struct {
@@ -354,7 +354,7 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
-			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
+			mockCompute.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
 
 			actual := meshCatalog.ListOutboundServiceIdentities(tc.serviceIdentity)
 			assert.ElementsMatch(actual, tc.expectedOutboundServiceIdentities)
@@ -842,23 +842,22 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
 			// Initialize test objects
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			provider := compute.NewMockInterface(mockCtrl)
+			mockCompute := compute.NewMockInterface(mockCtrl)
 			meshCatalog := MeshCatalog{
-				meshSpec:  mockMeshSpec,
-				Interface: provider,
+				Interface: mockCompute,
 			}
-			provider.EXPECT().GetMeshConfig().AnyTimes()
+
+			mockCompute.EXPECT().GetMeshConfig().AnyTimes()
 
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
-			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()
+			mockCompute.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()
 			for _, trafficTarget := range tc.trafficTargets {
 				for _, rule := range trafficTarget.Spec.Rules {
 					if rule.Kind != smi.TCPRouteKind {
 						continue
 					}
 					routeName := fmt.Sprintf("%s/%s", trafficTarget.Spec.Destination.Namespace, rule.Name)
-					mockMeshSpec.EXPECT().GetTCPRoute(routeName).Return(tc.tcpRoutes[routeName]).AnyTimes()
+					mockCompute.EXPECT().GetTCPRoute(routeName).Return(tc.tcpRoutes[routeName]).AnyTimes()
 				}
 			}
 

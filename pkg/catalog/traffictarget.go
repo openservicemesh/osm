@@ -33,7 +33,7 @@ func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream identity.Ser
 		return nil, nil
 	}
 
-	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
+	for _, t := range mc.Interface.ListTrafficTargets() { // loop through all traffic targets
 		destinationSvcIdentity := trafficTargetIdentityToSvcAccount(t.Spec.Destination).ToServiceIdentity()
 		if destinationSvcIdentity != upstream {
 			continue
@@ -73,7 +73,7 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity
 	svcAccount := svcIdentity.ToK8sServiceAccount()
 	allowed := mapset.NewSet()
 
-	allTrafficTargets := mc.meshSpec.ListTrafficTargets()
+	allTrafficTargets := mc.Interface.ListTrafficTargets()
 	for _, trafficTarget := range allTrafficTargets {
 		spec := trafficTarget.Spec
 
@@ -170,7 +170,7 @@ func (mc *MeshCatalog) getTCPRouteMatchesFromTrafficTarget(trafficTarget smiAcce
 		// A route referenced in a traffic target must belong to the same namespace as the traffic target
 		tcpRouteName := fmt.Sprintf("%s/%s", trafficTarget.Namespace, rule.Name)
 
-		tcpRoute := mc.meshSpec.GetTCPRoute(tcpRouteName)
+		tcpRoute := mc.Interface.GetTCPRoute(tcpRouteName)
 		if tcpRoute == nil {
 			return nil, errNoTrafficSpecFoundForTrafficPolicy
 		}

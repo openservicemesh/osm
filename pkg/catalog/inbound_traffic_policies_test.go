@@ -24,8 +24,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
-	smiFake "github.com/openservicemesh/osm/pkg/smi/fake"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -76,7 +74,11 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 		tcpRoutes                 []*spec.TCPRoute
 		trafficSplits             []*split.TrafficSplit
 		upstreamTrafficSettings   []*policyv1alpha1.UpstreamTrafficSetting
-		prepare                   func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit)
+		prepare                   func(mockK8s *k8s.MockController,
+			trafficSplits []*split.TrafficSplit,
+			trafficTargets []*access.TrafficTarget,
+			upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting,
+		)
 		expectedInboundMeshPolicy *trafficpolicy.InboundMeshTrafficPolicy
 	}{
 		{
@@ -153,8 +155,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 			},
 			trafficSplits: nil,
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
-				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
+			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
+				mockK8s.EXPECT().ListUpstreamTrafficSettings().Return(upstreamTrafficSettings).AnyTimes()
+				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
+				mockK8s.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
@@ -319,8 +323,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 			},
 			trafficSplits: nil,
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
-				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
+			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
+				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
@@ -458,8 +462,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 			},
 			trafficSplits: nil,
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
-				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
+			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
+				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
@@ -692,22 +696,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
-				// Only return traffic split for service ns1/s1. This is required to verify
-				// that service ns1/s2 which doesn't have an associated traffic split does
-				// not createi inbound routes corresponding to the apex service.
-				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).DoAndReturn(
-					func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
-						o := &smi.TrafficSplitListOpt{}
-						for _, opt := range options {
-							opt(o)
-						}
-						// In this test, only service ns1/s1 as a split configured
-						if o.BackendService.String() == "ns1/s1" { //nolint: goconst
-							return trafficSplits
-						}
-						return nil
-					}).AnyTimes()
+			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
+				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
@@ -892,22 +882,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
-				// Only return traffic split for service ns1/s1. This is required to verify
-				// that service ns1/s2 which doesn't have an associated traffic split does
-				// not createi inbound routes corresponding to the apex service.
-				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).DoAndReturn(
-					func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
-						o := &smi.TrafficSplitListOpt{}
-						for _, opt := range options {
-							opt(o)
-						}
-						// In this test, only service ns1/s1 as a split configured
-						if o.BackendService.String() == "ns1/s1" {
-							return trafficSplits
-						}
-						return nil
-					}).AnyTimes()
+			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
+				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
@@ -1101,8 +1077,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 			},
 			trafficSplits: nil,
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
-				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
+			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
+				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
@@ -1269,8 +1245,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 			},
 			trafficSplits: nil,
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
-				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
+			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
+				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
@@ -1471,22 +1447,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
-				// Only return traffic split for service ns1/s1. This is required to verify
-				// that service ns1/s2 which doesn't have an associated traffic split does
-				// not createi inbound routes corresponding to the apex service.
-				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).DoAndReturn(
-					func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
-						o := &smi.TrafficSplitListOpt{}
-						for _, opt := range options {
-							opt(o)
-						}
-						// In this test, only service ns1/s1 as a split configured
-						if o.BackendService.String() == "ns1/s1" {
-							return trafficSplits
-						}
-						return nil
-					}).AnyTimes()
+			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
+				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
@@ -1628,22 +1590,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
-				// Only return traffic split for service ns1/s1. This is required to verify
-				// that service ns1/s2 which doesn't have an associated traffic split does
-				// not createi inbound routes corresponding to the apex service.
-				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).DoAndReturn(
-					func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
-						o := &smi.TrafficSplitListOpt{}
-						for _, opt := range options {
-							opt(o)
-						}
-						// In this test, only service ns1/s1 has a split configured
-						if o.BackendService.String() == "ns1/s1" {
-							return trafficSplits
-						}
-						return nil
-					}).AnyTimes()
+			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
+				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
@@ -1826,8 +1774,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
-				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
+			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
+				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
@@ -1982,8 +1930,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
-				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
+			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
+				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
@@ -2118,8 +2066,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
-				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
+			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
+				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
 			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
 				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
@@ -2217,20 +2165,16 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			fakeCertManager := tresorFake.NewFake(1 * time.Hour)
-
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockK8s := k8s.NewMockController(mockCtrl)
-			provider := kube.NewClient(mockK8s)
+			computeClient := kube.NewClient(mockK8s)
 
 			mc := MeshCatalog{
 				certManager: fakeCertManager,
-				meshSpec:    mockMeshSpec,
-				Interface:   provider,
+				Interface:   computeClient,
 			}
 
 			mockK8s.EXPECT().ListUpstreamTrafficSettings().Return(tc.upstreamTrafficSettings).AnyTimes()
 			mockK8s.EXPECT().ListEgressPolicies().Return([]*policyv1alpha1.Egress{}).AnyTimes()
-
 			mockK8s.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 				Spec: v1alpha2.MeshConfigSpec{
 					Traffic: v1alpha2.TrafficSpec{
@@ -2238,9 +2182,9 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					},
 				},
 			}).AnyTimes()
-			mockMeshSpec.EXPECT().ListTrafficTargets(gomock.Any()).Return(tc.trafficTargets).AnyTimes()
-			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return(tc.httpRouteGroups).AnyTimes()
-			tc.prepare(mockMeshSpec, tc.trafficSplits)
+			mockK8s.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()
+			mockK8s.EXPECT().ListHTTPTrafficSpecs().Return(tc.httpRouteGroups).AnyTimes()
+			tc.prepare(mockK8s, tc.trafficSplits, tc.trafficTargets, tc.upstreamTrafficSettings)
 
 			actual := mc.GetInboundMeshTrafficPolicy(tc.upstreamIdentity, tc.upstreamServices)
 
@@ -2258,7 +2202,15 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 
 func TestRoutesFromRules(t *testing.T) {
 	assert := tassert.New(t)
-	mc := MeshCatalog{meshSpec: smiFake.NewFakeMeshSpecClient()}
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockK8s := k8s.NewMockController(mockCtrl)
+	provider := kube.NewClient(mockK8s)
+
+	mockK8s.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
+
+	mc := MeshCatalog{Interface: provider}
 
 	testCases := []struct {
 		name           string
@@ -2476,14 +2428,14 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockK8s := k8s.NewMockController(mockCtrl)
+			provider := kube.NewClient(mockK8s)
 
 			mc := MeshCatalog{
-				meshSpec: mockMeshSpec,
+				Interface: provider,
 			}
 
-			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
+			mockK8s.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			actual, err := mc.getHTTPPathsPerRoute()
 			assert.Nil(err)
 			assert.True(reflect.DeepEqual(actual, tc.expectedHTTPPathsPerRoute))

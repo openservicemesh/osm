@@ -17,7 +17,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/signals"
-	"github.com/openservicemesh/osm/pkg/smi"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 
@@ -89,12 +88,10 @@ func setupTestGenerator(b *testing.B) (*envoy.Proxy, *EnvoyConfigGenerator) {
 
 	proxyUUID := uuid.New()
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
-	meshSpec := smi.NewSMIClient(informerCollection, tests.OsmNamespace, kubeController, msgBroker)
 	mc := catalog.NewMeshCatalog(
-		meshSpec,
+		kubeProvider,
 		certManager,
 		stop,
-		kubeProvider,
 		msgBroker,
 	)
 

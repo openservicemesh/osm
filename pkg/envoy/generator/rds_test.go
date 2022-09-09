@@ -30,7 +30,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -255,7 +254,6 @@ func TestGenerateRDS(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
 			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 			kubeClient := testclient.NewSimpleClientset()
@@ -269,10 +267,10 @@ func TestGenerateRDS(t *testing.T) {
 
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 
-			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
-			mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()
+			mockKubeController.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
+			mockKubeController.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()
 			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
-			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
+			mockKubeController.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
 			mockCatalog.EXPECT().GetMeshConfig().AnyTimes()
 			mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(&trafficpolicy.InboundMeshTrafficPolicy{HTTPRouteConfigsPerPort: tc.expectedInboundPolicies}).AnyTimes()

@@ -8,6 +8,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -17,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 var (
@@ -74,7 +79,34 @@ const (
 	Retry InformerKey = "Retry"
 	// UpstreamTrafficSetting lookup identifier
 	UpstreamTrafficSetting InformerKey = "UpstreamTrafficSetting"
+	// TrafficSplit lookup identifier
+	TrafficSplit InformerKey = "TrafficSplit"
+	// HTTPRouteGroup lookup identifier
+	HTTPRouteGroup InformerKey = "HTTPRouteGroup"
+	// TCPRoute lookup identifier
+	TCPRoute InformerKey = "TCPRoute"
+	// TrafficTarget lookup identifier
+	TrafficTarget InformerKey = "TrafficTarget"
 )
+
+// TrafficTargetListOpt specifies the options used to filter TrafficTarget objects as a part of its lister
+type TrafficTargetListOpt struct {
+	DestinationNamespace string
+	DestinationName      string
+}
+
+// TrafficTargetListOption is a function type that implements filters on TrafficTarget lister
+type TrafficTargetListOption func(o *TrafficTargetListOpt)
+
+// TrafficSplitListOpt specifies the options used to filter TrafficSplit objects as a part of its lister
+type TrafficSplitListOpt struct {
+	ApexService    service.MeshService
+	BackendService service.MeshService
+	KubeController Controller
+}
+
+// TrafficSplitListOption is a function type that implements filters on the TrafficSplit lister
+type TrafficSplitListOption func(o *TrafficSplitListOpt)
 
 // Client is the type used to represent the k8s client for the native k8s resources
 type Client struct {
@@ -89,6 +121,7 @@ type Client struct {
 // Controller is the controller interface for K8s services
 type Controller interface {
 	PassthroughInterface
+
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service
 
@@ -149,4 +182,23 @@ type PassthroughInterface interface {
 
 	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resources with namespaced name
 	GetUpstreamTrafficSetting(*types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting
+
+	// ListTrafficSplits lists SMI TrafficSplit resources
+	ListTrafficSplits() []*split.TrafficSplit
+
+	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
+	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
+
+	// GetHTTPRouteGroup returns an SMI HTTPRouteGroup resource given its name of the form <namespace>/<name>
+	GetHTTPRouteGroup(string) *spec.HTTPRouteGroup
+
+	// ListTCPTrafficSpecs lists SMI TCPRoute resources
+	ListTCPTrafficSpecs() []*spec.TCPRoute
+
+	// GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>
+	GetTCPRoute(string) *spec.TCPRoute
+
+	// ListTrafficTargets lists SMI TrafficTarget resources. An optional filter can be applied to filter the
+	// returned list
+	ListTrafficTargets() []*access.TrafficTarget
 }

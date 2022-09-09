@@ -16,11 +16,12 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
+	"github.com/openservicemesh/osm/pkg/k8s"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -435,18 +436,16 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockCompute := compute.NewMockInterface(mockCtrl)
 
 			for _, rg := range tc.httpRouteGroups {
-				mockMeshSpec.EXPECT().GetHTTPRouteGroup(fmt.Sprintf("%s/%s", rg.Namespace, rg.Name)).Return(rg).AnyTimes()
+				mockCompute.EXPECT().GetHTTPRouteGroup(fmt.Sprintf("%s/%s", rg.Namespace, rg.Name)).Return(rg).AnyTimes()
 			}
 
-			mockCompute := compute.NewMockInterface(mockCtrl)
 			mockCompute.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(tc.egressPolicies).Times(1)
 			mockCompute.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
 			mockCompute.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
 			mc := &MeshCatalog{
-				meshSpec:  mockMeshSpec,
 				Interface: mockCompute,
 			}
 
@@ -828,14 +827,16 @@ func TestBuildHTTPRouteConfigs(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockK8s := k8s.NewMockController(mockCtrl)
+			provider := kube.NewClient(mockK8s)
+
 
 			for _, rg := range tc.httpRouteGroups {
-				mockMeshSpec.EXPECT().GetHTTPRouteGroup(fmt.Sprintf("%s/%s", rg.Namespace, rg.Name)).Return(rg).AnyTimes()
+				mockK8s.EXPECT().GetHTTPRouteGroup(fmt.Sprintf("%s/%s", rg.Namespace, rg.Name)).Return(rg).AnyTimes()
 			}
 
 			mc := &MeshCatalog{
-				meshSpec: mockMeshSpec,
+				Interface: provider,
 			}
 
 			routeConfigs, clusterConfigs := mc.buildHTTPRouteConfigs(tc.egressPolicy, tc.egressPort, tc.upstreamTrafficSetting)

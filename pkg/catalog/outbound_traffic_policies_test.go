@@ -576,11 +576,9 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			mockProvider := compute.NewMockInterface(mockCtrl)
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
 			mc := MeshCatalog{
 				Interface: mockProvider,
-				meshSpec:  mockMeshSpec,
 			}
 
 			// Mock calls to k8s client caches
@@ -593,9 +591,9 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			}).AnyTimes()
 
 			mockProvider.EXPECT().ListServices().Return(allMeshServices).AnyTimes()
-			mockMeshSpec.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
+			mockProvider.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
 			// Mock conditional traffic split for service
-			mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).DoAndReturn(
+			mockProvider.EXPECT().ListTrafficSplitsByOptions(gomock.Any()).DoAndReturn(
 				func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
 					o := &smi.TrafficSplitListOpt{}
 					for _, opt := range options {

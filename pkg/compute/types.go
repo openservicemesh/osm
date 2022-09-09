@@ -3,6 +3,9 @@ package compute
 import (
 	"k8s.io/apimachinery/pkg/types"
 
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -10,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/smi"
 )
 
 // Interface is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
@@ -69,4 +73,10 @@ type Interface interface {
 
 	// ListNamespaces returns the namespaces monitored by the mesh
 	ListNamespaces() ([]string, error)
+
+	ListServiceAccountsFromTrafficTargets() []identity.K8sServiceAccount
+
+	ListTrafficSplitsByOptions(...smi.TrafficSplitListOption) []*smiSplit.TrafficSplit
+
+	ListTrafficTargetsByOptions(...smi.TrafficTargetListOption) []*smiAccess.TrafficTarget
 }
