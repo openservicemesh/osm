@@ -20,7 +20,7 @@ func TestGetCertHandler(t *testing.T) {
 		certDebugger: tresorFake.NewFake(time.Hour),
 	}
 
-	_, err := ds.certDebugger.IssueCertificate("commonName", certificate.Service)
+	_, err := ds.certDebugger.IssueCertificate(certificate.ForServiceIdentity("commonName"))
 	assert.Nil(err)
 
 	handler := ds.getCertHandler()

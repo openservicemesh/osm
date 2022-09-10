@@ -76,10 +76,7 @@ func TestCertRotation(t *testing.T) {
 
 			// create a cert before we start the server
 			// Allows us to test there was a change in certs
-			firstCert, _ := cm.IssueCertificate(
-				"testhook.ns.svc",
-				certificate.Internal,
-				certificate.FullCNProvided())
+			firstCert, _ := cm.IssueCertificate(certificate.ForCommonName("testhook.ns.svc"))
 
 			server := NewServer("testhook", "ns", 6000, cm, nil, onCertChange)
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

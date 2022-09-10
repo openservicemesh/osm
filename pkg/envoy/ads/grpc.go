@@ -85,9 +85,7 @@ func (s *GRPCServer) GetServer() *grpc.Server {
 }
 
 func (s *GRPCServer) updateConfig() error {
-	grpcCert, err := s.cm.IssueCertificate(
-		s.certCommonName,
-		certificate.Internal)
+	grpcCert, err := s.cm.IssueCertificate(certificate.ForCommonNamePrefix(s.certCommonName))
 	if err != nil {
 		return err
 	}

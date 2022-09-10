@@ -15,7 +15,7 @@ func BenchmarkIssueCertificate(b *testing.B) {
 		b.Logf("Failed to set log level to error: %s", err)
 	}
 
-	serviceFQDN := certificate.CommonName("a.b.c")
+	serviceFQDN := "a.b.c"
 	validity := 3 * time.Second
 	cn := certificate.CommonName("Test CA")
 	rootCertCountry := "US"
@@ -39,7 +39,7 @@ func BenchmarkIssueCertificate(b *testing.B) {
 	b.ResetTimer()
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		bmCert, _ = m.IssueCertificate(serviceFQDN, validity)
+		bmCert, _ = m.IssueCertificate(certificate.NewCertOptionsWithFullName(serviceFQDN, validity))
 	}
 	b.StopTimer()
 }

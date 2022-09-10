@@ -19,7 +19,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, certMana
 	builder := NewBuilder().SetProxy(proxy).SetTrustDomain(certManager.GetTrustDomain())
 
 	// 1. Issue a service certificate for this proxy
-	cert, err := certManager.IssueCertificate(proxy.Identity.String(), certificate.Service)
+	cert, err := certManager.IssueCertificate(certificate.ForServiceIdentity(proxy.Identity))
 	if err != nil {
 		log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error issuing a certificate for proxy")
 		return nil, err
