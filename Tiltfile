@@ -86,7 +86,7 @@ docker buildx build \
     -o type=docker --build-arg GO_BASE_IMAGE=notused \
     --build-arg FINAL_BASE_IMAGE=notused --target wasm \
     -t osm-wasm -f dockerfiles/Dockerfile.osm-controller . && \\
-    docker run -v $PWD/pkg/envoy/lds:/updatefolder osm-wasm \
+    docker run -v $PWD/pkg/envoy/generator/lds:/updatefolder osm-wasm \
     cp /wasm/stats.wasm /updatefolder
 """
 local_resource(
