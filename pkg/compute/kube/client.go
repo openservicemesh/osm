@@ -11,6 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 
+	"k8s.io/utils/pointer"
+
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -30,17 +32,11 @@ func NewClient(kubeController k8s.Controller) *client { //nolint: revive // unex
 	}
 }
 
-// GetID returns a string descriptor / identifier of the compute provider.
-// Required by interfaces: EndpointsProvider, ServiceProvider
-func (c *client) GetID() string {
-	return providerName
-}
-
 // ListEndpointsForService retrieves the list of IP addresses for the given service
 func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	log.Trace().Msgf("Getting Endpoints for MeshService %s on Kubernetes", svc)
 
-	kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
+	kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc.Name, svc.Namespace)
 	if err != nil || kubernetesEndpoints == nil {
 		log.Info().Msgf("No k8s endpoints found for MeshService %s", svc)
 		return nil
@@ -84,7 +80,7 @@ func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (c *client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
 	sa := serviceIdentity.ToK8sServiceAccount()
-	log.Trace().Msgf("[%s] (ListEndpointsForIdentity) Getting Endpoints for service account %s on Kubernetes", c.GetID(), sa)
+	log.Trace().Msgf("(ListEndpointsForIdentity) Getting Endpoints for service account %s on Kubernetes", sa)
 
 	var endpoints []endpoint.Endpoint
 	for _, pod := range c.kubeController.ListPods() {
@@ -98,7 +94,7 @@ func (c *client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 		for _, podIP := range pod.Status.PodIPs {
 			ip := net.ParseIP(podIP.IP)
 			if ip == nil {
-				log.Error().Msgf("[%s] Error parsing IP address %s", c.GetID(), podIP.IP)
+				log.Error().Msgf("Error parsing IP address %s", podIP.IP)
 				break
 			}
 			ept := endpoint.Endpoint{IP: ip}
@@ -106,7 +102,7 @@ func (c *client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 		}
 	}
 
-	log.Trace().Msgf("[%s][ListEndpointsForIdentity] Endpoints for service identity (serviceAccount=%s) %s: %+v", c.GetID(), serviceIdentity, sa, endpoints)
+	log.Trace().Msgf("[ListEndpointsForIdentity] Endpoints for service identity (serviceAccount=%s) %s: %+v", serviceIdentity, sa, endpoints)
 
 	return endpoints
 }
@@ -115,7 +111,6 @@ func (c *client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdentity) []service.MeshService {
 	var meshServices []service.MeshService
 	svcSet := mapset.NewSet() // mapset is used to avoid duplicate elements in the output list
-
 	svcAccount := svcIdentity.ToK8sServiceAccount()
 
 	for _, pod := range c.kubeController.ListPods() {
@@ -127,26 +122,28 @@ func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 			continue
 		}
 
-		meshServicesForPod := c.getServicesByLabels(pod.ObjectMeta.Labels, pod.Namespace)
-		for _, svc := range meshServicesForPod {
+		for _, svc := range c.listServicesForPod(pod) {
 			if added := svcSet.Add(svc); added {
 				meshServices = append(meshServices, svc)
 			}
 		}
 	}
 
-	log.Trace().Msgf("[%s] Services for service account %s: %v", c.GetID(), svcAccount, meshServices)
+	log.Trace().Msgf("Services for service account %s: %v", svcAccount, meshServices)
 	return meshServices
 }
 
 // ListServicesForProxy maps an Envoy instance to a number of Kubernetes services.
 func (c *client) ListServicesForProxy(p *envoy.Proxy) ([]service.MeshService, error) {
-	var meshServices []service.MeshService
 	pod, err := c.kubeController.GetPodForProxy(p)
 	if err != nil {
 		return nil, err
 	}
+	return c.listServicesForPod(pod), nil
+}
 
+func (c *client) listServicesForPod(pod *corev1.Pod) []service.MeshService {
+	var meshServices []service.MeshService
 	for _, svc := range c.getServicesByLabels(pod.ObjectMeta.Labels, pod.Namespace) {
 		// Filter out headless services that point to a specific proxy.
 		if svc.Subdomain == pod.Name || svc.Subdomain == "" {
@@ -157,7 +154,7 @@ func (c *client) ListServicesForProxy(p *envoy.Proxy) ([]service.MeshService, er
 	log.Trace().Msgf("Services associated with Pod with UID=%s Name=%s/%s: %v",
 		pod.ObjectMeta.UID, pod.Namespace, pod.Name, meshServices)
 
-	return meshServices, nil
+	return meshServices
 }
 
 // getServicesByLabels gets Kubernetes services whose selectors match the given labels
@@ -179,7 +176,7 @@ func (c *client) getServicesByLabels(podLabels map[string]string, targetNamespac
 		}
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(podLabels)) {
-			finalList = append(finalList, c.kubeController.ServiceToMeshServices(*svc)...)
+			finalList = append(finalList, c.serviceToMeshServices(*svc)...)
 		}
 	}
 
@@ -192,7 +189,7 @@ func (c *client) GetResolvableEndpointsForService(svc service.MeshService) []end
 	var endpoints []endpoint.Endpoint
 
 	// Check if the service has been given Cluster IP
-	kubeService := c.kubeController.GetService(svc)
+	kubeService := c.kubeController.GetService(svc.Name, svc.Namespace)
 	if kubeService == nil {
 		log.Info().Msgf("No k8s services found for MeshService %s", svc)
 		return nil
@@ -206,7 +203,7 @@ func (c *client) GetResolvableEndpointsForService(svc service.MeshService) []end
 	// Cluster IP is present
 	ip := net.ParseIP(kubeService.Spec.ClusterIP)
 	if ip == nil {
-		log.Error().Msgf("[%s] Could not parse Cluster IP %s", c.GetID(), kubeService.Spec.ClusterIP)
+		log.Error().Msgf("Could not parse Cluster IP %s", kubeService.Spec.ClusterIP)
 		return nil
 	}
 
@@ -224,26 +221,9 @@ func (c *client) GetResolvableEndpointsForService(svc service.MeshService) []end
 func (c *client) ListServices() []service.MeshService {
 	var services []service.MeshService
 	for _, svc := range c.kubeController.ListServices() {
-		services = append(services, c.kubeController.ServiceToMeshServices(*svc)...)
+		services = append(services, c.serviceToMeshServices(*svc)...)
 	}
 	return services
-}
-
-// ListServiceIdentitiesForService lists the service identities associated with the given mesh service.
-func (c *client) ListServiceIdentitiesForService(svc service.MeshService) []identity.ServiceIdentity {
-	serviceAccounts, err := c.kubeController.ListServiceIdentitiesForService(svc)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting ServiceAccounts for Service %s", svc)
-		return nil
-	}
-
-	var serviceIdentities []identity.ServiceIdentity
-	for _, svcAccount := range serviceAccounts {
-		serviceIdentity := svcAccount.ToServiceIdentity()
-		serviceIdentities = append(serviceIdentities, serviceIdentity)
-	}
-
-	return serviceIdentities
 }
 
 // IsMetricsEnabled checks if prometheus metrics scraping are enabled on this pod.
@@ -446,4 +426,126 @@ func (c *client) GetProxyStatsHeaders(p *envoy.Proxy) (map[string]string, error)
 func (c *client) VerifyProxy(proxy *envoy.Proxy) error {
 	_, err := c.kubeController.GetPodForProxy(proxy)
 	return err
+}
+
+// ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
+func (c *client) ListServiceIdentitiesForService(name, namespace string) ([]identity.ServiceIdentity, error) {
+	var identities []identity.ServiceIdentity
+
+	k8sSvc := c.kubeController.GetService(name, namespace)
+	if k8sSvc == nil {
+		return nil, fmt.Errorf("Error fetching service %s/%s: %s", name, namespace, errServiceNotFound)
+	}
+
+	svcAccountsSet := mapset.NewSet()
+	pods := c.kubeController.ListPods()
+	for _, pod := range pods {
+		svcRawSelector := k8sSvc.Spec.Selector
+		selector := labels.Set(svcRawSelector).AsSelector()
+		// service has no selectors, we do not need to match against the pod label
+		if len(svcRawSelector) == 0 {
+			continue
+		}
+		if selector.Matches(labels.Set(pod.Labels)) {
+			podSvcAccount := identity.K8sServiceAccount{
+				Name:      pod.Spec.ServiceAccountName,
+				Namespace: pod.Namespace, // ServiceAccount must belong to the same namespace as the pod
+			}
+			svcAccountsSet.Add(podSvcAccount)
+		}
+	}
+
+	for svcAcc := range svcAccountsSet.Iter() {
+		identities = append(identities, svcAcc.(identity.K8sServiceAccount).ToServiceIdentity())
+	}
+	return identities, nil
+}
+
+// GetMeshService returns the service.MeshService corresponding to the Port used by clients
+// to communicate with it.
+func (c *client) GetMeshService(name, namespace string, port uint16) (service.MeshService, error) {
+	v1Svc := c.kubeController.GetService(name, namespace)
+	if v1Svc == nil {
+		return service.MeshService{}, errServiceNotFound
+	}
+	for _, svc := range c.serviceToMeshServices(*v1Svc) {
+		if svc.Port == port {
+			return svc, nil
+		}
+	}
+	return service.MeshService{}, fmt.Errorf("service %s/%s does not have a port %d", namespace, name, port)
+}
+
+// serviceToMeshServices translates a k8s service with one or more ports to one or more
+// MeshService objects per port.
+func (c *client) serviceToMeshServices(svc corev1.Service) []service.MeshService {
+	var meshServices []service.MeshService
+
+	for _, portSpec := range svc.Spec.Ports {
+		meshSvc := service.MeshService{
+			Namespace: svc.Namespace,
+			Name:      svc.Name,
+			Port:      uint16(portSpec.Port),
+		}
+
+		// attempt to parse protocol from port name
+		// Order of Preference is:
+		// 1. port.appProtocol field
+		// 2. protocol prefixed to port name (e.g. tcp-my-port)
+		// 3. default to http
+		protocol := constants.ProtocolHTTP
+		for _, p := range constants.SupportedProtocolsInMesh {
+			if strings.HasPrefix(portSpec.Name, p+"-") {
+				protocol = p
+				break
+			}
+		}
+
+		// use port.appProtocol if specified, else use port protocol
+		meshSvc.Protocol = pointer.StringDeref(portSpec.AppProtocol, protocol)
+
+		// The endpoints for the kubernetes service carry information that allows
+		// us to retrieve the TargetPort for the MeshService.
+		endpoints, _ := c.kubeController.GetEndpoints(svc.Name, svc.Namespace)
+		if endpoints != nil {
+			meshSvc.TargetPort = GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
+		} else {
+			log.Warn().Msgf("k8s service %s/%s does not have endpoints but is being represented as a MeshService", svc.Namespace, svc.Name)
+		}
+		if !IsHeadlessService(svc) || endpoints == nil {
+			meshServices = append(meshServices, meshSvc)
+			continue
+		}
+
+		for _, subset := range endpoints.Subsets {
+			for _, address := range subset.Addresses {
+				if address.Hostname == "" {
+					continue
+				}
+				meshServices = append(meshServices, service.MeshService{
+					Namespace:  svc.Namespace,
+					Name:       svc.Name,
+					Subdomain:  address.Hostname,
+					Port:       meshSvc.Port,
+					TargetPort: meshSvc.TargetPort,
+					Protocol:   meshSvc.Protocol,
+				})
+			}
+		}
+	}
+	return meshServices
+}
+
+func (c *client) ListNamespaces() ([]string, error) {
+	namespaces, err := c.kubeController.ListNamespaces()
+	if err != nil {
+		return nil, err
+	}
+
+	names := make([]string, len(namespaces))
+
+	for i, ns := range namespaces {
+		names[i] = ns.Name
+	}
+	return names, nil
 }

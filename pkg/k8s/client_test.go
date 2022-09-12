@@ -13,24 +13,21 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/utils/pointer"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/tests"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 var (
@@ -129,7 +126,7 @@ func TestGetNamespace(t *testing.T) {
 	}
 }
 
-func TestListMonitoredNamespaces(t *testing.T) {
+func TestListNamespaces(t *testing.T) {
 	testCases := []struct {
 		name       string
 		namespaces []*corev1.Namespace
@@ -168,19 +165,24 @@ func TestListMonitoredNamespaces(t *testing.T) {
 				_ = ic.Add(informers.InformerKeyNamespace, ns, t)
 			}
 
-			actual, err := c.ListMonitoredNamespaces()
+			actual, err := c.ListNamespaces()
 			a.Nil(err)
-			a.ElementsMatch(tc.expected, actual)
+			names := make([]string, 0, len(actual))
+			for _, ns := range actual {
+				names = append(names, ns.Name)
+			}
+			a.ElementsMatch(tc.expected, names)
 		})
 	}
 }
 
 func TestGetService(t *testing.T) {
 	testCases := []struct {
-		name     string
-		service  *corev1.Service
-		svc      service.MeshService
-		expected bool
+		name         string
+		service      *corev1.Service
+		svcName      string
+		svcNamespace string
+		expected     bool
 	}{
 		{
 			name: "gets the service from the cache given its key",
@@ -190,8 +192,9 @@ func TestGetService(t *testing.T) {
 					Namespace: "ns1",
 				},
 			},
-			svc:      service.MeshService{Name: "foo", Namespace: "ns1"},
-			expected: true,
+			svcName:      "foo",
+			svcNamespace: "ns1",
+			expected:     true,
 		},
 		{
 			name: "returns nil if the service is not found in the cache",
@@ -201,8 +204,9 @@ func TestGetService(t *testing.T) {
 					Namespace: "ns1",
 				},
 			},
-			svc:      service.MeshService{Name: "invalid", Namespace: "ns1"},
-			expected: false,
+			svcName:      "invalid",
+			svcNamespace: "ns1",
+			expected:     false,
 		},
 		{
 			name: "gets the headless service from the cache from a subdomained MeshService",
@@ -212,8 +216,9 @@ func TestGetService(t *testing.T) {
 					Namespace: "ns1",
 				},
 			},
-			svc:      service.MeshService{Name: "foo-headless", Namespace: "ns1", Subdomain: "foo-0"},
-			expected: true,
+			svcName:      "foo-headless",
+			svcNamespace: "ns1",
+			expected:     true,
 		},
 	}
 
@@ -225,7 +230,7 @@ func TestGetService(t *testing.T) {
 			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
 			_ = ic.Add(informers.InformerKeyService, tc.service, t)
 
-			actual := c.GetService(tc.svc)
+			actual := c.GetService(tc.svcName, tc.svcNamespace)
 			if tc.expected {
 				a.Equal(tc.service, actual)
 			} else {
@@ -408,10 +413,11 @@ func TestListPods(t *testing.T) {
 
 func TestGetEndpoints(t *testing.T) {
 	testCases := []struct {
-		name      string
-		endpoints *corev1.Endpoints
-		svc       service.MeshService
-		expected  *corev1.Endpoints
+		name         string
+		endpoints    *corev1.Endpoints
+		svcName      string
+		svcNamespace string
+		expected     *corev1.Endpoints
 	}{
 		{
 			name: "gets the service from the cache given its key",
@@ -421,7 +427,8 @@ func TestGetEndpoints(t *testing.T) {
 					Namespace: "ns1",
 				},
 			},
-			svc: service.MeshService{Name: "foo", Namespace: "ns1"},
+			svcName:      "foo",
+			svcNamespace: "ns1",
 			expected: &corev1.Endpoints{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
@@ -437,8 +444,9 @@ func TestGetEndpoints(t *testing.T) {
 					Namespace: "ns1",
 				},
 			},
-			svc:      service.MeshService{Name: "invalid", Namespace: "ns1"},
-			expected: nil,
+			svcName:      "invalid",
+			svcNamespace: "ns1",
+			expected:     nil,
 		},
 	}
 
@@ -450,113 +458,9 @@ func TestGetEndpoints(t *testing.T) {
 			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
 			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
 
-			actual, err := c.GetEndpoints(tc.svc)
+			actual, err := c.GetEndpoints(tc.svcName, tc.svcNamespace)
 			a.Nil(err)
 			a.Equal(tc.expected, actual)
-		})
-	}
-}
-
-func TestListServiceIdentitiesForService(t *testing.T) {
-	testCases := []struct {
-		name      string
-		namespace *corev1.Namespace
-		pods      []*corev1.Pod
-		service   *corev1.Service
-		svc       service.MeshService
-		expected  []identity.K8sServiceAccount
-		expectErr bool
-	}{
-		{
-			name: "returns the service accounts for the given MeshService",
-			namespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ns1",
-				},
-			},
-			pods: []*corev1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "ns1",
-						Name:      "p1",
-						Labels: map[string]string{
-							"k1": "v1", // matches selector for service ns1/s1
-						},
-					},
-					Spec: corev1.PodSpec{
-						ServiceAccountName: "sa1",
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "ns1",
-						Name:      "p2",
-						Labels: map[string]string{
-							"k1": "v2", // does not match selector for service ns1/s1
-						},
-					},
-					Spec: corev1.PodSpec{
-						ServiceAccountName: "sa2",
-					},
-				},
-			},
-			service: &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Spec: corev1.ServiceSpec{
-					Selector: map[string]string{
-						"k1": "v1", // matches labels on pod ns1/p1
-					},
-				},
-			},
-			svc: service.MeshService{Name: "s1", Namespace: "ns1"}, // Matches service ns1/s1
-			expected: []identity.K8sServiceAccount{
-				{Namespace: "ns1", Name: "sa1"},
-			},
-			expectErr: false,
-		},
-		{
-			name: "returns an error when the given MeshService is not found",
-			namespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ns1",
-				},
-			},
-			service: &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Spec: corev1.ServiceSpec{
-					Selector: map[string]string{
-						"k1": "v1", // matches labels on pod ns1/p1
-					},
-				},
-			},
-			svc:       service.MeshService{Name: "invalid", Namespace: "ns1"}, // Does not match service ns1/s1
-			expected:  nil,
-			expectErr: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			a := tassert.New(t)
-
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
-			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
-			for _, p := range tc.pods {
-				_ = ic.Add(informers.InformerKeyPod, p, t)
-			}
-			_ = ic.Add(informers.InformerKeyService, tc.service, t)
-
-			actual, err := c.ListServiceIdentitiesForService(tc.svc)
-			a.Equal(tc.expectErr, err != nil)
-			a.ElementsMatch(tc.expected, actual)
 		})
 	}
 }
@@ -670,328 +574,6 @@ func TestUpdateStatus(t *testing.T) {
 	}
 }
 
-func TestK8sServicesToMeshServices(t *testing.T) {
-	testCases := []struct {
-		name         string
-		svc          corev1.Service
-		svcEndpoints []runtime.Object
-		expected     []service.MeshService
-	}{
-		{
-			name: "k8s service with single port and endpoint, no appProtocol set",
-			// Single port on the service maps to a single MeshService.
-			// Since no appProtocol is specified, MeshService.Protocol should default
-			// to http.
-			svc: corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
-					Name:      "s1",
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{
-						{
-							Name: "p1",
-							Port: 80,
-						},
-					},
-					ClusterIP: "10.0.0.1",
-				},
-			},
-			svcEndpoints: []runtime.Object{
-				&corev1.Endpoints{
-					ObjectMeta: metav1.ObjectMeta{
-						// Should match svc.Name and svc.Namespace
-						Namespace: "ns1",
-						Name:      "s1",
-					},
-					Subsets: []corev1.EndpointSubset{
-						{
-							Ports: []corev1.EndpointPort{
-								{
-									// Must match the port of 'svc.Spec.Ports[0]'
-									Port: 8080, // TargetPort
-								},
-							},
-						},
-					},
-				},
-			},
-			expected: []service.MeshService{
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Port:       80,
-					TargetPort: 8080,
-					Protocol:   "http",
-				},
-			},
-		},
-		{
-			name: "k8s service with single port and endpoint, no appProtocol set, protocol in port name",
-			// Single port on the service maps to a single MeshService.
-			// Since no appProtocol is specified, MeshService.Protocol should match
-			// the protocol specified in the port name
-			svc: corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
-					Name:      "s1",
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{
-						{
-							Name: "tcp-p1",
-							Port: 80,
-						},
-					},
-					ClusterIP: "10.0.0.1",
-				},
-			},
-			svcEndpoints: []runtime.Object{
-				&corev1.Endpoints{
-					ObjectMeta: metav1.ObjectMeta{
-						// Should match svc.Name and svc.Namespace
-						Namespace: "ns1",
-						Name:      "s1",
-					},
-					Subsets: []corev1.EndpointSubset{
-						{
-							Ports: []corev1.EndpointPort{
-								{
-									// Must match the port of 'svc.Spec.Ports[0]'
-									Port: 8080, // TargetPort
-								},
-							},
-						},
-					},
-				},
-			},
-			expected: []service.MeshService{
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Port:       80,
-					TargetPort: 8080,
-					Protocol:   "tcp",
-				},
-			},
-		},
-		{
-			name: "k8s headless service with single port and endpoint, no appProtocol set",
-			// Single port on the service maps to a single MeshService.
-			// Since no appProtocol is specified, MeshService.Protocol should default
-			// to http.
-			svc: corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
-					Name:      "s1",
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{
-						{
-							Name: "p1",
-							Port: 80,
-						},
-					},
-					ClusterIP: corev1.ClusterIPNone,
-				},
-			},
-			svcEndpoints: []runtime.Object{
-				&corev1.Endpoints{
-					ObjectMeta: metav1.ObjectMeta{
-						// Should match svc.Name and svc.Namespace
-						Namespace: "ns1",
-						Name:      "s1",
-					},
-					Subsets: []corev1.EndpointSubset{
-						{
-							Addresses: []corev1.EndpointAddress{
-								{
-									IP:       "10.1.0.1",
-									Hostname: "pod-0",
-								},
-							},
-							Ports: []corev1.EndpointPort{
-								{
-									// Must match the port of 'svc.Spec.Ports[0]'
-									Port: 8080, // TargetPort
-								},
-							},
-						},
-					},
-				},
-			},
-			expected: []service.MeshService{
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Subdomain:  "pod-0",
-					Port:       80,
-					TargetPort: 8080,
-					Protocol:   "http",
-				},
-			},
-		},
-		{
-			name: "multiple ports on k8s service with appProtocol specified",
-			svc: corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
-					Name:      "s1",
-				},
-				Spec: corev1.ServiceSpec{
-					ClusterIP: "10.0.0.1",
-					Ports: []corev1.ServicePort{
-						{
-							Name:        "p1",
-							Port:        80,
-							AppProtocol: pointer.StringPtr("http"),
-						},
-						{
-							Name:        "p2",
-							Port:        90,
-							AppProtocol: pointer.StringPtr("tcp"),
-						},
-					},
-				},
-			},
-			svcEndpoints: []runtime.Object{
-				&corev1.Endpoints{
-					ObjectMeta: metav1.ObjectMeta{
-						// Should match svc.Name and svc.Namespace
-						Namespace: "ns1",
-						Name:      "s1",
-					},
-					Subsets: []corev1.EndpointSubset{
-						{
-							Ports: []corev1.EndpointPort{
-								{
-									// Must match the port of 'svc.Spec.Ports[0]'
-									Name:        "p1",
-									Port:        8080, // TargetPort
-									AppProtocol: pointer.StringPtr("http"),
-								},
-								{
-									// Must match the port of 'svc.Spec.Ports[1]'
-									Name:        "p2",
-									Port:        9090, // TargetPort
-									AppProtocol: pointer.StringPtr("tcp"),
-								},
-							},
-						},
-					},
-				},
-			},
-			expected: []service.MeshService{
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Port:       80,
-					TargetPort: 8080,
-					Protocol:   "http",
-				},
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Port:       90,
-					TargetPort: 9090,
-					Protocol:   "tcp",
-				},
-			},
-		},
-		{
-			name: "multiple ports on k8s headless service with appProtocol specified",
-			svc: corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
-					Name:      "s1",
-				},
-				Spec: corev1.ServiceSpec{
-					ClusterIP: corev1.ClusterIPNone,
-					Ports: []corev1.ServicePort{
-						{
-							Name:        "p1",
-							Port:        80,
-							AppProtocol: pointer.StringPtr("http"),
-						},
-						{
-							Name:        "p2",
-							Port:        90,
-							AppProtocol: pointer.StringPtr("tcp"),
-						},
-					},
-				},
-			},
-			svcEndpoints: []runtime.Object{
-				&corev1.Endpoints{
-					ObjectMeta: metav1.ObjectMeta{
-						// Should match svc.Name and svc.Namespace
-						Namespace: "ns1",
-						Name:      "s1",
-					},
-					Subsets: []corev1.EndpointSubset{
-						{
-							Addresses: []corev1.EndpointAddress{
-								{
-									IP:       "10.1.0.1",
-									Hostname: "pod-0",
-								},
-							},
-							Ports: []corev1.EndpointPort{
-								{
-									// Must match the port of 'svc.Spec.Ports[0]'
-									Name:        "p1",
-									Port:        8080, // TargetPort
-									AppProtocol: pointer.StringPtr("http"),
-								},
-								{
-									// Must match the port of 'svc.Spec.Ports[1]'
-									Name:        "p2",
-									Port:        9090, // TargetPort
-									AppProtocol: pointer.StringPtr("tcp"),
-								},
-							},
-						},
-					},
-				},
-			},
-			expected: []service.MeshService{
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Subdomain:  "pod-0",
-					Port:       80,
-					TargetPort: 8080,
-					Protocol:   "http",
-				},
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Subdomain:  "pod-0",
-					Port:       90,
-					TargetPort: 9090,
-					Protocol:   "tcp",
-				},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
-
-			fakeClient := testclient.NewSimpleClientset(tc.svcEndpoints...)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(fakeClient))
-			assert.Nil(err)
-
-			kubeController := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
-			assert.NotNil(kubeController)
-
-			actual := kubeController.ServiceToMeshServices(tc.svc)
-			assert.ElementsMatch(tc.expected, actual)
-		})
-	}
-}
-
 func TestGetPodForProxy(t *testing.T) {
 	assert := tassert.New(t)
 	stop := make(chan struct{})
@@ -1075,176 +657,6 @@ func monitoredNS(name string) *v1.Namespace {
 				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
 			},
 		},
-	}
-}
-
-func TestGetTargetPortForServicePort(t *testing.T) {
-	osmNamespace := "osm"
-	testCases := []struct {
-		name               string
-		svc                *corev1.Service
-		endpoints          *corev1.Endpoints
-		namespacedSvc      types.NamespacedName
-		port               uint16
-		expectedTargetPort uint16
-		expectErr          bool
-	}{
-		{
-			name: "TargetPort found",
-			svc: &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{{
-						Name: "p1",
-						Port: 80,
-					}},
-				},
-			},
-			endpoints: &corev1.Endpoints{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Subsets: []corev1.EndpointSubset{
-					{
-						Ports: []corev1.EndpointPort{
-							{
-								Name: "p1",
-								Port: 8080,
-							},
-						},
-					},
-				},
-			},
-			namespacedSvc:      types.NamespacedName{Namespace: "ns1", Name: "s1"}, // matches svc
-			port:               80,                                                 // matches svc
-			expectedTargetPort: 8080,                                               // matches endpoint's 'p1' port
-			expectErr:          false,
-		},
-		{
-			name: "TargetPort not found as given service name does not exist",
-			svc: &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{{
-						Name: "p1",
-						Port: 80,
-					}},
-				},
-			},
-			endpoints: &corev1.Endpoints{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Subsets: []corev1.EndpointSubset{
-					{
-						Ports: []corev1.EndpointPort{
-							{
-								Name: "p1",
-								Port: 8080,
-							},
-						},
-					},
-				},
-			},
-			namespacedSvc:      types.NamespacedName{Namespace: "ns1", Name: "invalid"}, // does not match svc
-			port:               80,                                                      // matches svc
-			expectedTargetPort: 0,                                                       // matches endpoint's 'p1' port
-			expectErr:          true,
-		},
-		{
-			name: "TargetPort not found as Endpoint does not exist",
-			svc: &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{{
-						Name: "p1",
-						Port: 80,
-					}},
-				},
-			},
-			endpoints: &corev1.Endpoints{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Subsets: []corev1.EndpointSubset{
-					{
-						Ports: []corev1.EndpointPort{
-							{
-								Name: "invalid", // does not match svc port
-								Port: 8080,
-							},
-						},
-					},
-				},
-			},
-			namespacedSvc:      types.NamespacedName{Namespace: "ns1", Name: "s1"}, // matches svc
-			port:               80,                                                 // matches svc
-			expectedTargetPort: 0,                                                  // matches endpoint's 'p1' port
-			expectErr:          true,
-		},
-		{
-			name: "TargetPort not found as Endpoint matching given service does not exist",
-			svc: &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{{
-						Name: "p1",
-						Port: 80,
-					}},
-				},
-			},
-			endpoints: &corev1.Endpoints{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "invalid", // does not match svc
-					Namespace: "ns1",
-				},
-				Subsets: []corev1.EndpointSubset{
-					{
-						Ports: []corev1.EndpointPort{
-							{
-								Name: "p1",
-								Port: 8080,
-							},
-						},
-					},
-				},
-			},
-			namespacedSvc:      types.NamespacedName{Namespace: "ns1", Name: "s1"}, // matches svc
-			port:               80,                                                 // matches svc
-			expectedTargetPort: 0,                                                  // matches endpoint's 'p1' port
-			expectErr:          true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			a := tassert.New(t)
-
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient(osmNamespace, tests.OsmMeshConfigName, ic, nil, nil)
-			_ = ic.Add(informers.InformerKeyService, tc.svc, t)
-			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
-
-			actual, err := c.GetTargetPortForServicePort(tc.namespacedSvc, tc.port)
-			a.Equal(tc.expectedTargetPort, actual)
-			a.Equal(tc.expectErr, err != nil)
-		})
 	}
 }
 

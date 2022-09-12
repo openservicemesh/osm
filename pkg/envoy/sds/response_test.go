@@ -79,7 +79,7 @@ func TestNewResponse(t *testing.T) {
 			var services []service.MeshService
 			for svc, identities := range tc.serviceIdentitiesForService {
 				services = append(services, svc)
-				meshCatalog.EXPECT().ListServiceIdentitiesForService(svc).Return(identities)
+				meshCatalog.EXPECT().ListServiceIdentitiesForService(svc.Name, svc.Namespace).Return(identities, nil)
 			}
 			meshCatalog.EXPECT().ListOutboundServicesForIdentity(proxy.Identity).Return(services)
 

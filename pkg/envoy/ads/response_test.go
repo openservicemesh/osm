@@ -57,7 +57,7 @@ var _ = Describe("Test ADS response functions", func() {
 				},
 			},
 		}).AnyTimes()
-		provider.EXPECT().ListServiceIdentitiesForService(gomock.Any()).Return(nil).AnyTimes()
+		provider.EXPECT().ListServiceIdentitiesForService(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		provider.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
 		metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)

@@ -16,6 +16,8 @@ import (
 type Interface interface {
 	k8s.PassthroughInterface
 
+	GetMeshService(name, namespace string, port uint16) (service.MeshService, error)
+
 	// GetServicesForServiceIdentity retrieves the namespaced services for a given service identity
 	GetServicesForServiceIdentity(identity.ServiceIdentity) []service.MeshService
 
@@ -23,7 +25,7 @@ type Interface interface {
 	ListServices() []service.MeshService
 
 	// ListServiceIdentitiesForService returns service identities for given service
-	ListServiceIdentitiesForService(service.MeshService) []identity.ServiceIdentity
+	ListServiceIdentitiesForService(name, namespace string) ([]identity.ServiceIdentity, error)
 
 	// ListEndpointsForService retrieves the IP addresses comprising the given service.
 	ListEndpointsForService(service.MeshService) []endpoint.Endpoint
@@ -64,4 +66,7 @@ type Interface interface {
 
 	// VerifyProxy attempts to lookup a pod that matches the given proxy instance by service identity, namespace, and UUID
 	VerifyProxy(proxy *envoy.Proxy) error
+
+	// ListNamespaces returns the namespaces monitored by the mesh
+	ListNamespaces() ([]string, error)
 }

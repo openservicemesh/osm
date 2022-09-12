@@ -259,7 +259,7 @@ func TestNewResponse(t *testing.T) {
 
 			for _, meshSvc := range tc.meshServices {
 				k8sService := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, map[string]string{})
-				mockKubeController.EXPECT().GetService(meshSvc).Return(k8sService).AnyTimes()
+				mockKubeController.EXPECT().GetService(meshSvc.Name, meshSvc.Namespace).Return(k8sService).AnyTimes()
 			}
 
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()

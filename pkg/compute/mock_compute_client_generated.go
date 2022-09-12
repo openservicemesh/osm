@@ -82,6 +82,21 @@ func (mr *MockInterfaceMockRecorder) GetMeshConfig() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshConfig", reflect.TypeOf((*MockInterface)(nil).GetMeshConfig))
 }
 
+// GetMeshService mocks base method.
+func (m *MockInterface) GetMeshService(arg0, arg1 string, arg2 uint16) (service.MeshService, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMeshService", arg0, arg1, arg2)
+	ret0, _ := ret[0].(service.MeshService)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMeshService indicates an expected call of GetMeshService.
+func (mr *MockInterfaceMockRecorder) GetMeshService(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshService", reflect.TypeOf((*MockInterface)(nil).GetMeshService), arg0, arg1, arg2)
+}
+
 // GetOSMNamespace mocks base method.
 func (m *MockInterface) GetOSMNamespace() string {
 	m.ctrl.T.Helper()
@@ -137,21 +152,6 @@ func (m *MockInterface) GetServicesForServiceIdentity(arg0 identity.ServiceIdent
 func (mr *MockInterfaceMockRecorder) GetServicesForServiceIdentity(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesForServiceIdentity", reflect.TypeOf((*MockInterface)(nil).GetServicesForServiceIdentity), arg0)
-}
-
-// GetTargetPortForServicePort mocks base method.
-func (m *MockInterface) GetTargetPortForServicePort(arg0 types.NamespacedName, arg1 uint16) (uint16, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTargetPortForServicePort", arg0, arg1)
-	ret0, _ := ret[0].(uint16)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetTargetPortForServicePort indicates an expected call of GetTargetPortForServicePort.
-func (mr *MockInterfaceMockRecorder) GetTargetPortForServicePort(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortForServicePort", reflect.TypeOf((*MockInterface)(nil).GetTargetPortForServicePort), arg0, arg1)
 }
 
 // GetUpstreamTrafficSetting mocks base method.
@@ -295,6 +295,21 @@ func (mr *MockInterfaceMockRecorder) ListIngressBackendPolicies() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIngressBackendPolicies", reflect.TypeOf((*MockInterface)(nil).ListIngressBackendPolicies))
 }
 
+// ListNamespaces mocks base method.
+func (m *MockInterface) ListNamespaces() ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListNamespaces")
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListNamespaces indicates an expected call of ListNamespaces.
+func (mr *MockInterfaceMockRecorder) ListNamespaces() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNamespaces", reflect.TypeOf((*MockInterface)(nil).ListNamespaces))
+}
+
 // ListRetryPolicies mocks base method.
 func (m *MockInterface) ListRetryPolicies() []*v1alpha1.Retry {
 	m.ctrl.T.Helper()
@@ -324,17 +339,18 @@ func (mr *MockInterfaceMockRecorder) ListRetryPoliciesForServiceAccount(arg0 int
 }
 
 // ListServiceIdentitiesForService mocks base method.
-func (m *MockInterface) ListServiceIdentitiesForService(arg0 service.MeshService) []identity.ServiceIdentity {
+func (m *MockInterface) ListServiceIdentitiesForService(arg0, arg1 string) ([]identity.ServiceIdentity, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServiceIdentitiesForService", arg0)
+	ret := m.ctrl.Call(m, "ListServiceIdentitiesForService", arg0, arg1)
 	ret0, _ := ret[0].([]identity.ServiceIdentity)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // ListServiceIdentitiesForService indicates an expected call of ListServiceIdentitiesForService.
-func (mr *MockInterfaceMockRecorder) ListServiceIdentitiesForService(arg0 interface{}) *gomock.Call {
+func (mr *MockInterfaceMockRecorder) ListServiceIdentitiesForService(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceIdentitiesForService", reflect.TypeOf((*MockInterface)(nil).ListServiceIdentitiesForService), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceIdentitiesForService", reflect.TypeOf((*MockInterface)(nil).ListServiceIdentitiesForService), arg0, arg1)
 }
 
 // ListServices mocks base method.

@@ -30,7 +30,11 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, certMana
 	serviceIdentitiesForOutboundServices := make(map[service.MeshService][]identity.ServiceIdentity)
 
 	for _, svc := range meshCatalog.ListOutboundServicesForIdentity(proxy.Identity) {
-		serviceIdentitiesForOutboundServices[svc] = meshCatalog.ListServiceIdentitiesForService(svc)
+		identities, err := meshCatalog.ListServiceIdentitiesForService(svc.Name, svc.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		serviceIdentitiesForOutboundServices[svc] = identities
 	}
 
 	builder.SetServiceIdentitiesForService(serviceIdentitiesForOutboundServices)

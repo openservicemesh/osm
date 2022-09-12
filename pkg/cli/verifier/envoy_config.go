@@ -17,6 +17,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	envoySecrets "github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -477,9 +477,9 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForK8sSvc(svc corev1.Service) ([
 
 		// The endpoints for the kubernetes service carry information that allows
 		// us to retrieve the TargetPort for the MeshService.
-		meshSvc.TargetPort = k8s.GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
+		meshSvc.TargetPort = kube.GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
 
-		if !k8s.IsHeadlessService(svc) {
+		if !kube.IsHeadlessService(svc) {
 			meshServices = append(meshServices, meshSvc)
 			continue
 		}

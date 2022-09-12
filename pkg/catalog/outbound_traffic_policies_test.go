@@ -10,7 +10,6 @@ import (
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -608,10 +607,8 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					}
 					return nil
 				}).AnyTimes()
-			mockProvider.EXPECT().GetTargetPortForServicePort(
-				types.NamespacedName{Namespace: meshSvc3V1.Namespace, Name: meshSvc3V1.Name}, meshSvc3.Port).Return(meshSvc3V1.TargetPort, nil).AnyTimes()
-			mockProvider.EXPECT().GetTargetPortForServicePort(
-				types.NamespacedName{Namespace: meshSvc3V2.Namespace, Name: meshSvc3V2.Name}, meshSvc3.Port).Return(meshSvc3V2.TargetPort, nil).AnyTimes()
+			mockProvider.EXPECT().GetMeshService(meshSvc3V1.Name, meshSvc3V1.Namespace, meshSvc3.Port).Return(meshSvc3V1, nil).AnyTimes()
+			mockProvider.EXPECT().GetMeshService(meshSvc3V2.Name, meshSvc3V2.Namespace, meshSvc3.Port).Return(meshSvc3V2, nil).AnyTimes()
 
 			// Mock ServiceIdentity -> Service lookups executed when TrafficTargets are evaluated
 			for svcIdentity, services := range svcIdentityToSvcMapping {
