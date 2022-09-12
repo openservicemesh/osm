@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -20,6 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap/test"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -310,7 +310,7 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 				SocketAddress: &xds_core.SocketAddress{
 					Address: "0.0.0.0",
 					PortSpecifier: &xds_core.SocketAddress_PortValue{
-						PortValue: 15901,
+						PortValue: 15902,
 					},
 				},
 			},
@@ -380,7 +380,7 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 		name    string
 		fields  fields
 		want    *xds_listener.Listener
-		wantErr string
+		wantErr bool
 	}{
 		{
 			name: "livenessListener",
@@ -413,8 +413,8 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 						timeout:           timeout,
 					},
 					{
-						clusterName:       fmt.Sprintf("my-extra-sidecar-container_%s", readinessCluster),
-						pathPrefixMatch:   fmt.Sprintf("%s/my-extra-sidecar-container", constants.ReadinessProbePath),
+						clusterName:       fmt.Sprintf("my-sidecar_%s", readinessCluster),
+						pathPrefixMatch:   fmt.Sprintf("%s/my-sidecar", constants.ReadinessProbePath),
 						pathPrefixRewrite: readiness.Path,
 						timeout:           0 * time.Second, // Build() should change 0s to 1s
 					},
@@ -426,15 +426,17 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 		{
 			name: "HTTPS probe",
 			fields: fields{
-				listenerName:     "error",
+				listenerName:     "startup_listener",
 				httpsClusterName: fmt.Sprintf("my-sidecar_%s", startupCluster),
+				inboundPort:      constants.StartupProbePort,
 			},
 			want: httpsListener,
 		},
 		{
-			name: "no virtualHosts (should return nil and no error)",
+			name: "http: no virtualHosts (should return nil and no error)",
 			fields: fields{
 				listenerName: "my-listener",
+				isHTTP:       true,
 			},
 		},
 		{
@@ -453,15 +455,30 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 				inboundPort:       tt.fields.inboundPort,
 				virtualHostRoutes: tt.fields.virtualHostRoutes,
 				isHTTP:            tt.fields.isHTTP,
+				httpsClusterName:  tt.fields.httpsClusterName,
+			}
+			marshalOptions := protojson.MarshalOptions{
+				UseProtoNames: true,
 			}
 			got, err := plb.Build()
-			if err.Error() != tt.wantErr {
-				t.Errorf("probeListenerBuilder.Build() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err)
 				return
+			} else {
+				assert.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("probeListenerBuilder.Build() = %v, want %v", got, tt.want)
+
+			wantJSON, err := marshalOptions.Marshal(tt.want)
+			if err != nil {
+				t.Fatalf("error encountered marshalling tt.want to JSON: %s", err)
 			}
+
+			gotJSON, err := marshalOptions.Marshal(got)
+			if err != nil {
+				t.Fatalf("error encountered marshalling plb.Build() to JSON: %s", err)
+			}
+
+			assert.Equal(t, string(wantJSON), string(gotJSON))
 		})
 	}
 }

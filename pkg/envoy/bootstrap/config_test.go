@@ -110,7 +110,7 @@ static_resources:
         explicit_http_config:
           http2_protocol_options: {}
   - load_assignment:
-      cluster_name: liveness_cluster
+      cluster_name: my-container_liveness_cluster
       endpoints:
       - lb_endpoints:
         - endpoint:
@@ -118,10 +118,10 @@ static_resources:
               socket_address:
                 address: 127.0.0.1
                 port_value: 81
-    name: liveness_cluster
+    name: my-container_liveness_cluster
     type: STATIC
   - load_assignment:
-      cluster_name: readiness_cluster
+      cluster_name: my-container_readiness_cluster
       endpoints:
       - lb_endpoints:
         - endpoint:
@@ -129,10 +129,10 @@ static_resources:
               socket_address:
                 address: 127.0.0.1
                 port_value: 82
-    name: readiness_cluster
+    name: my-container_readiness_cluster
     type: STATIC
   - load_assignment:
-      cluster_name: startup_cluster
+      cluster_name: my-container_startup_cluster
       endpoints:
       - lb_endpoints:
         - endpoint:
@@ -140,7 +140,40 @@ static_resources:
               socket_address:
                 address: 127.0.0.1
                 port_value: 83
-    name: startup_cluster
+    name: my-container_startup_cluster
+    type: STATIC
+  - load_assignment:
+      cluster_name: my-container-2_liveness_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 127.0.0.1
+                port_value: 84
+    name: my-container-2_liveness_cluster
+    type: STATIC
+  - load_assignment:
+      cluster_name: my-container-2_readiness_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 127.0.0.1
+                port_value: 85
+    name: my-container-2_readiness_cluster
+    type: STATIC
+  - load_assignment:
+      cluster_name: my-container-2_startup_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 127.0.0.1
+                port_value: 86
+    name: my-container-2_startup_cluster
     type: STATIC
   listeners:
   - address:
@@ -189,9 +222,15 @@ static_resources:
               name: local_service
               routes:
               - match:
-                  prefix: /osm-liveness-probe
+                  prefix: /osm-liveness-probe/my-container
                 route:
-                  cluster: liveness_cluster
+                  cluster: my-container_liveness_cluster
+                  prefix_rewrite: /liveness
+                  timeout: 1s
+              - match:
+                  prefix: /osm-liveness-probe/my-container-2
+                route:
+                  cluster: my-container-2_liveness_cluster
                   prefix_rewrite: /liveness
                   timeout: 1s
           stat_prefix: health_probes_http
@@ -242,9 +281,15 @@ static_resources:
               name: local_service
               routes:
               - match:
-                  prefix: /osm-readiness-probe
+                  prefix: /osm-readiness-probe/my-container
                 route:
-                  cluster: readiness_cluster
+                  cluster: my-container_readiness_cluster
+                  prefix_rewrite: /readiness
+                  timeout: 1s
+              - match:
+                  prefix: /osm-readiness-probe/my-container-2
+                route:
+                  cluster: my-container-2_readiness_cluster
                   prefix_rewrite: /readiness
                   timeout: 1s
           stat_prefix: health_probes_http
@@ -295,9 +340,15 @@ static_resources:
               name: local_service
               routes:
               - match:
-                  prefix: /osm-startup-probe
+                  prefix: /osm-startup-probe/my-container
                 route:
-                  cluster: startup_cluster
+                  cluster: my-container_startup_cluster
+                  prefix_rewrite: /startup
+                  timeout: 1s
+              - match:
+                  prefix: /osm-startup-probe/my-container-2
+                route:
+                  cluster: my-container-2_startup_cluster
                   prefix_rewrite: /startup
                   timeout: 1s
           stat_prefix: health_probes_http
