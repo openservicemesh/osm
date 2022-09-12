@@ -17,7 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-func TestSDSBuilder(t *testing.T) {
+func TestSecretsBuilder(t *testing.T) {
 	assert := tassert.New(t)
 	cert := &certificate.Certificate{
 		CertChain:  []byte("foo"),

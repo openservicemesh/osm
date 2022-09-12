@@ -2,6 +2,7 @@ package ads
 
 import (
 	"testing"
+	"time"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -13,6 +14,21 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
+
+func TestGetXDSLog(t *testing.T) {
+	assert := tassert.New(t)
+
+	testXDSLog := make(map[string]map[envoy.TypeURI][]time.Time)
+	testXDSLog["abra"] = make(map[envoy.TypeURI][]time.Time)
+	testXDSLog["abra"]["cadabra"] = []time.Time{time.Now()}
+
+	s := Server{
+		xdsLog: testXDSLog,
+	}
+
+	res := s.GetXDSLog()
+	assert.Equal(res, testXDSLog)
+}
 
 func TestValidateResourcesRequestResponse(t *testing.T) {
 	assert := tassert.New(t)

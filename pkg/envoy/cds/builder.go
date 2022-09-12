@@ -145,7 +145,7 @@ func (b *clusterBuilder) Build() ([]types.Resource, error) {
 // getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, config trafficpolicy.MeshClusterConfig, sidecarSpec configv1alpha2.SidecarSpec) *xds_cluster.Cluster {
-	httpProtocolOptions := getHTTPProtocolOptions("")
+	httpProtocolOptions := GetHTTPProtocolOptions("")
 
 	marshalledUpstreamTLSContext, err := anypb.New(
 		envoy.GetUpstreamTLSContext(downstreamIdentity, config.Service, sidecarSpec))
@@ -175,7 +175,7 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, conf
 
 	applyUpstreamTrafficSetting(config.UpstreamTrafficSetting, upstreamCluster, httpProtocolOptions)
 
-	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(httpProtocolOptions)
+	typedHTTPProtocolOptions, err := GetTypedHTTPProtocolOptions(httpProtocolOptions)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting typed HTTP protocol options for upstream cluster %s", upstreamCluster.Name)
 		return nil
@@ -212,7 +212,7 @@ func enableHealthChecksOnCluster(cluster *xds_cluster.Cluster, upstreamSvc servi
 
 // getLocalServiceCluster returns an Envoy Cluster corresponding to the local service
 func getLocalServiceCluster(config trafficpolicy.MeshClusterConfig) *xds_cluster.Cluster {
-	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getHTTPProtocolOptions(config.Protocol))
+	typedHTTPProtocolOptions, err := GetTypedHTTPProtocolOptions(GetHTTPProtocolOptions(config.Protocol))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting typed HTTP protocol options for local cluster %s", config.Name)
 		return nil
@@ -254,9 +254,9 @@ func getLocalServiceCluster(config trafficpolicy.MeshClusterConfig) *xds_cluster
 	}
 }
 
-// getHTTPProtocolOptions returns the HttpProtocolOptions for the given protocol.
+// GetHTTPProtocolOptions returns the HttpProtocolOptions for the given protocol.
 // If an empty protocol string is specified, it returns options using the downstream protocol by default.
-func getHTTPProtocolOptions(protocol string) *extensions_upstream_http.HttpProtocolOptions {
+func GetHTTPProtocolOptions(protocol string) *extensions_upstream_http.HttpProtocolOptions {
 	// Use downstream protocol by default
 	options := &extensions_upstream_http.HttpProtocolOptions{
 		UpstreamProtocolOptions: &extensions_upstream_http.HttpProtocolOptions_UseDownstreamProtocolConfig{
@@ -386,7 +386,7 @@ func getDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*
 		return nil, fmt.Errorf("Invalid egress cluster config: Port unspecified")
 	}
 
-	httpProtocolOptions := getHTTPProtocolOptions("")
+	httpProtocolOptions := GetHTTPProtocolOptions("")
 
 	upstreamCluster := &xds_cluster.Cluster{
 		Name:        config.Name,
@@ -416,7 +416,7 @@ func getDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*
 
 	applyUpstreamTrafficSetting(config.UpstreamTrafficSetting, upstreamCluster, httpProtocolOptions)
 
-	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(httpProtocolOptions)
+	typedHTTPProtocolOptions, err := GetTypedHTTPProtocolOptions(httpProtocolOptions)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting typed HTTP protocol options for egress cluster %s", upstreamCluster.Name)
 		return nil, err
@@ -429,7 +429,7 @@ func getDNSResolvableEgressCluster(config *trafficpolicy.EgressClusterConfig) (*
 // getOriginalDestinationEgressCluster returns an Envoy cluster that routes traffic to its original destination.
 // The original destination is the original IP address and port prior to being redirected to the sidecar proxy.
 func getOriginalDestinationEgressCluster(name string, upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) (*xds_cluster.Cluster, error) {
-	httpProtocolOptions := getHTTPProtocolOptions("")
+	httpProtocolOptions := GetHTTPProtocolOptions("")
 
 	upstreamCluster := &xds_cluster.Cluster{
 		Name: name,
@@ -441,7 +441,7 @@ func getOriginalDestinationEgressCluster(name string, upstreamTrafficSetting *po
 
 	applyUpstreamTrafficSetting(upstreamTrafficSetting, upstreamCluster, httpProtocolOptions)
 
-	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getHTTPProtocolOptions(""))
+	typedHTTPProtocolOptions, err := GetTypedHTTPProtocolOptions(GetHTTPProtocolOptions(""))
 	if err != nil {
 		return nil, err
 	}
@@ -476,7 +476,8 @@ func (b *clusterBuilder) buildLocalClusters() []*xds_cluster.Cluster {
 	return clusters
 }
 
-func getTypedHTTPProtocolOptions(httpProtocolOptions *extensions_upstream_http.HttpProtocolOptions) (map[string]*any.Any, error) {
+// GetTypedHTTPProtocolOptions marshals the provided httpProtocolOptions into the consumable type for the envoy config.
+func GetTypedHTTPProtocolOptions(httpProtocolOptions *extensions_upstream_http.HttpProtocolOptions) (map[string]*any.Any, error) {
 	marshalledHTTPProtocolOptions, err := anypb.New(httpProtocolOptions)
 	if err != nil {
 		return nil, err
@@ -487,9 +488,9 @@ func getTypedHTTPProtocolOptions(httpProtocolOptions *extensions_upstream_http.H
 	}, nil
 }
 
-// getDefaultCircuitBreakerThreshold returns the XDS Circuit Breaker thresholds
+// GetDefaultCircuitBreakerThreshold returns the XDS Circuit Breaker thresholds
 // at their max value, effectively disabling circuit breaking
-func getDefaultCircuitBreakerThreshold() *xds_cluster.CircuitBreakers_Thresholds {
+func GetDefaultCircuitBreakerThreshold() *xds_cluster.CircuitBreakers_Thresholds {
 	return &xds_cluster.CircuitBreakers_Thresholds{
 		MaxConnections:     &wrapperspb.UInt32Value{Value: math.MaxUint32},
 		MaxRequests:        &wrapperspb.UInt32Value{Value: math.MaxUint32},
@@ -505,7 +506,7 @@ func getDefaultCircuitBreakerThreshold() *xds_cluster.CircuitBreakers_Thresholds
 func applyUpstreamTrafficSetting(upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting, upstreamCluster *xds_cluster.Cluster,
 	httpProtocolOptions *extensions_upstream_http.HttpProtocolOptions) {
 	// Apply Circuit Breaker threshold
-	threshold := getDefaultCircuitBreakerThreshold()
+	threshold := GetDefaultCircuitBreakerThreshold()
 	upstreamCluster.CircuitBreakers = &xds_cluster.CircuitBreakers{
 		Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{threshold},
 	}

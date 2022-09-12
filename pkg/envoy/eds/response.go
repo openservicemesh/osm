@@ -18,7 +18,7 @@ import (
 // NewResponse creates a new Endpoint Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	meshSvcEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
-	builder := newEndpointsBuilder()
+	builder := NewEndpointsBuilder()
 
 	for _, dstSvc := range meshCatalog.ListOutboundServicesForIdentity(proxy.Identity) {
 		builder.AddEndpoints(

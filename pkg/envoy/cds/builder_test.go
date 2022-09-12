@@ -232,7 +232,7 @@ func TestGetPrometheusCluster(t *testing.T) {
 
 func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 	assert := tassert.New(t)
-	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getHTTPProtocolOptions(""))
+	typedHTTPProtocolOptions, err := GetTypedHTTPProtocolOptions(GetHTTPProtocolOptions(""))
 	assert.Nil(err)
 
 	var thresholdUintVal uint32 = 3
@@ -377,7 +377,7 @@ func TestGetEgressClusters(t *testing.T) {
 }
 
 func TestGetDNSResolvableEgressCluster(t *testing.T) {
-	typedHTTPProtocolOptions, _ := getTypedHTTPProtocolOptions(getHTTPProtocolOptions(""))
+	typedHTTPProtocolOptions, _ := GetTypedHTTPProtocolOptions(GetHTTPProtocolOptions(""))
 
 	testCases := []struct {
 		name            string
