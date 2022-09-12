@@ -33,21 +33,21 @@ const (
 	startupListener   = "startup_listener"
 )
 
-func getLivenessCluster(clusterName string, originalProbe *models.HealthProbe) *xds_cluster.Cluster {
+func buildLivenessCluster(clusterName string, originalProbe *models.HealthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
 	return getProbeCluster(clusterName, originalProbe.Port)
 }
 
-func getReadinessCluster(clusterName string, originalProbe *models.HealthProbe) *xds_cluster.Cluster {
+func buildReadinessCluster(clusterName string, originalProbe *models.HealthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
 	return getProbeCluster(clusterName, originalProbe.Port)
 }
 
-func getStartupCluster(clusterName string, originalProbe *models.HealthProbe) *xds_cluster.Cluster {
+func buildStartupCluster(clusterName string, originalProbe *models.HealthProbe) *xds_cluster.Cluster {
 	if originalProbe == nil {
 		return nil
 	}
@@ -105,7 +105,8 @@ type probeListenerBuilder struct {
 }
 
 func (plb *probeListenerBuilder) Build() (*xds_listener.Listener, error) {
-	if plb.listenerName == "" || (plb.isHTTP && len(plb.virtualHostRoutes) == 0) {
+	// listenerName should be populated and one of (httpsClusterName, []virtualHostRoutes) should be set
+	if plb.listenerName == "" || (plb.httpsClusterName == "" && len(plb.virtualHostRoutes) == 0) {
 		return nil, nil
 	}
 

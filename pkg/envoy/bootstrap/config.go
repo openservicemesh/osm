@@ -367,7 +367,7 @@ func (b *Builder) getProbeResources() ([]*xds_listener.Listener, []*xds_cluster.
 				// Therefore, the last declared HTTPS probe will be the only one receiving traffic
 				livenessListenerBuilder.httpsClusterName = clusterName
 			}
-			clusters = append(clusters, getLivenessCluster(clusterName, probes.Liveness))
+			clusters = append(clusters, buildLivenessCluster(clusterName, probes.Liveness))
 		}
 
 		// Is there a readiness probe in the Pod Spec?
@@ -383,7 +383,7 @@ func (b *Builder) getProbeResources() ([]*xds_listener.Listener, []*xds_cluster.
 			} else {
 				readinessListenerBuilder.httpsClusterName = clusterName
 			}
-			clusters = append(clusters, getReadinessCluster(clusterName, probes.Readiness))
+			clusters = append(clusters, buildReadinessCluster(clusterName, probes.Readiness))
 		}
 
 		// Is there a startup probe in the Pod Spec?
@@ -399,7 +399,7 @@ func (b *Builder) getProbeResources() ([]*xds_listener.Listener, []*xds_cluster.
 			} else {
 				startupListenerBuilder.httpsClusterName = clusterName
 			}
-			clusters = append(clusters, getStartupCluster(clusterName, probes.Startup))
+			clusters = append(clusters, buildStartupCluster(clusterName, probes.Startup))
 		}
 	}
 

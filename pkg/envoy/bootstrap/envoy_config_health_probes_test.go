@@ -66,9 +66,9 @@ var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the 
 			return getVirtualHost(allRoutes)
 		},
 		"getProbeCluster":     func() protoreflect.ProtoMessage { return getProbeCluster("cluster-name", 12341234) },
-		"getLivenessCluster":  func() protoreflect.ProtoMessage { return getLivenessCluster("my-container", liveness) },
-		"getReadinessCluster": func() protoreflect.ProtoMessage { return getReadinessCluster("my-container", readiness) },
-		"getStartupCluster":   func() protoreflect.ProtoMessage { return getStartupCluster("my-container", startup) },
+		"getLivenessCluster":  func() protoreflect.ProtoMessage { return buildLivenessCluster("my-container", liveness) },
+		"getReadinessCluster": func() protoreflect.ProtoMessage { return buildReadinessCluster("my-container", readiness) },
+		"getStartupCluster":   func() protoreflect.ProtoMessage { return buildStartupCluster("my-container", startup) },
 	}
 
 	listenerFunctionsToTest := map[string]func() (protoreflect.ProtoMessage, error){
@@ -110,7 +110,7 @@ func TestGetProbeCluster(t *testing.T) {
 		}
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
-				assert.Equal(t, test.expected, getLivenessCluster(test.conainerName, test.probe))
+				assert.Equal(t, test.expected, buildLivenessCluster(test.conainerName, test.probe))
 			})
 		}
 	})
@@ -123,7 +123,7 @@ func TestGetProbeCluster(t *testing.T) {
 		}
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
-				assert.Equal(t, test.expected, getReadinessCluster(test.conainerName, test.probe))
+				assert.Equal(t, test.expected, buildReadinessCluster(test.conainerName, test.probe))
 			})
 		}
 	})
@@ -136,7 +136,7 @@ func TestGetProbeCluster(t *testing.T) {
 		}
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
-				assert.Equal(t, test.expected, getStartupCluster(test.conainerName, test.probe))
+				assert.Equal(t, test.expected, buildStartupCluster(test.conainerName, test.probe))
 			})
 		}
 	})
