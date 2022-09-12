@@ -176,33 +176,28 @@ location = /50x.html {
 			},
 		}
 
+		makeContainer := func(name, image string, probe *corev1.Probe, mutate func(*corev1.Container)) corev1.Container {
+			c := corev1.Container{
+				Name:           name,
+				Image:          image,
+				StartupProbe:   probe,
+				LivenessProbe:  probe,
+				ReadinessProbe: probe,
+			}
+
+			if mutate != nil {
+				mutate(&c)
+			}
+
+			return c
+		}
+
 		makePod := func(name string, probe *corev1.Probe) *corev1.Pod {
 			podDef := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: name,
 				},
 				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "nginx",
-							Image: "nginx:1.19-alpine",
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "tls",
-									MountPath: "/etc/nginx/tls",
-									ReadOnly:  true,
-								},
-								{
-									Name:      "config",
-									MountPath: "/etc/nginx/conf.d",
-									ReadOnly:  true,
-								},
-							},
-							StartupProbe:   probe,
-							LivenessProbe:  probe,
-							ReadinessProbe: probe,
-						},
-					},
 					Volumes: []corev1.Volume{
 						{
 							Name: "tls",
@@ -226,6 +221,23 @@ location = /50x.html {
 				},
 			}
 
+			addVolumes := func(c *corev1.Container) {
+				c.VolumeMounts = []corev1.VolumeMount{
+					{
+						Name:      "tls",
+						MountPath: "/etc/nginx/tls",
+						ReadOnly:  true,
+					},
+					{
+						Name:      "config",
+						MountPath: "/etc/nginx/conf.d",
+						ReadOnly:  true,
+					},
+				}
+			}
+
+			podDef.Spec.Containers = []corev1.Container{makeContainer("nginx", "nginx:1.19-alpine", probe, addVolumes)}
+
 			if Td.AreRegistryCredsPresent() {
 				podDef.Spec.ImagePullSecrets = []corev1.LocalObjectReference{
 					{
@@ -245,10 +257,37 @@ location = /50x.html {
 			Expect(Td.CreateNs(ns, nil)).To(Succeed())
 			Expect(Td.AddNsToMesh(true, ns)).To(Succeed())
 
+			// Have the http and tcp pods use 2 containers to make sure we cover that case
+			httpPod := makePod("nginx-http", http)
+			httpPod.Spec.Containers = append(httpPod.Spec.Containers, makeContainer("httpbin", "kennethreitz/httpbin", &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path:   "/",
+						Port:   intstr.FromInt(14001),
+						Scheme: corev1.URISchemeHTTP,
+					},
+				},
+			}, func(c *corev1.Container) {
+				c.Command = []string{"gunicorn", "-b", "0.0.0.0:14001", "httpbin:app", "-k", "gevent"}
+				c.Ports = append(c.Ports, corev1.ContainerPort{ContainerPort: 14001})
+			}))
+			httpsPod := makePod("nginx-https", https)
+			tcpPod := makePod("nginx-tcp", tcp)
+			tcpPod.Spec.Containers = append(tcpPod.Spec.Containers, makeContainer("httpbin", "kennethreitz/httpbin", &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					TCPSocket: &corev1.TCPSocketAction{
+						Port: intstr.FromInt(14001),
+					},
+				},
+			}, func(c *corev1.Container) {
+				c.Command = []string{"gunicorn", "-b", "0.0.0.0:14001", "httpbin:app", "-k", "gevent"}
+				c.Ports = append(c.Ports, corev1.ContainerPort{ContainerPort: 14001})
+			}))
+
 			pods := []*corev1.Pod{
-				makePod("nginx-http", http),
-				makePod("nginx-https", https),
-				makePod("nginx-tcp", tcp),
+				httpPod,
+				httpsPod,
+				tcpPod,
 			}
 
 			_, err := Td.Client.CoreV1().Secrets(ns).Create(context.TODO(), tls, metav1.CreateOptions{})
