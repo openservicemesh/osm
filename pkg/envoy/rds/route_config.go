@@ -1,4 +1,4 @@
-package route
+package rds
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
-	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_http_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
@@ -41,18 +40,6 @@ const (
 	// egressRouteConfigNamePrefix is the prefix for the name of the egress RDS route configuration
 	egressRouteConfigNamePrefix = "rds-egress"
 
-	// inboundVirtualHost is prefix for the virtual host's name in the inbound route configuration
-	inboundVirtualHost = "inbound_virtual-host"
-
-	// outboundVirtualHost is the prefix for the virtual host's name in the outbound route configuration
-	outboundVirtualHost = "outbound_virtual-host"
-
-	// egressVirtualHost is the prefix for the virtual host's name in the egress route configuration
-	egressVirtualHost = "egress_virtual-host"
-
-	// ingressVirtualHost is the prefix for the virtual host's name in the ingress route configuration
-	ingressVirtualHost = "ingress_virtual-host"
-
 	// methodHeaderKey is the key of the header for HTTP methods
 	methodHeaderKey = ":method"
 
@@ -64,35 +51,6 @@ const (
 
 	httpLocalRateLimiterStatsPrefix = "http_local_rate_limiter"
 )
-
-// BuildInboundMeshRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
-func BuildInboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.InboundTrafficPolicy, proxy *envoy.Proxy, statsHeaders map[string]string, trustDomain string) []*xds_route.RouteConfiguration {
-	var routeConfigs []*xds_route.RouteConfiguration
-
-	// An Envoy RouteConfiguration will exist for each HTTP upstream port.
-	// This is required to avoid route conflicts that can arise when the same host header
-	// has different routes on different destination ports for that host.
-	for port, configs := range portSpecificRouteConfigs {
-		routeConfig := NewRouteConfigurationStub(GetInboundMeshRouteConfigNameForPort(port))
-		for _, config := range configs {
-			virtualHost := buildVirtualHostStub(inboundVirtualHost, config.Name, config.Hostnames)
-			virtualHost.Routes = buildInboundRoutes(config.Rules, trustDomain)
-			applyInboundVirtualHostConfig(virtualHost, config)
-			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
-		}
-		for k, v := range statsHeaders {
-			routeConfig.ResponseHeadersToAdd = append(routeConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
-				Header: &core.HeaderValue{
-					Key:   k,
-					Value: v,
-				},
-			})
-		}
-		routeConfigs = append(routeConfigs, routeConfig)
-	}
-
-	return routeConfigs
-}
 
 // applyInboundVirtualHostConfig updates the VirtualHost configuration based on the given policy
 func applyInboundVirtualHostConfig(vhost *xds_route.VirtualHost, policy *trafficpolicy.InboundTrafficPolicy) {
@@ -310,64 +268,8 @@ func getRateLimitHeaderValueOptions(headerValues []policyv1alpha1.HTTPHeaderValu
 	return hvOptions
 }
 
-// BuildIngressConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing ingress routes
-func BuildIngressConfiguration(ingress []*trafficpolicy.InboundTrafficPolicy, trustDomain string) *xds_route.RouteConfiguration {
-	if len(ingress) == 0 {
-		return nil
-	}
-
-	ingressRouteConfig := NewRouteConfigurationStub(IngressRouteConfigName)
-	for _, in := range ingress {
-		virtualHost := buildVirtualHostStub(ingressVirtualHost, in.Name, in.Hostnames)
-		virtualHost.Routes = buildInboundRoutes(in.Rules, trustDomain)
-		ingressRouteConfig.VirtualHosts = append(ingressRouteConfig.VirtualHosts, virtualHost)
-	}
-
-	return ingressRouteConfig
-}
-
-// BuildOutboundMeshRouteConfiguration constructs the Envoy construct (*xds_route.RouteConfiguration) for the given outbound mesh route configs
-func BuildOutboundMeshRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.OutboundTrafficPolicy) []*xds_route.RouteConfiguration {
-	var routeConfigs []*xds_route.RouteConfiguration
-
-	// An Envoy RouteConfiguration will exist for each HTTP upstream port.
-	// This is required to avoid route conflicts that can arise when the same host header
-	// has different routes on different destination ports for that host.
-	for port, configs := range portSpecificRouteConfigs {
-		routeConfig := NewRouteConfigurationStub(GetOutboundMeshRouteConfigNameForPort(port))
-		for _, config := range configs {
-			virtualHost := buildVirtualHostStub(outboundVirtualHost, config.Name, config.Hostnames)
-			virtualHost.Routes = buildOutboundRoutes(config.Routes)
-			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
-		}
-		routeConfigs = append(routeConfigs, routeConfig)
-	}
-
-	return routeConfigs
-}
-
-// BuildEgressRouteConfiguration constructs the Envoy construct (*xds_route.RouteConfiguration) for the given egress route configs
-func BuildEgressRouteConfiguration(portSpecificRouteConfigs map[int][]*trafficpolicy.EgressHTTPRouteConfig) []*xds_route.RouteConfiguration {
-	var routeConfigs []*xds_route.RouteConfiguration
-
-	// An Envoy RouteConfiguration will exist for each HTTP egress port.
-	// This is required to avoid route conflicts that can arise when the same host header
-	// has different routes on different destination ports for that host.
-	for port, configs := range portSpecificRouteConfigs {
-		routeConfig := NewRouteConfigurationStub(GetEgressRouteConfigNameForPort(port))
-		for _, config := range configs {
-			virtualHost := buildVirtualHostStub(egressVirtualHost, config.Name, config.Hostnames)
-			virtualHost.Routes = buildEgressRoutes(config.RoutingRules)
-			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
-		}
-		routeConfigs = append(routeConfigs, routeConfig)
-	}
-
-	return routeConfigs
-}
-
-// NewRouteConfigurationStub creates the route configuration placeholder
-func NewRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfiguration {
+// newRouteConfigurationStub creates the route configuration placeholder
+func newRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfiguration {
 	routeConfiguration := xds_route.RouteConfiguration{
 		Name: routeConfigName,
 		// ValidateClusters `true` causes RDS rejections if the CDS is not "warm" with the expected
@@ -379,6 +281,7 @@ func NewRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfigura
 	return &routeConfiguration
 }
 
+// buildVirtualHostStub creates the virtual host placeholder
 func buildVirtualHostStub(namePrefix string, host string, domains []string) *xds_route.VirtualHost {
 	name := fmt.Sprintf("%s|%s", namePrefix, host)
 	virtualHost := xds_route.VirtualHost{
@@ -437,6 +340,7 @@ func applyInboundRouteConfig(route *xds_route.Route, rbacConfig *any.Any, rateLi
 	route.TypedPerFilterConfig = perFilterConfig
 }
 
+// buildOutboundRoutes takes route information from the given outbound traffic policy and returns a list of xds routes
 func buildOutboundRoutes(outRoutes []*trafficpolicy.RouteWeightedClusters) []*xds_route.Route {
 	var routes []*xds_route.Route
 	for _, outRoute := range outRoutes {
@@ -451,6 +355,7 @@ func buildOutboundRoutes(outRoutes []*trafficpolicy.RouteWeightedClusters) []*xd
 	return routes
 }
 
+// buildEgressRoutes takes route information from the given egress traffic policy and returns a list of xds routes
 func buildEgressRoutes(routingRules []*trafficpolicy.EgressHTTPRoutingRule) []*xds_route.Route {
 	var routes []*xds_route.Route
 	for _, rule := range routingRules {

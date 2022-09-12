@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -81,7 +81,7 @@ func TestBuildOutboundHTTPFilter(t *testing.T) {
 		wasmStatsHeaders:    map[string]string{"k1": "v1", "k2": "v2"},
 	}
 
-	filter, err := lb.buildOutboundHTTPFilter(route.OutboundRouteConfigName)
+	filter, err := lb.buildOutboundHTTPFilter(rds.OutboundRouteConfigName)
 	a.NoError(err)
 	a.Equal(filter.Name, envoy.HTTPConnectionManagerFilterName)
 }
