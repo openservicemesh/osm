@@ -10,7 +10,6 @@ import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -457,28 +456,4 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	tassert.NoError(t, err)
 	tassert.Len(t, resp, 1)
 	tassert.Equal(t, resp[0].(*xds_cluster.Cluster).Name, "my-cluster")
-}
-
-func TestRemoveDups(t *testing.T) {
-	assert := tassert.New(t)
-
-	orig := []*xds_cluster.Cluster{
-		{
-			Name: "c-1",
-		},
-		{
-			Name: "c-2",
-		},
-		{
-			Name: "c-1",
-		},
-	}
-	assert.ElementsMatch([]types.Resource{
-		&xds_cluster.Cluster{
-			Name: "c-1",
-		},
-		&xds_cluster.Cluster{
-			Name: "c-2",
-		},
-	}, removeDups(orig))
 }

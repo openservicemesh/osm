@@ -8,6 +8,7 @@ import (
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -366,9 +367,10 @@ func TestGetEgressClusters(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			cb := NewClusterBuilder().SetEgressTrafficClusterConfigs(tc.clusterConfigs)
 			assert := tassert.New(t)
 
-			actual := getEgressClusters(tc.clusterConfigs)
+			actual := cb.getEgressClusters()
 			assert.Len(actual, tc.expectedClusterCount)
 		})
 	}
@@ -506,4 +508,64 @@ func TestFormatAltStatNameForPrometheus(t *testing.T) {
 			assert.Equal(tc.expectedAltStatName, actual)
 		})
 	}
+}
+
+func TestGetTracingCluster(t *testing.T) {
+	assert := tassert.New(t)
+
+	expectedCluster := &xds_cluster.Cluster{
+		Name:        "envoy-tracing-cluster",
+		AltStatName: "envoy-tracing-cluster",
+		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+			Type: xds_cluster.Cluster_LOGICAL_DNS,
+		},
+		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
+		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
+			ClusterName: "envoy-tracing-cluster",
+			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*xds_endpoint.LbEndpoint{{
+						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+							Endpoint: &xds_endpoint.Endpoint{
+								Address: envoy.GetAddress("s1.ns1.svc.cluster.local", uint32(9411)),
+							},
+						},
+					}},
+				},
+			},
+		},
+	}
+
+	envoyTracingAddress := envoy.GetAddress("s1.ns1.svc.cluster.local", uint32(9411))
+	cb := NewClusterBuilder().SetEnvoyTracingAddress(envoyTracingAddress)
+	actual := cb.getTracingCluster()
+	assert.Equal(expectedCluster.LoadAssignment.ClusterName, actual.LoadAssignment.ClusterName)
+	assert.Equal(len(expectedCluster.LoadAssignment.Endpoints[0].LbEndpoints), len(actual.LoadAssignment.Endpoints))
+	assert.Equal(expectedCluster.LoadAssignment.Endpoints[0].LbEndpoints, actual.LoadAssignment.Endpoints[0].LbEndpoints)
+	assert.Equal(expectedCluster.LoadAssignment, actual.LoadAssignment)
+	assert.Equal(expectedCluster, actual)
+}
+
+func TestRemoveDups(t *testing.T) {
+	assert := tassert.New(t)
+
+	orig := []*xds_cluster.Cluster{
+		{
+			Name: "c-1",
+		},
+		{
+			Name: "c-2",
+		},
+		{
+			Name: "c-1",
+		},
+	}
+	assert.ElementsMatch([]types.Resource{
+		&xds_cluster.Cluster{
+			Name: "c-1",
+		},
+		&xds_cluster.Cluster{
+			Name: "c-2",
+		},
+	}, removeDups(orig))
 }
