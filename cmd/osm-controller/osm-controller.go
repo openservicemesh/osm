@@ -246,27 +246,6 @@ func main() {
 
 	version.SetMetric()
 
-	// Initialize OSM's http service server
-	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
-	// Health/Liveness probes
-	funcProbes := []health.Probes{xdsServer}
-	httpServer.AddHandlers(map[string]http.Handler{
-		constants.OSMControllerReadinessPath: health.ReadinessHandler(funcProbes, nil),
-		constants.OSMControllerLivenessPath:  health.LivenessHandler(funcProbes, nil),
-	})
-	// Metrics
-	httpServer.AddHandler(constants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
-	// Version
-	httpServer.AddHandler(constants.VersionPath, version.GetVersionHandler())
-	// Supported SMI Versions
-	httpServer.AddHandler(constants.OSMControllerSMIVersionPath, smi.GetSmiClientVersionHTTPHandler())
-
-	// Start HTTP server
-	err = httpServer.Start()
-	if err != nil {
-		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
-	}
-
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
 	debugConfig := debugger.NewDebugConfig(certManager, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, k8sClient, msgBroker)
@@ -283,6 +262,26 @@ func main() {
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client to reconcile validating webhook")
 		}
+	}
+
+	// Initialize OSM's http service server
+	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
+	// Health/Liveness probes
+	httpServer.AddHandlers(map[string]http.Handler{
+		constants.OSMControllerReadinessPath: http.HandlerFunc(health.SimpleHandler),
+		constants.OSMControllerLivenessPath:  http.HandlerFunc(health.SimpleHandler),
+	})
+	// Metrics
+	httpServer.AddHandler(constants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
+	// Version
+	httpServer.AddHandler(constants.VersionPath, version.GetVersionHandler())
+	// Supported SMI Versions
+	httpServer.AddHandler(constants.OSMControllerSMIVersionPath, smi.GetSmiClientVersionHTTPHandler())
+
+	// Start HTTP server
+	err = httpServer.Start()
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
 	}
 
 	<-stop

@@ -32,7 +32,6 @@ type Server struct {
 	xdsMapLogMutex sync.Mutex
 	osmNamespace   string
 	certManager    *certificate.Manager
-	ready          bool
 	workqueues     *workerpool.WorkerPool
 	kubecontroller k8s.Controller
 
