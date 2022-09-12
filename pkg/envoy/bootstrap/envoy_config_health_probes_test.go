@@ -14,15 +14,16 @@ import (
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/onsi/ginkgo"
-	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/bootstrap/test"
-	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/bootstrap/test"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the Pod's health probes to pass through Envoy", func() {
@@ -464,9 +465,9 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
-			} else {
-				assert.NoError(t, err)
 			}
+
+			assert.NoError(t, err)
 
 			wantJSON, err := marshalOptions.Marshal(tt.want)
 			if err != nil {
