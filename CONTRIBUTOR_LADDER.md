@@ -20,7 +20,7 @@ Description: A Community Participant participates in the community and contribut
 * Responsibilities:
     * Must follow the [CNCF Code of Conduct]
 * How users can get involved with the community:
-    * Participating in community discussions in GitHub, Slack, and meetings
+    * Participating in community discussions in [GitHub, Slack, and meetings](https://github.com/openservicemesh/osm#community)
     * Helping other users
     * Submitting bug reports
     * Trying out new releases

@@ -17,15 +17,15 @@ import (
 	"k8s.io/utils/pointer"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/lds"
-	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	envoySecrets "github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -330,10 +330,10 @@ func findOutboundFilterChainForServicePort(meshSvc service.MeshService, dstIPRan
 
 func getFilterForProtocol(protocol string) string {
 	switch protocol {
-	case constants.ProtocolHTTP:
+	case constants.ProtocolHTTP, constants.ProtocolGRPC:
 		return envoy.HTTPConnectionManagerFilterName
 
-	case constants.ProtocolTCP, constants.ProtocolHTTPS:
+	case constants.ProtocolTCP, constants.ProtocolHTTPS, constants.ProtocolTCPServerFirst:
 		return envoy.TCPProxyFilterName
 
 	default:
@@ -477,9 +477,9 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForK8sSvc(svc corev1.Service) ([
 
 		// The endpoints for the kubernetes service carry information that allows
 		// us to retrieve the TargetPort for the MeshService.
-		meshSvc.TargetPort = k8s.GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
+		meshSvc.TargetPort = kube.GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
 
-		if !k8s.IsHeadlessService(svc) {
+		if !kube.IsHeadlessService(svc) {
 			meshServices = append(meshServices, meshSvc)
 			continue
 		}
@@ -491,7 +491,8 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForK8sSvc(svc corev1.Service) ([
 				}
 				mSvc := service.MeshService{
 					Namespace:  svc.Namespace,
-					Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
+					Name:       svc.Name,
+					Subdomain:  address.Hostname,
 					Port:       meshSvc.Port,
 					TargetPort: meshSvc.TargetPort,
 					Protocol:   meshSvc.Protocol,
@@ -516,14 +517,8 @@ func (v *EnvoyConfigVerifier) findIngressFilterChainForService(svc *corev1.Servi
 	}
 
 	sourceIPs := map[string]bool{}
-	fakeMs := service.MeshService{
-		Name:       svc.GetName(),
-		Namespace:  svc.GetNamespace(),
-		TargetPort: v.configAttr.trafficAttr.DstPort,
-		Protocol:   v.configAttr.trafficAttr.AppProtocol,
-	}
 
-	filterChainName := fakeMs.IngressTrafficMatchName()
+	filterChainName := service.IngressTrafficMatchName(svc.GetName(), svc.GetNamespace(), v.configAttr.trafficAttr.DstPort, v.configAttr.trafficAttr.AppProtocol)
 	var chain *xds_listener.FilterChain
 	for _, c := range filterChains {
 		if c.Name == filterChainName {
@@ -632,9 +627,9 @@ func (v *EnvoyConfigVerifier) findHTTPRouteForService(svc *corev1.Service, route
 
 		var desiredConfigName string
 		if isOutbound {
-			desiredConfigName = route.GetOutboundMeshRouteConfigNameForPort(int(meshSvc.Port))
+			desiredConfigName = rds.GetOutboundMeshRouteConfigNameForPort(int(meshSvc.Port))
 		} else {
-			desiredConfigName = route.GetInboundMeshRouteConfigNameForPort(int(meshSvc.TargetPort))
+			desiredConfigName = rds.GetInboundMeshRouteConfigNameForPort(int(meshSvc.TargetPort))
 		}
 
 		if err := findHTTPRouteConfig(routeConfigs, desiredConfigName, meshSvc.FQDN()); err != nil {
@@ -723,14 +718,11 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnSource(secrets []*xds_secret.Secre
 		return fmt.Errorf("pod %s not found", srcPod)
 	}
 	downstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity()
-	downstreamSecretName := envoySecrets.SDSCert{
-		Name:     envoySecrets.GetSecretNameForIdentity(downstreamIdentity),
-		CertType: envoySecrets.ServiceCertType,
-	}.String()
-	upstreamPeerValidationSecretName := envoySecrets.SDSCert{
-		Name:     v.configAttr.trafficAttr.DstService.String(),
-		CertType: envoySecrets.RootCertTypeForMTLSOutbound,
-	}.String()
+	downstreamSecretName := envoySecrets.NameForIdentity(downstreamIdentity)
+
+	upstreamPeerValidationSecretName := envoySecrets.NameForUpstreamService(
+		v.configAttr.trafficAttr.DstService.Name,
+		v.configAttr.trafficAttr.DstService.Namespace)
 
 	expectedSecrets := mapset.NewSetWith(downstreamSecretName, upstreamPeerValidationSecretName)
 	actualSecrets := mapset.NewSet()
@@ -755,14 +747,8 @@ func (v *EnvoyConfigVerifier) findTLSSecretsOnDestination(secrets []*xds_secret.
 		return fmt.Errorf("pod %s not found", dstPod)
 	}
 	upstreamIdentity := identity.K8sServiceAccount{Namespace: pod.Namespace, Name: pod.Spec.ServiceAccountName}.ToServiceIdentity()
-	upstreamSecretName := envoySecrets.SDSCert{
-		Name:     envoySecrets.GetSecretNameForIdentity(upstreamIdentity),
-		CertType: envoySecrets.ServiceCertType,
-	}.String()
-	downstreamPeerValidationSecretName := envoySecrets.SDSCert{
-		Name:     envoySecrets.GetSecretNameForIdentity(upstreamIdentity),
-		CertType: envoySecrets.RootCertTypeForMTLSInbound,
-	}.String()
+	upstreamSecretName := envoySecrets.NameForIdentity(upstreamIdentity)
+	downstreamPeerValidationSecretName := envoySecrets.NameForMTLSInbound
 
 	expectedSecrets := mapset.NewSetWith(upstreamSecretName, downstreamPeerValidationSecretName)
 	actualSecrets := mapset.NewSet()
@@ -819,7 +805,7 @@ func (v *EnvoyConfigVerifier) findEgressHTTPRoute(routeConfigs []*xds_route.Rout
 	}
 
 	port := int(v.configAttr.trafficAttr.ExternalPort)
-	desiredRouteConfigName := route.GetEgressRouteConfigNameForPort(port)
+	desiredRouteConfigName := rds.GetEgressRouteConfigNameForPort(port)
 
 	var config *xds_route.RouteConfiguration
 	for _, c := range routeConfigs {

@@ -151,7 +151,7 @@
        "category": "envoy.filters.network"
       },
       {
-       "name": "http_connection_manager",
+       "name": "envoy.filters.network.http_connection_manager",
        "category": "envoy.filters.network"
       },
       {
@@ -1195,7 +1195,7 @@
          },
          "filters": [
           {
-           "name": "http_connection_manager",
+           "name": "envoy.filters.network.http_connection_manager",
            "typed_config": {
             "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
             "stat_prefix": "mesh-http-conn-manager.rds-outbound.14001",

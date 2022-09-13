@@ -1,9 +1,7 @@
 package envoy
 
 import (
-	"fmt"
 	"net"
-	"strings"
 
 	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -17,7 +15,6 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -140,23 +137,23 @@ func pbStringValue(v string) *structpb.Value {
 // is used to indicate peer certificate validation should be skipped, and is used when mTLS is disabled (ex. with TLS
 // based ingress).
 // 'sidecarSpec' is the sidecar section of MeshConfig.
-func getCommonTLSContext(tlsSDSCert secrets.SDSCert, peerValidationSDSCert *secrets.SDSCert, sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.CommonTlsContext {
+func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert string, sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.CommonTlsContext {
 	commonTLSContext := &xds_auth.CommonTlsContext{
 		TlsParams: GetTLSParams(sidecarSpec),
 		TlsCertificateSdsSecretConfigs: []*xds_auth.SdsSecretConfig{{
 			// Example ==> Name: "service-cert:NameSpaceHere/ServiceNameHere"
-			Name:      tlsSDSCert.String(),
+			Name:      tlsSDSCert,
 			SdsConfig: GetADSConfigSource(),
 		}},
 	}
 
 	// For TLS (non-mTLS) based validation, the client certificate should not be validated and the
 	// 'peerValidationSDSCert' will be set to nil to indicate this.
-	if peerValidationSDSCert != nil {
+	if peerValidationSDSCert != "" {
 		commonTLSContext.ValidationContextType = &xds_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 			ValidationContextSdsSecretConfig: &xds_auth.SdsSecretConfig{
 				// Example ==> Name: "root-cert<type>:NameSpaceHere/ServiceNameHere"
-				Name:      peerValidationSDSCert.String(),
+				Name:      peerValidationSDSCert,
 				SdsConfig: GetADSConfigSource(),
 			},
 		}
@@ -168,31 +165,20 @@ func getCommonTLSContext(tlsSDSCert secrets.SDSCert, peerValidationSDSCert *secr
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context to be configured on the upstream for the given upstream's identity
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS bool, sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.DownstreamTlsContext {
-	upstreamSDSCert := secrets.SDSCert{
-		Name:     secrets.GetSecretNameForIdentity(upstreamIdentity),
-		CertType: secrets.ServiceCertType,
+	tlsConfig := &xds_auth.DownstreamTlsContext{
+		// When RequireClientCertificate is enabled trusted CA certs must be provided via ValidationContextType
+		RequireClientCertificate: &wrappers.BoolValue{Value: mTLS},
 	}
-
-	var downstreamPeerValidationSDSCert *secrets.SDSCert
 	if mTLS {
 		// The downstream peer validation SDS cert points to a cert with the name 'upstreamIdentity' only
 		// because we use a single DownstreamTlsContext for all inbound traffic to the given upstream with the identity 'upstreamIdentity'.
 		// This single DownstreamTlsContext is used to validate all allowed inbound SANs. The
 		// 'RootCertTypeForMTLSInbound' cert type is used for in-mesh downstreams.
-		downstreamPeerValidationSDSCert = &secrets.SDSCert{
-			Name:     secrets.GetSecretNameForIdentity(upstreamIdentity),
-			CertType: secrets.RootCertTypeForMTLSInbound,
-		}
+		tlsConfig.CommonTlsContext = getCommonTLSContext(secrets.NameForIdentity(upstreamIdentity), secrets.NameForMTLSInbound, sidecarSpec)
 	} else {
 		// When 'mTLS' is disabled, the upstream should not validate the certificate presented by the downstream.
 		// This is used for HTTPS ingress with mTLS disabled.
-		downstreamPeerValidationSDSCert = nil
-	}
-
-	tlsConfig := &xds_auth.DownstreamTlsContext{
-		CommonTlsContext: getCommonTLSContext(upstreamSDSCert, downstreamPeerValidationSDSCert, sidecarSpec),
-		// When RequireClientCertificate is enabled trusted CA certs must be provided via ValidationContextType
-		RequireClientCertificate: &wrappers.BoolValue{Value: mTLS},
+		tlsConfig.CommonTlsContext = getCommonTLSContext(secrets.NameForIdentity(upstreamIdentity), "", sidecarSpec)
 	}
 	return tlsConfig
 }
@@ -200,15 +186,7 @@ func GetDownstreamTLSContext(upstreamIdentity identity.ServiceIdentity, mTLS boo
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context for the given downstream identity and upstream service pair
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func GetUpstreamTLSContext(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService, sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.UpstreamTlsContext {
-	downstreamSDSCert := secrets.SDSCert{
-		Name:     secrets.GetSecretNameForIdentity(downstreamIdentity),
-		CertType: secrets.ServiceCertType,
-	}
-	upstreamPeerValidationSDSCert := &secrets.SDSCert{
-		Name:     upstreamSvc.String(),
-		CertType: secrets.RootCertTypeForMTLSOutbound,
-	}
-	commonTLSContext := getCommonTLSContext(downstreamSDSCert, upstreamPeerValidationSDSCert, sidecarSpec)
+	commonTLSContext := getCommonTLSContext(secrets.NameForIdentity(downstreamIdentity), secrets.NameForUpstreamService(upstreamSvc.Name, upstreamSvc.Namespace), sidecarSpec)
 
 	// Advertise in-mesh using UpstreamTlsContext.CommonTlsContext.AlpnProtocols
 	commonTLSContext.AlpnProtocols = ALPNInMesh
@@ -231,47 +209,6 @@ func GetADSConfigSource() *xds_core.ConfigSource {
 		},
 		ResourceApiVersion: xds_core.ApiVersion_V3,
 	}
-}
-
-// GetEnvoyServiceNodeID creates the string for Envoy's "--service-node" CLI argument for the Kubernetes sidecar container Command/Args
-func GetEnvoyServiceNodeID(nodeID, workloadKind, workloadName string) string {
-	items := []string{
-		"$(POD_UID)",
-		"$(POD_NAMESPACE)",
-		"$(POD_IP)",
-		"$(SERVICE_ACCOUNT)",
-		nodeID,
-		"$(POD_NAME)",
-		workloadKind,
-		workloadName,
-	}
-
-	return strings.Join(items, constants.EnvoyServiceNodeSeparator)
-}
-
-// ParseEnvoyServiceNodeID parses the given Envoy service node ID and returns the encoded metadata
-func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
-	chunks := strings.Split(serviceNodeID, constants.EnvoyServiceNodeSeparator)
-
-	if len(chunks) < 5 {
-		return nil, fmt.Errorf("invalid envoy service node id format")
-	}
-
-	meta := &PodMetadata{
-		UID:            chunks[0],
-		Namespace:      chunks[1],
-		IP:             chunks[2],
-		ServiceAccount: identity.K8sServiceAccount{Name: chunks[3], Namespace: chunks[1]},
-		EnvoyNodeID:    chunks[4],
-	}
-
-	if len(chunks) >= 8 {
-		meta.Name = chunks[5]
-		meta.WorkloadKind = chunks[6]
-		meta.WorkloadName = chunks[7]
-	}
-
-	return meta, nil
 }
 
 // GetCIDRRangeFromStr converts the given CIDR as a string to an XDS CidrRange object

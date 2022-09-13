@@ -1,3 +1,4 @@
+// Package k8s implements helper functions to get certificates from Kubernetes secret
 package k8s
 
 import (

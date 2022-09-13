@@ -6,6 +6,7 @@ import (
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -183,6 +184,7 @@ func TestBuildInboundHTTPFilterChain(t *testing.T) {
 
 		expectedFilterChainMatch *xds_listener.FilterChainMatch
 		expectedFilterNames      []string
+		expectedHTTPFilters      []string
 		expectError              bool
 	}{
 		{
@@ -286,6 +288,35 @@ func TestBuildInboundHTTPFilterChain(t *testing.T) {
 			expectError:         false,
 		},
 		{
+			name:           "inbound HTTP filter chain with global HTTP rate limiting enabled",
+			permissiveMode: true,
+			trafficMatch: &trafficpolicy.TrafficMatch{
+				Name:                "inbound_ns1/svc1_90_http",
+				DestinationPort:     90,
+				DestinationProtocol: "http",
+				ServerNames:         []string{"svc1.ns1.svc.cluster.local"},
+				RateLimit: &policyv1alpha1.RateLimitSpec{
+					Global: &policyv1alpha1.GlobalRateLimitSpec{
+						HTTP: &policyv1alpha1.HTTPGlobalRateLimitSpec{
+							RateLimitService: policyv1alpha1.RateLimitServiceSpec{
+								Host: "foo.bar",
+								Port: 8080,
+							},
+						},
+					},
+				},
+			},
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
+				ServerNames:          []string{"svc1.ns1.svc.cluster.local"},
+				TransportProtocol:    "tls",
+				ApplicationProtocols: []string{"osm"},
+			},
+			expectedFilterNames: []string{envoy.HTTPConnectionManagerFilterName},
+			expectedHTTPFilters: []string{envoy.HTTPLocalRateLimitFilterName, envoy.HTTPGlobalRateLimitFilterName, envoy.HTTPRouterFilterName},
+			expectError:         false,
+		},
+		{
 			name:           "inbound HTTP filter chain with tracing, WASM stats headers, ExtAuthz, active healthcheck",
 			permissiveMode: true,
 			trafficMatch: &trafficpolicy.TrafficMatch{
@@ -321,6 +352,15 @@ func TestBuildInboundHTTPFilterChain(t *testing.T) {
 		},
 	}
 
+	containsHTTPFilter := func(filters []*xds_hcm.HttpFilter, filterName string) bool {
+		for _, f := range filters {
+			if f.Name == filterName {
+				return true
+			}
+		}
+		return false
+	}
+
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
@@ -340,6 +380,22 @@ func TestBuildInboundHTTPFilterChain(t *testing.T) {
 			assert.Len(filterChain.Filters, len(tc.expectedFilterNames))
 			for i, filter := range filterChain.Filters {
 				assert.Equal(tc.expectedFilterNames[i], filter.Name)
+			}
+
+			var httpFilters []*xds_hcm.HttpFilter
+			for _, f := range filterChain.Filters {
+				if f.Name != envoy.HTTPConnectionManagerFilterName {
+					continue
+				}
+				hcm := &xds_hcm.HttpConnectionManager{}
+				err := f.GetTypedConfig().UnmarshalTo(hcm)
+				assert.Nil(err)
+
+				httpFilters = append(httpFilters, hcm.HttpFilters...)
+			}
+
+			for _, httpFilter := range tc.expectedHTTPFilters {
+				assert.True(containsHTTPFilter(httpFilters, httpFilter), "expected HTTP filter not found: "+httpFilter)
 			}
 		})
 	}

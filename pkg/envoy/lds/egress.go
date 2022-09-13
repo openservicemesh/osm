@@ -11,7 +11,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -52,7 +52,7 @@ func (lb *listenerBuilder) getEgressFilterChainsForMatches(matches []*trafficpol
 }
 
 func (lb *listenerBuilder) buildEgressHTTPFilterChain(match trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
-	filter, err := lb.buildOutboundHTTPFilter(route.GetEgressRouteConfigNameForPort(match.DestinationPort))
+	filter, err := lb.buildOutboundHTTPFilter(rds.GetEgressRouteConfigNameForPort(match.DestinationPort))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error building HTTP filter chain for destination port [%d]", match.DestinationPort)
 		return nil, err

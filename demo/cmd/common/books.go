@@ -1,3 +1,4 @@
+// Package common implements shared functions and structs between various book* applications
 package common
 
 import (

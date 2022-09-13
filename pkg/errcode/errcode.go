@@ -162,6 +162,9 @@ const (
 
 	// ErrMeshConfigFetchFromCache indicates failed to fetch MeshConfig from cache with specific key
 	ErrMeshConfigFetchFromCache
+
+	// ErrGettingServiceIdentitiesForService indicates failed to fetch Service Identities for a Mesh Service
+	ErrGettingServiceIdentitiesForService
 )
 
 // Range 5000-5500 reserved for errors related to Envoy XDS control plane
@@ -581,6 +584,10 @@ Failed to cast object to MeshConfig.
 `,
 	ErrMeshConfigFetchFromCache: `
 Failed to fetch MeshConfig from cache with specific key.
+`,
+
+	ErrGettingServiceIdentitiesForService: `
+Failed to fetch Service Identities for Mesh Service.
 `,
 
 	//

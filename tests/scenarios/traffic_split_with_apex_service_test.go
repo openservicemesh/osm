@@ -33,9 +33,15 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	provider.EXPECT().GetMeshConfig().AnyTimes()
 	provider.EXPECT().GetServicesForServiceIdentity(gomock.Any()).Return(services).AnyTimes()
 	provider.EXPECT().GetResolvableEndpointsForService(gomock.Any()).Return([]endpoint.Endpoint{tests.Endpoint}).AnyTimes()
-	provider.EXPECT().GetTargetPortForServicePort(gomock.Any(), gomock.Any()).Return(uint16(8888), nil).AnyTimes()
+	provider.EXPECT().GetMeshService(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, tests.BookstoreApexService.Port).Return(tests.BookstoreApexService, nil).AnyTimes()
+	provider.EXPECT().GetMeshService(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, tests.BookstoreV1Service.Port).Return(tests.BookstoreV1Service, nil).AnyTimes()
+	provider.EXPECT().GetMeshService(tests.BookstoreV2Service.Name, tests.BookstoreV2Service.Namespace, tests.BookstoreV2Service.Port).Return(tests.BookstoreV2Service, nil).AnyTimes()
 	provider.EXPECT().ListServicesForProxy(gomock.Any()).Return(nil, nil).AnyTimes()
 
+	provider.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(nil).AnyTimes()
 	for _, svc := range services {
 		provider.EXPECT().GetHostnamesForService(svc, true).Return(kube.NewClient(nil).GetHostnamesForService(svc, true)).AnyTimes()
 	}
@@ -49,12 +55,13 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	mc := tresorFake.NewFake(1 * time.Hour)
 	a.NotNil(a)
 
-	resources, err := rds.NewResponse(meshCatalog, proxy, nil, mc, nil)
+	resources, err := rds.NewResponse(meshCatalog, proxy, mc, nil)
 	a.Nil(err)
 	a.Len(resources, 1) // only outbound routes configured for this test
 
 	// ---[  Prepare the config for testing  ]-------
 	// Order matters. In this test, we do not expect rds-inbound route configuration, and rds-outbound is expected
+	// to be configured per outbound port.
 	routeCfg, ok := resources[0].(*xds_route.RouteConfiguration)
 	a.True(ok)
 	a.Equal("rds-outbound.8888", routeCfg.Name)
@@ -79,11 +86,14 @@ func TestRDSNewResponseWithTrafficSplit(t *testing.T) {
 	// test them (they are stored in a slice w/ non-deterministic order)
 	var apex, v1, v2 *xds_route.VirtualHost
 	for _, virtualHost := range routeCfg.VirtualHosts {
-		map[string]func(){
-			apexName: func() { apex = virtualHost },
-			v1Name:   func() { v1 = virtualHost },
-			v2Name:   func() { v2 = virtualHost },
-		}[virtualHost.Name]()
+		switch virtualHost.Name {
+		case apexName:
+			apex = virtualHost
+		case v1Name:
+			v1 = virtualHost
+		case v2Name:
+			v2 = virtualHost
+		}
 	}
 
 	testCases := []struct {

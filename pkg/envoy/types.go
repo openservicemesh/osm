@@ -3,6 +3,8 @@
 package envoy
 
 import (
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -90,7 +92,8 @@ const (
 // *Note: HTTP typed filters referenced in RDS require a wellknown name
 const (
 	// HTTP filters
-	HTTPConnectionManagerFilterName = "http_connection_manager"
+	// TODO: once https://github.com/envoyproxy/go-control-plane/issues/588, we can use any name we want.
+	HTTPConnectionManagerFilterName = wellknown.HTTPConnectionManager
 	HTTPRouterFilterName            = "http_router"
 	HTTPLuaFilterName               = "http_lua"
 
@@ -101,8 +104,9 @@ const (
 	// use wellknown names. These filters are configured as a map where the key is
 	// the filter name and value is the marshalled filter config.
 	// See https://github.com/envoyproxy/envoy/issues/21759#issuecomment-1163570994
-	HTTPRBACFilterName           = "envoy.filters.http.rbac"
-	HTTPLocalRateLimitFilterName = "envoy.filters.http.local_ratelimit"
+	HTTPRBACFilterName            = "envoy.filters.http.rbac"
+	HTTPLocalRateLimitFilterName  = "envoy.filters.http.local_ratelimit"
+	HTTPGlobalRateLimitFilterName = "envoy.filters.http.ratelimit"
 
 	// Network (L4) filters
 	TCPProxyFilterName          = "tcp_proxy"

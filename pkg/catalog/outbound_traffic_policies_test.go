@@ -10,13 +10,11 @@ import (
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
-	"github.com/openservicemesh/osm/pkg/policy"
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -579,12 +577,10 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 
 			mockProvider := compute.NewMockInterface(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockPolicyController := policy.NewMockController(mockCtrl)
 
 			mc := MeshCatalog{
-				Interface:        mockProvider,
-				meshSpec:         mockMeshSpec,
-				policyController: mockPolicyController,
+				Interface: mockProvider,
+				meshSpec:  mockMeshSpec,
 			}
 
 			// Mock calls to k8s client caches
@@ -611,10 +607,8 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					}
 					return nil
 				}).AnyTimes()
-			mockProvider.EXPECT().GetTargetPortForServicePort(
-				types.NamespacedName{Namespace: meshSvc3V1.Namespace, Name: meshSvc3V1.Name}, meshSvc3.Port).Return(meshSvc3V1.TargetPort, nil).AnyTimes()
-			mockProvider.EXPECT().GetTargetPortForServicePort(
-				types.NamespacedName{Namespace: meshSvc3V2.Namespace, Name: meshSvc3V2.Name}, meshSvc3.Port).Return(meshSvc3V2.TargetPort, nil).AnyTimes()
+			mockProvider.EXPECT().GetMeshService(meshSvc3V1.Name, meshSvc3V1.Namespace, meshSvc3.Port).Return(meshSvc3V1, nil).AnyTimes()
+			mockProvider.EXPECT().GetMeshService(meshSvc3V2.Name, meshSvc3V2.Namespace, meshSvc3.Port).Return(meshSvc3V2, nil).AnyTimes()
 
 			// Mock ServiceIdentity -> Service lookups executed when TrafficTargets are evaluated
 			for svcIdentity, services := range svcIdentityToSvcMapping {
@@ -632,11 +626,11 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				}).AnyTimes()
 
 			// Mock calls to UpstreamTrafficSetting lookups
-			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).DoAndReturn(
-				func(opt policy.UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting {
+			mockProvider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).DoAndReturn(
+				func(meshService *service.MeshService) *policyv1alpha1.UpstreamTrafficSetting {
 					// In this test, only service ns1/<p1|p2> has UpstreamTrafficSetting configured
-					if opt.MeshService != nil &&
-						(*opt.MeshService == meshSvc1P1 || *opt.MeshService == meshSvc1P2) {
+					if meshService != nil &&
+						(*meshService == meshSvc1P1 || *meshService == meshSvc1P2) {
 						return &upstreamTrafficSettingSvc1
 					}
 					return nil

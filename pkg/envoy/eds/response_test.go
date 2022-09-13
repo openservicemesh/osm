@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/service"
 
@@ -55,6 +55,17 @@ func TestEndpointConfiguration(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	provider := compute.NewMockInterface(mockCtrl)
 	provider.EXPECT().ListEndpointsForService(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().ListServices().Return([]service.MeshService{tests.BookstoreV1Service}).AnyTimes()
+	provider.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{Spec: v1alpha2.MeshConfigSpec{
+		Traffic: v1alpha2.TrafficSpec{
+			EnablePermissiveTrafficPolicyMode: true,
+		},
+	}}).AnyTimes()
+
 	meshCatalog := catalogFake.NewFakeMeshCatalog(provider)
 
 	proxy, err := getProxy(kubeClient)
@@ -62,12 +73,8 @@ func TestEndpointConfiguration(t *testing.T) {
 	assert.NotNil(meshCatalog)
 	assert.NotNil(proxy)
 
-	request := &xds_discovery.DiscoveryRequest{
-		ResourceNames: []string{"default/bookstore-v1|80"},
-	}
-
 	proxy = envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookbuyerServiceIdentity, nil, 1)
-	resources, err := NewResponse(meshCatalog, proxy, request, nil, nil)
+	resources, err := NewResponse(meshCatalog, proxy, nil, nil)
 	assert.Nil(err)
 	assert.NotNil(resources)
 
@@ -109,6 +116,17 @@ func TestClusterToMeshSvc(t *testing.T) {
 			expectedMeshSvc: service.MeshService{
 				Namespace:  "foo",
 				Name:       "bar",
+				TargetPort: 80,
+			},
+			expectError: false,
+		},
+		{
+			name:    "valid headless service-based cluster name",
+			cluster: "foo/mysql-0.mysql|80",
+			expectedMeshSvc: service.MeshService{
+				Namespace:  "foo",
+				Name:       "mysql",
+				Subdomain:  "mysql-0",
 				TargetPort: 80,
 			},
 			expectError: false,

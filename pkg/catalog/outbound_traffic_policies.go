@@ -2,12 +2,10 @@ package catalog
 
 import (
 	mapset "github.com/deckarep/golang-set"
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -54,8 +52,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			Name:                          meshSvc.EnvoyClusterName(),
 			Service:                       meshSvc,
 			EnableEnvoyActiveHealthChecks: mc.GetMeshConfig().Spec.FeatureFlags.EnableEnvoyActiveHealthChecks,
-			UpstreamTrafficSetting: mc.policyController.GetUpstreamTrafficSetting(
-				policy.UpstreamTrafficSettingGetOpt{MeshService: &meshSvc}),
+			UpstreamTrafficSetting:        mc.GetUpstreamTrafficSettingByService(&meshSvc),
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfigForServicePort)
 
@@ -74,17 +71,11 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			split := trafficSplits[0] // TODO(#2759): support multiple traffic splits per apex service
 
 			for _, backend := range split.Spec.Backends {
-				backendMeshSvc := service.MeshService{
-					Namespace: meshSvc.Namespace, // Backends belong to the same namespace as the apex service
-					Name:      backend.Service,
-				}
-				targetPort, err := mc.GetTargetPortForServicePort(
-					types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
+				backendMeshSvc, err := mc.GetMeshService(backend.Service, meshSvc.Namespace, meshSvc.Port)
 				if err != nil {
 					log.Error().Err(err).Msgf("Error fetching target port for leaf service %s, ignoring it", backendMeshSvc)
 					continue
 				}
-				backendMeshSvc.TargetPort = targetPort
 
 				wc := service.WeightedCluster{
 					ClusterName: service.ClusterName(backendMeshSvc.EnvoyClusterName()),

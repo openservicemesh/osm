@@ -29,6 +29,8 @@ type HTTPRequestDef struct {
 	// The entire destination URL processed by curl, including host name and
 	// optionally protocol, port, and path
 	Destination string
+
+	Headers map[string]string
 }
 
 // TCPRequestDef defines a remote TCP request intent
@@ -93,11 +95,18 @@ func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 	// -L follow redirects
 	var commandStr string
 	if td.ClusterOS == constants.OSWindows {
-		commandStr = fmt.Sprintf("curl.exe -s -o NUL -D - -I -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
+		commandStr = fmt.Sprintf("curl.exe -s -o NUL -D - -I -w %s:%%{http_code} -L", StatusCodeWord)
 	} else {
-		commandStr = fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
+		commandStr = fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} -L", StatusCodeWord)
 	}
+
 	command := strings.Fields(commandStr)
+	for k, v := range ht.Headers {
+		command = append(command, "-H", fmt.Sprintf("%s: %s", k, v))
+	}
+
+	command = append(command, ht.Destination)
+
 	stdout, stderr, err := td.RunRemote(ht.SourceNs, ht.SourcePod, ht.SourceContainer, command)
 	if err != nil {
 		// Error codes from the execution come through err
@@ -105,7 +114,7 @@ func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 		return HTTPRequestResult{
 			0,
 			nil,
-			fmt.Errorf("Remote exec err: %w | stderr: %s", err, stderr),
+			fmt.Errorf("Remote exec err: %w | stderr: %s | command: %s", err, stderr, commandStr),
 		}
 	}
 	if len(stderr) > 0 {

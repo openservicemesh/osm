@@ -1,3 +1,7 @@
+// Package informers centralize informers by creating a single object that
+// runs a set of informers, instead of creating different objects
+// that each manage their own informer collections.
+// A pointer to this object is then shared with all objects that need it.
 package informers
 
 import (

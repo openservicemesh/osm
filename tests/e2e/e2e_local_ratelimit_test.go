@@ -22,11 +22,11 @@ var _ = OSMDescribe("Test local rate limiting",
 	},
 	func() {
 		Context("HTTP request rate limiting", func() {
-			testRateLimtiting()
+			testLocalRateLimiting()
 		})
 	})
 
-func testRateLimtiting() {
+func testLocalRateLimiting() {
 	const sourceName = "client"
 	const destName = "server"
 	var ns = []string{sourceName, destName}

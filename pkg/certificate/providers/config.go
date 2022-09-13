@@ -66,8 +66,42 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 				Provider:    option.AsProviderSpec(),
 				TrustDomain: trustDomain,
 			},
+			Intent: constants.MRCIntentPassive,
 			Status: v1alpha2.MeshRootCertificateStatus{
 				State: constants.MRCStateActive,
+				ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
+					Webhooks:        constants.MRCComponentStatusUnknown,
+					XDSControlPlane: constants.MRCComponentStatusUnknown,
+					Sidecar:         constants.MRCComponentStatusUnknown,
+					Bootstrap:       constants.MRCComponentStatusUnknown,
+					Gateway:         constants.MRCComponentStatusUnknown,
+				},
+				Conditions: []v1alpha2.MeshRootCertificateCondition{
+					{
+						Type:   constants.MRCConditionTypeReady,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeAccepted,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeIssuingRollout,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeValidatingRollout,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeIssuingRollback,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeValidatingRollback,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+				},
 			},
 		},
 	}
