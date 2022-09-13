@@ -785,7 +785,7 @@ func TestIngressBackendValidator(t *testing.T) {
 			)
 			assert.NoError(err)
 
-			k8sClient := k8s.NewClient("osm-namespace", "osm-mesh-config", informerCollection, fakeClient, nil, broker)
+			k8sClient := k8s.NewClient("osm-namespace", "osm-mesh-config", informerCollection, nil, fakeClient, nil, broker)
 			computeClient := kube.NewClient(k8sClient)
 			pv := &validator{
 				computeClient: computeClient,
@@ -1310,7 +1310,7 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 			)
 			assert.NoError(err)
 
-			k8sClient := k8s.NewClient("test-namespace", "test-mesh-config", informerCollection, fakeClient, nil, broker)
+			k8sClient := k8s.NewClient("test-namespace", "test-mesh-config", informerCollection, nil, fakeClient, nil, broker)
 			computeClient := kube.NewClient(k8sClient)
 
 			pv := &validator{

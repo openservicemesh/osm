@@ -107,8 +107,8 @@ type Controller interface {
 	// ListSecrets returns a list of secrets
 	ListSecrets() []*corev1.Secret
 
-	// UpdateSecret updates the secret with the provided data
-	UpdateSecret(context.Context, *corev1.Secret, map[string][]byte) error
+	// UpdateSecretData updates the secret with the provided data
+	UpdateSecretData(context.Context, *corev1.Secret, map[string][]byte) error
 
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service

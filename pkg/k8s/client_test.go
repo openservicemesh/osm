@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -75,7 +76,7 @@ func TestIsMonitoredNamespace(t *testing.T) {
 
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil)
+			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			actual := c.IsMonitoredNamespace(tc.ns)
@@ -118,7 +119,7 @@ func TestGetNamespace(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil)
+			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			actual := c.GetNamespace(tc.ns)
@@ -165,7 +166,7 @@ func TestListNamespaces(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil)
+			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
 			for _, ns := range tc.namespaces {
 				_ = ic.Add(informers.InformerKeyNamespace, ns, t)
 			}
@@ -232,7 +233,7 @@ func TestGetService(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil)
+			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyService, tc.service, t)
 
 			actual := c.GetService(tc.svcName, tc.svcNamespace)
@@ -241,6 +242,123 @@ func TestGetService(t *testing.T) {
 			} else {
 				a.Nil(actual)
 			}
+		})
+	}
+}
+
+func TestListSecrets(t *testing.T) {
+	testCases := []struct {
+		name     string
+		secrets  []*corev1.Secret
+		expected []*corev1.Secret
+	}{
+		{
+			name: "get multiple k8s secrets",
+			secrets: []*corev1.Secret{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns2",
+						Name:      "s2",
+					},
+				},
+			},
+			expected: []*corev1.Secret{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns2",
+						Name:      "s2",
+					},
+				},
+			},
+		},
+		{
+			name: "get one k8s secret",
+			secrets: []*corev1.Secret{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+				},
+			},
+			expected: []*corev1.Secret{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+				},
+			},
+		},
+		{
+			name:     "no k8s secret",
+			secrets:  []*corev1.Secret{},
+			expected: []*corev1.Secret{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+			a.Nil(err)
+			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
+
+			for _, s := range tc.secrets {
+				_ = ic.Add(informers.InformerKeySecret, s, t)
+			}
+
+			actual := c.ListSecrets()
+			a.ElementsMatch(tc.expected, actual)
+		})
+	}
+}
+
+func TestUpdateSecretData(t *testing.T) {
+	testCases := []struct {
+		name       string
+		secret     *corev1.Secret
+		secretData map[string][]byte
+		expErr     error
+	}{
+		{
+			name: "Update secret data",
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+				Data: map[string][]byte{"a": {}},
+			},
+			secretData: map[string][]byte{},
+			expErr:     nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+			a.Nil(err)
+			err = ic.Add(informers.InformerKeySecret, tc.secret, t)
+			a.Nil(err)
+			fakeK8sClient := fake.NewSimpleClientset(tc.secret)
+			c := NewClient(testNs, tests.OsmMeshConfigName, ic, fakeK8sClient, nil, nil, nil)
+
+			actualErr := c.UpdateSecretData(context.Background(), tc.secret, tc.secretData)
+			a.Equal(tc.expErr, actualErr)
 		})
 	}
 }
@@ -289,7 +407,7 @@ func TestListServices(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil)
+			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, s := range tc.services {
@@ -346,7 +464,7 @@ func TestListServiceAccounts(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil)
+			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, s := range tc.sa {
@@ -403,7 +521,7 @@ func TestListPods(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil)
+			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, p := range tc.pods {
@@ -460,11 +578,7 @@ func TestGetEndpoints(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-<<<<<<< HEAD
-=======
-
->>>>>>> BootstrapSecretRotator has k8s.Controller instead of kubeClient and informerCollection,
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil)
+			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
 
 			actual, err := c.GetEndpoints(tc.svcName, tc.svcNamespace)
@@ -570,7 +684,7 @@ func TestPolicyUpdateStatus(t *testing.T) {
 			policyClient := fakePolicyClient.NewSimpleClientset(tc.existingResource.(runtime.Object))
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(kubeClient), informers.WithPolicyClient(policyClient))
 			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic,kubeClient, policyClient, nil, nil)
+			c := NewClient("osm", tests.OsmMeshConfigName, ic, kubeClient, policyClient, nil, nil)
 			switch v := tc.updatedResource.(type) {
 			case *policyv1alpha1.IngressBackend:
 				_, err = c.UpdateIngressBackendStatus(v)
@@ -640,7 +754,7 @@ func TestConfigUpdateStatus(t *testing.T) {
 			configClient := fakeConfigClient.NewSimpleClientset(tc.existingResource.(runtime.Object))
 			ic, err := informers.NewInformerCollection(tests.MeshName, nil, informers.WithKubeClient(kubeClient))
 			a.Nil(err)
-			c := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, configClient, nil)
+			c := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, configClient, nil)
 			switch v := tc.updatedResource.(type) {
 			case *configv1alpha2.MeshRootCertificate:
 				_, err = c.UpdateMeshRootCertificateStatus(v)
@@ -679,7 +793,7 @@ func TestGetPodForProxy(t *testing.T) {
 	ic, err := informers.NewInformerCollection(testMeshName, stop, informers.WithKubeClient(kubeClient))
 	assert.Nil(err)
 
-	kubeController := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, messaging.NewBroker(nil))
+	kubeController := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, messaging.NewBroker(nil))
 
 	testCases := []struct {
 		name  string
@@ -747,7 +861,7 @@ func TestGetMeshConfig(t *testing.T) {
 	ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClient, osmMeshConfigName, osmNamespace))
 	a.Nil(err)
 
-	c := NewClient(osmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil)
+	c := NewClient(osmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
 
 	// Returns empty MeshConfig if informer cache is empty
 	a.Equal(configv1alpha2.MeshConfig{}, c.GetMeshConfig())
@@ -904,7 +1018,7 @@ func TestListEgressPolicies(t *testing.T) {
 				informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
 
-			c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, fakeClient, nil, nil)
+			c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, fakeClient, nil, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
@@ -1025,7 +1139,7 @@ func TestListRetryPolicy(t *testing.T) {
 				informers.WithKubeClient(testclient.NewSimpleClientset()),
 			)
 			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, fakeClient, nil, nil)
+			c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, fakeClient, nil, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
@@ -1092,7 +1206,7 @@ func TestListUpstreamTrafficSetting(t *testing.T) {
 				informers.WithKubeClient(testclient.NewSimpleClientset()),
 			)
 			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, fakeClient, nil, nil)
+			c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, fakeClient, nil, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
@@ -1147,7 +1261,7 @@ func TestGetMeshRootCertificate(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithConfigClient(fakeConfigClient.NewSimpleClientset(), tests.OsmMeshConfigName, tests.OsmNamespace))
 			a.Nil(err)
-			c := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil)
+			c := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyMeshRootCertificate, tc.meshRootCertificate, t)
 
 			actual := c.GetMeshRootCertificate(tc.mrcName)
@@ -1169,7 +1283,7 @@ func TestListMeshRootCertificates(t *testing.T) {
 	ic, err := informers.NewInformerCollection(tests.MeshName, stop, informers.WithConfigClient(mrcClient, tests.OsmMeshConfigName, tests.OsmNamespace))
 	a.Nil(err)
 
-	c := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil)
+	c := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
 
 	mrcList, err := c.ListMeshRootCertificates()
 	a.NoError(err)
@@ -1223,7 +1337,7 @@ func TestListHTTPTrafficSpecs(t *testing.T) {
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
 	)
 	a.Nil(err)
-	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil)
+	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil, nil)
 	a.Nil(err)
 	a.NotNil(c)
 
@@ -1287,7 +1401,7 @@ func TestGetHTTPRouteGroup(t *testing.T) {
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
 	)
 	a.Nil(err)
-	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil)
+	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil, nil)
 	a.Nil(err)
 	a.NotNil(c)
 
@@ -1355,7 +1469,7 @@ func TestListTCPTrafficSpecs(t *testing.T) {
 	)
 
 	a.Nil(err)
-	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil)
+	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil, nil)
 	a.Nil(err)
 	a.NotNil(c)
 
@@ -1396,7 +1510,7 @@ func TestGetTCPRoute(t *testing.T) {
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
 	)
 	a.Nil(err)
-	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil)
+	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil, nil)
 	a.Nil(err)
 	a.NotNil(c)
 

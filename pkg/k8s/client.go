@@ -200,8 +200,8 @@ func (c *Client) ListSecrets() []*corev1.Secret {
 	return secrets
 }
 
-// UpdateSecret updates the secret with the provided data
-func (c *Client) UpdateSecret(ctx context.Context, secret *corev1.Secret, secretData map[string][]byte) error {
+// UpdateSecretData updates the secret with the provided data
+func (c *Client) UpdateSecretData(ctx context.Context, secret *corev1.Secret, secretData map[string][]byte) error {
 	secret.Data = secretData
 	_, err := c.kubeClient.CoreV1().Secrets(secret.Namespace).Update(ctx, secret, metav1.UpdateOptions{})
 	return err

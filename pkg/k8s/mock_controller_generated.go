@@ -439,18 +439,20 @@ func (m *MockController) UpdateMeshRootCertificateStatus(arg0 *v1alpha2.MeshRoot
 func (mr *MockControllerMockRecorder) UpdateMeshRootCertificateStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeshRootCertificateStatus", reflect.TypeOf((*MockController)(nil).UpdateMeshRootCertificateStatus), arg0)
-// UpdateSecret mocks base method.
-func (m *MockController) UpdateSecret(arg0 context.Context, arg1 *v1.Secret, arg2 map[string][]byte) error {
+}
+
+// UpdateSecretData mocks base method.
+func (m *MockController) UpdateSecretData(arg0 context.Context, arg1 *v1.Secret, arg2 map[string][]byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateSecret", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "UpdateSecretData", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateSecret indicates an expected call of UpdateSecret.
-func (mr *MockControllerMockRecorder) UpdateSecret(arg0, arg1, arg2 interface{}) *gomock.Call {
+// UpdateSecretData indicates an expected call of UpdateSecretData.
+func (mr *MockControllerMockRecorder) UpdateSecretData(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSecret", reflect.TypeOf((*MockController)(nil).UpdateSecret), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSecretData", reflect.TypeOf((*MockController)(nil).UpdateSecretData), arg0, arg1, arg2)
 }
 
 // UpdateUpstreamTrafficSettingStatus mocks base method.

@@ -137,5 +137,7 @@ func FakeCertManager() (*Manager, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating fakeCertManager, err: %w", err)
 	}
+	cm.validatingIssuer.ID = ""
+	cm.signingIssuer.ID = ""
 	return cm, nil
 }

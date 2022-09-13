@@ -227,6 +227,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, fmt.Sprintf("Error creating sidecar injector webhook: %s", err))
 	}
 
+	// Initialize bootstrap secret rotator
 	bootstrapSecretRotator := injector.NewBootstrapSecretRotator(kubeController, certManager, constants.CertCheckInterval)
 	bootstrapSecretRotator.StartBootstrapSecretRotationTicker(ctx)
 

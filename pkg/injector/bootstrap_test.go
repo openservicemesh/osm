@@ -15,17 +15,17 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/tests/certificates"
-
 	"github.com/openservicemesh/osm/pkg/certificate"
-
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/models"
+	"github.com/openservicemesh/osm/pkg/tests/certificates"
 )
 
 var _ = Describe("Test functions creating Envoy bootstrap configuration", func() {
@@ -391,7 +391,7 @@ func TestListBootstrapSecrets(t *testing.T) {
 
 			b := NewBootstrapSecretRotator(mockController, certManager, time.Duration(1))
 
-			actual := b.listBootstrapSecrets()
+			actual := b.getBootstrapSecrets()
 			assert.ElementsMatch(tc.expSecrets, actual)
 		})
 	}
@@ -406,13 +406,37 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 	secretName := bootstrapSecretPrefix + proxyUUID1.String()
 	diffSecretName := bootstrapSecretPrefix + proxyUUID2.String()
 
+	notBefore := time.Now()
+	notAfter := notBefore.Add(1 * time.Hour)
+	pemCert, pemKey, err := certificate.CreateValidCertAndKey(notBefore, notAfter)
+	assert.Nil(err)
+
 	testCases := []struct {
-		name      string
-		certNames []string
-		secrets   []*corev1.Secret
+		name         string
+		certNames    []string
+		secrets      []*corev1.Secret
+		shouldRotate bool
 	}{
 		{
-			name:      "update bootstrap secret with new cert",
+			name:      "don't update bootstrap secret",
+			certNames: []string{certificate.CommonName(proxyUUID1.String() + ".test.cert").String()},
+			secrets: []*corev1.Secret{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      secretName,
+						Namespace: testNs,
+					},
+					Data: map[string][]byte{
+						bootstrap.EnvoyXDSCACertFile: {},
+						bootstrap.EnvoyXDSCertFile:   []byte(pemCert),
+						bootstrap.EnvoyXDSKeyFile:    []byte(pemKey),
+					},
+				},
+			},
+			shouldRotate: false,
+		},
+		{
+			name:      "update bootstrap secret",
 			certNames: []string{certificate.CommonName(proxyUUID1.String() + ".test.cert").String()},
 			secrets: []*corev1.Secret{
 				{
@@ -427,6 +451,7 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 					},
 				},
 			},
+			shouldRotate: true,
 		},
 		{
 			name:      "update multiple bootstrap secret",
@@ -455,6 +480,7 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 					},
 				},
 			},
+			shouldRotate: true,
 		},
 	}
 
@@ -463,28 +489,46 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 			certManager, err := certificate.FakeCertManager()
 			assert.Nil(err)
 
+			objs := make([]runtime.Object, len(tc.secrets))
+			for i := range tc.secrets {
+				objs[i] = tc.secrets[i]
+			}
+			fakeK8sClient := fake.NewSimpleClientset(objs...)
 			mockController := k8s.NewMockController(gomock.NewController(t))
 			mockController.EXPECT().ListSecrets().Return(tc.secrets)
+			if tc.shouldRotate {
+				for i := 0; i < len(tc.secrets); i++ {
+					cert, err := certManager.IssueCertificate(tc.certNames[i], certificate.Internal)
+					assert.Nil(err)
 
-			for i := 0; i < len(tc.secrets); i++ {
-				cert, err := certManager.IssueCertificate(tc.certNames[i], certificate.Internal)
-				assert.Nil(err)
-
-				secretData := map[string][]byte{
-					bootstrap.EnvoyXDSCACertFile: cert.GetTrustedCAs(),
-					bootstrap.EnvoyXDSCertFile:   cert.GetCertificateChain(),
-					bootstrap.EnvoyXDSKeyFile:    cert.GetPrivateKey(),
+					secretData := map[string][]byte{
+						bootstrap.EnvoyXDSCACertFile: cert.GetTrustedCAs(),
+						bootstrap.EnvoyXDSCertFile:   cert.GetCertificateChain(),
+						bootstrap.EnvoyXDSKeyFile:    cert.GetPrivateKey(),
+					}
+					mockController.EXPECT().UpdateSecretData(context.Background(), tc.secrets[i], secretData)
 				}
-				mockController.EXPECT().UpdateSecret(context.Background(), tc.secrets[i], secretData)
 			}
-
 			bootstrapSecretRotator := NewBootstrapSecretRotator(mockController, certManager, time.Duration(1))
 			bootstrapSecretRotator.rotateBootstrapSecrets(context.Background())
+
+			secretList, err := fakeK8sClient.CoreV1().Secrets(testNs).List(context.Background(), metav1.ListOptions{})
+			assert.Nil(err)
+
+			for i := 0; i < len(tc.secrets); i++ {
+				actualSecret := findSecret(tc.secrets[i].Name, secretList)
+				assert.NotNil(actualSecret)
+				if tc.shouldRotate {
+					assert.NotEqual(tc.secrets[i].Data, actualSecret.Data)
+				} else {
+					assert.Equal(tc.secrets[i].Data, actualSecret.Data)
+				}
+			}
 		})
 	}
 }
 
-func TestGetCert(t *testing.T) {
+func TestGetCertFromSecret(t *testing.T) {
 	testCases := []struct {
 		name    string
 		secret  *corev1.Secret
@@ -554,7 +598,7 @@ func TestGetCert(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
-			cert, err := getCert(tc.secret)
+			cert, err := getCertFromSecret(tc.secret)
 			if tc.expCert {
 				assert.NotNil(cert)
 			} else {
@@ -563,4 +607,13 @@ func TestGetCert(t *testing.T) {
 			assert.Equal(tc.expErr, err)
 		})
 	}
+}
+
+func findSecret(secretName string, secretList *corev1.SecretList) *corev1.Secret {
+	for _, secret := range secretList.Items {
+		if secret.Name == secretName {
+			return &secret
+		}
+	}
+	return nil
 }

@@ -115,9 +115,8 @@ func NewBootstrapSecretRotator(kubeController k8s.Controller, certManager *certi
 	}
 }
 
-// listBootstrapSecrets returns the bootstrap secrets stored in the informerCollection's store.
-// this function is used to get the namespace of the secrets.
-func (b *BootstrapSecretRotator) listBootstrapSecrets() []*corev1.Secret {
+// getBootstrapSecrets returns the bootstrap secrets stored in the informerCollection's store.
+func (b *BootstrapSecretRotator) getBootstrapSecrets() []*corev1.Secret {
 	secrets := b.kubeController.ListSecrets()
 	var bootstrapSecrets []*corev1.Secret
 
@@ -132,9 +131,9 @@ func (b *BootstrapSecretRotator) listBootstrapSecrets() []*corev1.Secret {
 
 // rotateBootstrapSecrets updates the bootstrap secret by getting the current or issuing a new certificate.
 func (b *BootstrapSecretRotator) rotateBootstrapSecrets(ctx context.Context) {
-	bootstrapSecrets := b.listBootstrapSecrets()
+	bootstrapSecrets := b.getBootstrapSecrets()
 	for _, secret := range bootstrapSecrets {
-		bootstrapCert, err := getCert(secret)
+		bootstrapCert, err := getCertFromSecret(secret)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingCertFromSecret)).
 				Msgf("Error getting cert %s from secret %s/%s", bootstrapCert, secret.Namespace, secret.Name)
@@ -153,7 +152,7 @@ func (b *BootstrapSecretRotator) rotateBootstrapSecrets(ctx context.Context) {
 		secret.Data[bootstrap.EnvoyXDSCertFile] = issuedCert.GetCertificateChain()
 		secret.Data[bootstrap.EnvoyXDSKeyFile] = issuedCert.GetPrivateKey()
 
-		err = b.kubeController.UpdateSecret(ctx, secret, secret.Data)
+		err = b.kubeController.UpdateSecretData(ctx, secret, secret.Data)
 		if err != nil {
 			if apierrors.IsConflict(err) {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingBootstrapSecret)).
@@ -162,15 +161,13 @@ func (b *BootstrapSecretRotator) rotateBootstrapSecrets(ctx context.Context) {
 			}
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingBootstrapSecret)).
 				Msgf("Error updating bootstrap secret %s/%s with issued cert %s", secret.Namespace, secret.Name, issuedCert)
-			continue
 		}
 	}
 }
 
-func getCert(secret *corev1.Secret) (*certificate.Certificate, error) {
+func getCertFromSecret(secret *corev1.Secret) (*certificate.Certificate, error) {
 	pemCert, ok := secret.Data[bootstrap.EnvoyXDSCertFile]
 	if !ok {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(certificate.ErrInvalidCertSecret).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingCertFromSecret)).
 			Msgf("Opaque k8s secret %s/%s does not have required field %q", secret.Namespace, secret.Name, bootstrap.EnvoyXDSCertFile)
 		return nil, certificate.ErrInvalidCertSecret
@@ -178,15 +175,20 @@ func getCert(secret *corev1.Secret) (*certificate.Certificate, error) {
 
 	pemKey, ok := secret.Data[bootstrap.EnvoyXDSKeyFile]
 	if !ok {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(certificate.ErrInvalidCertSecret).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingPrivateKeyFromSecret)).
 			Msgf("Opaque k8s secret %s/%s does not have required field %q", secret.Namespace, secret.Name, bootstrap.EnvoyXDSKeyFile)
 		return nil, certificate.ErrInvalidCertSecret
 	}
 
+	caCert, ok := secret.Data[bootstrap.EnvoyXDSCACertFile]
+	if !ok {
+		log.Error().Err(certificate.ErrInvalidCertSecret).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingCACertFromSecret)).
+			Msgf("Opaque k8s secret %s/%s does not have required field %q", secret.Namespace, secret.Name, bootstrap.EnvoyXDSCACertFile)
+		return nil, certificate.ErrInvalidCertSecret
+	}
+
 	x509Cert, err := certificate.DecodePEMCertificate(pemCert)
 	if err != nil {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMCert)).
 			Msg("Error converting PEM cert to x509 to obtain serial number")
 		return nil, err
@@ -196,7 +198,7 @@ func getCert(secret *corev1.Secret) (*certificate.Certificate, error) {
 		CommonName:   certificate.CommonName(x509Cert.Subject.CommonName),
 		SerialNumber: certificate.SerialNumber(x509Cert.SerialNumber.String()),
 		CertChain:    pemCert,
-		TrustedCAs:   secret.Data[bootstrap.EnvoyXDSCACertFile],
+		TrustedCAs:   caCert,
 		PrivateKey:   pemKey,
 		Expiration:   x509Cert.NotAfter,
 	}, nil
