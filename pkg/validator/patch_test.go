@@ -130,6 +130,8 @@ func TestCreateValidatingWebhook(t *testing.T) {
 						},
 					})
 					assert.ElementsMatch(webhook.Rules, tc.expectedControlPlaneRules)
+				} else {
+					assert.Fail("unknown webhook %s in validating webhook configuration", webhook.Name)
 				}
 			}
 		})

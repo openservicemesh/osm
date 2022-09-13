@@ -60,6 +60,7 @@ spec:
                   enum:
                     - passive
                     - active
+                  default: passive
                 provider:
                   description: Certificate provider used by the mesh control plane
                   type: object

@@ -17,7 +17,7 @@ type MeshRootCertificate struct {
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec is the MeshRootCertifte config specification
+	// Spec is the MeshRootCertificate config specification
 	// +optional
 	Spec MeshRootCertificateSpec `json:"spec,omitempty"`
 
