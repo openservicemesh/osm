@@ -56,14 +56,12 @@ func newMetricsEnable(out io.Writer) *cobra.Command {
 	//add mesh name flag
 	f := cmd.Flags()
 	f.StringSliceVar(&enableCmd.namespaces, "namespace", []string{}, "One or more namespaces to enable metrics on")
+	cmd.MarkFlagRequired("namespace")
 
 	return cmd
 }
 
 func (cmd *metricsEnableCmd) run() error {
-	if len(cmd.namespaces) == 0 {
-		return fmt.Errorf("no namespace mentioned")
-	}
 
 	// Add metrics annotation on namespaces
 	for _, ns := range cmd.namespaces {
