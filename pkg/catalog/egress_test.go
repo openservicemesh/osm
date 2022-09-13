@@ -830,7 +830,6 @@ func TestBuildHTTPRouteConfigs(t *testing.T) {
 			mockK8s := k8s.NewMockController(mockCtrl)
 			provider := kube.NewClient(mockK8s)
 
-
 			for _, rg := range tc.httpRouteGroups {
 				mockK8s.EXPECT().GetHTTPRouteGroup(fmt.Sprintf("%s/%s", rg.Namespace, rg.Name)).Return(rg).AnyTimes()
 			}

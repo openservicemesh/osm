@@ -17,11 +17,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	configv1alpha2Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/smi"
 
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 var (
@@ -89,24 +89,11 @@ const (
 	TrafficTarget InformerKey = "TrafficTarget"
 )
 
-// TrafficTargetListOpt specifies the options used to filter TrafficTarget objects as a part of its lister
-type TrafficTargetListOpt struct {
-	DestinationNamespace string
-	DestinationName      string
-}
-
 // TrafficTargetListOption is a function type that implements filters on TrafficTarget lister
-type TrafficTargetListOption func(o *TrafficTargetListOpt)
-
-// TrafficSplitListOpt specifies the options used to filter TrafficSplit objects as a part of its lister
-type TrafficSplitListOpt struct {
-	ApexService    service.MeshService
-	BackendService service.MeshService
-	KubeController Controller
-}
+type TrafficTargetListOption func(o *smi.TrafficTargetListOpt)
 
 // TrafficSplitListOption is a function type that implements filters on the TrafficSplit lister
-type TrafficSplitListOption func(o *TrafficSplitListOpt)
+type TrafficSplitListOption func(o *smi.TrafficSplitListOpt)
 
 // Client is the type used to represent the k8s client for the native k8s resources
 type Client struct {
@@ -130,10 +117,6 @@ type Controller interface {
 
 	// GetService returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
 	GetService(name, namespace string) *corev1.Service
-
-	// IsMonitoredNamespace returns whether a namespace with the given name is being monitored
-	// by the mesh
-	IsMonitoredNamespace(string) bool
 
 	// ListNamespaces returns the namespaces monitored by the mesh
 	ListNamespaces() ([]*corev1.Namespace, error)
@@ -159,6 +142,10 @@ type Controller interface {
 // we control the definition it is reasonable to assume a non-k8s implementation would be obligated to implement as
 // well.
 type PassthroughInterface interface {
+	// IsMonitoredNamespace returns whether a namespace with the given name is being monitored
+	// by the mesh
+	IsMonitoredNamespace(string) bool
+
 	GetMeshConfig() configv1alpha2.MeshConfig
 	GetMeshRootCertificate(mrcName string) *configv1alpha2.MeshRootCertificate
 	ListMeshRootCertificates() ([]*configv1alpha2.MeshRootCertificate, error)

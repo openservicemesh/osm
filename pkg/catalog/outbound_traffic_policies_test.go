@@ -19,7 +19,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -592,19 +591,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 
 			mockProvider.EXPECT().ListServices().Return(allMeshServices).AnyTimes()
 			mockProvider.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
-			// Mock conditional traffic split for service
-			mockProvider.EXPECT().ListTrafficSplitsByOptions(gomock.Any()).DoAndReturn(
-				func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
-					o := &smi.TrafficSplitListOpt{}
-					for _, opt := range options {
-						opt(o)
-					}
-					// In this test, only service ns3/s3 has a split configured
-					if o.ApexService.String() == "ns3/s3" {
-						return []*split.TrafficSplit{trafficSplitSvc3}
-					}
-					return nil
-				}).AnyTimes()
+			mockProvider.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{trafficSplitSvc3}).AnyTimes()
 			mockProvider.EXPECT().GetMeshService(meshSvc3V1.Name, meshSvc3V1.Namespace, meshSvc3.Port).Return(meshSvc3V1, nil).AnyTimes()
 			mockProvider.EXPECT().GetMeshService(meshSvc3V2.Name, meshSvc3V2.Namespace, meshSvc3.Port).Return(meshSvc3V2, nil).AnyTimes()
 

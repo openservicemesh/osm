@@ -5,6 +5,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -33,7 +34,7 @@ func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream identity.Ser
 		return nil, nil
 	}
 
-	for _, t := range mc.Interface.ListTrafficTargets() { // loop through all traffic targets
+	for _, t := range mc.ListTrafficTargets() { // loop through all traffic targets
 		destinationSvcIdentity := trafficTargetIdentityToSvcAccount(t.Spec.Destination).ToServiceIdentity()
 		if destinationSvcIdentity != upstream {
 			continue
@@ -73,7 +74,7 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity
 	svcAccount := svcIdentity.ToK8sServiceAccount()
 	allowed := mapset.NewSet()
 
-	allTrafficTargets := mc.Interface.ListTrafficTargets()
+	allTrafficTargets := mc.ListTrafficTargets()
 	for _, trafficTarget := range allTrafficTargets {
 		spec := trafficTarget.Spec
 
@@ -170,7 +171,7 @@ func (mc *MeshCatalog) getTCPRouteMatchesFromTrafficTarget(trafficTarget smiAcce
 		// A route referenced in a traffic target must belong to the same namespace as the traffic target
 		tcpRouteName := fmt.Sprintf("%s/%s", trafficTarget.Namespace, rule.Name)
 
-		tcpRoute := mc.Interface.GetTCPRoute(tcpRouteName)
+		tcpRoute := mc.GetTCPRoute(tcpRouteName)
 		if tcpRoute == nil {
 			return nil, errNoTrafficSpecFoundForTrafficPolicy
 		}
@@ -189,4 +190,67 @@ func toUint16Slice(ports []int) (ret []uint16) {
 		ret = append(ret, uint16(port))
 	}
 	return ret
+}
+
+// ListTrafficSplits implements mesh.MeshSpec by returning the list of traffic splits.
+func (mc *MeshCatalog) ListTrafficSplitsByOptions(options ...smi.TrafficSplitListOption) []*smiSplit.TrafficSplit {
+	var trafficSplits []*smiSplit.TrafficSplit
+
+	for _, trafficSplit := range mc.ListTrafficSplits() {
+		if filteredSplit := smi.FilterTrafficSplit(trafficSplit, options...); filteredSplit != nil {
+			trafficSplits = append(trafficSplits, filteredSplit)
+		}
+	}
+	return trafficSplits
+}
+
+// ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.
+func (mc *MeshCatalog) ListTrafficTargetsByOptions(options ...smi.TrafficTargetListOption) []*smiAccess.TrafficTarget {
+	var trafficTargets []*smiAccess.TrafficTarget
+
+	for _, trafficTarget := range mc.ListTrafficTargets() {
+		if !smi.IsValidTrafficTarget(trafficTarget) {
+			continue
+		}
+
+		// Filter TrafficTarget based on the given options
+		if filteredTrafficTarget := smi.FilterTrafficTarget(trafficTarget, options...); filteredTrafficTarget != nil {
+			trafficTargets = append(trafficTargets, trafficTarget)
+		}
+	}
+	return trafficTargets
+}
+
+// ListServiceAccounts lists ServiceAccounts specified in SMI TrafficTarget resources
+func (mc *MeshCatalog) ListServiceAccounts() []identity.K8sServiceAccount {
+	var serviceAccounts []identity.K8sServiceAccount
+	for _, trafficTarget := range mc.ListTrafficTargets() {
+		if !mc.IsMonitoredNamespace(trafficTarget.Namespace) {
+			continue
+		}
+
+		if !smi.IsValidTrafficTarget(trafficTarget) {
+			continue
+		}
+
+		for _, sources := range trafficTarget.Spec.Sources {
+			// Only monitor sources in namespaces OSM is observing
+			if !mc.IsMonitoredNamespace(sources.Namespace) {
+				// Doesn't belong to namespaces we are observing
+				continue
+			}
+			namespacedServiceAccount := identity.K8sServiceAccount{
+				Namespace: sources.Namespace,
+				Name:      sources.Name,
+			}
+			serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
+		}
+
+		namespacedServiceAccount := identity.K8sServiceAccount{
+			Namespace: trafficTarget.Spec.Destination.Namespace,
+			Name:      trafficTarget.Spec.Destination.Name,
+		}
+		serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
+	}
+	return serviceAccounts
 }

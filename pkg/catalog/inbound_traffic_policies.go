@@ -36,7 +36,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		// Pre-computing the list of TrafficTarget optimizes to avoid repeated
 		// cache lookups for each upstream service.
 		destinationFilter := smi.WithTrafficTargetDestination(upstreamIdentity.ToK8sServiceAccount())
-		trafficTargets = mc.Interface.ListTrafficTargetsByOptions(destinationFilter)
+		trafficTargets = mc.ListTrafficTargetsByOptions(destinationFilter)
 	}
 
 	upstreamSvcSet := mapset.NewSet()
@@ -230,7 +230,7 @@ func (mc *MeshCatalog) routesFromRules(rules []access.TrafficTargetRule, traffic
 
 func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch, error) {
 	routePolicies := make(map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch)
-	for _, trafficSpecs := range mc.Interface.ListHTTPTrafficSpecs() {
+	for _, trafficSpecs := range mc.ListHTTPTrafficSpecs() {
 		log.Debug().Msgf("Discovered TrafficSpec resource: %s/%s", trafficSpecs.Namespace, trafficSpecs.Name)
 		if trafficSpecs.Spec.Matches == nil {
 			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrSMIHTTPRouteGroupNoMatch)).
@@ -283,7 +283,7 @@ func (mc *MeshCatalog) getUpstreamServicesIncludeApex(upstreamServices []service
 			allServices = append(allServices, svc)
 		}
 
-		for _, split := range mc.Interface.ListTrafficSplitsByOptions(smi.WithTrafficSplitBackendService(svc)) {
+		for _, split := range mc.ListTrafficSplitsByOptions(smi.WithTrafficSplitBackendService(svc)) {
 			apexMeshService := service.MeshService{
 				Namespace:  svc.Namespace,
 				Name:       split.Spec.Service,

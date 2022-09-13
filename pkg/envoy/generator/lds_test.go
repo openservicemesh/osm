@@ -44,14 +44,22 @@ func TestGenerateLDS(t *testing.T) {
 	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
 	provider := compute.NewMockInterface(mockCtrl)
 	provider.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
-	provider.EXPECT().ListTrafficTargetsByOptions(gomock.Any()).Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
 	provider.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
-	provider.EXPECT().ListTrafficSplitsByOptions(gomock.Any()).Return([]*split.TrafficSplit{}).AnyTimes()
+	provider.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tests.TrafficSplit}).AnyTimes()
 	provider.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(nil).AnyTimes()
-
+	provider.EXPECT().GetMeshService(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(
+			func(name, ns string, port uint16) (service.MeshService, error) {
+				return service.MeshService{
+					Namespace: ns,
+					Name:      name,
+					Port:      port,
+				}, nil
+			},
+		).AnyTimes()
 	provider.EXPECT().GetServicesForServiceIdentity(tests.BookstoreServiceIdentity).Return([]service.MeshService{
 		tests.BookstoreApexService,
 		tests.BookstoreV1Service,

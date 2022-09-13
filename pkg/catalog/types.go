@@ -64,7 +64,13 @@ type MeshCataloger interface {
 	// GetInboundMeshTrafficPolicy returns the inbound mesh traffic policy for the given upstream identity and services
 	GetInboundMeshTrafficPolicy(identity.ServiceIdentity, []service.MeshService) *trafficpolicy.InboundMeshTrafficPolicy
 
-	ListSMIPolicies() ([]*split.TrafficSplit, []identity.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget)
+	ListTrafficSplits() []*split.TrafficSplit
+
+	ListServiceAccounts() []identity.K8sServiceAccount
+
+	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
+
+	ListTrafficTargets() []*access.TrafficTarget
 }
 
 type trafficDirection string

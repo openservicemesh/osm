@@ -934,7 +934,7 @@ func TestListRetryPolicy(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockKubeController := NewMockController(mockCtrl)
-	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(testNs).Return(true).AnyTimes()
 
 	outMeshResource := &policyv1alpha1.Retry{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1204,10 +1204,9 @@ func TestListMeshRootCertificates(t *testing.T) {
 }
 
 func TestListHTTPTrafficSpecs(t *testing.T) {
-	testNamespaceName := "test"
 	nsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: testNamespaceName,
+			Name: testNs,
 		},
 	}
 
@@ -1231,7 +1230,7 @@ func TestListHTTPTrafficSpecs(t *testing.T) {
 			Kind:       "HTTPRouteGroup",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: testNamespaceName,
+			Namespace: testNs,
 			Name:      "test-ListHTTPTrafficSpecs",
 		},
 		Spec: smiSpecs.HTTPRouteGroupSpec{
@@ -1270,10 +1269,9 @@ func TestListHTTPTrafficSpecs(t *testing.T) {
 }
 
 func TestGetHTTPRouteGroup(t *testing.T) {
-	testNamespaceName := "test"
 	nsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: testNamespaceName,
+			Name: testNs,
 		},
 	}
 
@@ -1296,7 +1294,7 @@ func TestGetHTTPRouteGroup(t *testing.T) {
 			Kind:       "HTTPRouteGroup",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: testNamespaceName,
+			Namespace: testNs,
 			Name:      "foo",
 		},
 		Spec: smiSpecs.HTTPRouteGroupSpec{
@@ -1338,10 +1336,9 @@ func TestGetHTTPRouteGroup(t *testing.T) {
 }
 
 func TestListTCPTrafficSpecs(t *testing.T) {
-	testNamespaceName := "test"
 	nsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: testNamespaceName,
+			Name: testNs,
 		},
 	}
 
@@ -1365,7 +1362,7 @@ func TestListTCPTrafficSpecs(t *testing.T) {
 			Kind:       "TCPRoute",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: testNamespaceName,
+			Namespace: testNs,
 			Name:      "tcp-route",
 		},
 		Spec: smiSpecs.TCPRouteSpec{},
@@ -1382,10 +1379,9 @@ func TestListTCPTrafficSpecs(t *testing.T) {
 }
 
 func TestGetTCPRoute(t *testing.T) {
-	testNamespaceName := "test"
 	nsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: testNamespaceName,
+			Name: testNs,
 		},
 	}
 	a := assert.New(t)
@@ -1407,7 +1403,7 @@ func TestGetTCPRoute(t *testing.T) {
 			Kind:       "TCPRoute",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: testNamespaceName,
+			Namespace: testNs,
 			Name:      "tcp-route",
 		},
 		Spec: smiSpecs.TCPRouteSpec{},

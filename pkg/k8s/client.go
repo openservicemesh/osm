@@ -52,10 +52,10 @@ func NewClient(osmNamespace, meshConfigName string, informerCollection *informer
 		IngressBackend:         c.initIngressBackendMonitor,
 		Retry:                  c.initRetryMonitor,
 		UpstreamTrafficSetting: c.initUpstreamTrafficSettingMonitor,
-		TrafficSplit:			c.initTrafficSplitMonitor,
-		HTTPRouteGroup:   		c.initHTTPRouteGroupMonitor,
-		TCPRoute:			    c.initTCPRouteMonitor,
-		TrafficTarget:			c.initTrafficTargetMonitor,
+		TrafficSplit:           c.initTrafficSplitMonitor,
+		HTTPRouteGroup:         c.initHTTPRouteGroupMonitor,
+		TCPRoute:               c.initTCPRouteMonitor,
+		TrafficTarget:          c.initTrafficTargetMonitor,
 	}
 
 	// If specific informers are not selected to be initialized, initialize all informers

@@ -14,7 +14,6 @@ import (
 	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
-	smi "github.com/openservicemesh/osm/pkg/smi"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -271,6 +270,20 @@ func (mr *MockInterfaceMockRecorder) IsMetricsEnabled(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMetricsEnabled", reflect.TypeOf((*MockInterface)(nil).IsMetricsEnabled), arg0)
 }
 
+// IsMonitoredNamespace mocks base method.
+func (m *MockInterface) IsMonitoredNamespace(arg0 string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsMonitoredNamespace", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsMonitoredNamespace indicates an expected call of IsMonitoredNamespace.
+func (mr *MockInterfaceMockRecorder) IsMonitoredNamespace(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMonitoredNamespace", reflect.TypeOf((*MockInterface)(nil).IsMonitoredNamespace), arg0)
+}
+
 // ListEgressPolicies mocks base method.
 func (m *MockInterface) ListEgressPolicies() []*v1alpha1.Egress {
 	m.ctrl.T.Helper()
@@ -413,20 +426,6 @@ func (mr *MockInterfaceMockRecorder) ListRetryPoliciesForServiceAccount(arg0 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRetryPoliciesForServiceAccount", reflect.TypeOf((*MockInterface)(nil).ListRetryPoliciesForServiceAccount), arg0)
 }
 
-// ListServiceAccountsFromTrafficTargets mocks base method.
-func (m *MockInterface) ListServiceAccountsFromTrafficTargets() []identity.K8sServiceAccount {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServiceAccountsFromTrafficTargets")
-	ret0, _ := ret[0].([]identity.K8sServiceAccount)
-	return ret0
-}
-
-// ListServiceAccountsFromTrafficTargets indicates an expected call of ListServiceAccountsFromTrafficTargets.
-func (mr *MockInterfaceMockRecorder) ListServiceAccountsFromTrafficTargets() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccountsFromTrafficTargets", reflect.TypeOf((*MockInterface)(nil).ListServiceAccountsFromTrafficTargets))
-}
-
 // ListServiceIdentitiesForService mocks base method.
 func (m *MockInterface) ListServiceIdentitiesForService(arg0, arg1 string) ([]identity.ServiceIdentity, error) {
 	m.ctrl.T.Helper()
@@ -499,24 +498,6 @@ func (mr *MockInterfaceMockRecorder) ListTrafficSplits() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficSplits", reflect.TypeOf((*MockInterface)(nil).ListTrafficSplits))
 }
 
-// ListTrafficSplitsByOptions mocks base method.
-func (m *MockInterface) ListTrafficSplitsByOptions(arg0 ...smi.TrafficSplitListOption) []*v1alpha20.TrafficSplit {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{}
-	for _, a := range arg0 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListTrafficSplitsByOptions", varargs...)
-	ret0, _ := ret[0].([]*v1alpha20.TrafficSplit)
-	return ret0
-}
-
-// ListTrafficSplitsByOptions indicates an expected call of ListTrafficSplitsByOptions.
-func (mr *MockInterfaceMockRecorder) ListTrafficSplitsByOptions(arg0 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficSplitsByOptions", reflect.TypeOf((*MockInterface)(nil).ListTrafficSplitsByOptions), arg0...)
-}
-
 // ListTrafficTargets mocks base method.
 func (m *MockInterface) ListTrafficTargets() []*v1alpha3.TrafficTarget {
 	m.ctrl.T.Helper()
@@ -529,24 +510,6 @@ func (m *MockInterface) ListTrafficTargets() []*v1alpha3.TrafficTarget {
 func (mr *MockInterfaceMockRecorder) ListTrafficTargets() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficTargets", reflect.TypeOf((*MockInterface)(nil).ListTrafficTargets))
-}
-
-// ListTrafficTargetsByOptions mocks base method.
-func (m *MockInterface) ListTrafficTargetsByOptions(arg0 ...smi.TrafficTargetListOption) []*v1alpha3.TrafficTarget {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{}
-	for _, a := range arg0 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListTrafficTargetsByOptions", varargs...)
-	ret0, _ := ret[0].([]*v1alpha3.TrafficTarget)
-	return ret0
-}
-
-// ListTrafficTargetsByOptions indicates an expected call of ListTrafficTargetsByOptions.
-func (mr *MockInterfaceMockRecorder) ListTrafficTargetsByOptions(arg0 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficTargetsByOptions", reflect.TypeOf((*MockInterface)(nil).ListTrafficTargetsByOptions), arg0...)
 }
 
 // ListUpstreamTrafficSettings mocks base method.

@@ -14,7 +14,6 @@ import (
 	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
-	smi "github.com/openservicemesh/osm/pkg/smi"
 	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
@@ -344,6 +343,20 @@ func (mr *MockMeshCatalogerMockRecorder) IsMetricsEnabled(arg0 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMetricsEnabled", reflect.TypeOf((*MockMeshCataloger)(nil).IsMetricsEnabled), arg0)
 }
 
+// IsMonitoredNamespace mocks base method.
+func (m *MockMeshCataloger) IsMonitoredNamespace(arg0 string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsMonitoredNamespace", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsMonitoredNamespace indicates an expected call of IsMonitoredNamespace.
+func (mr *MockMeshCatalogerMockRecorder) IsMonitoredNamespace(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMonitoredNamespace", reflect.TypeOf((*MockMeshCataloger)(nil).IsMonitoredNamespace), arg0)
+}
+
 // ListAllowedUpstreamEndpointsForService mocks base method.
 func (m *MockMeshCataloger) ListAllowedUpstreamEndpointsForService(arg0 identity.ServiceIdentity, arg1 service.MeshService) []endpoint.Endpoint {
 	m.ctrl.T.Helper()
@@ -557,35 +570,18 @@ func (mr *MockMeshCatalogerMockRecorder) ListRetryPoliciesForServiceAccount(arg0
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRetryPoliciesForServiceAccount", reflect.TypeOf((*MockMeshCataloger)(nil).ListRetryPoliciesForServiceAccount), arg0)
 }
 
-// ListSMIPolicies mocks base method.
-func (m *MockMeshCataloger) ListSMIPolicies() ([]*v1alpha20.TrafficSplit, []identity.K8sServiceAccount, []*v1alpha4.HTTPRouteGroup, []*v1alpha3.TrafficTarget) {
+// ListServiceAccounts mocks base method.
+func (m *MockMeshCataloger) ListServiceAccounts() []identity.K8sServiceAccount {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListSMIPolicies")
-	ret0, _ := ret[0].([]*v1alpha20.TrafficSplit)
-	ret1, _ := ret[1].([]identity.K8sServiceAccount)
-	ret2, _ := ret[2].([]*v1alpha4.HTTPRouteGroup)
-	ret3, _ := ret[3].([]*v1alpha3.TrafficTarget)
-	return ret0, ret1, ret2, ret3
-}
-
-// ListSMIPolicies indicates an expected call of ListSMIPolicies.
-func (mr *MockMeshCatalogerMockRecorder) ListSMIPolicies() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSMIPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).ListSMIPolicies))
-}
-
-// ListServiceAccountsFromTrafficTargets mocks base method.
-func (m *MockMeshCataloger) ListServiceAccountsFromTrafficTargets() []identity.K8sServiceAccount {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServiceAccountsFromTrafficTargets")
+	ret := m.ctrl.Call(m, "ListServiceAccounts")
 	ret0, _ := ret[0].([]identity.K8sServiceAccount)
 	return ret0
 }
 
-// ListServiceAccountsFromTrafficTargets indicates an expected call of ListServiceAccountsFromTrafficTargets.
-func (mr *MockMeshCatalogerMockRecorder) ListServiceAccountsFromTrafficTargets() *gomock.Call {
+// ListServiceAccounts indicates an expected call of ListServiceAccounts.
+func (mr *MockMeshCatalogerMockRecorder) ListServiceAccounts() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccountsFromTrafficTargets", reflect.TypeOf((*MockMeshCataloger)(nil).ListServiceAccountsFromTrafficTargets))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccounts", reflect.TypeOf((*MockMeshCataloger)(nil).ListServiceAccounts))
 }
 
 // ListServiceIdentitiesForService mocks base method.
@@ -660,24 +656,6 @@ func (mr *MockMeshCatalogerMockRecorder) ListTrafficSplits() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficSplits", reflect.TypeOf((*MockMeshCataloger)(nil).ListTrafficSplits))
 }
 
-// ListTrafficSplitsByOptions mocks base method.
-func (m *MockMeshCataloger) ListTrafficSplitsByOptions(arg0 ...smi.TrafficSplitListOption) []*v1alpha20.TrafficSplit {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{}
-	for _, a := range arg0 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListTrafficSplitsByOptions", varargs...)
-	ret0, _ := ret[0].([]*v1alpha20.TrafficSplit)
-	return ret0
-}
-
-// ListTrafficSplitsByOptions indicates an expected call of ListTrafficSplitsByOptions.
-func (mr *MockMeshCatalogerMockRecorder) ListTrafficSplitsByOptions(arg0 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficSplitsByOptions", reflect.TypeOf((*MockMeshCataloger)(nil).ListTrafficSplitsByOptions), arg0...)
-}
-
 // ListTrafficTargets mocks base method.
 func (m *MockMeshCataloger) ListTrafficTargets() []*v1alpha3.TrafficTarget {
 	m.ctrl.T.Helper()
@@ -690,24 +668,6 @@ func (m *MockMeshCataloger) ListTrafficTargets() []*v1alpha3.TrafficTarget {
 func (mr *MockMeshCatalogerMockRecorder) ListTrafficTargets() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficTargets", reflect.TypeOf((*MockMeshCataloger)(nil).ListTrafficTargets))
-}
-
-// ListTrafficTargetsByOptions mocks base method.
-func (m *MockMeshCataloger) ListTrafficTargetsByOptions(arg0 ...smi.TrafficTargetListOption) []*v1alpha3.TrafficTarget {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{}
-	for _, a := range arg0 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListTrafficTargetsByOptions", varargs...)
-	ret0, _ := ret[0].([]*v1alpha3.TrafficTarget)
-	return ret0
-}
-
-// ListTrafficTargetsByOptions indicates an expected call of ListTrafficTargetsByOptions.
-func (mr *MockMeshCatalogerMockRecorder) ListTrafficTargetsByOptions(arg0 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficTargetsByOptions", reflect.TypeOf((*MockMeshCataloger)(nil).ListTrafficTargetsByOptions), arg0...)
 }
 
 // ListUpstreamTrafficSettings mocks base method.
