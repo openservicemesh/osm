@@ -132,7 +132,7 @@ func TestRun_MetricsEnable(t *testing.T) {
 
 		err := scenario.cmd.run()
 		if err != nil {
-			assert.EqualError(err, "no namespace mentioned")
+			assert.EqualError(err, "required flag(s) "+"\"namespace\""+" not set", "no namespace mentioned")
 		}
 
 		// Test expectation for scenario
@@ -211,7 +211,7 @@ func TestRun_MetricsDisable(t *testing.T) {
 
 		err := scenario.cmd.run()
 		if err != nil {
-			assert.EqualError(err, "no namespace mentioned")
+			assert.EqualError(err, "required flag(s) "+"\"namespace\""+" not set", "no namespace mentioned")
 		}
 
 		// Test expectation for scenario
