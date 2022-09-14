@@ -188,6 +188,7 @@ func TestBuildMeshRootCertificate(t *testing.T) {
 	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Namespace, testNamespace)
 	assert.Nil(meshRootCertificate.Spec.Provider.Vault)
 	assert.Nil(meshRootCertificate.Spec.Provider.CertManager)
+	assert.False(meshRootCertificate.Spec.SpiffeEnabled)
 }
 
 func TestValidateCLIParams(t *testing.T) {

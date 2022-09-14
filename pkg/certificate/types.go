@@ -94,8 +94,9 @@ type Issuer interface {
 
 type issuer struct {
 	Issuer
-	ID          string
-	TrustDomain string
+	ID            string
+	TrustDomain   string
+	SpiffeEnabled bool
 	// memoized once the first certificate is issued
 	CertificateAuthority pem.RootCertificate
 }

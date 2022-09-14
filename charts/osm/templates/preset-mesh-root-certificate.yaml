@@ -7,6 +7,7 @@ metadata:
 data:
   preset-mesh-root-certificate.json: |
     {
+      "spiffeEnabled": {{ .Values.osm.featureFlags.enableSPIFFE | mustToJson }},
       "trustDomain": {{.Values.osm.trustDomain | mustToJson}},
       "provider": {
         {{- if eq (.Values.osm.certificateProvider.kind | lower) "tresor"}}

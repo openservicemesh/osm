@@ -16,13 +16,14 @@ var log = logger.New("vault")
 
 const (
 	// The string value of the JSON key containing the certificate's Serial Number.
-	// See: https://www.vaultproject.io/api-docs/secret/pki#sample-response-8
+	// See: https://www.vaultproject.io/api-docs/secret/pki#sign-certificate
 	serialNumberField = "serial_number"
 	certificateField  = "certificate"
 	privateKeyField   = "private_key"
 	issuingCAField    = "issuing_ca"
 	commonNameField   = "common_name"
 	ttlField          = "ttl"
+	uriSans           = "uri_sans"
 )
 
 // New constructs a new certificate client using Vault's cert-manager
@@ -55,7 +56,7 @@ func New(vaultAddr, token, role string) (*CertManager, error) {
 
 // IssueCertificate requests a new signed certificate from the configured Vault issuer.
 func (cm *CertManager) IssueCertificate(options certificate.IssueOptions) (*certificate.Certificate, error) {
-	secret, err := cm.client.Logical().Write(getIssueURL(cm.role), getIssuanceData(options.CommonName(), options.ValidityDuration))
+	secret, err := cm.client.Logical().Write(getIssueURL(cm.role), getIssuanceData(options))
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrIssuingCert)).

@@ -982,7 +982,8 @@
             "enableEnvoyActiveHealthChecks",
             "enableSnapshotCacheMode",
             "enableRetryPolicy",
-            "enableMeshRootCertificate"
+            "enableMeshRootCertificate",
+            "enableSPIFFE"
           ],
           "properties": {
             "enableWASMStats": {
@@ -1053,6 +1054,15 @@
               "type": "boolean",
               "title": "Enable the MeshRootCertificate",
               "description": "Enable the MeshRootCertificate to configure the OSM certificate provider.",
+              "examples": [
+                false
+              ]
+            },
+            "enableSPIFFE": {
+              "$id": "#/properties/osm/properties/featureFlags/properties/enableSPIFFE",
+              "type": "boolean",
+              "title": "Enable adding a SPIFFE ID to the certificates",
+              "description": "Enable adding a SPIFFE ID to the certificates, creating a SPIFFE compatible x509 SVID document",
               "examples": [
                 false
               ]

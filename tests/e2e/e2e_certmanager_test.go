@@ -20,6 +20,10 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 		Context("CertManagerSimpleClientServer", func() {
 			testCertManager()
 		})
+
+		Context("with SPIFFE Enabled", func() {
+			testCertManager(WithSpiffeEnabled())
+		})
 	})
 
 func testCertManager(installOptions ...InstallOsmOpt) {
@@ -137,6 +141,11 @@ func testCertManager(installOptions ...InstallOsmOpt) {
 			}, 5 /*consecutive success threshold*/, 90*time.Second /*timeout*/)
 			Expect(cond).To(BeTrue())
 			time.Sleep(time.Second * 6) // 6 seconds guarantee the certs are rotated.
+		}
+
+		if installOpts.EnableSPIFFE {
+			verifySpiffeIDInPodCert(srcPod)
+			verifySpiffeIDInPodCert(dstPod)
 		}
 	})
 }

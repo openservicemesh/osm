@@ -1491,6 +1491,72 @@ func TestMeshRootCertificateValidator(t *testing.T) {
 			expErrStr: "cannot update trust domain for MRC osm-system/osm-mesh-root-certificate. Create a new MRC and initiate root certificate rotation to update the trust domain",
 		},
 		{
+			name: "MeshRootCertificate with invalid spiffe update",
+			input: &admissionv1.AdmissionRequest{
+				Operation: admissionv1.Update,
+				Kind: metav1.GroupVersionKind{
+					Group:   "configv1alpha2",
+					Version: "config.openservicemesh.io",
+					Kind:    "MeshRootCertificate",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "config.openservicemesh.io/configv1alpha2",
+						"kind": "MeshRootCertificate",
+						"metadata": {
+							"name": "osm-mesh-root-certificate",
+							"namespace": "osm-system"
+						},
+						"spec": {
+							"trustDomain": "oldtrustdomain",
+							"spiffeEnabled": true,
+							"intent": "active",
+							"provider": {
+								"tresor": {
+							 		"ca": {
+										"secretRef": {
+											"name": "osm-ca-bundle",
+											"namespace": "osm-system"
+							  			}
+							 		}
+								}
+							}
+						}
+					}
+					`),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "config.openservicemesh.io/configv1alpha2",
+						"kind": "MeshRootCertificate",
+						"metadata": {
+							"name": "osm-mesh-root-certificate",
+							"namespace": "osm-system"
+						},
+						"spec": {
+							"trustDomain": "oldtrustdomain",
+							"intent": "active",
+							"spiffeEnabled": false,
+							"provider": {
+								"tresor": {
+							 		"ca": {
+										"secretRef": {
+											"name": "osm-ca-bundle",
+											"namespace": "osm-system"
+							  			}
+							 		}
+								}
+							}
+						}
+					}
+					`),
+				},
+			},
+			expErrStr: "cannot update SpiffeEnabled for MRC osm-system/osm-mesh-root-certificate. Create a new MRC and initiate root certificate rotation to enable SPIFFE certificates",
+		},
+		{
 			name: "MeshRootCertificate with invalid trust domain on create",
 			input: &admissionv1.AdmissionRequest{
 				Operation: admissionv1.Create,

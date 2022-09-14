@@ -130,7 +130,7 @@ func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
 			return err
 		}
 
-		c := &issuer{Issuer: client, ID: mrc.Name, CertificateAuthority: ca, TrustDomain: mrc.Spec.TrustDomain}
+		c := &issuer{Issuer: client, ID: mrc.Name, CertificateAuthority: ca, TrustDomain: mrc.Spec.TrustDomain, SpiffeEnabled: mrc.Spec.SpiffeEnabled}
 		switch {
 		case mrc.Status.State == constants.MRCStateActive:
 			m.mu.Lock()
@@ -303,6 +303,7 @@ func (m *Manager) issueCertificate(options IssueOptions) (*Certificate, error) {
 
 	options.ValidityDuration = m.getValidityDurationForCertType(options.certType)
 	options.trustDomain = signingIssuer.TrustDomain
+	options.spiffeEnabled = signingIssuer.SpiffeEnabled
 	newCert, err := signingIssuer.IssueCertificate(options)
 	if err != nil {
 		return nil, err

@@ -2,6 +2,8 @@ package certificate
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -17,6 +19,7 @@ type IssueOptions struct {
 	commonNamePrefix string
 	certType         certType
 	ValidityDuration time.Duration
+	spiffeEnabled    bool
 }
 
 func (o IssueOptions) cacheKey() string {
@@ -38,6 +41,23 @@ func (o IssueOptions) CommonName() CommonName {
 	return CommonName(fmt.Sprintf("%s.%s", o.commonNamePrefix, o.trustDomain))
 }
 
+// URISAN generates a URL in the Spiffe format spiffe://trustdomain/sa/svc
+func (o IssueOptions) URISAN() *url.URL {
+	if !o.spiffeEnabled {
+		return &url.URL{}
+	}
+
+	// if the trust domain is already appended remove it.
+	path := strings.TrimSuffix(o.commonNamePrefix, "."+o.trustDomain)
+	path = strings.ReplaceAll(path, ".", "/")
+
+	return &url.URL{
+		Scheme: "spiffe",
+		Path:   path,
+		Host:   o.trustDomain,
+	}
+}
+
 func withCommonNamePrefix(prefix string) IssueOption {
 	return func(opts *IssueOptions) {
 		opts.commonNamePrefix = prefix
@@ -53,6 +73,12 @@ func withFullCommonName() IssueOption {
 func withCertType(certType certType) IssueOption {
 	return func(opts *IssueOptions) {
 		opts.certType = certType
+	}
+}
+
+func withSpiffeEnabled() IssueOption {
+	return func(opts *IssueOptions) {
+		opts.spiffeEnabled = true
 	}
 }
 
@@ -108,6 +134,17 @@ func NewCertOptionsWithFullName(fullCommonName string, validity time.Duration) I
 		ValidityDuration: validity,
 		fullCNProvided:   true,
 		commonNamePrefix: fullCommonName,
+	}
+	return *opts
+}
+
+// NewCertOptionsWithTrustDomain creates the IssueOptions for the issuing a certificate with a given full common name
+func NewCertOptionsWithTrustDomain(prefix string, trustDomain string, validity time.Duration, spiffeEnabled bool) IssueOptions {
+	opts := &IssueOptions{
+		ValidityDuration: validity,
+		trustDomain:      trustDomain,
+		commonNamePrefix: prefix,
+		spiffeEnabled:    spiffeEnabled,
 	}
 	return *opts
 }
