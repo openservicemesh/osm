@@ -12,6 +12,7 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	configv1alpha2Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -21,12 +22,13 @@ import (
 )
 
 // NewClient returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewClient(osmNamespace, meshConfigName string, informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *Client {
+func NewClient(osmNamespace, meshConfigName string, informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, configClient configv1alpha2Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *Client {
 	// Initialize client object
 	c := &Client{
 		informers:      informerCollection,
 		msgBroker:      msgBroker,
 		policyClient:   policyClient,
+		configClient:   configClient,
 		osmNamespace:   osmNamespace,
 		meshConfigName: meshConfigName,
 	}
@@ -387,4 +389,43 @@ func (c *Client) GetUpstreamTrafficSetting(namespace *types.NamespacedName) *pol
 		return resource.(*policyv1alpha1.UpstreamTrafficSetting)
 	}
 	return nil
+}
+
+// GetMeshRootCertificate returns a MeshRootCertificate resource with namespaced name
+func (c *Client) GetMeshRootCertificate(mrcName string) *configv1alpha2.MeshRootCertificate {
+	key := types.NamespacedName{Namespace: c.osmNamespace, Name: mrcName}.String()
+	resource, exists, err := c.informers.GetByKey(osminformers.InformerKeyMeshRootCertificate, key)
+	if exists && err == nil {
+		return resource.(*configv1alpha2.MeshRootCertificate)
+	}
+	return nil
+}
+
+// UpdateMeshRootCertificate updates a MeshRootCertificate.
+func (c *Client) UpdateMeshRootCertificate(obj *configv1alpha2.MeshRootCertificate) (*configv1alpha2.MeshRootCertificate, error) {
+	return c.configClient.ConfigV1alpha2().MeshRootCertificates(c.osmNamespace).Update(context.Background(), obj, metav1.UpdateOptions{})
+}
+
+// UpdateMeshRootCertificateStatus updates the status of a MeshRootCertificate.
+func (c *Client) UpdateMeshRootCertificateStatus(obj *configv1alpha2.MeshRootCertificate) (*configv1alpha2.MeshRootCertificate, error) {
+	return c.configClient.ConfigV1alpha2().MeshRootCertificates(c.osmNamespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
+}
+
+// ListMeshRootCertificates returns the MRCs stored in the informerCollection's store
+func (c *Client) ListMeshRootCertificates() ([]*configv1alpha2.MeshRootCertificate, error) {
+	// informers return slice of generic, essentially untyped so we'll convert them to value types before returning
+	mrcPtrs := c.informers.List(informers.InformerKeyMeshRootCertificate)
+	var mrcs []*configv1alpha2.MeshRootCertificate
+	for _, mrcPtr := range mrcPtrs {
+		if mrcPtr == nil {
+			continue
+		}
+		mrc, ok := mrcPtr.(*configv1alpha2.MeshRootCertificate)
+		if !ok {
+			continue
+		}
+		mrcs = append(mrcs, mrc)
+	}
+
+	return mrcs, nil
 }

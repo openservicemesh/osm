@@ -82,6 +82,20 @@ func (mr *MockInterfaceMockRecorder) GetMeshConfig() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshConfig", reflect.TypeOf((*MockInterface)(nil).GetMeshConfig))
 }
 
+// GetMeshRootCertificate mocks base method.
+func (m *MockInterface) GetMeshRootCertificate(arg0 string) *v1alpha2.MeshRootCertificate {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMeshRootCertificate", arg0)
+	ret0, _ := ret[0].(*v1alpha2.MeshRootCertificate)
+	return ret0
+}
+
+// GetMeshRootCertificate indicates an expected call of GetMeshRootCertificate.
+func (mr *MockInterfaceMockRecorder) GetMeshRootCertificate(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshRootCertificate", reflect.TypeOf((*MockInterface)(nil).GetMeshRootCertificate), arg0)
+}
+
 // GetMeshService mocks base method.
 func (m *MockInterface) GetMeshService(arg0, arg1 string, arg2 uint16) (service.MeshService, error) {
 	m.ctrl.T.Helper()
@@ -295,6 +309,21 @@ func (mr *MockInterfaceMockRecorder) ListIngressBackendPolicies() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIngressBackendPolicies", reflect.TypeOf((*MockInterface)(nil).ListIngressBackendPolicies))
 }
 
+// ListMeshRootCertificates mocks base method.
+func (m *MockInterface) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertificate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListMeshRootCertificates")
+	ret0, _ := ret[0].([]*v1alpha2.MeshRootCertificate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListMeshRootCertificates indicates an expected call of ListMeshRootCertificates.
+func (mr *MockInterfaceMockRecorder) ListMeshRootCertificates() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMeshRootCertificates", reflect.TypeOf((*MockInterface)(nil).ListMeshRootCertificates))
+}
+
 // ListNamespaces mocks base method.
 func (m *MockInterface) ListNamespaces() ([]string, error) {
 	m.ctrl.T.Helper()
@@ -409,6 +438,36 @@ func (m *MockInterface) UpdateIngressBackendStatus(arg0 *v1alpha1.IngressBackend
 func (mr *MockInterfaceMockRecorder) UpdateIngressBackendStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateIngressBackendStatus", reflect.TypeOf((*MockInterface)(nil).UpdateIngressBackendStatus), arg0)
+}
+
+// UpdateMeshRootCertificate mocks base method.
+func (m *MockInterface) UpdateMeshRootCertificate(arg0 *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMeshRootCertificate", arg0)
+	ret0, _ := ret[0].(*v1alpha2.MeshRootCertificate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateMeshRootCertificate indicates an expected call of UpdateMeshRootCertificate.
+func (mr *MockInterfaceMockRecorder) UpdateMeshRootCertificate(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeshRootCertificate", reflect.TypeOf((*MockInterface)(nil).UpdateMeshRootCertificate), arg0)
+}
+
+// UpdateMeshRootCertificateStatus mocks base method.
+func (m *MockInterface) UpdateMeshRootCertificateStatus(arg0 *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMeshRootCertificateStatus", arg0)
+	ret0, _ := ret[0].(*v1alpha2.MeshRootCertificate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateMeshRootCertificateStatus indicates an expected call of UpdateMeshRootCertificateStatus.
+func (mr *MockInterfaceMockRecorder) UpdateMeshRootCertificateStatus(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeshRootCertificateStatus", reflect.TypeOf((*MockInterface)(nil).UpdateMeshRootCertificateStatus), arg0)
 }
 
 // UpdateUpstreamTrafficSettingStatus mocks base method.

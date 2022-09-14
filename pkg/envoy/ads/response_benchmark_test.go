@@ -50,7 +50,7 @@ func setupTestServer(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
-	kubeController := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, informerCollection, policyClient, msgBroker)
+	kubeController := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, informerCollection, policyClient, configClient, msgBroker)
 	kubeProvider := kube.NewClient(kubeController)
 
 	meshConfig := configv1alpha2.MeshConfig{

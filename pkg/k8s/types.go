@@ -11,6 +11,7 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	configv1alpha2Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
@@ -78,6 +79,7 @@ const (
 // Client is the type used to represent the k8s client for the native k8s resources
 type Client struct {
 	policyClient   policyv1alpha1Client.Interface
+	configClient   configv1alpha2Client.Interface
 	informers      *informers.InformerCollection
 	msgBroker      *messaging.Broker
 	osmNamespace   string
@@ -125,6 +127,10 @@ type Controller interface {
 // well.
 type PassthroughInterface interface {
 	GetMeshConfig() configv1alpha2.MeshConfig
+	GetMeshRootCertificate(mrcName string) *configv1alpha2.MeshRootCertificate
+	ListMeshRootCertificates() ([]*configv1alpha2.MeshRootCertificate, error)
+	UpdateMeshRootCertificate(obj *configv1alpha2.MeshRootCertificate) (*configv1alpha2.MeshRootCertificate, error)
+	UpdateMeshRootCertificateStatus(obj *configv1alpha2.MeshRootCertificate) (*configv1alpha2.MeshRootCertificate, error)
 	GetOSMNamespace() string
 	UpdateIngressBackendStatus(obj *policyv1alpha1.IngressBackend) (*policyv1alpha1.IngressBackend, error)
 	UpdateUpstreamTrafficSettingStatus(obj *policyv1alpha1.UpstreamTrafficSetting) (*policyv1alpha1.UpstreamTrafficSetting, error)
