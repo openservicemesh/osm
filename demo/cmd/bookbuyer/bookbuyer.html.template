@@ -40,8 +40,8 @@
       <ul>
         <li>Total books bought: <strong>{{.BooksBought}}</strong>
           <ul>
-            <li>from bookstore V1: <strong>{{.BooksBoughtV1}}</strong>
-            <li>from bookstore V2: <strong>{{.BooksBoughtV2}}</strong>
+            <li>from bookstore-v1: <strong>{{.BooksBoughtV1}}</strong>
+            <li>from bookstore-v2: <strong>{{.BooksBoughtV2}}</strong>
           </ul>
         </li>
       </ul>
