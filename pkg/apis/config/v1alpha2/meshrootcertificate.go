@@ -131,6 +131,8 @@ type MeshRootCertificateConditionStatus string
 // one of (`Ready`, `Accepted`, `IssuingRollout`, `ValidatingRollout`, `IssuingRollback`, `ValidatingRollback`).
 type MeshRootCertificateConditionType string
 
+//can add in constants
+
 // MeshRootCertificateComponentStatuses is the set of statuses for each certificate component in the cluster.
 type MeshRootCertificateComponentStatuses struct {
 	Webhooks        MeshRootCertificateComponentStatus `json:"webhooks"`

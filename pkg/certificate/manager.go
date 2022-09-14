@@ -125,6 +125,30 @@ func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
 			return nil
 		}
 
+		if mrc.Status.State == "" {	
+			err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+				mrc, err = mrcClient.GetMeshRootCertificate()
+				if err != nil {
+					return err
+				}
+				//Double check this (is it possible for the MRC to have an error state after the check in L123)
+				if mrc.Status.State == constants.MRCStateError {
+					return format.Errorf("MRC %s has error state. Retrying.", mrc.GetName())
+				}
+
+				if mrc.Status.State != "" || mrc.Spec.Intent != constants.MRCStateActive {
+					return nil
+				}
+
+				mrc.status = m.getInitialMRCStatus()
+				_, err = mrcClient.UpdateMRCStatus(mrc)
+				return err
+			}
+		}
+		if err != nil {
+			return format.Errorf("Could not initialize MRC %s status: %v", mrc.Getname(), err) 
+		}
+
 		client, ca, err := mrcClient.GetCertIssuerForMRC(mrc)
 		if err != nil {
 			return err
@@ -381,4 +405,25 @@ func (m *Manager) CheckCacheMatch(cert *Certificate) error {
 		return fmt.Errorf("certificate %s does not match cached certificate %s, this may be due to a race around rotation, or a caching issue", cert, cachedCert)
 	}
 	return nil
+}
+
+func (m *Manager) getInitialMRCStatus() s MeshRootCertificateStatus {
+	status := MeshRootCertificateStatus{
+		State: constants.MRCStatePending,
+		ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
+			Webhooks:        constants.MRCComponentStatusUnknown,
+			XDSControlPlane: constants.MRCComponentStatusUnknown,
+			Sidecar:         constants.MRCComponentStatusUnknown,
+			Bootstrap:       constants.MRCComponentStatusUnknown,
+			Gateway:         constants.MRCComponentStatusUnknown,
+		},
+		Conditions: []MeshRootCertificateCondition{
+			MeshRootCertificateCondition{
+				Type: "Accepted",
+				Status: "False",
+				Reason: "Pending",
+			}
+		}
+	}
+	return status	
 }
