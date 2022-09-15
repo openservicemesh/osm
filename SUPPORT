@@ -4,4 +4,4 @@
 
 ## Supported versions of OSM
 
-The OSM project maintainers will respond to the best of their abilities to issues on the current and two previous minor versions of OSM running on Kubernetes v1.22.9 or greater.
+The OSM project maintainers will respond to the best of their abilities to issues on the current and two previous minor versions of OSM running on [active Kubernetes releases](https://kubernetes.io/releases/). The range of supported Kubernetes versions is defined in the [OSM Helm chart](https://github.com/openservicemesh/osm/blob/main/charts/osm/Chart.yaml#L24).
