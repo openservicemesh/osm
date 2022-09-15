@@ -109,6 +109,9 @@ spec:
                         protocol:
                           description: Protocol for the Vault connection
                           type: string
+                          enum:
+                            - http
+                            - https
                         token:
                           description: Token used by the mesh control plane
                           type: object

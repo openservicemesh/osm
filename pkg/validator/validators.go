@@ -277,9 +277,8 @@ func meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admission
 			return nil, err
 		}
 
-		if newMRC.Spec.TrustDomain == "" {
-			return nil, fmt.Errorf("trustDomain must be non empty for MRC %s/%s", newMRC.GetNamespace(), newMRC.GetName())
-		}
+		err := validateMRCOnCreate(newMRC)
+		return nil, err
 	case admissionv1.Update:
 		newMRC, oldMRC := &configv1alpha2.MeshRootCertificate{}, &configv1alpha2.MeshRootCertificate{}
 		if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(newMRC); err != nil {
@@ -289,13 +288,62 @@ func meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admission
 			return nil, err
 		}
 
-		if !reflect.DeepEqual(oldMRC.Spec.Provider, newMRC.Spec.Provider) {
-			return nil, fmt.Errorf("cannot update certificate provider settings for MRC %s/%s. Create a new MRC and initiate root certificate rotation to update the provider", newMRC.GetNamespace(), newMRC.GetName())
-		}
-
-		if oldMRC.Spec.TrustDomain != newMRC.Spec.TrustDomain {
-			return nil, fmt.Errorf("cannot update trust domain for MRC %s/%s. Create a new MRC and initiate root certificate rotation to update the trust domain", newMRC.GetNamespace(), newMRC.GetName())
-		}
+		err := validateMRCOnUpdate(oldMRC, newMRC)
+		return nil, err
 	}
 	return nil, nil
+}
+
+func validateMRCOnCreate(mrc *configv1alpha2.MeshRootCertificate) error {
+	if mrc.Spec.TrustDomain == "" {
+		return fmt.Errorf("trustDomain must be non empty for MRC %s", getNamespacedMRC(mrc))
+	}
+
+	if err := validateProvider(mrc); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validateMRCOnUpdate(oldMRC *configv1alpha2.MeshRootCertificate, newMRC *configv1alpha2.MeshRootCertificate) error {
+	if !reflect.DeepEqual(oldMRC.Spec.Provider, newMRC.Spec.Provider) {
+		return fmt.Errorf("cannot update certificate provider settings for MRC %s. Create a new MRC and initiate root certificate rotation to update the provider", getNamespacedMRC(newMRC))
+	}
+
+	if oldMRC.Spec.TrustDomain != newMRC.Spec.TrustDomain {
+		return fmt.Errorf("cannot update trust domain for MRC %s. Create a new MRC and initiate root certificate rotation to update the trust domain", getNamespacedMRC(oldMRC))
+	}
+
+	return nil
+}
+
+func validateProvider(mrc *configv1alpha2.MeshRootCertificate) error {
+	p := mrc.Spec.Provider
+	switch {
+	case p.Tresor != nil:
+		secretRef := p.Tresor.CA.SecretRef
+		if secretRef.Name == "" || secretRef.Namespace == "" {
+			return fmt.Errorf("name and namespace in CA secret reference cannot be set to empty strings for MRC %s", getNamespacedMRC(mrc))
+		}
+	case p.Vault != nil:
+		if p.Vault.Host == "" || p.Vault.Protocol == "" || p.Vault.Role == "" {
+			return fmt.Errorf("host, protocol, and role cannot be set to empty strings for MRC %s", getNamespacedMRC(mrc))
+		}
+
+		tokenSecret := p.Vault.Token.SecretKeyRef
+		if tokenSecret.Key == "" || tokenSecret.Name == "" || tokenSecret.Namespace == "" {
+			return fmt.Errorf("key, name, and namespace for the Vault token secret reference cannot be set to empty strings for MRC %s", getNamespacedMRC(mrc))
+		}
+	case p.CertManager != nil:
+		if p.CertManager.IssuerGroup == "" || p.CertManager.IssuerKind == "" || p.CertManager.IssuerName == "" {
+			return fmt.Errorf("issuerGroup, issuerKind, and issuerName cannot be set to empty strings for MRC %s", getNamespacedMRC(mrc))
+		}
+	}
+
+	return nil
+}
+
+func getNamespacedMRC(mrc *configv1alpha2.MeshRootCertificate) string {
+	return fmt.Sprintf("%s/%s", mrc.Namespace, mrc.Name)
 }
