@@ -299,7 +299,7 @@ func validateMRCOnCreate(mrc *configv1alpha2.MeshRootCertificate) error {
 		return fmt.Errorf("trustDomain must be non empty for MRC %s", getNamespacedMRC(mrc))
 	}
 
-	if err := validateProvider(mrc); err != nil {
+	if err := validateMRCProvider(mrc); err != nil {
 		return err
 	}
 
@@ -318,7 +318,7 @@ func validateMRCOnUpdate(oldMRC *configv1alpha2.MeshRootCertificate, newMRC *con
 	return nil
 }
 
-func validateProvider(mrc *configv1alpha2.MeshRootCertificate) error {
+func validateMRCProvider(mrc *configv1alpha2.MeshRootCertificate) error {
 	p := mrc.Spec.Provider
 	switch {
 	case p.Tresor != nil:

@@ -8,12 +8,15 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
+	"github.com/openservicemesh/osm/pkg/constants"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
@@ -1353,10 +1356,9 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 
 func TestMeshRootCertificateValidator(t *testing.T) {
 	testCases := []struct {
-		name         string
-		input        *admissionv1.AdmissionRequest
-		expErrStr    string
-		existingMRCs int
+		name      string
+		input     *admissionv1.AdmissionRequest
+		expErrStr string
 	}{
 		{
 			name: "MeshRootCertificate with invalid Tresor certificate provider update",
@@ -1536,6 +1538,206 @@ func TestMeshRootCertificateValidator(t *testing.T) {
 			} else {
 				assert.Equal(tc.expErrStr, err.Error())
 				assert.Nil(resp)
+			}
+		})
+	}
+}
+
+func TestValidateMRCProvider(t *testing.T) {
+	testCases := []struct {
+		name      string
+		mrc       *configv1alpha2.MeshRootCertificate
+		expErrStr string
+	}{
+		{
+			name: "MeshRootCertificate with valid Tresor certificate provider ",
+			mrc: &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
+					Intent:      constants.MRCIntentPassive,
+					Provider: configv1alpha2.ProviderSpec{
+						Tresor: &configv1alpha2.TresorProviderSpec{
+							CA: configv1alpha2.TresorCASpec{
+								SecretRef: v1.SecretReference{
+									Name:      "osm-ca-bundle",
+									Namespace: "osm-system",
+								},
+							},
+						},
+					},
+				},
+			},
+			expErrStr: "",
+		},
+		{
+			name: "MeshRootCertificate with invalid Tresor certificate provider",
+			mrc: &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
+					Intent:      constants.MRCIntentPassive,
+					Provider: configv1alpha2.ProviderSpec{
+						Tresor: &configv1alpha2.TresorProviderSpec{
+							CA: configv1alpha2.TresorCASpec{
+								SecretRef: v1.SecretReference{
+									Name:      "",
+									Namespace: "",
+								},
+							},
+						},
+					},
+				},
+			},
+			expErrStr: "name and namespace in CA secret reference cannot be set to empty strings for MRC osm-system/osm-mesh-root-certificate",
+		},
+		{
+			name: "MeshRootCertificate with valid cert-manager certificate provider",
+			mrc: &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
+					Intent:      constants.MRCIntentPassive,
+					Provider: configv1alpha2.ProviderSpec{
+						CertManager: &configv1alpha2.CertManagerProviderSpec{
+							IssuerName:  "osm-ca",
+							IssuerKind:  "Issuer",
+							IssuerGroup: "cert-manager.io",
+						},
+					},
+				},
+			},
+			expErrStr: "",
+		},
+		{
+			name: "MeshRootCertificate with invalid cert-manager certificate provider",
+			mrc: &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
+					Intent:      constants.MRCIntentPassive,
+					Provider: configv1alpha2.ProviderSpec{
+						CertManager: &configv1alpha2.CertManagerProviderSpec{
+							IssuerName:  "",
+							IssuerKind:  "",
+							IssuerGroup: "",
+						},
+					},
+				},
+			},
+			expErrStr: "issuerGroup, issuerKind, and issuerName cannot be set to empty strings for MRC osm-system/osm-mesh-root-certificate",
+		},
+		{
+			name: "MeshRootCertificate with valid vault certificate provider",
+			mrc: &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
+					Intent:      constants.MRCIntentPassive,
+					Provider: configv1alpha2.ProviderSpec{
+						Vault: &configv1alpha2.VaultProviderSpec{
+							Host:     "vault.contoso.com",
+							Port:     8200,
+							Role:     "openservicemesh",
+							Protocol: "http",
+							Token: configv1alpha2.VaultTokenSpec{
+								SecretKeyRef: configv1alpha2.SecretKeyReferenceSpec{
+									Name:      "token",
+									Namespace: "osm-system",
+									Key:       "vaultToken",
+								},
+							},
+						},
+					},
+				},
+			},
+			expErrStr: "",
+		},
+		{
+			name: "MeshRootCertificate with invalid vault certificate provider",
+			mrc: &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
+					Intent:      constants.MRCIntentPassive,
+					Provider: configv1alpha2.ProviderSpec{
+						Vault: &configv1alpha2.VaultProviderSpec{
+							Host:     "",
+							Port:     8200,
+							Role:     "",
+							Protocol: "",
+							Token: configv1alpha2.VaultTokenSpec{
+								SecretKeyRef: configv1alpha2.SecretKeyReferenceSpec{
+									Name:      "token",
+									Namespace: "osm-system",
+									Key:       "vaultToken",
+								},
+							},
+						},
+					},
+				},
+			},
+			expErrStr: "host, protocol, and role cannot be set to empty strings for MRC osm-system/osm-mesh-root-certificate",
+		},
+		{
+			name: "MeshRootCertificate with invalid vault certificate provider - invalid token spec",
+			mrc: &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
+					Intent:      constants.MRCIntentPassive,
+					Provider: configv1alpha2.ProviderSpec{
+						Vault: &configv1alpha2.VaultProviderSpec{
+							Host:     "vault.contoso.com",
+							Port:     8200,
+							Role:     "openservicemesh",
+							Protocol: "http",
+							Token: configv1alpha2.VaultTokenSpec{
+								SecretKeyRef: configv1alpha2.SecretKeyReferenceSpec{
+									Name:      "",
+									Namespace: "osm-system",
+									Key:       "vaultToken",
+								},
+							},
+						},
+					},
+				},
+			},
+			expErrStr: "key, name, and namespace for the Vault token secret reference cannot be set to empty strings for MRC osm-system/osm-mesh-root-certificate",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			err := validateMRCProvider(tc.mrc)
+			if tc.expErrStr == "" {
+				assert.NoError(err)
+			} else {
+				assert.Error(err)
+				assert.Equal(tc.expErrStr, err.Error())
 			}
 		})
 	}
