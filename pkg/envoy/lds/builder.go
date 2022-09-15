@@ -177,7 +177,7 @@ func (lb *listenerBuilder) Build() (*xds_listener.Listener, error) {
 		l = lb.buildInboundListener()
 
 	default:
-		return nil, fmt.Errorf("listener %s: unsupported traffic direction %s", l.Name, l.TrafficDirection)
+		return nil, fmt.Errorf("listener %s: unsupported traffic direction %s", lb.name, lb.trafficDirection)
 	}
 
 	if len(l.FilterChains) == 0 && l.DefaultFilterChain == nil {

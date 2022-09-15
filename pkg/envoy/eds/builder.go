@@ -18,22 +18,25 @@ const (
 	remoteClusterPriority = uint32(1)
 )
 
-type endpointsBuilder struct {
+// EndpointsBuilder is a helper type to build Envoy endpoints resources
+type EndpointsBuilder struct {
 	upstreamSvcEndpoints map[service.MeshService][]endpoint.Endpoint
 }
 
-func newEndpointsBuilder() *endpointsBuilder {
-	return &endpointsBuilder{
+// NewEndpointsBuilder creates a new EndpointsBuilder
+func NewEndpointsBuilder() *EndpointsBuilder {
+	return &EndpointsBuilder{
 		upstreamSvcEndpoints: make(map[service.MeshService][]endpoint.Endpoint),
 	}
 }
 
-func (b *endpointsBuilder) AddEndpoints(svc service.MeshService, endpoints []endpoint.Endpoint) {
+// AddEndpoints adds the given endpoints to the EndpointsBuilder for the provided service.
+func (b *EndpointsBuilder) AddEndpoints(svc service.MeshService, endpoints []endpoint.Endpoint) {
 	b.upstreamSvcEndpoints[svc] = endpoints
 }
 
 // Build generate Envoy endpoint resources based on stored endpoints
-func (b *endpointsBuilder) Build() []types.Resource {
+func (b *EndpointsBuilder) Build() []types.Resource {
 	var edsResources []types.Resource
 
 	for svc, endpoints := range b.upstreamSvcEndpoints {

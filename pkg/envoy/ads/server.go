@@ -64,13 +64,6 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pro
 	return &server
 }
 
-// withXdsLogMutex helper to run code that touches xdsLog map, to protect by mutex
-func (s *Server) withXdsLogMutex(f func()) {
-	s.xdsMapLogMutex.Lock()
-	defer s.xdsMapLogMutex.Unlock()
-	f()
-}
-
 // Start starts the ADS server
 func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int) error {
 	grpcServer, lis, err := NewGrpc(ServerType, port, xdsServerCertificateCommonName, s.certManager)

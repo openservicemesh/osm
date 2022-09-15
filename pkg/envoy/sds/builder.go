@@ -12,7 +12,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-type sdsBuilder struct {
+// SecretsBuilder is responsible for constructing the SDS response.
+type SecretsBuilder struct {
 	proxy *envoy.Proxy
 
 	// Service certificate for this proxy
@@ -24,27 +25,31 @@ type sdsBuilder struct {
 	identitiesForSecrets map[string][]identity.ServiceIdentity
 }
 
-// NewBuilder returns a new sdsBuilder
-func NewBuilder() *sdsBuilder { //nolint: revive // unexported-return
-	return &sdsBuilder{}
+// NewBuilder returns a new SecretsBuilder
+func NewBuilder() *SecretsBuilder { //nolint: revive // unexported-return
+	return &SecretsBuilder{}
 }
 
-func (b *sdsBuilder) SetProxy(proxy *envoy.Proxy) *sdsBuilder {
+// SetProxy sets the proxy these secrets are destined for.
+func (b *SecretsBuilder) SetProxy(proxy *envoy.Proxy) *SecretsBuilder {
 	b.proxy = proxy
 	return b
 }
 
-func (b *sdsBuilder) SetProxyCert(cert *certificate.Certificate) *sdsBuilder {
+// SetProxyCert sets the proxy's certificate on the builder.
+func (b *SecretsBuilder) SetProxyCert(cert *certificate.Certificate) *SecretsBuilder {
 	b.serviceCert = cert
 	return b
 }
 
-func (b *sdsBuilder) SetTrustDomain(trustDomain string) *sdsBuilder {
+// SetTrustDomain sets the trust domain on the builder.
+func (b *SecretsBuilder) SetTrustDomain(trustDomain string) *SecretsBuilder {
 	b.trustDomain = trustDomain
 	return b
 }
 
-func (b *sdsBuilder) SetServiceIdentitiesForService(serviceIdentitiesForServices map[service.MeshService][]identity.ServiceIdentity) *sdsBuilder {
+// SetServiceIdentitiesForService setes the list of identities for each service, to be used for SAN validation.
+func (b *SecretsBuilder) SetServiceIdentitiesForService(serviceIdentitiesForServices map[service.MeshService][]identity.ServiceIdentity) *SecretsBuilder {
 	b.identitiesForSecrets = make(map[string][]identity.ServiceIdentity)
 	for svc, serviceIdentities := range serviceIdentitiesForServices {
 		b.identitiesForSecrets[secrets.NameForUpstreamService(svc.Name, svc.Namespace)] = serviceIdentities
@@ -53,7 +58,7 @@ func (b *sdsBuilder) SetServiceIdentitiesForService(serviceIdentitiesForServices
 }
 
 // Build generates SDS Secret Resources based on requested certs in the DiscoveryRequest
-func (b *sdsBuilder) Build() []*xds_auth.Secret {
+func (b *SecretsBuilder) Build() []*xds_auth.Secret {
 	var sdsResources = make([]*xds_auth.Secret, 0, len(b.identitiesForSecrets))
 
 	sdsResources = append(sdsResources, b.buildServiceSecret())
@@ -74,7 +79,7 @@ func (b *sdsBuilder) Build() []*xds_auth.Secret {
 
 // buildServiceCertSecret creates the struct with certificates for the service, which the
 // connected Envoy proxy belongs to.
-func (b *sdsBuilder) buildServiceSecret() *xds_auth.Secret {
+func (b *SecretsBuilder) buildServiceSecret() *xds_auth.Secret {
 	return &xds_auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name in the Envoy yaml config
 		Name: secrets.NameForIdentity(b.proxy.Identity),
@@ -95,7 +100,7 @@ func (b *sdsBuilder) buildServiceSecret() *xds_auth.Secret {
 	}
 }
 
-func (b *sdsBuilder) buildSecret(name string, allowedIdentities []identity.ServiceIdentity) *xds_auth.Secret {
+func (b *SecretsBuilder) buildSecret(name string, allowedIdentities []identity.ServiceIdentity) *xds_auth.Secret {
 	secret := &xds_auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name
 		Name: name,

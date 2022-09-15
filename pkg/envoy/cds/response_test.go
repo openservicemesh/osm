@@ -112,7 +112,7 @@ func TestNewResponse(t *testing.T) {
 	_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), newPod1, metav1.CreateOptions{})
 	assert.Nil(err)
 
-	resp, err := NewResponse(mockCatalog, proxy, nil, nil)
+	resources, err := NewResponse(mockCatalog, proxy, nil, nil)
 	assert.Nil(err)
 
 	// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
@@ -123,15 +123,15 @@ func TestNewResponse(t *testing.T) {
 	// 4. Tracing cluster
 	// 5. Passthrough cluster for egress
 	numExpectedClusters := 6 // source and destination clusters
-	assert.Equal(numExpectedClusters, len(resp))
+	assert.Equal(numExpectedClusters, len(resources))
 	var actualClusters []*xds_cluster.Cluster
-	for idx := range resp {
-		cl, ok := resp[idx].(*xds_cluster.Cluster)
+	for idx := range resources {
+		cl, ok := resources[idx].(*xds_cluster.Cluster)
 		require.True(ok)
 		actualClusters = append(actualClusters, cl)
 	}
 
-	typedHTTPProtocolOptions, err := getTypedHTTPProtocolOptions(getHTTPProtocolOptions(""))
+	typedHTTPProtocolOptions, err := GetTypedHTTPProtocolOptions(GetHTTPProtocolOptions(""))
 	assert.Nil(err)
 
 	expectedLocalCluster := &xds_cluster.Cluster{
@@ -203,7 +203,7 @@ func TestNewResponse(t *testing.T) {
 			},
 		},
 		CircuitBreakers: &xds_cluster.CircuitBreakers{
-			Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{getDefaultCircuitBreakerThreshold()},
+			Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{GetDefaultCircuitBreakerThreshold()},
 		},
 	}
 
@@ -234,7 +234,7 @@ func TestNewResponse(t *testing.T) {
 			},
 		},
 		CircuitBreakers: &xds_cluster.CircuitBreakers{
-			Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{getDefaultCircuitBreakerThreshold()},
+			Thresholds: []*xds_cluster.CircuitBreakers_Thresholds{GetDefaultCircuitBreakerThreshold()},
 		},
 	}
 
@@ -408,9 +408,9 @@ func TestNewResponseListServicesError(t *testing.T) {
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, errors.New("no services found")).AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, nil)
+	resources, err := NewResponse(meshCatalog, proxy, nil, nil)
 	tassert.Error(t, err)
-	tassert.Nil(t, resp)
+	tassert.Nil(t, resources)
 }
 
 func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
@@ -428,9 +428,9 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, nil)
+	resources, err := NewResponse(meshCatalog, proxy, nil, nil)
 	tassert.NoError(t, err)
-	tassert.Empty(t, resp)
+	tassert.Empty(t, resources)
 }
 
 func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
@@ -452,8 +452,8 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
-	resp, err := NewResponse(meshCatalog, proxy, nil, nil)
+	resources, err := NewResponse(meshCatalog, proxy, nil, nil)
 	tassert.NoError(t, err)
-	tassert.Len(t, resp, 1)
-	tassert.Equal(t, resp[0].(*xds_cluster.Cluster).Name, "my-cluster")
+	tassert.Len(t, resources, 1)
+	tassert.Equal(t, resources[0].(*xds_cluster.Cluster).Name, "my-cluster")
 }
