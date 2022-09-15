@@ -89,11 +89,10 @@ This Open Service Mesh project uses [Go v1.19.0+](https://golang.org/). If you a
 
 ## Get the dependencies
 
-The OSM packages rely on many external Go libraries.
-
-Take a peek at the `go.mod` file in the root of this repository to see all dependencies.
+The OSM packages rely on many external Go libraries. Take a peek at the [go.mod](https://github.com/openservicemesh/osm/blob/main/go.mod) file in the root of this repository to see all dependencies.
 
 Run `go get -d ./...` to download all required Go packages.
+> Note: If you are not able to download all the required packages, please check and make sure you have `GO111MODULE=on` set in your environment. The value of `GO111MODULE` can be found by running command `go env`.
 
 Also the project requires Docker. See how to [install Docker](https://docs.docker.com/engine/install/).
 
@@ -139,7 +138,9 @@ export CTR_REGISTRY_PASSWORD=<your password>
 
 ```
 
-(NOTE: these requirements are true for automatic demo deployment using the available demo scripts; [#1416](https://github.com/openservicemesh/osm/issues/1416) tracks an improvement to not strictly require these and use upstream images from official dockerhub registry if a user does not want/need changes on the code)
+> Note: These requirements are true for automatic demo deployment using the available demo scripts; [#1416](https://github.com/openservicemesh/osm/issues/1416) tracks an improvement to not strictly require these and use upstream images from official dockerhub registry if a user does not want/need changes on the code
+
+> Note: For local development, you need to set the `CTR_TAG` environment variable. Without `CTR_TAG`, commands like `make docker-build` and `make build-osm-all` will fail. Example: `export CTR_TAG=latest-main` . 
 
 ## Build and push OSM images
 
@@ -205,7 +206,7 @@ make build-osm-all
 ./bin/osm install --set=osm.image.registry="$CTR_REGISTRY" --set=osm.image.pullPolicy=Always --set=osm.controllerLogLevel=trace --verbose 
 ```
 
-> **note**: you can set any of the OSM chart parameters in [values.yaml](/charts/osm/values.yaml) such as osm.image.registry on OSM install using `--set`. For example, if you need to customize the deployment tags you can use `--set=osm.image.registry="$CTR_TAG"`
+> **Note**: you can set any of the OSM chart parameters in [values.yaml](/charts/osm/values.yaml) such as osm.image.registry on OSM install using `--set`. For example, if you need to customize the deployment tags you can use `--set=osm.image.registry="$CTR_TAG"`
 
 ### Making changes to OSM 
 Make required changes to the OSM controller and deploy them.  You could do this for any server component, see more on the [Makefile](#makefile) for how to build individual containers.
@@ -236,7 +237,7 @@ make tilt-up
 
 This will create a kind cluster and deploy all the components.  If you edit one of the files and save it to disk, tilt will recompile that component and deploy it to the running pod.  
 
-> note: currently works for controller pods (controller, injector, bootstrap) but not the init container
+> Note: currently works for controller pods (controller, injector, bootstrap) but not the init container
 
 Customizing the tilt deployments can be done via `tilt_config.json` file.  For instance you can configure helm values to customize OSM HELM chart deployment.
 
