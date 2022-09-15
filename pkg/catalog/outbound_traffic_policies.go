@@ -143,7 +143,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	serviceSet := mapset.NewSet()
 	var allowedServices []service.MeshService
 
-	for _, t := range mc.ListTrafficTargets() { // loop through all traffic targets
+	for _, t := range mc.ListTrafficTargetsByOptions() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
 			if source.Name != svcAccount.Name || source.Namespace != svcAccount.Namespace {
 				// Source doesn't match the downstream's service identity

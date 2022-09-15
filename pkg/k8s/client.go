@@ -2,13 +2,11 @@ package k8s
 
 import (
 	"context"
-	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
@@ -24,7 +22,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewClient returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
@@ -266,68 +263,6 @@ func IsHeadlessService(svc corev1.Service) bool {
 	return len(svc.Spec.ClusterIP) == 0 || svc.Spec.ClusterIP == corev1.ClusterIPNone
 }
 
-// ServiceToMeshServices translates a k8s service with one or more ports to one or more
-// MeshService objects per port.
-func (c *Client) ServiceToMeshServices(svc corev1.Service) []service.MeshService {
-	var meshServices []service.MeshService
-
-	for _, portSpec := range svc.Spec.Ports {
-		meshSvc := service.MeshService{
-			Namespace: svc.Namespace,
-			Name:      svc.Name,
-			Port:      uint16(portSpec.Port),
-		}
-
-		// attempt to parse protocol from port name
-		// Order of Preference is:
-		// 1. port.appProtocol field
-		// 2. protocol prefixed to port name (e.g. tcp-my-port)
-		// 3. default to http
-		protocol := constants.ProtocolHTTP
-		for _, p := range constants.SupportedProtocolsInMesh {
-			if strings.HasPrefix(portSpec.Name, p+"-") {
-				protocol = p
-				break
-			}
-		}
-
-		// use port.appProtocol if specified, else use port protocol
-		meshSvc.Protocol = pointer.StringDeref(portSpec.AppProtocol, protocol)
-
-		// The endpoints for the kubernetes service carry information that allows
-		// us to retrieve the TargetPort for the MeshService.
-		endpoints, _ := c.GetEndpoints(meshSvc.Name, meshSvc.Namespace)
-		if endpoints != nil {
-			meshSvc.TargetPort = GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
-		} else {
-			log.Warn().Msgf("k8s service %s/%s does not have endpoints but is being represented as a MeshService", svc.Namespace, svc.Name)
-		}
-
-		if !IsHeadlessService(svc) || endpoints == nil {
-			meshServices = append(meshServices, meshSvc)
-			continue
-		}
-
-		for _, subset := range endpoints.Subsets {
-			for _, address := range subset.Addresses {
-				if address.Hostname == "" {
-					continue
-				}
-				meshServices = append(meshServices, service.MeshService{
-					Namespace:  svc.Namespace,
-					Name:       svc.Name,
-					Subdomain:  address.Hostname,
-					Port:       meshSvc.Port,
-					TargetPort: meshSvc.TargetPort,
-					Protocol:   meshSvc.Protocol,
-				})
-			}
-		}
-	}
-
-	return meshServices
-}
-
 // GetMeshConfig returns the current MeshConfig
 func (c *Client) GetMeshConfig() configv1alpha2.MeshConfig {
 	key := types.NamespacedName{Namespace: c.osmNamespace, Name: c.meshConfigName}.String()
@@ -342,38 +277,6 @@ func (c *Client) GetMeshConfig() configv1alpha2.MeshConfig {
 	}
 
 	return configv1alpha2.MeshConfig{}
-}
-
-// GetTargetPortFromEndpoints returns the endpoint port corresponding to the given endpoint name and endpoints
-func GetTargetPortFromEndpoints(endpointName string, endpoints corev1.Endpoints) (endpointPort uint16) {
-	// Per https://pkg.go.dev/k8s.io/api/core/v1#ServicePort and
-	// https://pkg.go.dev/k8s.io/api/core/v1#EndpointPort, if a service has multiple
-	// ports, then ServicePort.Name must match EndpointPort.Name when considering
-	// matching endpoints for the service's port. ServicePort.Name and EndpointPort.Name
-	// can be unset when the service has a single port exposed, in which case we are
-	// guaranteed to have the same port specified in the list of EndpointPort.Subsets.
-	//
-	// The logic below works as follows:
-	// If the service has multiple ports, retrieve the matching endpoint port using
-	// the given ServicePort.Name specified by `endpointName`.
-	// Otherwise, simply return the only port referenced in EndpointPort.Subsets.
-	for _, subset := range endpoints.Subsets {
-		for _, port := range subset.Ports {
-			if endpointName == "" || len(subset.Ports) == 1 {
-				// ServicePort.Name is not passed or a single port exists on the service.
-				// Both imply that this service has a single ServicePort and EndpointPort.
-				endpointPort = uint16(port.Port)
-				return
-			}
-
-			// If more than 1 port is specified
-			if port.Name == endpointName {
-				endpointPort = uint16(port.Port)
-				return
-			}
-		}
-	}
-	return
 }
 
 // GetPodForProxy returns the pod that the given proxy is attached to, based on the UUID and service identity.
@@ -633,6 +536,7 @@ func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
 		if !c.IsMonitoredNamespace(trafficTarget.Namespace) {
 			continue
 		}
+		trafficTargets = append(trafficTargets, trafficTarget)
 	}
 	return trafficTargets
 }

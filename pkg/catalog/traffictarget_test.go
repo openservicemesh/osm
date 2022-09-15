@@ -65,6 +65,10 @@ func TestListInboundServiceIdentities(t *testing.T) {
 							Name:      "sa-1",
 							Namespace: "ns-1",
 						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
+						}},
 					},
 				},
 				{
@@ -86,6 +90,10 @@ func TestListInboundServiceIdentities(t *testing.T) {
 							Kind:      "ServiceAccount",
 							Name:      "sa-1",
 							Namespace: "ns-1",
+						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
 						}},
 					},
 				},
@@ -131,6 +139,10 @@ func TestListInboundServiceIdentities(t *testing.T) {
 							Name:      "sa-1",
 							Namespace: "ns-1",
 						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
+						}},
 					},
 				},
 			},
@@ -169,6 +181,10 @@ func TestListInboundServiceIdentities(t *testing.T) {
 							Kind:      "ServiceAccount",
 							Name:      "sa-1",
 							Namespace: "ns-1",
+						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
 						}},
 					},
 				},
@@ -236,6 +252,10 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 							Name:      "sa-1",
 							Namespace: "ns-1",
 						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
+						}},
 					},
 				},
 				{
@@ -257,6 +277,10 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 							Kind:      "ServiceAccount",
 							Name:      "sa-1",
 							Namespace: "ns-1",
+						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
 						}},
 					},
 				},
@@ -306,6 +330,10 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 							Name:      "sa-1",
 							Namespace: "ns-1",
 						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
+						}},
 					},
 				},
 			},
@@ -344,6 +372,10 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 							Kind:      "foo", // Invalid kind
 							Name:      "sa-1",
 							Namespace: "ns-1",
+						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
 						}},
 					},
 				},
@@ -1025,7 +1057,7 @@ func TestListSMIPolicies(t *testing.T) {
 	a := assert.New(t)
 
 	trafficSplits := mc.ListTrafficSplits()
-	serviceAccounts := mc.ListServiceAccounts()
+	serviceAccounts := mc.ListServiceAccountsFromTrafficTargets()
 	routeGroups := mc.ListHTTPTrafficSpecs()
 	trafficTargets := mc.ListTrafficTargets()
 

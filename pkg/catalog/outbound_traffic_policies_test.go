@@ -103,6 +103,10 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					Name:      "sa-x", // matches downstreamIdentity
 					Namespace: "ns1",
 				}},
+				Rules: []access.TrafficTargetRule{{
+					Kind: "HTTPRouteGroup",
+					Name: "rule",
+				}},
 			},
 		},
 		{
@@ -124,6 +128,10 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					Kind:      "ServiceAccount",
 					Name:      "sa-x", // matches downstreamIdentity
 					Namespace: "ns1",
+				}},
+				Rules: []access.TrafficTargetRule{{
+					Kind: "HTTPRouteGroup",
+					Name: "rule",
 				}},
 			},
 		},

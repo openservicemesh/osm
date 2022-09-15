@@ -34,7 +34,7 @@ func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream identity.Ser
 		return nil, nil
 	}
 
-	for _, t := range mc.ListTrafficTargets() { // loop through all traffic targets
+	for _, t := range mc.ListTrafficTargetsByOptions() { // loop through all traffic targets
 		destinationSvcIdentity := trafficTargetIdentityToSvcAccount(t.Spec.Destination).ToServiceIdentity()
 		if destinationSvcIdentity != upstream {
 			continue
@@ -74,8 +74,8 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcIdentity identity
 	svcAccount := svcIdentity.ToK8sServiceAccount()
 	allowed := mapset.NewSet()
 
-	allTrafficTargets := mc.ListTrafficTargets()
-	for _, trafficTarget := range allTrafficTargets {
+	allValidTrafficTargets := mc.ListTrafficTargetsByOptions()
+	for _, trafficTarget := range allValidTrafficTargets {
 		spec := trafficTarget.Spec
 
 		if spec.Destination.Kind != smi.ServiceAccountKind {
@@ -192,7 +192,7 @@ func toUint16Slice(ports []int) (ret []uint16) {
 	return ret
 }
 
-// ListTrafficSplits implements mesh.MeshSpec by returning the list of traffic splits.
+// ListTrafficSplitsByOptions returns a list of TrafficSplit resources that match the given options
 func (mc *MeshCatalog) ListTrafficSplitsByOptions(options ...smi.TrafficSplitListOption) []*smiSplit.TrafficSplit {
 	var trafficSplits []*smiSplit.TrafficSplit
 
@@ -204,7 +204,7 @@ func (mc *MeshCatalog) ListTrafficSplitsByOptions(options ...smi.TrafficSplitLis
 	return trafficSplits
 }
 
-// ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.
+// ListTrafficTargetsByOptions returns a list of traffic targets that match the given options.
 func (mc *MeshCatalog) ListTrafficTargetsByOptions(options ...smi.TrafficTargetListOption) []*smiAccess.TrafficTarget {
 	var trafficTargets []*smiAccess.TrafficTarget
 
@@ -221,8 +221,8 @@ func (mc *MeshCatalog) ListTrafficTargetsByOptions(options ...smi.TrafficTargetL
 	return trafficTargets
 }
 
-// ListServiceAccounts lists ServiceAccounts specified in SMI TrafficTarget resources
-func (mc *MeshCatalog) ListServiceAccounts() []identity.K8sServiceAccount {
+// ListServiceAccountsFromTrafficTargets lists ServiceAccounts specified in SMI TrafficTarget resources
+func (mc *MeshCatalog) ListServiceAccountsFromTrafficTargets() []identity.K8sServiceAccount {
 	var serviceAccounts []identity.K8sServiceAccount
 	for _, trafficTarget := range mc.ListTrafficTargets() {
 		if !mc.IsMonitoredNamespace(trafficTarget.Namespace) {

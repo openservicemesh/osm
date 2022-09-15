@@ -35,7 +35,7 @@ func TestGetSMIPolicies(t *testing.T) {
 					Name:      "bar",
 				}},
 		})
-	mock.EXPECT().ListServiceAccounts().Return(
+	mock.EXPECT().ListServiceAccountsFromTrafficTargets().Return(
 		[]identity.K8sServiceAccount{
 			tests.BookbuyerServiceAccount,
 		})

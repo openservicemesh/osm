@@ -65,16 +65,16 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                      string
-		upstreamIdentity          identity.ServiceIdentity
-		upstreamServices          []service.MeshService
-		permissiveMode            bool
-		trafficTargets            []*access.TrafficTarget
-		httpRouteGroups           []*spec.HTTPRouteGroup
-		tcpRoutes                 []*spec.TCPRoute
-		trafficSplits             []*split.TrafficSplit
-		upstreamTrafficSettings   []*policyv1alpha1.UpstreamTrafficSetting
-		prepare                   func(mockK8s *k8s.MockController,
+		name                    string
+		upstreamIdentity        identity.ServiceIdentity
+		upstreamServices        []service.MeshService
+		permissiveMode          bool
+		trafficTargets          []*access.TrafficTarget
+		httpRouteGroups         []*spec.HTTPRouteGroup
+		tcpRoutes               []*spec.TCPRoute
+		trafficSplits           []*split.TrafficSplit
+		upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting
+		prepare                 func(mockK8s *k8s.MockController,
 			trafficSplits []*split.TrafficSplit,
 			trafficTargets []*access.TrafficTarget,
 			upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting,
