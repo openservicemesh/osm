@@ -245,8 +245,11 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 		expected               *xds_cluster.Cluster
 	}{
 		{
-			name:        "foo cluster without UpstreamTrafficSetting specified",
+			name:        "foo cluster without UpstreamConnectionSetting specified",
 			clusterName: "foo",
+			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
+				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{},
+			},
 			expected: &xds_cluster.Cluster{
 				Name: "foo",
 				ClusterDiscoveryType: &xds_cluster.Cluster_Type{
@@ -268,7 +271,7 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 			},
 		},
 		{
-			name:        "bar cluster with UpstreamTrafficSetting specified",
+			name:        "bar cluster with UpstreamConnectionSetting specified",
 			clusterName: "bar",
 			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
 				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
@@ -314,7 +317,7 @@ func TestGetOriginalDestinationEgressCluster(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual, err := getOriginalDestinationEgressCluster(tc.clusterName, tc.upstreamTrafficSetting)
+			actual, err := getOriginalDestinationEgressCluster(tc.clusterName, tc.upstreamTrafficSetting.Spec.ConnectionSettings)
 			assert.Nil(err)
 			assert.Equal(tc.expected, actual)
 		})

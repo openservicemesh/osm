@@ -17,13 +17,9 @@ import (
 )
 
 func (lb *listenerBuilder) buildInboundMeshFilterChains() []*xds_listener.FilterChain {
-	if lb.inboundMeshTrafficPolicy == nil {
-		return nil
-	}
-
 	var filterChains []*xds_listener.FilterChain
 
-	for _, match := range lb.inboundMeshTrafficPolicy.TrafficMatches {
+	for _, match := range lb.inboundMeshTrafficMatches {
 		// Create protocol specific inbound filter chains for MeshService's TargetPort
 		switch strings.ToLower(match.DestinationProtocol) {
 		case constants.ProtocolHTTP, constants.ProtocolGRPC:
@@ -307,13 +303,9 @@ func (lb *listenerBuilder) buildOutboundTCPFilterChain(trafficMatch trafficpolic
 // NEWCODE
 // getOutboundFilterChainPerUpstream returns a list of filter chains corresponding to upstream services
 func (lb *listenerBuilder) buildOutboundFilterChains() []*xds_listener.FilterChain {
-	if lb.outboundMeshTrafficPolicy == nil {
-		return nil
-	}
-
 	var filterChains []*xds_listener.FilterChain
 
-	for _, trafficMatch := range lb.outboundMeshTrafficPolicy.TrafficMatches {
+	for _, trafficMatch := range lb.outboundMeshTrafficMatches {
 		log.Trace().Msgf("Building outbound mesh filter chain %s for proxy with identity %s", trafficMatch.Name, lb.proxyIdentity)
 		// Create an outbound filter chain match per TrafficMatch object
 		switch strings.ToLower(trafficMatch.DestinationProtocol) {

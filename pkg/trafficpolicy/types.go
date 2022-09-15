@@ -91,43 +91,6 @@ type TrafficTargetWithRoutes struct {
 	TCPRouteMatches []TCPRouteMatch            `json:"tcp_route_matches:omitempty"`
 }
 
-// OutboundMeshTrafficPolicy is the type used to represent the outbound mesh traffic policy configurations
-// applicable to a downstream client.
-type OutboundMeshTrafficPolicy struct {
-	// TrafficMatches defines the list of traffic matches for matching outbound mesh traffic.
-	// The matches specified are used to match outbound traffic as mesh traffic, and
-	// subject matching traffic to mesh traffic policies.
-	TrafficMatches []*TrafficMatch
-
-	// HTTPRouteConfigsPerPort defines the outbound mesh HTTP route configurations per port.
-	// Mesh HTTP routes are grouped based on their port to avoid route conflicts that
-	// can arise when the same host headers are to be routed differently based on the port.
-	HTTPRouteConfigsPerPort map[int][]*OutboundTrafficPolicy
-
-	// ClustersConfigs defines the list of mesh cluster configurations.
-	// The specified config is used to program clusters corresponding to
-	// mesh destinations.
-	ClustersConfigs []*MeshClusterConfig
-}
-
-// InboundMeshTrafficPolicy is the type used to represent the inbound mesh traffic policy configurations
-// applicable to an upstream server.
-type InboundMeshTrafficPolicy struct {
-	// TrafficMatches defines the list of traffic matches for matching inbound mesh traffic.
-	// The matches specified are used to match inbound traffic as mesh traffic, and
-	// subject matching traffic to mesh traffic policies.
-	TrafficMatches []*TrafficMatch
-
-	// HTTPRouteConfigsPerPort defines the inbound mesh HTTP route configurations per port.
-	// Mesh HTTP routes are grouped based on their port to avoid route conflicts that
-	// can arise when the same host headers are to be routed differently based on the port.
-	HTTPRouteConfigsPerPort map[int][]*InboundTrafficPolicy
-
-	// ClustersConfigs defines the list of mesh cluster configurations.
-	// The specified config is used to program local clusters on the upstream server.
-	ClustersConfigs []*MeshClusterConfig
-}
-
 // MeshClusterConfig is the type used to represent a cluster configuration that is programmed
 // for either:
 // 1. A downstream to connect to an upstream cluster, OR

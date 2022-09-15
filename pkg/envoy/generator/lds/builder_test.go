@@ -88,78 +88,68 @@ func TestBuildOutboundHTTPFilter(t *testing.T) {
 
 func TestBuildInboundFilterChains(t *testing.T) {
 	testCases := []struct {
-		name                     string
-		inboundMeshTrafficPolicy *trafficpolicy.InboundMeshTrafficPolicy
-		ingressTrafficPolicies   []*trafficpolicy.IngressTrafficPolicy
-		expectedFilterChains     int
+		name                      string
+		inboundMeshTrafficMatches []*trafficpolicy.TrafficMatch
+		ingressTrafficMatches     [][]*trafficpolicy.IngressTrafficMatch
+		expectedFilterChains      int
 	}{
 		{
 			name: "multiple HTTP and TCP traffic matches for inbound and ingress",
-			inboundMeshTrafficPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
-				TrafficMatches: []*trafficpolicy.TrafficMatch{
-					{
-						Name:                "1",
-						DestinationPort:     80,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"1.1.1.1/32"},
-						Cluster:             "foo",
-					},
-					{
-						Name:                "2",
-						DestinationPort:     90,
-						DestinationProtocol: "grpc",
-						DestinationIPRanges: []string{"1.1.1.1/32"},
-						Cluster:             "foo",
-					},
-					{
-						Name:                "3",
-						DestinationPort:     100,
-						DestinationProtocol: "tcp",
-						Cluster:             "foo",
-						DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
-					},
-					{
-						Name:                "4",
-						DestinationPort:     100,
-						DestinationProtocol: "tcp-server-first",
-						Cluster:             "foo",
-						DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
-					},
+			inboundMeshTrafficMatches: []*trafficpolicy.TrafficMatch{
+				{
+					Name:                "1",
+					DestinationPort:     80,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"1.1.1.1/32"},
+					Cluster:             "foo",
+				},
+				{
+					Name:                "2",
+					DestinationPort:     90,
+					DestinationProtocol: "grpc",
+					DestinationIPRanges: []string{"1.1.1.1/32"},
+					Cluster:             "foo",
+				},
+				{
+					Name:                "3",
+					DestinationPort:     100,
+					DestinationProtocol: "tcp",
+					Cluster:             "foo",
+					DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
+				},
+				{
+					Name:                "4",
+					DestinationPort:     100,
+					DestinationProtocol: "tcp-server-first",
+					Cluster:             "foo",
+					DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
 				},
 			},
-			ingressTrafficPolicies: []*trafficpolicy.IngressTrafficPolicy{
+			ingressTrafficMatches: [][]*trafficpolicy.IngressTrafficMatch{
 				{
-					TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
-						{
-							Name:           "1",
-							Port:           80,
-							Protocol:       "http",
-							SourceIPRanges: []string{"1.1.1.1/32"},
-							ServerNames:    []string{"foo.com"},
-						},
-						{
-							Name:                     "1",
-							Port:                     90,
-							Protocol:                 "http",
-							SourceIPRanges:           []string{"1.1.1.1/32"},
-							SkipClientCertValidation: true,
-						},
+					{
+						Name:           "1",
+						Port:           80,
+						Protocol:       "http",
+						SourceIPRanges: []string{"1.1.1.1/32"},
+						ServerNames:    []string{"foo.com"},
+					},
+					{
+						Name:                     "1",
+						Port:                     90,
+						Protocol:                 "http",
+						SourceIPRanges:           []string{"1.1.1.1/32"},
+						SkipClientCertValidation: true,
 					},
 				},
 			},
 			expectedFilterChains: 6, // 4 in-mesh + 2 ingress
 		},
 		{
-			name:                     "nil InboundMeshTrafficPolicy/IngressTrafficPolicy should result in 0 filter chains",
-			inboundMeshTrafficPolicy: nil,
-			ingressTrafficPolicies:   nil,
-			expectedFilterChains:     0,
-		},
-		{
-			name:                     "nil TrafficMatch should result in 0 filter chains",
-			inboundMeshTrafficPolicy: &trafficpolicy.InboundMeshTrafficPolicy{TrafficMatches: nil},
-			ingressTrafficPolicies:   []*trafficpolicy.IngressTrafficPolicy{},
-			expectedFilterChains:     0,
+			name:                      "nil TrafficMatch should result in 0 filter chains",
+			inboundMeshTrafficMatches: nil,
+			ingressTrafficMatches:     nil,
+			expectedFilterChains:      0,
 		},
 	}
 
@@ -167,9 +157,9 @@ func TestBuildInboundFilterChains(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 			lb := &listenerBuilder{
-				inboundMeshTrafficPolicy: tc.inboundMeshTrafficPolicy,
-				ingressTrafficPolicies:   tc.ingressTrafficPolicies,
-				proxyIdentity:            tests.BookbuyerServiceIdentity,
+				inboundMeshTrafficMatches: tc.inboundMeshTrafficMatches,
+				ingressTrafficMatches:     tc.ingressTrafficMatches,
+				proxyIdentity:             tests.BookbuyerServiceIdentity,
 			}
 
 			actual := lb.buildInboundFilterChains()

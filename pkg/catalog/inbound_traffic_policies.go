@@ -24,33 +24,15 @@ const (
 	DisallowPartialHostnamesMatch bool = false
 )
 
-// GetInboundMeshTrafficPolicy returns the inbound mesh traffic policy for the given upstream identity and services
-func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.ServiceIdentity, upstreamServices []service.MeshService) *trafficpolicy.InboundMeshTrafficPolicy {
-	var trafficMatches []*trafficpolicy.TrafficMatch
-	var clusterConfigs []*trafficpolicy.MeshClusterConfig
-	var trafficTargets []*access.TrafficTarget
-	routeConfigPerPort := make(map[int][]*trafficpolicy.InboundTrafficPolicy)
-
-	permissiveMode := mc.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode
-	if !permissiveMode {
-		// Pre-computing the list of TrafficTarget optimizes to avoid repeated
-		// cache lookups for each upstream service.
-		destinationFilter := smi.WithTrafficTargetDestination(upstreamIdentity.ToK8sServiceAccount())
-		trafficTargets = mc.ListTrafficTargetsByOptions(destinationFilter)
-	}
-
-	upstreamSvcSet := mapset.NewSet()
-	for _, svc := range upstreamServices {
-		upstreamSvcSet.Add(svc)
-	}
+// GetInboundMeshClusterConfigs returns the cluster configs for the inbound mesh traffic policy for the given upstream services
+func (mc *MeshCatalog) GetInboundMeshClusterConfigs(upstreamServices []service.MeshService) []*trafficpolicy.MeshClusterConfig {
+	allUpstreamServices := mc.getUpstreamServicesIncludeApex(upstreamServices)
 
 	// Used to avoid duplicate clusters that can arise when multiple
 	// upstream services reference the same global rate limit service
 	rlsClusterSet := mapset.NewSet()
 
-	// A policy (traffic match, route, cluster) must be built for each upstream service. This
-	// includes apex/root services associated with the given upstream service.
-	allUpstreamServices := mc.getUpstreamServicesIncludeApex(upstreamServices)
+	var clusterConfigs []*trafficpolicy.MeshClusterConfig
 
 	// Build configurations per upstream service
 	for _, upstreamSvc := range allUpstreamServices {
@@ -68,6 +50,26 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 
 		upstreamTrafficSetting := mc.GetUpstreamTrafficSettingByService(&upstreamSvc)
 		clusterConfigs = append(clusterConfigs, getRateLimitServiceClusters(upstreamTrafficSetting, rlsClusterSet)...)
+	}
+
+	return clusterConfigs
+}
+
+// GetInboundMeshTrafficMatches returns the traffic matches for the inbound mesh traffic policy for the given upstream services
+func (mc *MeshCatalog) GetInboundMeshTrafficMatches(upstreamServices []service.MeshService) []*trafficpolicy.TrafficMatch {
+	allUpstreamServices := mc.getUpstreamServicesIncludeApex(upstreamServices)
+	upstreamSvcSet := mapset.NewSet()
+	for _, svc := range upstreamServices {
+		upstreamSvcSet.Add(svc)
+	}
+
+	var trafficMatches []*trafficpolicy.TrafficMatch
+
+	// Build configurations per upstream service
+	for _, upstreamSvc := range allUpstreamServices {
+		upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop
+
+		upstreamTrafficSetting := mc.GetUpstreamTrafficSettingByService(&upstreamSvc)
 
 		// ---
 		// Create a TrafficMatch for this upstream servic.
@@ -95,6 +97,31 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 			}
 			trafficMatches = append(trafficMatches, trafficMatchForUpstreamSvc)
 		}
+	}
+
+	return trafficMatches
+}
+
+// GetInboundMeshHTTPRouteConfigsPerPort returns a map of the given inbound traffic policy per port for the given upstream identity and services
+func (mc *MeshCatalog) GetInboundMeshHTTPRouteConfigsPerPort(upstreamIdentity identity.ServiceIdentity, upstreamServices []service.MeshService) map[int][]*trafficpolicy.InboundTrafficPolicy {
+	allUpstreamServices := mc.getUpstreamServicesIncludeApex(upstreamServices)
+
+	var trafficTargets []*access.TrafficTarget
+	routeConfigPerPort := make(map[int][]*trafficpolicy.InboundTrafficPolicy)
+
+	permissiveMode := mc.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode
+	if !permissiveMode {
+		// Pre-computing the list of TrafficTarget optimizes to avoid repeated
+		// cache lookups for each upstream service.
+		destinationFilter := smi.WithTrafficTargetDestination(upstreamIdentity.ToK8sServiceAccount())
+		trafficTargets = mc.ListTrafficTargetsByOptions(destinationFilter)
+	}
+
+	// Build configurations per upstream service
+	for _, upstreamSvc := range allUpstreamServices {
+		upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop
+
+		upstreamTrafficSetting := mc.GetUpstreamTrafficSettingByService(&upstreamSvc)
 
 		// Build the HTTP route configs for this service and port combination.
 		// If the port's protocol corresponds to TCP, we can skip this step
@@ -111,11 +138,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		routeConfigPerPort[int(upstreamSvc.TargetPort)] = append(routeConfigPerPort[int(upstreamSvc.TargetPort)], inboundTrafficPolicies)
 	}
 
-	return &trafficpolicy.InboundMeshTrafficPolicy{
-		TrafficMatches:          trafficMatches,
-		ClustersConfigs:         clusterConfigs,
-		HTTPRouteConfigsPerPort: routeConfigPerPort,
-	}
+	return routeConfigPerPort
 }
 
 func (mc *MeshCatalog) getInboundTrafficPoliciesForUpstream(upstreamSvc service.MeshService, permissiveMode bool,

@@ -17,14 +17,10 @@ import (
 )
 
 func (lb *listenerBuilder) buildIngressFilterChains() []*xds_listener.FilterChain {
-	if lb.ingressTrafficPolicies == nil {
-		return nil
-	}
-
 	var filterChains []*xds_listener.FilterChain
 
-	for _, policy := range lb.ingressTrafficPolicies {
-		for _, trafficMatch := range policy.TrafficMatches {
+	for _, trafficMatches := range lb.ingressTrafficMatches {
+		for _, trafficMatch := range trafficMatches {
 			filterChain, err := lb.buildIngressFilterChainFromTrafficMatch(trafficMatch)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error building ingress filter chain for traffic match %s for proxy with identity %s", trafficMatch.Name, lb.proxyIdentity)

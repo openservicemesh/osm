@@ -35,43 +35,26 @@ func (g *EnvoyConfigGenerator) generateRDS(ctx context.Context, proxy *models.Pr
 		StatsHeaders(statsHeaders).
 		TrustDomain(trustDomain)
 
-	// Get inbound mesh traffic policy and pass to builder
-	inboundMeshTrafficPolicy := g.catalog.GetInboundMeshTrafficPolicy(proxy.Identity, proxyServices)
-	if inboundMeshTrafficPolicy != nil {
-		routesBuilder.InboundPortSpecificRouteConfigs(inboundMeshTrafficPolicy.HTTPRouteConfigsPerPort)
-	}
+	// Get HTTP route configs per port from inbound mesh traffic policy and pass to builder
+	routesBuilder.InboundPortSpecificRouteConfigs(g.catalog.GetInboundMeshHTTPRouteConfigsPerPort(proxy.Identity, proxyServices))
 
-	// Get outbound mesh traffic policy and pass to builder
-	outboundMeshTrafficPolicy := g.catalog.GetOutboundMeshTrafficPolicy(proxy.Identity)
-	if outboundMeshTrafficPolicy != nil {
-		routesBuilder.OutboundPortSpecificRouteConfigs(outboundMeshTrafficPolicy.HTTPRouteConfigsPerPort)
-	}
+	// Get HTTP route configs per port from outbound mesh traffic policy and pass to builder
+	routesBuilder.OutboundPortSpecificRouteConfigs(g.catalog.GetOutboundMeshHTTPRouteConfigsPerPort(proxy.Identity))
 
-	// Get ingress traffic policies and pass to builder
+	// Get ingress http route policies and pass to builder
 	var ingressTrafficPolicies []*trafficpolicy.InboundTrafficPolicy
 	for _, svc := range proxyServices {
-		ingressPolicy, err := g.catalog.GetIngressTrafficPolicy(svc)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error getting ingress traffic policy for service %s, skipping", svc)
-			continue
-		}
-		if ingressPolicy == nil {
+		ingressHTTPRoutePolicies := g.catalog.GetIngressHTTPRoutePoliciesForSvc(svc)
+		if ingressHTTPRoutePolicies == nil {
 			log.Trace().Msgf("No ingress policy configured for service %s", svc)
 			continue
 		}
-		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(ingressTrafficPolicies, ingressPolicy.HTTPRoutePolicies...)
+		ingressTrafficPolicies = trafficpolicy.MergeInboundPolicies(ingressTrafficPolicies, ingressHTTPRoutePolicies...)
 	}
 	routesBuilder.IngressTrafficPolicies(ingressTrafficPolicies)
 
-	// Get egress traffic policy and pass to builder
-	egressTrafficPolicy, err := g.catalog.GetEgressTrafficPolicy(proxy.Identity)
-
-	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving egress traffic policies for proxy with identity %s, skipping egress route configuration", proxy.Identity)
-	}
-	if egressTrafficPolicy != nil {
-		routesBuilder.EgressPortSpecificRouteConfigs(egressTrafficPolicy.HTTPRouteConfigsPerPort)
-	}
+	// Get HTTP route configs per port from egress traffic policy and pass to builder
+	routesBuilder.EgressPortSpecificRouteConfigs(g.catalog.GetEgressHTTPRouteConfigsPerPort(proxy.Identity))
 
 	rdsResources, err := routesBuilder.Build()
 

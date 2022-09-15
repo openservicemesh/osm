@@ -52,23 +52,23 @@ func (lb *listenerBuilder) TrafficDirection(dir xds_core.TrafficDirection) *list
 	return lb
 }
 
-func (lb *listenerBuilder) OutboundMeshTrafficPolicy(t *trafficpolicy.OutboundMeshTrafficPolicy) *listenerBuilder {
-	lb.outboundMeshTrafficPolicy = t
+func (lb *listenerBuilder) OutboundMeshTrafficMatches(t []*trafficpolicy.TrafficMatch) *listenerBuilder {
+	lb.outboundMeshTrafficMatches = t
 	return lb
 }
 
-func (lb *listenerBuilder) InboundMeshTrafficPolicy(t *trafficpolicy.InboundMeshTrafficPolicy) *listenerBuilder {
-	lb.inboundMeshTrafficPolicy = t
+func (lb *listenerBuilder) InboundMeshTrafficMatches(t []*trafficpolicy.TrafficMatch) *listenerBuilder {
+	lb.inboundMeshTrafficMatches = t
 	return lb
 }
 
-func (lb *listenerBuilder) EgressTrafficPolicy(t *trafficpolicy.EgressTrafficPolicy) *listenerBuilder {
-	lb.egressTrafficPolicy = t
+func (lb *listenerBuilder) EgressTrafficMatches(t []*trafficpolicy.TrafficMatch) *listenerBuilder {
+	lb.egressTrafficMatches = t
 	return lb
 }
 
-func (lb *listenerBuilder) IngressTrafficPolicies(t []*trafficpolicy.IngressTrafficPolicy) *listenerBuilder {
-	lb.ingressTrafficPolicies = t
+func (lb *listenerBuilder) IngressTrafficMatches(t [][]*trafficpolicy.IngressTrafficMatch) *listenerBuilder {
+	lb.ingressTrafficMatches = t
 	return lb
 }
 
@@ -205,17 +205,17 @@ func (lb *listenerBuilder) buildOutboundListener() *xds_listener.Listener {
 	var outboundTrafficMatches []*trafficpolicy.TrafficMatch // used to configure FilterDisabled match predicate
 
 	l.FilterChains = lb.buildOutboundFilterChains()
-	if lb.outboundMeshTrafficPolicy != nil {
-		outboundTrafficMatches = append(outboundTrafficMatches, lb.outboundMeshTrafficPolicy.TrafficMatches...)
+	if lb.outboundMeshTrafficMatches != nil {
+		outboundTrafficMatches = append(outboundTrafficMatches, lb.outboundMeshTrafficMatches...)
 	}
 
 	if lb.permissiveEgress {
 		// Enable permissive (global) egress to unknown destinations
 		l.DefaultFilterChain = getDefaultPassthroughFilterChain()
-	} else if lb.egressTrafficPolicy != nil {
+	} else if lb.egressTrafficMatches != nil {
 		// Build Egress policy filter chains
-		l.FilterChains = append(l.FilterChains, lb.getEgressFilterChainsForMatches(lb.egressTrafficPolicy.TrafficMatches)...)
-		outboundTrafficMatches = append(outboundTrafficMatches, lb.egressTrafficPolicy.TrafficMatches...)
+		l.FilterChains = append(l.FilterChains, lb.getEgressFilterChainsForMatches(lb.egressTrafficMatches)...)
+		outboundTrafficMatches = append(outboundTrafficMatches, lb.egressTrafficMatches...)
 	}
 
 	var filterDisableMatchPredicate *xds_listener.ListenerFilterChainMatchPredicate
