@@ -85,7 +85,5 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int)
 		return fmt.Errorf("error starting ADS server: %w", err)
 	}
 
-	s.ready = true
-
 	return nil
 }

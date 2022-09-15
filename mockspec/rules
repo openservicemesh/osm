@@ -14,8 +14,5 @@ catalog; pkg/catalog/mock_catalog_generated.go; github.com/openservicemesh/osm/p
 # pkg/debugger
 debugger; pkg/debugger/mock_debugger_generated.go; github.com/openservicemesh/osm/pkg/debugger; XDSDebugger
 
-# pkg/health
-health; pkg/health/mock_probes_generated.go; github.com/openservicemesh/osm/pkg/health; Probes
-
 # pkg/compute
 compute; pkg/compute/mock_compute_client_generated.go; github.com/openservicemesh/osm/pkg/compute; Interface
