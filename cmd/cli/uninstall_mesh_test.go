@@ -37,6 +37,7 @@ var (
 	osmTestVersion                    = "testVersion"
 	diffMesh                          = "diffMesh"
 	diffNamespace                     = "diffNs"
+	testNsInMesh                      = "nsOfMesh"
 )
 
 func TestUninstallCmd(t *testing.T) {
@@ -44,6 +45,7 @@ func TestUninstallCmd(t *testing.T) {
 		name            string
 		meshName        string
 		meshNamespace   string
+		nsInMesh        string
 		force           bool
 		deleteNamespace bool
 		emptyMeshList   bool
@@ -69,6 +71,17 @@ func TestUninstallCmd(t *testing.T) {
 			userPromptsYes:  true,
 			emptyMeshList:   false,
 			meshExists:      false,
+		},
+		{
+			name:            "the mesh exist with one namespace added to mesh",
+			meshName:        testMeshName,
+			meshNamespace:   testNamespace,
+			nsInMesh:        testNsInMesh,
+			force:           false,
+			deleteNamespace: false,
+			userPromptsYes:  true,
+			emptyMeshList:   false,
+			meshExists:      true,
 		},
 		{
 			name:            "the mesh DOES NOT exist and force delete set to true",
@@ -235,6 +248,11 @@ func TestUninstallCmd(t *testing.T) {
 			if !test.emptyMeshList {
 				_, err := addDeployment(fakeClientSet, "osm-controller-1", testMeshName, testNamespace, osmTestVersion, true)
 				assert.Nil(err)
+				if len(test.nsInMesh) != 0 {
+					nsSpec := createNamespaceSpec(test.nsInMesh, test.meshName, true, false, true)
+					_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
+					assert.Nil(err)
+				}
 			}
 
 			uninstall := uninstallMeshCmd{
@@ -268,6 +286,16 @@ func TestUninstallCmd(t *testing.T) {
 
 				if test.userPromptsYes {
 					if test.meshExists {
+						if len(test.nsInMesh) != 0 {
+							// ensure osm related annotations are removed from namespace
+							ns, err := uninstall.clientSet.CoreV1().Namespaces().Get(context.TODO(), test.nsInMesh, metav1.GetOptions{})
+							assert.Nil(err)
+							assert.Empty(ns.Labels[constants.OSMKubeResourceMonitorAnnotation])
+							assert.Empty(ns.Labels[constants.IgnoreLabel])
+							assert.Empty(ns.Annotations[constants.SidecarInjectionAnnotation])
+							assert.Empty(ns.Annotations[constants.MetricsAnnotation])
+						}
+
 						assert.Contains(out.String(), fmt.Sprintf("OSM [mesh name: %s] in namespace [%s] uninstalled\n", test.meshName, test.meshNamespace))
 					}
 					if test.deleteNamespace {
@@ -278,7 +306,11 @@ func TestUninstallCmd(t *testing.T) {
 					} else {
 						namespaces, err := uninstall.clientSet.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 						assert.Nil(err)
-						assert.Equal(len(existingNamespaces), len(namespaces.Items))
+						if len(test.nsInMesh) != 0 {
+							assert.Equal(len(existingNamespaces)+1, len(namespaces.Items))
+						} else {
+							assert.Equal(len(existingNamespaces), len(namespaces.Items))
+						}
 					}
 				}
 			}
