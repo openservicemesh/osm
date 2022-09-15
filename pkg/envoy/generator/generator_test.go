@@ -99,5 +99,4 @@ func TestGenerateConfig(t *testing.T) {
 
 	err = snapshot.Consistent()
 	tassert.NoError(err)
-
 }

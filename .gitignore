@@ -47,7 +47,6 @@ demo/bin/
 *.tgz
 # dependency charts pulled by Helm
 !**/charts/*.tgz
-*.wasm
 
 ## Ignore test coverage files
 coverage.json

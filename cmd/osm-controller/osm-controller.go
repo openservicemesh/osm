@@ -39,7 +39,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/openservicemesh/osm/pkg/envoy/generator"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
-	ads "github.com/openservicemesh/osm/pkg/envoy/server"
+	"github.com/openservicemesh/osm/pkg/envoy/server"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
@@ -237,7 +237,7 @@ func main() {
 
 	proxyRegistry := registry.NewProxyRegistry()
 	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer()
+	xdsServer := server.NewADSServer()
 	xdsGenerator := generator.NewEnvoyConfigGenerator(meshCatalog, certManager)
 
 	cp := osm.NewControlPlane[map[string][]types.Resource](xdsServer, xdsGenerator, meshCatalog, proxyRegistry, certManager, msgBroker)

@@ -1,4 +1,4 @@
-package ads
+package server
 
 import (
 	"testing"

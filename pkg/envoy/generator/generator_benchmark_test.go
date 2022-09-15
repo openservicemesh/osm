@@ -133,10 +133,8 @@ func BenchmarkSendXDSResponse(b *testing.B) {
 	}
 
 	proxy, g := setupTestGenerator(b)
-
 	for xdsType, generator := range g.generators {
 		b.Run(string(xdsType), func(b *testing.B) {
-
 			b.ResetTimer()
 			b.StartTimer()
 			for i := 0; i < b.N; i++ {

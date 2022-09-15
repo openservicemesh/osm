@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -28,22 +29,45 @@ type fakeConfig string
 
 type fakeGenerator struct {
 	// map of
+	mu        sync.Mutex
 	callCount map[string]int
 }
 
+func (g *fakeGenerator) getCallCount(uuid string) int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.callCount[uuid]
+}
+
 func (g *fakeGenerator) GenerateConfig(ctx context.Context, proxy *envoy.Proxy) (fakeConfig, error) {
-	fmt.Println("called generate!!!!!!", proxy.GetConnectionID())
+	g.mu.Lock()
+	defer g.mu.Unlock()
 	g.callCount[proxy.UUID.String()]++
 	return fakeConfig(fmt.Sprintf("%s: %d", proxy.UUID, g.callCount[proxy.UUID.String()])), nil
 }
 
 type fakeServer struct {
+	mu             sync.Mutex
 	proxyConfigMap map[string]fakeConfig
 
 	callCount map[string]int
 }
 
+func (s *fakeServer) getConfig(uuid string) fakeConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.proxyConfigMap[uuid]
+}
+
+func (s *fakeServer) getCallCount(uuid string) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.callCount[uuid]
+}
+
 func (s *fakeServer) UpdateProxy(ctx context.Context, proxy *envoy.Proxy, config fakeConfig) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.callCount[proxy.UUID.String()]++
 	s.proxyConfigMap[proxy.UUID.String()] = config
 
@@ -135,9 +159,9 @@ func TestControlLoop(t *testing.T) {
 	tassert.Equal(1, cp.proxyRegistry.GetConnectedProxyCount())
 
 	// p1 got a call to config generation
-	tassert.Equal(1, g.callCount[p1.UUID.String()])
-	tassert.Equal(1, server.callCount[p1.UUID.String()])
-	tassert.Equal(p1.UUID.String()+": 1", string(server.proxyConfigMap[p1.UUID.String()]))
+	tassert.Equal(1, g.getCallCount(p1.UUID.String()))
+	tassert.Equal(1, server.getCallCount(p1.UUID.String()))
+	tassert.Equal(fakeConfig(p1.UUID.String()+": 1"), server.getConfig(p1.UUID.String()))
 
 	// Broadcast an update for proxy 1
 	cp.msgBroker.BroadcastProxyUpdate()
@@ -145,9 +169,9 @@ func TestControlLoop(t *testing.T) {
 	time.Sleep(time.Second * 3)
 
 	// server and config generation got called again
-	tassert.Equal(2, g.callCount[p1.UUID.String()])
-	tassert.Equal(2, server.callCount[p1.UUID.String()])
-	tassert.Equal(p1.UUID.String()+": 2", string(server.proxyConfigMap[p1.UUID.String()]))
+	tassert.Equal(2, g.getCallCount(p1.UUID.String()))
+	tassert.Equal(2, server.getCallCount(p1.UUID.String()))
+	tassert.Equal(fakeConfig(p1.UUID.String()+": 2"), server.getConfig(p1.UUID.String()))
 
 	err = cp.ProxyConnected(ctx2, 2)
 	tassert.NoError(err)
@@ -162,26 +186,26 @@ func TestControlLoop(t *testing.T) {
 	tassert.Equal(2, cp.proxyRegistry.GetConnectedProxyCount())
 
 	// p1 did not get an update from another proxy connecting.
-	tassert.Equal(2, g.callCount[p1.UUID.String()])
-	tassert.Equal(2, server.callCount[p1.UUID.String()])
-	tassert.Equal(p1.UUID.String()+": 2", string(server.proxyConfigMap[p1.UUID.String()]))
+	tassert.Equal(2, g.getCallCount(p1.UUID.String()))
+	tassert.Equal(2, server.getCallCount(p1.UUID.String()))
+	tassert.Equal(fakeConfig(p1.UUID.String()+": 2"), server.getConfig(p1.UUID.String()))
 
 	//p2 got a call for config generation
-	tassert.Equal(1, g.callCount[p2.UUID.String()])
-	tassert.Equal(1, server.callCount[p2.UUID.String()])
-	tassert.Equal(p2.UUID.String()+": 1", string(server.proxyConfigMap[p2.UUID.String()]))
+	tassert.Equal(1, g.getCallCount(p2.UUID.String()))
+	tassert.Equal(1, server.getCallCount(p2.UUID.String()))
+	tassert.Equal(fakeConfig(p2.UUID.String()+": 1"), server.getConfig(p2.UUID.String()))
 
 	// broadcast a second update and verify that both have gotten it.
 	cp.msgBroker.BroadcastProxyUpdate()
 	time.Sleep(time.Second * 3)
 
 	//p2 got a call for config generation
-	tassert.Equal(2, g.callCount[p2.UUID.String()])
-	tassert.Equal(2, server.callCount[p2.UUID.String()])
-	tassert.Equal(p2.UUID.String()+": 2", string(server.proxyConfigMap[p2.UUID.String()]))
+	tassert.Equal(2, g.getCallCount(p2.UUID.String()))
+	tassert.Equal(2, server.getCallCount(p2.UUID.String()))
+	tassert.Equal(fakeConfig(p2.UUID.String()+": 2"), server.getConfig(p2.UUID.String()))
 
 	// p1 got a call to config generation
-	tassert.Equal(3, g.callCount[p1.UUID.String()])
-	tassert.Equal(3, server.callCount[p1.UUID.String()])
-	tassert.Equal(p1.UUID.String()+": 3", string(server.proxyConfigMap[p1.UUID.String()]))
+	tassert.Equal(3, g.getCallCount(p1.UUID.String()))
+	tassert.Equal(3, server.getCallCount(p1.UUID.String()))
+	tassert.Equal(fakeConfig(p1.UUID.String()+": 3"), server.getConfig(p1.UUID.String()))
 }
