@@ -9,14 +9,14 @@ import (
 // getRetryPolicy returns the RetryPolicySpec for the given downstream identity and upstream service
 // TODO: Add support for wildcard destinations
 func (mc *MeshCatalog) getRetryPolicy(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) *v1alpha1.RetryPolicySpec {
-	if !mc.configurator.GetMeshConfig().Spec.FeatureFlags.EnableRetryPolicy {
+	if !mc.GetMeshConfig().Spec.FeatureFlags.EnableRetryPolicy {
 		log.Trace().Msgf("Retry policy flag not enabled")
 		return nil
 	}
 	src := downstreamIdentity.ToK8sServiceAccount()
 
 	// List the retry policies for the source
-	retryPolicies := mc.policyController.ListRetryPolicies(src)
+	retryPolicies := mc.ListRetryPoliciesForServiceAccount(src)
 	if retryPolicies == nil {
 		log.Trace().Msgf("Did not find retry policy for downstream service %s", src)
 		return nil
@@ -28,10 +28,9 @@ func (mc *MeshCatalog) getRetryPolicy(downstreamIdentity identity.ServiceIdentit
 				log.Error().Msgf("Retry policy destinations must be a service: %s is a %s", dest, dest.Kind)
 				continue
 			}
-			destMeshSvc := service.MeshService{Name: dest.Name, Namespace: dest.Namespace}
 			// we want all statefulset replicas to have the same retry policy regardless of how they're accessed
 			// for the default use-case, this is equivalent to a name + namespace equality check
-			if upstreamSvc.SiblingTo(destMeshSvc) {
+			if upstreamSvc.Name == dest.Name && upstreamSvc.Namespace == dest.Namespace {
 				// Will return retry policy that applies to the specific upstream service
 				return &retryCRD.Spec.RetryPolicy
 			}

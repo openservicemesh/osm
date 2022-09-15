@@ -4,14 +4,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/golang/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
 	"github.com/openservicemesh/osm/pkg/models"
@@ -65,10 +63,6 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		},
 	}
 
-	mockCtrl := gomock.NewController(GinkgoT())
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	mockConfigurator.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
-
 	originalHealthProbes := models.HealthProbes{
 		Liveness:  &models.HealthProbe{Path: "/liveness", Port: 81},
 		Readiness: &models.HealthProbe{Path: "/readiness", Port: 82},
@@ -93,7 +87,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 
 	Context("test unix getEnvoySidecarContainerSpec()", func() {
 		It("creates Envoy sidecar spec", func() {
-			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, constants.OSLinux)
+			actual := getEnvoySidecarContainerSpec(pod, meshConfig, originalHealthProbes, constants.OSLinux)
 
 			expected := corev1.Container{
 				Name:            constants.EnvoyContainerName,
@@ -206,7 +200,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 
 	Context("test Windows getEnvoySidecarContainerSpec()", func() {
 		It("creates Envoy sidecar spec", func() {
-			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, constants.OSWindows)
+			actual := getEnvoySidecarContainerSpec(pod, meshConfig, originalHealthProbes, constants.OSWindows)
 
 			expected := corev1.Container{
 				Name:            constants.EnvoyContainerName,

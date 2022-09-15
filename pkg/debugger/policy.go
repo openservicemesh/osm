@@ -22,7 +22,7 @@ type policies struct {
 
 func (ds DebugConfig) getOSMConfigHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		confJSON, err := utils.MeshConfigToJSON(ds.configurator.GetMeshConfig())
+		confJSON, err := utils.MeshConfigToJSON(ds.kubeController.GetMeshConfig())
 		if err != nil {
 			log.Error().Err(err).Msg("error getting MeshConfig JSON")
 			return
@@ -34,7 +34,7 @@ func (ds DebugConfig) getOSMConfigHandler() http.Handler {
 func (ds DebugConfig) getSMIPoliciesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var p policies
-		p.TrafficSplits, p.ServiceAccounts, p.RouteGroups, p.TrafficTargets = ds.meshCatalogDebugger.ListSMIPolicies()
+		p.TrafficSplits, p.ServiceAccounts, p.RouteGroups, p.TrafficTargets = ds.meshCatalog.ListSMIPolicies()
 
 		jsonPolicies, err := json.Marshal(p)
 		if err != nil {

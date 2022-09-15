@@ -44,12 +44,13 @@ type listenerBuilder struct {
 }
 
 type httpConnManagerBuilder struct {
-	statsPrefix      string
-	routeConfigName  string
-	filters          []*xds_hcm.HttpFilter
-	tracing          *xds_hcm.HttpConnectionManager_Tracing
-	localReplyConfig *xds_hcm.LocalReplyConfig
-	routerFilter     *xds_hcm.HttpFilter
+	statsPrefix         string
+	routeConfigName     string
+	filters             []*xds_hcm.HttpFilter
+	tracing             *xds_hcm.HttpConnectionManager_Tracing
+	localReplyConfig    *xds_hcm.LocalReplyConfig
+	routerFilter        *xds_hcm.HttpFilter
+	httpGlobalRateLimit *policyv1alpha1.HTTPGlobalRateLimitSpec
 }
 
 type tcpProxyBuilder struct {

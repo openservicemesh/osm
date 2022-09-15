@@ -11,6 +11,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -20,10 +21,10 @@ import (
 func TestGetSMIPolicies(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
-	mock := NewMockMeshCatalogDebugger(mockCtrl)
+	mock := catalog.NewMockMeshCataloger(mockCtrl)
 
 	ds := DebugConfig{
-		meshCatalogDebugger: mock,
+		meshCatalog: mock,
 	}
 
 	mock.EXPECT().ListSMIPolicies().Return(

@@ -4,12 +4,10 @@ import (
 	"fmt"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
@@ -22,21 +20,24 @@ import (
 // 1. Inbound listener to handle incoming traffic
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, cm *certificate.Manager, proxyRegistry *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, cm *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	var ldsResources []types.Resource
 
 	var statsHeaders map[string]string
-	meshConfig := cfg.GetMeshConfig()
+	meshConfig := meshCatalog.GetMeshConfig()
 
-	if meshConfig.Spec.FeatureFlags.EnableWASMStats {
-		statsHeaders = proxy.StatsHeaders()
-	}
-
-	svcList, err := proxyRegistry.ListProxyServices(proxy)
+	svcList, err := meshCatalog.ListServicesForProxy(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
 			Str("proxy", proxy.String()).Msgf("Error looking up MeshServices associated with proxy")
 		return nil, err
+	}
+
+	if meshConfig.Spec.FeatureFlags.EnableWASMStats {
+		statsHeaders, err = meshCatalog.GetProxyStatsHeaders(proxy)
+		if err != nil {
+			log.Err(err).Msgf("Error getting proxy stats headers for proxy %s", proxy)
+		}
 	}
 
 	// --- OUTBOUND -------------------

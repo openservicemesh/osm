@@ -1,3 +1,4 @@
+// Package main implements the bookwatcher for terminal and JSON output from demo applications
 package main
 
 import (

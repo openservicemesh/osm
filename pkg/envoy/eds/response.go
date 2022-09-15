@@ -5,12 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
@@ -18,33 +16,15 @@ import (
 )
 
 // NewResponse creates a new Endpoint Discovery Response.
-func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *certificate.Manager, _ *registry.ProxyRegistry) ([]types.Resource, error) {
 	meshSvcEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
-
 	builder := newEndpointsBuilder()
 
-	// If request comes through and requests specific endpoints, just attempt to answer those
-	if request != nil && len(request.ResourceNames) > 0 {
-		for _, cluster := range request.ResourceNames {
-			meshSvc, err := clusterToMeshSvc(cluster)
-			if err != nil {
-				log.Error().Err(err).Msgf("Error retrieving MeshService from Cluster %s", cluster)
-				continue
-			}
-			endpoints := meshCatalog.ListAllowedUpstreamEndpointsForService(proxy.Identity, meshSvc)
-			log.Trace().Msgf("Endpoints for upstream cluster %s for downstream proxy identity %s: %v", cluster, proxy.Identity, endpoints)
-			builder.AddEndpoints(meshSvc, endpoints)
-		}
-	} else {
-		// Otherwise, generate all endpoint configuration for this proxy
-		// Get only those service endpoints that belong to the allowed upstream service accounts for the proxy
-		// Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-		for _, dstSvc := range meshCatalog.ListOutboundServicesForIdentity(proxy.Identity) {
-			builder.AddEndpoints(
-				dstSvc,
-				meshCatalog.ListAllowedUpstreamEndpointsForService(proxy.Identity, dstSvc),
-			)
-		}
+	for _, dstSvc := range meshCatalog.ListOutboundServicesForIdentity(proxy.Identity) {
+		builder.AddEndpoints(
+			dstSvc,
+			meshCatalog.ListAllowedUpstreamEndpointsForService(proxy.Identity, dstSvc),
+		)
 
 		log.Trace().Msgf("Allowed outbound service endpoints for proxy with identity %s: %v", proxy.Identity, meshSvcEndpoints)
 	}
@@ -68,9 +48,16 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 		return service.MeshService{}, fmt.Errorf("Invalid cluster port %s, expected int value: %w", chunks[2], err)
 	}
 
+	subdomain, name, ok := strings.Cut(chunks[1], ".")
+	if !ok {
+		name = subdomain
+		subdomain = ""
+	}
+
 	return service.MeshService{
 		Namespace: chunks[0],
-		Name:      chunks[1],
+		Name:      name,
+		Subdomain: subdomain,
 
 		// The port always maps to MeshService.TargetPort and not MeshService.Port because
 		// endpoints of a service are derived from it's TargetPort and not Port.

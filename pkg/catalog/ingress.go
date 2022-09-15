@@ -42,7 +42,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicies(meshServices []service.MeshServ
 // Depending on if the IngressBackend API is enabled, the policies will be generated either from the IngressBackend
 // or Kubernetes Ingress API.
 func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error) {
-	ingressBackendPolicy := mc.policyController.GetIngressBackendPolicy(svc)
+	ingressBackendPolicy := mc.GetIngressBackendPolicyForService(svc)
 	if ingressBackendPolicy == nil {
 		log.Trace().Msgf("Did not find IngressBackend policy for service %s", svc)
 		return nil, nil
@@ -84,7 +84,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 						CurrentStatus: "error",
 						Reason:        fmt.Sprintf("endpoints not found for service %s/%s", source.Namespace, source.Name),
 					}
-					if _, err := mc.kubeController.UpdateStatus(&ingressBackendWithStatus); err != nil {
+					if _, err := mc.UpdateIngressBackendStatus(&ingressBackendWithStatus); err != nil {
 						log.Error().Err(err).Msg("Error updating status for IngressBackend")
 					}
 					return nil, fmt.Errorf("Could not list endpoints of the source service %s/%s specified in the IngressBackend %s/%s",
@@ -156,7 +156,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		CurrentStatus: "committed",
 		Reason:        "successfully committed by the system",
 	}
-	if _, err := mc.kubeController.UpdateStatus(&ingressBackendWithStatus); err != nil {
+	if _, err := mc.UpdateIngressBackendStatus(&ingressBackendWithStatus); err != nil {
 		log.Error().Err(err).Msg("Error updating status for IngressBackend")
 	}
 

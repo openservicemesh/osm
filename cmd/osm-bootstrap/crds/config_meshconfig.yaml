@@ -30,6 +30,8 @@ spec:
       - meshconfig
     singular: meshconfig
     plural: meshconfigs
+  conversion:
+    strategy: None
   versions:
     - name: v1alpha2
       served: true

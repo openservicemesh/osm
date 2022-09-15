@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	xds_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
+	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -18,7 +19,7 @@ import (
 )
 
 // This will read an existing envoy bootstrap config, and create a new copy by changing the NodeID, and certificates.
-func (wh *mutatingWebhook) createEnvoyBootstrapFromExisting(newBootstrapSecretName, oldBootstrapSecretName, namespace string, cert *certificate.Certificate) (*corev1.Secret, error) {
+func (wh *mutatingWebhook) createEnvoyBootstrapFromExisting(proxyUUID uuid.UUID, oldBootstrapSecretName, namespace string, cert *certificate.Certificate) (*corev1.Secret, error) {
 	existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), oldBootstrapSecretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -30,32 +31,32 @@ func (wh *mutatingWebhook) createEnvoyBootstrapFromExisting(newBootstrapSecretNa
 		return nil, fmt.Errorf("error unmarshalling envoy bootstrap config: %w", err)
 	}
 
-	config.Node.Id = cert.GetCommonName().String()
+	config.Node.Id = proxyUUID.String()
 
-	return wh.marshalAndSaveBootstrap(newBootstrapSecretName, namespace, config, cert)
+	return wh.marshalAndSaveBootstrap(bootstrapConfigName(proxyUUID), namespace, config, cert)
 }
 
-func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert *certificate.Certificate, originalHealthProbes models.HealthProbes) (*corev1.Secret, error) {
+func (wh *mutatingWebhook) createEnvoyBootstrapConfig(proxyUUID uuid.UUID, namespace string, cert *certificate.Certificate, originalHealthProbes models.HealthProbes) (*corev1.Secret, error) {
 	builder := bootstrap.Builder{
-		NodeID: cert.GetCommonName().String(),
+		NodeID: proxyUUID.String(),
 
-		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, osmNamespace),
+		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, wh.osmNamespace),
 
 		// OriginalHealthProbes stores the path and port for liveness, readiness, and startup health probes as initially
 		// defined on the Pod Spec.
 		OriginalHealthProbes: originalHealthProbes,
 
-		TLSMinProtocolVersion: wh.configurator.GetMeshConfig().Spec.Sidecar.TLSMinProtocolVersion,
-		TLSMaxProtocolVersion: wh.configurator.GetMeshConfig().Spec.Sidecar.TLSMaxProtocolVersion,
-		CipherSuites:          wh.configurator.GetMeshConfig().Spec.Sidecar.CipherSuites,
-		ECDHCurves:            wh.configurator.GetMeshConfig().Spec.Sidecar.ECDHCurves,
+		TLSMinProtocolVersion: wh.kubeController.GetMeshConfig().Spec.Sidecar.TLSMinProtocolVersion,
+		TLSMaxProtocolVersion: wh.kubeController.GetMeshConfig().Spec.Sidecar.TLSMaxProtocolVersion,
+		CipherSuites:          wh.kubeController.GetMeshConfig().Spec.Sidecar.CipherSuites,
+		ECDHCurves:            wh.kubeController.GetMeshConfig().Spec.Sidecar.ECDHCurves,
 	}
 	bootstrapConfig, err := builder.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return wh.marshalAndSaveBootstrap(name, namespace, bootstrapConfig, cert)
+	return wh.marshalAndSaveBootstrap(bootstrapConfigName(proxyUUID), namespace, bootstrapConfig, cert)
 }
 
 func (wh *mutatingWebhook) marshalAndSaveBootstrap(name, namespace string, config *xds_bootstrap.Bootstrap, cert *certificate.Certificate) (*corev1.Secret, error) {

@@ -3,6 +3,7 @@
 ## Release v1.3.0
 
 ### Notable changes
+- `Rate limiting`: Added capability to perform [global rate limiting](https://release-v1-3.docs.openservicemesh.io/docs/guides/traffic_management/rate_limiting/#configuring-global-rate-limiting) of TCP connections and HTTP requests.
 
 ### Breaking changes
 - `EgressPolicy` can only be used when global mesh-wide Egress passthrough is disabled. When global passthrough Egress is enabled, EgressPolicy will not be enforced.

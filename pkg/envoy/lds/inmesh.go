@@ -3,25 +3,16 @@ package lds
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	xds_config_ratelimit "github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v3"
-	xds_common_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
-	xds_network_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/local_ratelimit/v3"
-	xds_global_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/ratelimit/v3"
-	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -84,8 +75,9 @@ func (lb *listenerBuilder) buildInboundHTTPFilterChain(trafficMatch *trafficpoli
 		fb.TCPGlobalRateLimit(trafficMatch.RateLimit.Global.TCP)
 	}
 
-	fb.httpConnManager().StatsPrefix(route.GetInboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort)).
-		RouteConfigName(route.GetInboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort))
+	routeCfgName := rds.GetInboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort)
+	fb.httpConnManager().StatsPrefix(routeCfgName).
+		RouteConfigName(routeCfgName)
 
 	if lb.httpTracingEndpoint != "" {
 		tracing, err := getHTTPTracingConfig(lb.httpTracingEndpoint)
@@ -96,6 +88,10 @@ func (lb *listenerBuilder) buildInboundHTTPFilterChain(trafficMatch *trafficpoli
 	}
 	if lb.extAuthzConfig != nil && lb.extAuthzConfig.Enable {
 		fb.httpConnManager().AddFilter(getExtAuthzHTTPFilter(lb.extAuthzConfig))
+	}
+	// HTTP global rate limit
+	if trafficMatch.RateLimit != nil && trafficMatch.RateLimit.Global != nil && trafficMatch.RateLimit.Global.HTTP != nil {
+		fb.httpConnManager().AddFilter(buildHTTPGlobalRateLimitFilter(trafficMatch.RateLimit.Global.HTTP))
 	}
 	if lb.wasmStatsHeaders != nil {
 		wasmFilters, wasmLocalReplyConfig, err := getWASMStatsConfig(lb.wasmStatsHeaders)
@@ -232,98 +228,6 @@ func (lb *listenerBuilder) buildInboundTCPFilterChain(trafficMatch *trafficpolic
 	}, nil
 }
 
-func buildTCPLocalRateLimitFilter(config *policyv1alpha1.TCPLocalRateLimitSpec, statPrefix string) (*xds_listener.Filter, error) {
-	if config == nil {
-		return nil, nil
-	}
-
-	var fillInterval time.Duration
-	switch config.Unit {
-	case "second":
-		fillInterval = time.Second
-	case "minute":
-		fillInterval = time.Minute
-	case "hour":
-		fillInterval = time.Hour
-	default:
-		return nil, fmt.Errorf("invalid unit %q for TCP connection rate limiting", config.Unit)
-	}
-
-	rateLimit := &xds_network_local_ratelimit.LocalRateLimit{
-		StatPrefix: statPrefix,
-		TokenBucket: &xds_type.TokenBucket{
-			MaxTokens:     config.Connections + config.Burst,
-			TokensPerFill: wrapperspb.UInt32(config.Connections),
-			FillInterval:  durationpb.New(fillInterval),
-		},
-	}
-
-	marshalledConfig, err := anypb.New(rateLimit)
-	if err != nil {
-		return nil, err
-	}
-
-	filter := &xds_listener.Filter{
-		Name:       envoy.L4LocalRateLimitFilterName,
-		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledConfig},
-	}
-
-	return filter, nil
-}
-
-func buildTCPGlobalRateLimitFilter(config *policyv1alpha1.TCPGlobalRateLimitSpec, statPrefix string) (*xds_listener.Filter, error) {
-	if config == nil {
-		return nil, nil
-	}
-
-	rateLimit := &xds_global_ratelimit.RateLimit{
-		StatPrefix: statPrefix,
-		Domain:     config.Domain,
-		RateLimitService: &xds_config_ratelimit.RateLimitServiceConfig{
-			GrpcService: &xds_core.GrpcService{
-				TargetSpecifier: &xds_core.GrpcService_EnvoyGrpc_{
-					EnvoyGrpc: &xds_core.GrpcService_EnvoyGrpc{
-						ClusterName: service.RateLimitServiceClusterName(config.RateLimitService),
-					},
-				},
-			},
-			TransportApiVersion: xds_core.ApiVersion_V3,
-		},
-	}
-
-	var descriptors []*xds_common_ratelimit.RateLimitDescriptor
-	for _, desc := range config.Descriptors {
-		var entries []*xds_common_ratelimit.RateLimitDescriptor_Entry
-		for _, entry := range desc.Entries {
-			entries = append(entries, &xds_common_ratelimit.RateLimitDescriptor_Entry{Key: entry.Key, Value: entry.Value})
-		}
-
-		descriptors = append(descriptors, &xds_common_ratelimit.RateLimitDescriptor{Entries: entries})
-	}
-	rateLimit.Descriptors = descriptors
-
-	if config.Timeout != nil {
-		rateLimit.Timeout = durationpb.New(config.Timeout.Duration)
-		rateLimit.RateLimitService.GrpcService.Timeout = durationpb.New(config.Timeout.Duration)
-	}
-
-	if config.FailOpen != nil {
-		rateLimit.FailureModeDeny = !*config.FailOpen
-	}
-
-	marshalledConfig, err := anypb.New(rateLimit)
-	if err != nil {
-		return nil, err
-	}
-
-	filter := &xds_listener.Filter{
-		Name:       envoy.L4GlobalRateLimitFilterName,
-		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledConfig},
-	}
-
-	return filter, nil
-}
-
 // buildOutboundFilterChainMatch builds a filter chain to match the HTTP or TCP based destination traffic.
 // Filter Chain currently matches on the following:
 // 1. Destination IP of service endpoints
@@ -353,7 +257,7 @@ func buildOutboundFilterChainMatch(trafficMatch trafficpolicy.TrafficMatch) (*xd
 
 func (lb *listenerBuilder) buildOutboundHTTPFilterChain(trafficMatch trafficpolicy.TrafficMatch) (*xds_listener.FilterChain, error) {
 	// Get HTTP filter for service
-	filter, err := lb.buildOutboundHTTPFilter(route.GetOutboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort))
+	filter, err := lb.buildOutboundHTTPFilter(rds.GetOutboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting HTTP filter for traffic match %s", trafficMatch.Name)
 		return nil, err

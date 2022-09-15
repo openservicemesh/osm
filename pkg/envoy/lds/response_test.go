@@ -1,8 +1,6 @@
 package lds
 
 import (
-	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -11,68 +9,63 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	testclient "k8s.io/client-go/kubernetes/fake"
 
-	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	specs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
-	"github.com/openservicemesh/osm/pkg/identity"
-
-	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
-	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
-
-func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, *v1.Pod, error) {
-	podLabels := map[string]string{
-		constants.AppLabel:               tests.BookbuyerService.Name,
-		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
-	}
-
-	newPod1 := tests.NewPodFixture(tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, podLabels)
-	newPod1.Annotations = map[string]string{
-		constants.PrometheusScrapeAnnotation: "true",
-	}
-	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), newPod1, metav1.CreateOptions{}); err != nil {
-		return nil, nil, err
-	}
-
-	selectors := map[string]string{
-		constants.AppLabel: tests.BookbuyerServiceName,
-	}
-	if _, err := tests.MakeService(kubeClient, tests.BookbuyerServiceName, selectors); err != nil {
-		return nil, nil, err
-	}
-
-	for _, svcName := range []string{tests.BookstoreApexServiceName, tests.BookstoreV1ServiceName, tests.BookstoreV2ServiceName} {
-		selectors := map[string]string{
-			constants.AppLabel: "bookstore",
-		}
-		if _, err := tests.MakeService(kubeClient, svcName, selectors); err != nil {
-			return nil, nil, err
-		}
-	}
-
-	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1), newPod1, nil
-}
 
 func TestNewResponse(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	kubeClient := testclient.NewSimpleClientset()
-	configClient := configFake.NewSimpleClientset()
-	meshCatalog := catalogFake.NewFakeMeshCatalog(kubeClient, configClient)
+	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
-	mockConfigurator.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{
+	stop := make(chan struct{})
+
+	mockMeshSpec.EXPECT().ListTrafficTargets(gomock.Any()).Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
+	mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
+	mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return([]*split.TrafficSplit{}).AnyTimes()
+
+	pod := tests.NewPodFixture(tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, map[string]string{
+		constants.AppLabel:               tests.BookbuyerService.Name,
+		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
+	})
+	pod.Annotations = map[string]string{
+		constants.PrometheusScrapeAnnotation: "true",
+	}
+	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
+	provider := compute.NewMockInterface(mockCtrl)
+	provider.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(nil).AnyTimes()
+
+	provider.EXPECT().GetServicesForServiceIdentity(tests.BookstoreServiceIdentity).Return([]service.MeshService{
+		tests.BookstoreApexService,
+		tests.BookstoreV1Service,
+		tests.BookstoreV2Service,
+	}).AnyTimes()
+	provider.EXPECT().GetServicesForServiceIdentity(tests.BookstoreV2ServiceIdentity).Return([]service.MeshService{
+		tests.BookstoreApexService,
+		tests.BookstoreV2Service,
+	}).AnyTimes()
+	provider.EXPECT().GetResolvableEndpointsForService(gomock.Any()).Return([]endpoint.Endpoint{tests.Endpoint}).AnyTimes()
+	provider.EXPECT().GetHostnamesForService(gomock.Any(), gomock.Any()).Return([]string{"dummy-hostname"}).AnyTimes()
+	provider.EXPECT().IsMetricsEnabled(gomock.Any()).Return(true, nil).AnyTimes()
+	provider.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{
 		Spec: configv1alpha2.MeshConfigSpec{
 			Traffic: configv1alpha2.TrafficSpec{
 				EnablePermissiveTrafficPolicyMode: false,
@@ -88,27 +81,18 @@ func TestNewResponse(t *testing.T) {
 			},
 		},
 	}).AnyTimes()
+	provider.EXPECT().ListServicesForProxy(proxy).Return([]service.MeshService{tests.BookbuyerService}, nil).AnyTimes()
 
-	proxy, pod, err := getProxy(kubeClient)
-	assert.Empty(err)
-	assert.NotNil(proxy)
-	assert.NotNil(pod)
-
-	// test scenario that listing proxy services returns an error
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, fmt.Errorf("dummy error")
-	}), nil)
+	meshCatalog := catalog.NewMeshCatalog(
+		mockMeshSpec,
+		tresorFake.NewFake(time.Hour),
+		stop,
+		provider,
+		messaging.NewBroker(stop),
+	)
 
 	cm := tresorFake.NewFake(1 * time.Hour)
-	resources, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
-	assert.NotNil(err)
-	assert.Nil(resources)
-
-	proxyRegistry = registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return []service.MeshService{tests.BookbuyerService}, nil
-	}), nil)
-
-	resources, err = NewResponse(meshCatalog, proxy, nil, mockConfigurator, cm, proxyRegistry)
+	resources, err := NewResponse(meshCatalog, proxy, cm, nil)
 	assert.Empty(err)
 	assert.NotNil(resources)
 	// There are 3 listeners configured based on the configuration:

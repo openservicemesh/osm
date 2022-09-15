@@ -188,7 +188,7 @@ func (lb *listenerBuilder) Build() (*xds_listener.Listener, error) {
 		return nil, nil
 	}
 
-	return l, nil
+	return l, l.Validate()
 }
 
 func (lb *listenerBuilder) buildOutboundListener() *xds_listener.Listener {
@@ -473,6 +473,11 @@ func (hb *httpConnManagerBuilder) LocalReplyConfig(config *xds_hcm.LocalReplyCon
 // Tracing sets the Tracing config on the builder
 func (hb *httpConnManagerBuilder) Tracing(config *xds_hcm.HttpConnectionManager_Tracing) *httpConnManagerBuilder {
 	hb.tracing = config
+	return hb
+}
+
+func (hb *httpConnManagerBuilder) HTTPGlobalRateLimit(rl *policyv1alpha1.HTTPGlobalRateLimitSpec) *httpConnManagerBuilder {
+	hb.httpGlobalRateLimit = rl
 	return hb
 }
 

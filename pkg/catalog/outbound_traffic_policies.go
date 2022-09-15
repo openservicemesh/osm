@@ -2,12 +2,10 @@ package catalog
 
 import (
 	mapset "github.com/deckarep/golang-set"
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -53,9 +51,8 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		clusterConfigForServicePort := &trafficpolicy.MeshClusterConfig{
 			Name:                          meshSvc.EnvoyClusterName(),
 			Service:                       meshSvc,
-			EnableEnvoyActiveHealthChecks: mc.configurator.GetMeshConfig().Spec.FeatureFlags.EnableEnvoyActiveHealthChecks,
-			UpstreamTrafficSetting: mc.policyController.GetUpstreamTrafficSetting(
-				policy.UpstreamTrafficSettingGetOpt{MeshService: &meshSvc}),
+			EnableEnvoyActiveHealthChecks: mc.GetMeshConfig().Spec.FeatureFlags.EnableEnvoyActiveHealthChecks,
+			UpstreamTrafficSetting:        mc.GetUpstreamTrafficSettingByService(&meshSvc),
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfigForServicePort)
 
@@ -74,17 +71,11 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			split := trafficSplits[0] // TODO(#2759): support multiple traffic splits per apex service
 
 			for _, backend := range split.Spec.Backends {
-				backendMeshSvc := service.MeshService{
-					Namespace: meshSvc.Namespace, // Backends belong to the same namespace as the apex service
-					Name:      backend.Service,
-				}
-				targetPort, err := mc.kubeController.GetTargetPortForServicePort(
-					types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
+				backendMeshSvc, err := mc.GetMeshService(backend.Service, meshSvc.Namespace, meshSvc.Port)
 				if err != nil {
 					log.Error().Err(err).Msgf("Error fetching target port for leaf service %s, ignoring it", backendMeshSvc)
 					continue
 				}
-				backendMeshSvc.TargetPort = targetPort
 
 				wc := service.WeightedCluster{
 					ClusterName: service.ClusterName(backendMeshSvc.EnvoyClusterName()),
@@ -144,13 +135,14 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 // ListOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.ServiceIdentity) []service.MeshService {
-	if mc.configurator.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode {
+	if mc.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode {
 		return mc.ListServices()
 	}
 
 	svcAccount := serviceIdentity.ToK8sServiceAccount()
 	serviceSet := mapset.NewSet()
 	var allowedServices []service.MeshService
+
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
 			if source.Name != svcAccount.Name || source.Namespace != svcAccount.Namespace {

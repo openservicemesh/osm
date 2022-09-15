@@ -30,7 +30,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/webhook"
@@ -560,16 +559,15 @@ var _ = Describe("Testing Injector Functions", func() {
 				Name: webhookName,
 			},
 		})
-		var kubeController k8s.Controller
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
-		cfg := configurator.NewMockConfigurator(mockController)
+		kubeController := k8s.NewMockController(mockController)
 		certManager := tresorFake.NewFake(1 * time.Hour)
-		cfg.EXPECT().GetMeshConfig().AnyTimes()
+		kubeController.EXPECT().GetMeshConfig().AnyTimes()
 
 		_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
-		actualErr := NewMutatingWebhook(context.Background(), kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, cfg, "")
+		actualErr := NewMutatingWebhook(context.Background(), kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, "")
 		Expect(actualErr).NotTo(HaveOccurred())
 		close(stop)
 	})
@@ -577,15 +575,15 @@ var _ = Describe("Testing Injector Functions", func() {
 	It("creates new webhook with reconciler enabled", func() {
 		enableReconciler = true
 		kubeClient := fake.NewSimpleClientset()
-		var kubeController k8s.Controller
 		stop := make(chan struct{})
 		mockController := gomock.NewController(GinkgoT())
-		cfg := configurator.NewMockConfigurator(mockController)
+		kubeController := k8s.NewMockController(mockController)
+
 		certManager := tresorFake.NewFake(1 * time.Hour)
 
-		cfg.EXPECT().GetMeshConfig().AnyTimes()
+		kubeController.EXPECT().GetMeshConfig().AnyTimes()
 
-		actualErr := NewMutatingWebhook(context.Background(), kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, cfg, "")
+		actualErr := NewMutatingWebhook(context.Background(), kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, osmVersion, webhookTimeout, enableReconciler, "")
 		Expect(actualErr).NotTo(HaveOccurred())
 		Eventually(func() error {
 			_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
@@ -772,8 +770,8 @@ func TestPodCreationHandler(t *testing.T) {
 
 func TestWebhookMutate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	cfg := configurator.NewMockConfigurator(mockCtrl)
-	cfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+	kubeController := k8s.NewMockController(mockCtrl)
+	kubeController.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 		Spec: v1alpha2.MeshConfigSpec{
 			Sidecar: v1alpha2.SidecarSpec{
 				EnvoyImage:         "envoy-linux-image",
@@ -785,7 +783,7 @@ func TestWebhookMutate(t *testing.T) {
 
 	t.Run("invalid JSON", func(t *testing.T) {
 		wh := &mutatingWebhook{
-			configurator: cfg,
+			kubeController: kubeController,
 		}
 		req := &admissionv1.AdmissionRequest{
 			Object: runtime.RawExtension{Raw: []byte("{")},
@@ -807,7 +805,6 @@ func TestWebhookMutate(t *testing.T) {
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
 			kubeController:      kubeController,
-			configurator:        cfg,
 		}
 
 		req := &admissionv1.AdmissionRequest{
@@ -835,8 +832,7 @@ func TestWebhookMutate(t *testing.T) {
 		kubeController.EXPECT().GetNamespace(namespace).Return(nil).Times(1)
 		kubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true)
 
-		cfg := configurator.NewMockConfigurator(mockCtrl)
-		cfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+		kubeController.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 			Spec: v1alpha2.MeshConfigSpec{
 				Sidecar: v1alpha2.SidecarSpec{
 					EnvoyImage:         "envoy-linux-image",
@@ -851,7 +847,6 @@ func TestWebhookMutate(t *testing.T) {
 			kubeController:      kubeController,
 			certManager:         tresorFake.NewFake(1 * time.Hour),
 			kubeClient:          fake.NewSimpleClientset(),
-			configurator:        cfg,
 		}
 
 		req := &admissionv1.AdmissionRequest{
@@ -883,8 +878,7 @@ func TestWebhookMutate(t *testing.T) {
 		kubeController.EXPECT().GetNamespace(namespace).Return(&corev1.Namespace{}).Times(2)
 		kubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true)
 
-		cfg := configurator.NewMockConfigurator(mockCtrl)
-		cfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+		kubeController.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 			Spec: v1alpha2.MeshConfigSpec{
 				Sidecar: v1alpha2.SidecarSpec{
 					EnvoyImage:         "envoy-linux-image",
@@ -899,7 +893,6 @@ func TestWebhookMutate(t *testing.T) {
 			kubeController:      kubeController,
 			certManager:         tresorFake.NewFake(1 * time.Hour),
 			kubeClient:          fake.NewSimpleClientset(),
-			configurator:        cfg,
 		}
 
 		req := &admissionv1.AdmissionRequest{

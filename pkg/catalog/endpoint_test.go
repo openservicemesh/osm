@@ -15,7 +15,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/compute"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -139,19 +138,16 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 			kubeClient := testclient.NewSimpleClientset()
 			defer mockCtrl.Finish()
 
-			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockProvider := compute.NewMockInterface(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController: mockKubeController,
-				meshSpec:       mockMeshSpec,
-				Interface:      mockProvider,
-				configurator:   mockConfigurator,
+				meshSpec:  mockMeshSpec,
+				Interface: mockProvider,
 			}
 
-			mockConfigurator.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+			mockProvider.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 				Spec: v1alpha2.MeshConfigSpec{
 					Traffic: v1alpha2.TrafficSpec{
 						EnablePermissiveTrafficPolicyMode: tc.permissiveMode,
@@ -174,7 +170,7 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 			for sa, services := range tc.outboundServices {
 				for _, svc := range services {
 					k8sService := tests.NewServiceFixture(svc.Name, svc.Namespace, map[string]string{})
-					mockKubeController.EXPECT().GetService(svc).Return(k8sService).AnyTimes()
+					mockKubeController.EXPECT().GetService(svc.Name, svc.Namespace).Return(k8sService).AnyTimes()
 				}
 				mockProvider.EXPECT().GetServicesForServiceIdentity(sa).Return(services).AnyTimes()
 			}

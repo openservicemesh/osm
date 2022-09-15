@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
@@ -18,28 +17,24 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	policyFake "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var (
-	proxy           *envoy.Proxy
-	server          xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer
-	osmConfigurator *configurator.Client
-	adsServer       *Server
+	proxy     *envoy.Proxy
+	server    xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer
+	adsServer *Server
 )
 
 func setupTestServer(b *testing.B) {
@@ -55,10 +50,8 @@ func setupTestServer(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
-	kubeController := k8s.NewClient(informerCollection, policyClient, msgBroker)
-	policyController := policy.NewPolicyController(informerCollection, kubeController, msgBroker)
-	osmConfigurator = configurator.NewConfigurator(informerCollection, tests.OsmNamespace, tests.OsmMeshConfigName, msgBroker)
-	kubeProvider := kube.NewClient(kubeController, osmConfigurator)
+	kubeController := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, informerCollection, policyClient, msgBroker)
+	kubeProvider := kube.NewClient(kubeController)
 
 	meshConfig := configv1alpha2.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
@@ -100,10 +93,6 @@ func setupTestServer(b *testing.B) {
 
 	// --- setup
 	namespace := tests.Namespace
-	proxyService := service.MeshService{
-		Name:      tests.BookstoreV1ServiceName,
-		Namespace: namespace,
-	}
 	proxySvcAccount := tests.BookstoreServiceAccount
 
 	certPEM, _ := certManager.IssueCertificate(proxySvcAccount.ToServiceIdentity().String(), certificate.Service)
@@ -114,19 +103,14 @@ func setupTestServer(b *testing.B) {
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
 	meshSpec := smi.NewSMIClient(informerCollection, tests.OsmNamespace, kubeController, msgBroker)
 	mc := catalog.NewMeshCatalog(
-		kubeController,
 		meshSpec,
 		certManager,
-		policyController,
 		stop,
-		osmConfigurator,
 		kubeProvider,
 		msgBroker,
 	)
 
-	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
-		return nil, nil
-	}), nil)
+	proxyRegistry := registry.NewProxyRegistry()
 
 	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", proxyUUID), tests.BookstoreServiceAccountName, tests.PodLabels)
 	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
@@ -146,7 +130,7 @@ func setupTestServer(b *testing.B) {
 		b.Fatalf("Failed to add namespace to informer collection: %s", err)
 	}
 
-	svc := tests.NewServiceFixture(proxyService.Name, namespace, labels)
+	svc := tests.NewServiceFixture(tests.BookstoreV1ServiceName, namespace, labels)
 	_, err = kubeClient.CoreV1().Services(namespace).Create(context.Background(), svc, metav1.CreateOptions{})
 	if err != nil {
 		b.Fatalf("Failed to create service: %v", err)
@@ -154,7 +138,7 @@ func setupTestServer(b *testing.B) {
 
 	proxy = envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil, 1)
 
-	adsServer = NewADSServer(mc, proxyRegistry, true, tests.Namespace, osmConfigurator, certManager, kubeController, nil)
+	adsServer = NewADSServer(mc, proxyRegistry, true, tests.Namespace, certManager, kubeController, nil)
 }
 
 func BenchmarkSendXDSResponse(b *testing.B) {
@@ -174,13 +158,11 @@ func BenchmarkSendXDSResponse(b *testing.B) {
 		b.Run(string(xdsType), func(b *testing.B) {
 			setupTestServer(b)
 
-			// Set subscribed resources
-			proxy.SetSubscribedResources(xdsType, mapset.NewSetWith("service-cert:default/bookstore", "root-cert-for-mtls-inbound:default/bookstore|80"))
-
 			b.ResetTimer()
 			b.StartTimer()
 			for i := 0; i < b.N; i++ {
-				if err := adsServer.sendResponse(proxy, &server, nil, osmConfigurator, xdsType); err != nil {
+				handler := adsServer.xdsHandlers[xdsType]
+				if _, err := handler(adsServer.catalog, proxy, adsServer.certManager, adsServer.proxyRegistry); err != nil {
 					b.Fatalf("Failed to send response: %s", err)
 				}
 			}

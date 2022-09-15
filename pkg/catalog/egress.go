@@ -14,7 +14,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -27,7 +26,7 @@ const (
 
 // GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity
 func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error) {
-	if mc.configurator.GetMeshConfig().Spec.Traffic.EnableEgress {
+	if mc.GetMeshConfig().Spec.Traffic.EnableEgress {
 		// Mesh-wide global egress is enabled, so EgressPolicy is implicitly disabled
 		return nil, nil
 	}
@@ -35,7 +34,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 	var trafficMatches []*trafficpolicy.TrafficMatch
 	var clusterConfigs []*trafficpolicy.EgressClusterConfig
 	portToRouteConfigMap := make(map[int][]*trafficpolicy.EgressHTTPRouteConfig)
-	egressResources := mc.policyController.ListEgressPoliciesForSourceIdentity(serviceIdentity.ToK8sServiceAccount())
+	egressResources := mc.ListEgressPoliciesForServiceAccount(serviceIdentity.ToK8sServiceAccount())
 
 	for _, egress := range egressResources {
 		upstreamTrafficSetting, err := mc.getUpstreamTrafficSettingForEgress(egress)
@@ -136,8 +135,7 @@ func (mc *MeshCatalog) getUpstreamTrafficSettingForEgress(egressPolicy *policyv1
 				Namespace: egressPolicy.Namespace,
 				Name:      match.Name,
 			}
-			upstreamtrafficSetting := mc.policyController.GetUpstreamTrafficSetting(
-				policy.UpstreamTrafficSettingGetOpt{NamespacedName: &namespacedName})
+			upstreamtrafficSetting := mc.GetUpstreamTrafficSettingByNamespace(&namespacedName)
 
 			if upstreamtrafficSetting == nil {
 				return nil, fmt.Errorf("UpstreamTrafficSetting %s specified in Egress policy %s/%s could not be found, ignoring it",

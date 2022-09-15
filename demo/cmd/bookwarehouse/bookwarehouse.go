@@ -1,3 +1,6 @@
+// Package main implements the bookwarehouse application
+// This create a service which has both inbound as well as outbound service policies
+// i.e. bookbuyer makes a GET call to bookstore, bookstore makes a POST call to bookwarehouse
 package main
 
 import (
@@ -129,6 +132,7 @@ func main() {
 	router.HandleFunc("/", restockBooks).Methods("POST")
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 	log.Info().Msgf("Starting BookWarehouse HTTP server on port %d", *port)
+	//#nosec G114: Use of net/http serve function that has no support for setting timeouts
 	err := http.ListenAndServe(fmt.Sprintf(":%d", *port), router)
 	log.Fatal().Err(err).Msgf("Failed to start BookWarehouse HTTP server on port %d", *port)
 }

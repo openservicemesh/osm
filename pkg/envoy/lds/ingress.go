@@ -11,7 +11,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
+	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -43,8 +43,8 @@ func (lb *listenerBuilder) buildIngressFilterChainFromTrafficMatch(trafficMatch 
 	}
 
 	hcmBuilder := HTTPConnManagerBuilder()
-	hcmBuilder.StatsPrefix(route.IngressRouteConfigName).
-		RouteConfigName(route.IngressRouteConfigName)
+	hcmBuilder.StatsPrefix(rds.IngressRouteConfigName).
+		RouteConfigName(rds.IngressRouteConfigName)
 
 	if lb.httpTracingEndpoint != "" {
 		tracing, err := getHTTPTracingConfig(lb.httpTracingEndpoint)

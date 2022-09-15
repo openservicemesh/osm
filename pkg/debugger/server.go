@@ -7,8 +7,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -40,21 +40,19 @@ func (ds DebugConfig) GetHandlers() map[string]http.Handler {
 }
 
 // NewDebugConfig returns an implementation of DebugConfig interface.
-func NewDebugConfig(certDebugger *certificate.Manager, xdsDebugger XDSDebugger, meshCatalogDebugger MeshCatalogDebugger,
+func NewDebugConfig(certDebugger *certificate.Manager, xdsDebugger XDSDebugger, meshCatalog catalog.MeshCataloger,
 	proxyRegistry *registry.ProxyRegistry, kubeConfig *rest.Config, kubeClient kubernetes.Interface,
-	cfg configurator.Configurator, kubeController k8s.Controller, msgBroker *messaging.Broker) DebugConfig {
+	kubeController k8s.Controller, msgBroker *messaging.Broker) DebugConfig {
 	return DebugConfig{
-		certDebugger:        certDebugger,
-		xdsDebugger:         xdsDebugger,
-		meshCatalogDebugger: meshCatalogDebugger,
-		proxyRegistry:       proxyRegistry,
-		kubeClient:          kubeClient,
-		kubeController:      kubeController,
+		certDebugger:   certDebugger,
+		xdsDebugger:    xdsDebugger,
+		meshCatalog:    meshCatalog,
+		proxyRegistry:  proxyRegistry,
+		kubeClient:     kubeClient,
+		kubeController: kubeController,
 
 		// We need the Kubernetes config to be able to establish port forwarding to the Envoy pod we want to debug.
 		kubeConfig: kubeConfig,
-
-		configurator: cfg,
 
 		msgBroker: msgBroker,
 	}

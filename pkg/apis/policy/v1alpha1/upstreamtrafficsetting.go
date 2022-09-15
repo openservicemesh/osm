@@ -286,7 +286,8 @@ type HTTPGlobalRateLimitSpec struct {
 
 	// Descriptors defines the list of rate limit descriptors to use
 	// in the rate limit service request.
-	Descriptors []HTTPGlobalRateLimitDescriptor `json:"descriptors"`
+	// +optional
+	Descriptors []HTTPGlobalRateLimitDescriptor `json:"descriptors,omitempty"`
 
 	// Timeout defines the timeout interval for calls to the rate limit service.
 	// Defaults to 20ms.
@@ -305,6 +306,14 @@ type HTTPGlobalRateLimitSpec struct {
 	// Defaults to false.
 	// +optional
 	EnableXRateLimitHeaders *bool `json:"enableXRateLimitHeaders,omitempty"`
+
+	// ResponseStatusCode defines the HTTP status code to use for responses
+	// to rate limited requests. Code must be in the 400-599 (inclusive)
+	// error range. If not specified, a default of 429 (Too Many Requests) is used.
+	// See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode
+	// for the list of HTTP status codes supported by Envoy.
+	// +optional
+	ResponseStatusCode uint32 `json:"responseStatusCode,omitempty"`
 }
 
 // HTTPGlobalRateLimitDescriptor defines rate limit descriptor to use

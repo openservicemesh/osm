@@ -18,13 +18,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
-
-	kubeFake "github.com/openservicemesh/osm/pkg/compute/kube/fake"
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/policy"
+
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	smiFake "github.com/openservicemesh/osm/pkg/smi/fake"
@@ -77,7 +75,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 		httpRouteGroups           []*spec.HTTPRouteGroup
 		tcpRoutes                 []*spec.TCPRoute
 		trafficSplits             []*split.TrafficSplit
-		upstreamTrafficSetting    *policyv1alpha1.UpstreamTrafficSetting
+		upstreamTrafficSettings   []*policyv1alpha1.UpstreamTrafficSetting
 		prepare                   func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit)
 		expectedInboundMeshPolicy *trafficpolicy.InboundMeshTrafficPolicy
 	}{
@@ -1796,13 +1794,34 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 			},
 			trafficSplits: nil,
-			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
-				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
-					RateLimit: virtualHostLocalRateLimitConfig,
-					HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
-						{
-							Path:      "/get", // matches route allowed by HTTPRouteGroup
-							RateLimit: perRouteLocalRateLimitConfig,
+			upstreamTrafficSettings: []*policyv1alpha1.UpstreamTrafficSetting{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+					},
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+						Host:      "s1.ns1.svc.cluster.local",
+						RateLimit: virtualHostLocalRateLimitConfig,
+						HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
+							{
+								Path:      "/get", // matches route allowed by HTTPRouteGroup
+								RateLimit: perRouteLocalRateLimitConfig,
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+					},
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+						Host:      "s2.ns1.svc.cluster.local",
+						RateLimit: virtualHostLocalRateLimitConfig,
+						HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
+							{
+								Path:      "/get", // matches route allowed by HTTPRouteGroup
+								RateLimit: perRouteLocalRateLimitConfig,
+							},
 						},
 					},
 				},
@@ -1931,13 +1950,34 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 			},
 			permissiveMode: true,
-			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
-				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
-					RateLimit: virtualHostLocalRateLimitConfig,
-					HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
-						{
-							Path:      ".*", // matches wildcard path regex for permissive mode
-							RateLimit: perRouteLocalRateLimitConfig,
+			upstreamTrafficSettings: []*policyv1alpha1.UpstreamTrafficSetting{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+					},
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+						Host:      "s1.ns1.svc.cluster.local",
+						RateLimit: virtualHostLocalRateLimitConfig,
+						HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
+							{
+								Path:      ".*", // matches wildcard path regex for permissive mode
+								RateLimit: perRouteLocalRateLimitConfig,
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+					},
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+						Host:      "s2.ns1.svc.cluster.local",
+						RateLimit: virtualHostLocalRateLimitConfig,
+						HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
+							{
+								Path:      ".*", // matches wildcard path regex for permissive mode
+								RateLimit: perRouteLocalRateLimitConfig,
+							},
 						},
 					},
 				},
@@ -2046,13 +2086,34 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 			},
 			permissiveMode: true,
-			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
-				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
-					RateLimit: virtualHostGlobalRateLimitConfig,
-					HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
-						{
-							Path:      ".*", // matches wildcard path regex for permissive mode
-							RateLimit: perRouteGlobalRateLimitConfig,
+			upstreamTrafficSettings: []*policyv1alpha1.UpstreamTrafficSetting{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+					},
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+						Host:      "s1.ns1.svc.cluster.local",
+						RateLimit: virtualHostGlobalRateLimitConfig,
+						HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
+							{
+								Path:      ".*", // matches wildcard path regex for permissive mode
+								RateLimit: perRouteGlobalRateLimitConfig,
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+					},
+					Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+						Host:      "s2.ns1.svc.cluster.local",
+						RateLimit: virtualHostGlobalRateLimitConfig,
+						HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
+							{
+								Path:      ".*", // matches wildcard path regex for permissive mode
+								RateLimit: perRouteGlobalRateLimitConfig,
+							},
 						},
 					},
 				},
@@ -2157,21 +2218,20 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 
 			fakeCertManager := tresorFake.NewFake(1 * time.Hour)
 
-			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockPolicyController := policy.NewMockController(mockCtrl)
-			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockK8s := k8s.NewMockController(mockCtrl)
+			provider := kube.NewClient(mockK8s)
+
 			mc := MeshCatalog{
-				kubeController:   mockKubeController,
-				policyController: mockPolicyController,
-				certManager:      fakeCertManager,
-				configurator:     mockCfg,
-				meshSpec:         mockMeshSpec,
-				Interface:        kubeFake.NewFakeProvider(),
+				certManager: fakeCertManager,
+				meshSpec:    mockMeshSpec,
+				Interface:   provider,
 			}
 
-			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
-			mockCfg.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
+			mockK8s.EXPECT().ListUpstreamTrafficSettings().Return(tc.upstreamTrafficSettings).AnyTimes()
+			mockK8s.EXPECT().ListEgressPolicies().Return([]*policyv1alpha1.Egress{}).AnyTimes()
+
+			mockK8s.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 				Spec: v1alpha2.MeshConfigSpec{
 					Traffic: v1alpha2.TrafficSpec{
 						EnablePermissiveTrafficPolicyMode: tc.permissiveMode,
@@ -2417,12 +2477,10 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController: mockKubeController,
-				meshSpec:       mockMeshSpec,
+				meshSpec: mockMeshSpec,
 			}
 
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()

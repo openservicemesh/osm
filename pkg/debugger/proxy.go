@@ -68,7 +68,7 @@ func (ds DebugConfig) printProxies(w http.ResponseWriter) {
 
 func (ds DebugConfig) getConfigDump(streamID int64, w http.ResponseWriter) {
 	proxy := ds.proxyRegistry.GetConnectedProxy(streamID)
-	if proxy != nil {
+	if proxy == nil {
 		msg := fmt.Sprintf("Proxy for Stream ID %d not found, may have been disconnected", streamID)
 		log.Error().Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
@@ -76,7 +76,7 @@ func (ds DebugConfig) getConfigDump(streamID int64, w http.ResponseWriter) {
 	}
 	pod, err := ds.kubeController.GetPodForProxy(proxy)
 	if err != nil {
-		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy.GetName())
+		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy)
 		log.Error().Err(err).Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
 		return
@@ -96,7 +96,7 @@ func (ds DebugConfig) getProxy(streamID int64, w http.ResponseWriter) {
 	}
 	pod, err := ds.kubeController.GetPodForProxy(proxy)
 	if err != nil {
-		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy.GetName())
+		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy)
 		log.Error().Err(err).Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
 		return

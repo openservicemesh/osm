@@ -8,7 +8,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -24,7 +23,6 @@ type mutatingWebhook struct {
 	kubeController         k8s.Controller
 	osmNamespace           string
 	meshName               string
-	configurator           configurator.Configurator
 	osmContainerPullPolicy corev1.PullPolicy
 
 	nonInjectNamespaces mapset.Set

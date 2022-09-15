@@ -119,10 +119,7 @@ var _ = Describe("Test Envoy tools", func() {
 					}},
 					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 						ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-							Name: secrets.SDSCert{
-								Name:     "test/foo",
-								CertType: secrets.RootCertTypeForMTLSInbound,
-							}.String(),
+							Name: secrets.NameForMTLSInbound,
 							SdsConfig: &core.ConfigSource{
 								ConfigSourceSpecifier: &core.ConfigSource_Ads{
 									Ads: &core.AggregatedConfigSource{},
@@ -229,16 +226,8 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test getCommonTLSContext()", func() {
 		It("returns proper auth.CommonTlsContext for outbound mTLS", func() {
-			tlsSDSCert := secrets.SDSCert{
-				Name:     "default/bookbuyer",
-				CertType: secrets.ServiceCertType,
-			}
-			peerValidationSDSCert := &secrets.SDSCert{
-				Name:     "default/bookstore-v1",
-				CertType: secrets.RootCertTypeForMTLSOutbound,
-			}
-
-			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert, sidecarSpec)
+			actual := getCommonTLSContext(secrets.NameForIdentity(identity.New("bookbuyer", "default")),
+				secrets.NameForUpstreamService("bookstore-v1", "default"), sidecarSpec)
 
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(sidecarSpec),
@@ -259,16 +248,8 @@ var _ = Describe("Test Envoy tools", func() {
 		})
 
 		It("returns proper auth.CommonTlsContext for inbound mTLS", func() {
-			tlsSDSCert := secrets.SDSCert{
-				Name:     "default/bookstore-v1",
-				CertType: secrets.ServiceCertType,
-			}
-			peerValidationSDSCert := &secrets.SDSCert{
-				Name:     "default/bookstore-v1",
-				CertType: secrets.RootCertTypeForMTLSInbound,
-			}
-
-			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert, sidecarSpec)
+			actual := getCommonTLSContext(secrets.NameForIdentity(identity.New("bookstore-v1", "default")),
+				secrets.NameForMTLSInbound, sidecarSpec)
 
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(sidecarSpec),
@@ -278,7 +259,7 @@ var _ = Describe("Test Envoy tools", func() {
 				}},
 				ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 					ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-						Name:      "root-cert-for-mtls-inbound:default/bookstore-v1",
+						Name:      "root-cert-for-mtls-inbound",
 						SdsConfig: GetADSConfigSource(),
 					},
 				},
@@ -289,12 +270,7 @@ var _ = Describe("Test Envoy tools", func() {
 		})
 
 		It("returns proper auth.CommonTlsContext for TLS (non-mTLS)", func() {
-			tlsSDSCert := secrets.SDSCert{
-				Name:     "default/bookstore-v1",
-				CertType: secrets.ServiceCertType,
-			}
-
-			actual := getCommonTLSContext(tlsSDSCert, nil /* no client cert validation */, sidecarSpec)
+			actual := getCommonTLSContext(secrets.NameForIdentity(identity.New("bookstore-v1", "default")), "" /* no client cert validation */, sidecarSpec)
 
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(sidecarSpec),
@@ -306,53 +282,6 @@ var _ = Describe("Test Envoy tools", func() {
 			}
 
 			Expect(actual).To(Equal(expected))
-		})
-	})
-
-	Context("Test GetEnvoyServiceNodeID()", func() {
-		It("", func() {
-			actual := GetEnvoyServiceNodeID("-nodeID-", "-workload-kind-", "-workload-name-")
-			expected := "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/-nodeID-/$(POD_NAME)/-workload-kind-/-workload-name-"
-			Expect(actual).To(Equal(expected))
-		})
-	})
-
-	Context("Test ParseEnvoyServiceNodeID()", func() {
-		It("", func() {
-			serviceNodeID := GetEnvoyServiceNodeID("-nodeID-", "-workload-kind-", "-workload-name-")
-			meta, err := ParseEnvoyServiceNodeID(serviceNodeID)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(meta.UID).To(Equal("$(POD_UID)"))
-			Expect(meta.Namespace).To(Equal("$(POD_NAMESPACE)"))
-			Expect(meta.IP).To(Equal("$(POD_IP)"))
-			Expect(meta.ServiceAccount.Name).To(Equal("$(SERVICE_ACCOUNT)"))
-			Expect(meta.ServiceAccount.Namespace).To(Equal("$(POD_NAMESPACE)"))
-			Expect(meta.EnvoyNodeID).To(Equal("-nodeID-"))
-			Expect(meta.Name).To(Equal("$(POD_NAME)"))
-			Expect(meta.WorkloadKind).To(Equal("-workload-kind-"))
-			Expect(meta.WorkloadName).To(Equal("-workload-name-"))
-		})
-
-		It("handles when not all fields are defined", func() {
-			serviceNodeID := "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/-nodeID-"
-			meta, err := ParseEnvoyServiceNodeID(serviceNodeID)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(meta.UID).To(Equal("$(POD_UID)"))
-			Expect(meta.Namespace).To(Equal("$(POD_NAMESPACE)"))
-			Expect(meta.IP).To(Equal("$(POD_IP)"))
-			Expect(meta.ServiceAccount.Name).To(Equal("$(SERVICE_ACCOUNT)"))
-			Expect(meta.ServiceAccount.Namespace).To(Equal("$(POD_NAMESPACE)"))
-			Expect(meta.EnvoyNodeID).To(Equal("-nodeID-"))
-			Expect(meta.Name).To(Equal(""))
-			Expect(meta.WorkloadKind).To(Equal(""))
-			Expect(meta.WorkloadName).To(Equal(""))
-		})
-
-		It("should error when there are less than 5 chunks in the serviceNodeID string", func() {
-			// this 'serviceNodeID' will yield 2 chunks
-			serviceNodeID := "$(POD_UID)/$(POD_NAMESPACE)"
-			_, err := ParseEnvoyServiceNodeID(serviceNodeID)
-			Expect(err).To(HaveOccurred())
 		})
 	})
 })

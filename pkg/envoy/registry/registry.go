@@ -2,15 +2,12 @@ package registry
 
 import (
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 // NewProxyRegistry initializes a new empty *ProxyRegistry.
-func NewProxyRegistry(mapper ProxyServiceMapper, msgBroker *messaging.Broker) *ProxyRegistry {
+func NewProxyRegistry() *ProxyRegistry {
 	return &ProxyRegistry{
-		ProxyServiceMapper: mapper,
-		msgBroker:          msgBroker,
-		connectedProxies:   make(map[int64]*envoy.Proxy),
+		connectedProxies: make(map[int64]*envoy.Proxy),
 	}
 }
 
