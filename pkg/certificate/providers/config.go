@@ -34,7 +34,7 @@ const (
 )
 
 var getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
-	cert, err := i.IssueCertificate("init-cert", 1*time.Second)
+	cert, err := i.IssueCertificate(certificate.NewCertOptionsWithFullName("init-cert", 1*time.Second))
 	if err != nil {
 		return nil, err
 	}

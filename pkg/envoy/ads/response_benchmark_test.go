@@ -95,7 +95,7 @@ func setupTestServer(b *testing.B) {
 	namespace := tests.Namespace
 	proxySvcAccount := tests.BookstoreServiceAccount
 
-	certPEM, _ := certManager.IssueCertificate(proxySvcAccount.ToServiceIdentity().String(), certificate.Service)
+	certPEM, _ := certManager.IssueCertificate(certificate.ForServiceIdentity(proxySvcAccount.ToServiceIdentity()))
 	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 	server, _ = tests.NewFakeXDSServer(cert, nil, nil)
 

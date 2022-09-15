@@ -54,15 +54,15 @@ func New(vaultAddr, token, role string) (*CertManager, error) {
 }
 
 // IssueCertificate requests a new signed certificate from the configured Vault issuer.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
-	secret, err := cm.client.Logical().Write(getIssueURL(cm.role), getIssuanceData(cn, validityPeriod))
+func (cm *CertManager) IssueCertificate(options certificate.IssueOptions) (*certificate.Certificate, error) {
+	secret, err := cm.client.Logical().Write(getIssueURL(cm.role), getIssuanceData(options.CommonName(), options.ValidityDuration))
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrIssuingCert)).
-			Msgf("Error issuing new certificate for CN=%s", cn)
+			Msgf("Error issuing new certificate for CN=%s", options.CommonName())
 		return nil, err
 	}
-	return newCert(cn, secret, time.Now().Add(validityPeriod)), nil
+	return newCert(options.CommonName(), secret, time.Now().Add(options.ValidityDuration)), nil
 }
 
 func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time) *certificate.Certificate {

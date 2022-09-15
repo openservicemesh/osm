@@ -37,7 +37,7 @@ var _ = Describe("Test Certificate Manager", func() {
 		)
 		It("should issue a certificate", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
-			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, validity)
+			cert, issueCertificateError := m.IssueCertificate(certificate.NewCertOptionsWithFullName(serviceFQDN, validity))
 			Expect(issueCertificateError).ToNot(HaveOccurred())
 			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN)))
 
@@ -77,7 +77,7 @@ var _ = Describe("Test Certificate Manager", func() {
 
 		m := &CertManager{}
 		It("should return errNoIssuingCA error", func() {
-			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, validity)
+			cert, issueCertificateError := m.IssueCertificate(certificate.NewCertOptionsWithFullName(serviceFQDN, validity))
 			Expect(cert).To(BeNil())
 			Expect(issueCertificateError).To(Equal(errNoIssuingCA))
 		})

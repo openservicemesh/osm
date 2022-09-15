@@ -31,7 +31,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	cnPrefix := envoy.NewXDSCertCNPrefix(proxyUUID, envoy.KindSidecar, identity.New(pod.Spec.ServiceAccountName, namespace))
 	log.Debug().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
 	startTime := time.Now()
-	bootstrapCertificate, err := wh.certManager.IssueCertificate(cnPrefix, certificate.Internal)
+	bootstrapCertificate, err := wh.certManager.IssueCertificate(certificate.ForCommonNamePrefix(cnPrefix))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN prefix=%s", cnPrefix)
 		return nil, err
