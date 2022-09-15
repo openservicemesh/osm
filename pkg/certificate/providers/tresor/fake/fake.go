@@ -111,7 +111,7 @@ func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (
 		return nil, nil, err
 	}
 
-	cert, err := issuer.IssueCertificate("rootCA", 24*time.Hour)
+	cert, err := issuer.IssueCertificate(certificate.NewCertOptionsWithFullName("rootCA", 24*time.Hour))
 	if err != nil {
 		return nil, nil, err
 	}
