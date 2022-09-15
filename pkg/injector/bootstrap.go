@@ -140,25 +140,23 @@ func (b *BootstrapSecretRotator) getBootstrapSecrets() []*corev1.Secret {
 func (b *BootstrapSecretRotator) rotateBootstrapSecrets(ctx context.Context) {
 	bootstrapSecrets := b.getBootstrapSecrets()
 	for _, secret := range bootstrapSecrets {
-		bootstrapCert, err := getCertFromSecret(secret)
-		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingCertFromSecret)).
-				Msgf("Error getting cert %s from secret %s/%s", bootstrapCert, secret.Namespace, secret.Name)
-		}
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			corev1Secret := b.kubeController.GetSecret(secret.Name, secret.Namespace)
 
-		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			corev1Secret, err := b.kubeController.GetSecret(ctx, secret.Namespace, secret.Name)
+			cert, err := getCertFromSecret(corev1Secret)
 			if err != nil {
+				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingCertFromSecret)).
+					Msgf("Error getting cert from bootstrap secret %s/%s", corev1Secret.Namespace, corev1Secret.Name)
 				return err
 			}
-
-			if !b.certManager.ShouldRotate(bootstrapCert) {
+			if !b.certManager.ShouldRotate(cert) {
 				return nil
 			}
 
-			issuedCert, err := b.certManager.IssueCertificate(certificate.ForCommonName(bootstrapCert.CommonName.String()))
+			issuedCert, err := b.certManager.IssueCertificate(certificate.ForCommonName(cert.CommonName.String()))
 			if err != nil {
-				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).Msgf("Error rotating cert %s", issuedCert)
+				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).Msgf("Error rotating cert for bootstrap secret %s/%s", corev1Secret.Namespace, corev1Secret.Name)
+				return err
 			}
 
 			corev1Secret.Data[bootstrap.EnvoyXDSCACertFile] = issuedCert.GetTrustedCAs()
@@ -172,7 +170,7 @@ func (b *BootstrapSecretRotator) rotateBootstrapSecrets(ctx context.Context) {
 		})
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingBootstrapSecret)).
-				Msgf("Error updating bootstrap secret %s/%s with cert %s", secret.Namespace, secret.Name, bootstrapCert)
+				Msgf("Error updating bootstrap secret %s/%s", secret.Namespace, secret.Name)
 		}
 	}
 }

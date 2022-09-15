@@ -501,7 +501,7 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 			mockController := k8s.NewMockController(gomock.NewController(t))
 			mockController.EXPECT().ListSecrets().Return(tc.secrets)
 			for i := 0; i < len(tc.secrets); i++ {
-				mockController.EXPECT().GetSecret(context.Background(), testNs, tc.secrets[i].Name).Return(tc.secrets[i], nil)
+				mockController.EXPECT().GetSecret(tc.secrets[i].Name, testNs).Return(tc.secrets[i])
 			}
 			if tc.shouldRotate {
 				for i := 0; i < len(tc.secrets); i++ {

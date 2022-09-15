@@ -143,18 +143,17 @@ func (mr *MockControllerMockRecorder) GetPodForProxy(arg0 interface{}) *gomock.C
 }
 
 // GetSecret mocks base method.
-func (m *MockController) GetSecret(arg0 context.Context, arg1, arg2 string) (*v1.Secret, error) {
+func (m *MockController) GetSecret(arg0, arg1 string) *v1.Secret {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecret", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "GetSecret", arg0, arg1)
 	ret0, _ := ret[0].(*v1.Secret)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // GetSecret indicates an expected call of GetSecret.
-func (mr *MockControllerMockRecorder) GetSecret(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockControllerMockRecorder) GetSecret(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecret", reflect.TypeOf((*MockController)(nil).GetSecret), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecret", reflect.TypeOf((*MockController)(nil).GetSecret), arg0, arg1)
 }
 
 // GetService mocks base method.

@@ -333,7 +333,6 @@ func TestGetSecret(t *testing.T) {
 		secretName string
 		namespace  string
 		expSecret  *corev1.Secret
-		expErr     bool
 	}{
 		{
 			name: "gets the secret from the cache",
@@ -351,7 +350,6 @@ func TestGetSecret(t *testing.T) {
 					Namespace: "ns1",
 				},
 			},
-			expErr: false,
 		},
 		{
 			name: "returns nil if the secret is not found in the cache",
@@ -361,34 +359,23 @@ func TestGetSecret(t *testing.T) {
 					Namespace: "ns1",
 				},
 			},
-			secretName: "invalid",
+			secretName: "doesntExist",
 			namespace:  "ns1",
 			expSecret:  nil,
-			expErr:     true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-
+			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
 			err = ic.Add(informers.InformerKeySecret, tc.secret, t)
 			a.Nil(err)
 
-			fakeK8sClient := fake.NewSimpleClientset(tc.secret)
-			c := NewClient(testNs, tests.OsmMeshConfigName, ic, fakeK8sClient, nil, nil)
-			a.Nil(err)
-
-			actual, err := c.GetSecret(context.Background(), tc.namespace, tc.secretName)
+			actual := c.GetSecret(tc.secretName, tc.namespace)
 			a.Equal(tc.expSecret, actual)
-			if tc.expErr {
-				a.NotNil(err)
-			} else {
-				a.Nil(err)
-			}
 		})
 	}
 }
