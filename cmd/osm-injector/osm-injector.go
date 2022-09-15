@@ -198,7 +198,7 @@ func main() {
 	}
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
-	kubeController := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, policyClient, msgBroker, k8s.Namespaces)
+	kubeController := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, policyClient, configClient, msgBroker, k8s.Namespaces)
 
 	certOpts, err := getCertOptions()
 	if err != nil {

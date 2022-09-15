@@ -144,6 +144,20 @@ func (mr *MockMeshCatalogerMockRecorder) GetMeshConfig() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshConfig", reflect.TypeOf((*MockMeshCataloger)(nil).GetMeshConfig))
 }
 
+// GetMeshRootCertificate mocks base method.
+func (m *MockMeshCataloger) GetMeshRootCertificate(arg0 string) *v1alpha2.MeshRootCertificate {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMeshRootCertificate", arg0)
+	ret0, _ := ret[0].(*v1alpha2.MeshRootCertificate)
+	return ret0
+}
+
+// GetMeshRootCertificate indicates an expected call of GetMeshRootCertificate.
+func (mr *MockMeshCatalogerMockRecorder) GetMeshRootCertificate(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshRootCertificate", reflect.TypeOf((*MockMeshCataloger)(nil).GetMeshRootCertificate), arg0)
+}
+
 // GetMeshService mocks base method.
 func (m *MockMeshCataloger) GetMeshService(arg0, arg1 string, arg2 uint16) (service.MeshService, error) {
 	m.ctrl.T.Helper()
@@ -414,6 +428,21 @@ func (mr *MockMeshCatalogerMockRecorder) ListIngressBackendPolicies() *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIngressBackendPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).ListIngressBackendPolicies))
 }
 
+// ListMeshRootCertificates mocks base method.
+func (m *MockMeshCataloger) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertificate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListMeshRootCertificates")
+	ret0, _ := ret[0].([]*v1alpha2.MeshRootCertificate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListMeshRootCertificates indicates an expected call of ListMeshRootCertificates.
+func (mr *MockMeshCatalogerMockRecorder) ListMeshRootCertificates() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMeshRootCertificates", reflect.TypeOf((*MockMeshCataloger)(nil).ListMeshRootCertificates))
+}
+
 // ListNamespaces mocks base method.
 func (m *MockMeshCataloger) ListNamespaces() ([]string, error) {
 	m.ctrl.T.Helper()
@@ -573,6 +602,36 @@ func (m *MockMeshCataloger) UpdateIngressBackendStatus(arg0 *v1alpha1.IngressBac
 func (mr *MockMeshCatalogerMockRecorder) UpdateIngressBackendStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateIngressBackendStatus", reflect.TypeOf((*MockMeshCataloger)(nil).UpdateIngressBackendStatus), arg0)
+}
+
+// UpdateMeshRootCertificate mocks base method.
+func (m *MockMeshCataloger) UpdateMeshRootCertificate(arg0 *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMeshRootCertificate", arg0)
+	ret0, _ := ret[0].(*v1alpha2.MeshRootCertificate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateMeshRootCertificate indicates an expected call of UpdateMeshRootCertificate.
+func (mr *MockMeshCatalogerMockRecorder) UpdateMeshRootCertificate(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeshRootCertificate", reflect.TypeOf((*MockMeshCataloger)(nil).UpdateMeshRootCertificate), arg0)
+}
+
+// UpdateMeshRootCertificateStatus mocks base method.
+func (m *MockMeshCataloger) UpdateMeshRootCertificateStatus(arg0 *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMeshRootCertificateStatus", arg0)
+	ret0, _ := ret[0].(*v1alpha2.MeshRootCertificate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateMeshRootCertificateStatus indicates an expected call of UpdateMeshRootCertificateStatus.
+func (mr *MockMeshCatalogerMockRecorder) UpdateMeshRootCertificateStatus(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeshRootCertificateStatus", reflect.TypeOf((*MockMeshCataloger)(nil).UpdateMeshRootCertificateStatus), arg0)
 }
 
 // UpdateUpstreamTrafficSettingStatus mocks base method.
