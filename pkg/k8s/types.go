@@ -107,6 +107,9 @@ type Controller interface {
 	// ListSecrets returns a list of secrets
 	ListSecrets() []*corev1.Secret
 
+	// GetSecret returns the secret for a given namespace and secret name
+	GetSecret(context.Context, string, string) (*corev1.Secret, error)
+
 	// UpdateSecretData updates the secret with the provided data
 	UpdateSecretData(context.Context, *corev1.Secret, map[string][]byte) error
 

@@ -326,12 +326,78 @@ func TestListSecrets(t *testing.T) {
 	}
 }
 
+func TestGetSecret(t *testing.T) {
+	testCases := []struct {
+		name       string
+		secret     *corev1.Secret
+		secretName string
+		namespace  string
+		expSecret  *corev1.Secret
+		expErr     bool
+	}{
+		{
+			name: "gets the secret from the cache",
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "ns1",
+				},
+			},
+			secretName: "foo",
+			namespace:  "ns1",
+			expSecret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "ns1",
+				},
+			},
+			expErr: false,
+		},
+		{
+			name: "returns nil if the secret is not found in the cache",
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "ns1",
+				},
+			},
+			secretName: "invalid",
+			namespace:  "ns1",
+			expSecret:  nil,
+			expErr:     true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+
+			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
+			a.Nil(err)
+
+			err = ic.Add(informers.InformerKeySecret, tc.secret, t)
+			a.Nil(err)
+
+			fakeK8sClient := fake.NewSimpleClientset(tc.secret)
+			c := NewClient(testNs, tests.OsmMeshConfigName, ic, fakeK8sClient, nil, nil)
+			a.Nil(err)
+
+			actual, err := c.GetSecret(context.Background(), tc.namespace, tc.secretName)
+			a.Equal(tc.expSecret, actual)
+			if tc.expErr {
+				a.NotNil(err)
+			} else {
+				a.Nil(err)
+			}
+		})
+	}
+}
+
 func TestUpdateSecretData(t *testing.T) {
 	testCases := []struct {
 		name       string
 		secret     *corev1.Secret
 		secretData map[string][]byte
-		expErr     error
 	}{
 		{
 			name: "Update secret data",
@@ -343,7 +409,6 @@ func TestUpdateSecretData(t *testing.T) {
 				Data: map[string][]byte{"a": {}},
 			},
 			secretData: map[string][]byte{},
-			expErr:     nil,
 		},
 	}
 
@@ -357,8 +422,8 @@ func TestUpdateSecretData(t *testing.T) {
 			fakeK8sClient := fake.NewSimpleClientset(tc.secret)
 			c := NewClient(testNs, tests.OsmMeshConfigName, ic, fakeK8sClient, nil, nil, nil)
 
-			actualErr := c.UpdateSecretData(context.Background(), tc.secret, tc.secretData)
-			a.Equal(tc.expErr, actualErr)
+			err = c.UpdateSecretData(context.Background(), tc.secret, tc.secretData)
+			a.Nil(err)
 		})
 	}
 }

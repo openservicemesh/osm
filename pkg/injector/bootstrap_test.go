@@ -403,12 +403,14 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 	testNs := "testNamespace"
 	proxyUUID1 := uuid.New()
 	proxyUUID2 := uuid.New()
-	secretName := bootstrapSecretPrefix + proxyUUID1.String()
-	diffSecretName := bootstrapSecretPrefix + proxyUUID2.String()
+	secretName1 := bootstrapSecretPrefix + proxyUUID1.String()
+	secretName2 := bootstrapSecretPrefix + proxyUUID2.String()
+	commonName1 := certificate.CommonName(proxyUUID1.String() + ".test.cert")
+	commonName2 := certificate.CommonName(proxyUUID2.String() + ".test.cert")
 
 	notBefore := time.Now()
 	notAfter := notBefore.Add(1 * time.Hour)
-	pemCert, pemKey, err := certificate.CreateValidCertAndKey(notBefore, notAfter)
+	pemCert, pemKey, err := certificate.CreateValidCertAndKey(commonName1, notBefore, notAfter)
 	assert.Nil(err)
 
 	testCases := []struct {
@@ -419,17 +421,19 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 	}{
 		{
 			name:      "don't update bootstrap secret",
-			certNames: []string{certificate.CommonName(proxyUUID1.String() + ".test.cert").String()},
+			certNames: []string{commonName1.String()},
 			secrets: []*corev1.Secret{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      secretName,
+						Name:      secretName1,
 						Namespace: testNs,
 					},
 					Data: map[string][]byte{
 						bootstrap.EnvoyXDSCACertFile: {},
 						bootstrap.EnvoyXDSCertFile:   []byte(pemCert),
 						bootstrap.EnvoyXDSKeyFile:    []byte(pemKey),
+						signingIssuerID:              []byte("osm-mesh-root-certificate"),
+						validatingIssuerID:           []byte("osm-mesh-root-certificate"),
 					},
 				},
 			},
@@ -437,11 +441,11 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 		},
 		{
 			name:      "update bootstrap secret",
-			certNames: []string{certificate.CommonName(proxyUUID1.String() + ".test.cert").String()},
+			certNames: []string{commonName1.String()},
 			secrets: []*corev1.Secret{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      secretName,
+						Name:      secretName1,
 						Namespace: testNs,
 					},
 					Data: map[string][]byte{
@@ -455,11 +459,11 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 		},
 		{
 			name:      "update multiple bootstrap secret",
-			certNames: []string{certificate.CommonName(proxyUUID1.String() + ".test.cert").String(), certificate.CommonName(proxyUUID2.String() + ".test.cert").String()},
+			certNames: []string{commonName1.String(), commonName2.String()},
 			secrets: []*corev1.Secret{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      secretName,
+						Name:      secretName1,
 						Namespace: testNs,
 					},
 					Data: map[string][]byte{
@@ -470,7 +474,7 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      diffSecretName,
+						Name:      secretName2,
 						Namespace: testNs,
 					},
 					Data: map[string][]byte{
@@ -496,15 +500,20 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 			fakeK8sClient := fake.NewSimpleClientset(objs...)
 			mockController := k8s.NewMockController(gomock.NewController(t))
 			mockController.EXPECT().ListSecrets().Return(tc.secrets)
+			for i := 0; i < len(tc.secrets); i++ {
+				mockController.EXPECT().GetSecret(context.Background(), testNs, tc.secrets[i].Name).Return(tc.secrets[i], nil)
+			}
 			if tc.shouldRotate {
 				for i := 0; i < len(tc.secrets); i++ {
-					cert, err := certManager.IssueCertificate(tc.certNames[i], certificate.Internal)
+					cert, err := certManager.IssueCertificate(certificate.ForCommonName(tc.certNames[i]))
 					assert.Nil(err)
 
 					secretData := map[string][]byte{
 						bootstrap.EnvoyXDSCACertFile: cert.GetTrustedCAs(),
 						bootstrap.EnvoyXDSCertFile:   cert.GetCertificateChain(),
 						bootstrap.EnvoyXDSKeyFile:    cert.GetPrivateKey(),
+						signingIssuerID:              []byte(cert.GetSigningIssuerID()),
+						validatingIssuerID:           []byte(cert.GetValidatingIssuerID()),
 					}
 					mockController.EXPECT().UpdateSecretData(context.Background(), tc.secrets[i], secretData)
 				}

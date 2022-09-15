@@ -43,7 +43,7 @@ func GetCertFromKubernetes(ns string, secretName string, kubeClient kubernetes.I
 		return nil, certificate.ErrInvalidCertSecret
 	}
 
-	cert, err := certificate.NewFromPEM(pemCert, pemKey)
+	cert, err := certificate.NewRootCertificateFromPEM(pemCert, pemKey)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create new Certificate from PEM")
 		return nil, err

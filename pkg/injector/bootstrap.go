@@ -9,8 +9,8 @@ import (
 	xds_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -20,6 +20,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/openservicemesh/osm/pkg/version"
+)
+
+const (
+	signingIssuerID    = "signing_issuer_id"
+	validatingIssuerID = "validating_issuer_id"
 )
 
 // This will read an existing envoy bootstrap config, and create a new copy by changing the NodeID, and certificates.
@@ -99,6 +104,8 @@ func (wh *mutatingWebhook) marshalAndSaveBootstrap(name, namespace string, confi
 			bootstrap.EnvoyXDSCACertFile:                  cert.GetTrustedCAs(),
 			bootstrap.EnvoyXDSCertFile:                    cert.GetCertificateChain(),
 			bootstrap.EnvoyXDSKeyFile:                     cert.GetPrivateKey(),
+			signingIssuerID:                               []byte(cert.GetSigningIssuerID()),
+			validatingIssuerID:                            []byte(cert.GetValidatingIssuerID()),
 		},
 	}
 
@@ -139,28 +146,33 @@ func (b *BootstrapSecretRotator) rotateBootstrapSecrets(ctx context.Context) {
 				Msgf("Error getting cert %s from secret %s/%s", bootstrapCert, secret.Namespace, secret.Name)
 		}
 
-		if !b.certManager.ShouldRotate(bootstrapCert) {
-			continue
-		}
-
-		issuedCert, err := b.certManager.IssueCertificate(bootstrapCert.CommonName.String(), certificate.Internal, certificate.FullCNProvided())
-		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).Msgf("Error rotating cert %s", issuedCert)
-		}
-
-		secret.Data[bootstrap.EnvoyXDSCACertFile] = issuedCert.GetTrustedCAs()
-		secret.Data[bootstrap.EnvoyXDSCertFile] = issuedCert.GetCertificateChain()
-		secret.Data[bootstrap.EnvoyXDSKeyFile] = issuedCert.GetPrivateKey()
-
-		err = b.kubeController.UpdateSecretData(ctx, secret, secret.Data)
-		if err != nil {
-			if apierrors.IsConflict(err) {
-				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingBootstrapSecret)).
-					Msgf("There was an update conflict while trying to update the envoy bootstrap config secret %s/%s with issued cert %s", secret.Namespace, secret.Name, issuedCert)
-				continue
+		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			corev1Secret, err := b.kubeController.GetSecret(ctx, secret.Namespace, secret.Name)
+			if err != nil {
+				return err
 			}
+
+			if !b.certManager.ShouldRotate(bootstrapCert) {
+				return nil
+			}
+
+			issuedCert, err := b.certManager.IssueCertificate(certificate.ForCommonName(bootstrapCert.CommonName.String()))
+			if err != nil {
+				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).Msgf("Error rotating cert %s", issuedCert)
+			}
+
+			corev1Secret.Data[bootstrap.EnvoyXDSCACertFile] = issuedCert.GetTrustedCAs()
+			corev1Secret.Data[bootstrap.EnvoyXDSCertFile] = issuedCert.GetCertificateChain()
+			corev1Secret.Data[bootstrap.EnvoyXDSKeyFile] = issuedCert.GetPrivateKey()
+			corev1Secret.Data[signingIssuerID] = []byte(issuedCert.GetSigningIssuerID())
+			corev1Secret.Data[validatingIssuerID] = []byte(issuedCert.GetValidatingIssuerID())
+
+			err = b.kubeController.UpdateSecretData(ctx, corev1Secret, corev1Secret.Data)
+			return err
+		})
+		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingBootstrapSecret)).
-				Msgf("Error updating bootstrap secret %s/%s with issued cert %s", secret.Namespace, secret.Name, issuedCert)
+				Msgf("Error updating bootstrap secret %s/%s with cert %s", secret.Namespace, secret.Name, bootstrapCert)
 		}
 	}
 }
@@ -187,21 +199,17 @@ func getCertFromSecret(secret *corev1.Secret) (*certificate.Certificate, error) 
 		return nil, certificate.ErrInvalidCertSecret
 	}
 
-	x509Cert, err := certificate.DecodePEMCertificate(pemCert)
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMCert)).
-			Msg("Error converting PEM cert to x509 to obtain serial number")
-		return nil, err
+	signingIssuerID, ok := secret.Data[signingIssuerID]
+	if !ok {
+		log.Warn().Msgf("Opaque k8s secret %s/%s does not have field %q", secret.Namespace, secret.Name, signingIssuerID)
 	}
 
-	return &certificate.Certificate{
-		CommonName:   certificate.CommonName(x509Cert.Subject.CommonName),
-		SerialNumber: certificate.SerialNumber(x509Cert.SerialNumber.String()),
-		CertChain:    pemCert,
-		TrustedCAs:   caCert,
-		PrivateKey:   pemKey,
-		Expiration:   x509Cert.NotAfter,
-	}, nil
+	validatingIssuerID, ok := secret.Data[validatingIssuerID]
+	if !ok {
+		log.Warn().Msgf("Opaque k8s secret %s/%s does not have field %q", secret.Namespace, secret.Name, validatingIssuerID)
+	}
+
+	return certificate.NewCertificate(pemCert, pemKey, caCert, string(signingIssuerID), string(validatingIssuerID))
 }
 
 // StartBootstrapSecretRotationTicker will start a ticker to check if the bootstrap secrets should be

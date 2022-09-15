@@ -16,7 +16,7 @@ func TestNewFromPEM(t *testing.T) {
 	cn := CommonName("Test CA")
 	notBefore := time.Now()
 	notAfter := notBefore.Add(1 * time.Hour)
-	pemCert, pemKey, err := CreateValidCertAndKey(notBefore, notAfter)
+	pemCert, pemKey, err := CreateValidCertAndKey(cn, notBefore, notAfter)
 	assert.Nil(err)
 
 	tests := []struct {
@@ -62,7 +62,7 @@ func TestNewFromPEM(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c, err := NewFromPEM(test.pemCert, test.pemKey)
+			c, err := NewRootCertificateFromPEM(test.pemCert, test.pemKey)
 			assert.Equal(test.expectedErr, err != nil)
 
 			if !test.expectedErr {

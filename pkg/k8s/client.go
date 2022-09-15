@@ -200,6 +200,15 @@ func (c *Client) ListSecrets() []*corev1.Secret {
 	return secrets
 }
 
+// GetSecret returns the secret for a given namespace and secret name, returns nil if the API errored
+func (c *Client) GetSecret(ctx context.Context, namespace, name string) (*corev1.Secret, error) {
+	secret, err := c.kubeClient.CoreV1().Secrets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return secret, nil
+}
+
 // UpdateSecretData updates the secret with the provided data
 func (c *Client) UpdateSecretData(ctx context.Context, secret *corev1.Secret, secretData map[string][]byte) error {
 	secret.Data = secretData
