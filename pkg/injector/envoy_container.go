@@ -38,9 +38,10 @@ func getPlatformSpecificSpecComponents(meshConfig v1alpha2.MeshConfig, podOS str
 	return
 }
 
-func getEnvoySidecarContainerSpec(pod *corev1.Pod, meshConfig v1alpha2.MeshConfig, originalHealthProbes models.HealthProbes, podOS string) corev1.Container {
+func getEnvoySidecarContainerSpec(pod *corev1.Pod, namespace string, meshConfig v1alpha2.MeshConfig, originalHealthProbes models.HealthProbes, podOS string) corev1.Container {
 	// cluster ID will be used as an identifier to the tracing sink
-	clusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, pod.Namespace)
+	// pod.Namespace is unset in the API request to the webhook so namespace is derived from req.Namespace
+	clusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, namespace)
 	securityContext, containerImage := getPlatformSpecificSpecComponents(meshConfig, podOS)
 
 	logLevel := meshConfig.Spec.Sidecar.LogLevel

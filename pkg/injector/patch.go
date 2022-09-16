@@ -25,6 +25,7 @@ import (
 )
 
 func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.AdmissionRequest, proxyUUID uuid.UUID) ([]byte, error) {
+	// pod.Namespace is unset in the API request to the webhook so namespace is derived from req.Namespace
 	namespace := req.Namespace
 
 	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)
@@ -142,7 +143,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	}
 
 	// Add the Envoy sidecar
-	sidecar := getEnvoySidecarContainerSpec(pod, wh.kubeController.GetMeshConfig(), originalHealthProbes, podOS)
+	sidecar := getEnvoySidecarContainerSpec(pod, namespace, wh.kubeController.GetMeshConfig(), originalHealthProbes, podOS)
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
 	return json.Marshal(makePatches(req, pod))
