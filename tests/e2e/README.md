@@ -127,7 +127,7 @@ The different values of installType are as follows:
 
 1. `installType=KindCluster`
 
-	Each test in the e2e suite will spin up a kind cluster, and run that specific test on that kind cluster. Each test will install OSM via the OSM cli, and then uninstall OSM after the test finishes running. The user is not expected to have created any cluster beforehand.
+	Each test in the e2e suite will spin up a kind cluster if the required one does not exist. Then it runs that specific test on that kind cluster. Each test will install OSM via the OSM cli, and then uninstall OSM after the test finishes running. The user is not expected to have created any cluster beforehand.
 
 1. `installType=SelfInstall` (default)
 

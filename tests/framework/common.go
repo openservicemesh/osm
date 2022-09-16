@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/exp/slices"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -233,38 +235,17 @@ func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 
 	if (td.InstType == KindCluster) && td.ClusterProvider == nil {
 		td.ClusterProvider = cluster.NewProvider()
-		td.T.Logf("Creating local kind cluster")
-		clusterConfig := &v1alpha4.Cluster{
-			Nodes: []v1alpha4.Node{
-				{
-					Role: v1alpha4.ControlPlaneRole,
-				},
-				{
-					Role: v1alpha4.WorkerRole,
-					KubeadmConfigPatches: []string{`kind: JoinConfiguration
-nodeRegistration:
-  kubeletExtraArgs:
-    node-labels: "ingress-ready=true"`},
-					ExtraPortMappings: []v1alpha4.PortMapping{
-						{
-							ContainerPort: 80,
-							HostPort:      80,
-							Protocol:      v1alpha4.PortMappingProtocolTCP,
-						},
-					},
-				},
-				{
-					Role: v1alpha4.WorkerRole,
-				},
-			},
+		existingKindClusters, err := td.ClusterProvider.List()
+		if err != nil {
+			return fmt.Errorf("Failed to detect existing kind clusters: %w", err)
 		}
-		if Td.ClusterVersion != "" {
-			for i := 0; i < len(clusterConfig.Nodes); i++ {
-				clusterConfig.Nodes[i].Image = fmt.Sprintf("kindest/node:%s", td.ClusterVersion)
+
+		if idx := slices.IndexFunc(existingKindClusters, func(item string) bool { return item == td.ClusterName }); idx != -1 {
+			td.T.Logf("Kind cluster %s already exists. Skip creating Kind cluster.\n", td.ClusterName)
+		} else {
+			if err := td.createNewKindCluster(t); err != nil {
+				return fmt.Errorf("Failed to create kind cluster: %w", err)
 			}
-		}
-		if err := td.ClusterProvider.Create(td.ClusterName, cluster.CreateWithV1Alpha4Config(clusterConfig)); err != nil {
-			return fmt.Errorf("failed to create kind cluster: %w", err)
 		}
 	}
 
@@ -325,6 +306,43 @@ nodeRegistration:
 
 	// Logs v<major>.<minor>.<patch>
 	td.T.Logf("> k8s server version: v%s\n", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(k8sServerVersion)), "."), "[]"))
+	return nil
+}
+
+func (td *OsmTestData) createNewKindCluster(t GinkgoTInterface) error {
+	td.T.Logf("Creating local kind cluster")
+	clusterConfig := &v1alpha4.Cluster{
+		Nodes: []v1alpha4.Node{
+			{
+				Role: v1alpha4.ControlPlaneRole,
+			},
+			{
+				Role: v1alpha4.WorkerRole,
+				KubeadmConfigPatches: []string{`kind: JoinConfiguration
+nodeRegistration:
+  kubeletExtraArgs:
+    node-labels: "ingress-ready=true"`},
+				ExtraPortMappings: []v1alpha4.PortMapping{
+					{
+						ContainerPort: 80,
+						HostPort:      80,
+						Protocol:      v1alpha4.PortMappingProtocolTCP,
+					},
+				},
+			},
+			{
+				Role: v1alpha4.WorkerRole,
+			},
+		},
+	}
+	if Td.ClusterVersion != "" {
+		for i := 0; i < len(clusterConfig.Nodes); i++ {
+			clusterConfig.Nodes[i].Image = fmt.Sprintf("kindest/node:%s", td.ClusterVersion)
+		}
+	}
+	if err := td.ClusterProvider.Create(td.ClusterName, cluster.CreateWithV1Alpha4Config(clusterConfig)); err != nil {
+		return fmt.Errorf("failed to create kind cluster: %w", err)
+	}
 	return nil
 }
 
