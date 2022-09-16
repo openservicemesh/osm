@@ -3,7 +3,6 @@ package framework
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -20,7 +19,7 @@ func (td *OsmTestData) AddNsToMesh(enableSidecarInjection bool, ns ...string) er
 			args = append(args, "--disable-sidecar-injection")
 		}
 
-		stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args...)
+		stdout, stderr, err := td.RunOsmCli(args...)
 		if err != nil {
 			td.T.Logf("error running osm namespace add")
 			td.T.Logf("stdout:\n%s", stdout)
@@ -30,7 +29,7 @@ func (td *OsmTestData) AddNsToMesh(enableSidecarInjection bool, ns ...string) er
 
 		if Td.EnableNsMetricTag {
 			args = []string{"metrics", "enable", "--namespace", namespace}
-			stdout, stderr, err = td.RunLocal(filepath.FromSlash("../../bin/osm"), args...)
+			stdout, stderr, err = td.RunOsmCli(args...)
 			if err != nil {
 				td.T.Logf("error running osm namespace add")
 				td.T.Logf("stdout:\n%s", stdout)

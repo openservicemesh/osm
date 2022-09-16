@@ -210,7 +210,7 @@ func (g *Grafana) PanelPNGSnapshot(dashboard string, panelID int, fromMinutes in
 // `.*over_limit.*`: 5
 // `tls_inspector.*alpn_found.*`: 6
 func (td *OsmTestData) GetEnvoyMetric(pod types.NamespacedName, queryMatchers []string) ([]int, error) {
-	stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "get", "stats", pod.Name, "--namespace", pod.Namespace)
+	stdout, stderr, err := Td.RunOsmCli("proxy", "get", "stats", pod.Name, "--namespace", pod.Namespace)
 	if err != nil {
 		time.Sleep(1 * time.Minute)
 		return nil, fmt.Errorf("could not get client stats, stderr=%s, err=%w", stderr, err)
@@ -238,7 +238,7 @@ func (td *OsmTestData) GetEnvoyMetric(pod types.NamespacedName, queryMatchers []
 
 // ResetEnvoyStats resets the Envoy stats counters for the given pod
 func (td *OsmTestData) ResetEnvoyStats(pod types.NamespacedName) error {
-	_, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "set", "reset_counters", pod.Name, "--namespace", pod.Namespace)
+	_, stderr, err := Td.RunOsmCli("proxy", "set", "reset_counters", pod.Name, "--namespace", pod.Namespace)
 	if err != nil {
 		time.Sleep(1 * time.Minute)
 		return fmt.Errorf("could not get client stats, stderr=%s, err=%w", stderr, err)

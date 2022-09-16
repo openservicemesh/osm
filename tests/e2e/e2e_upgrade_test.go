@@ -208,7 +208,7 @@ var _ = OSMDescribe("Upgrade from latest",
 			}
 
 			setArgs := "--set=osm.image.tag=" + Td.OsmImageTag + ",osm.image.registry=" + Td.CtrRegistryServer + ",osm.image.pullPolicy=" + string(pullPolicy) + ",osm.deployPrometheus=true,osm.enablePrivilegedInitContainer=" + strconv.FormatBool(Td.DeployOnOpenShift) + ",osm.osmController.resource.requests.cpu=0.3,osm.injector.resource.requests.cpu=0.1,osm.prometheus.resources.requests.cpu=0.1,osm.prometheus.resources.requests.memory=256M"
-			stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "mesh", "upgrade", "--osm-namespace="+Td.OsmNamespace, setArgs)
+			stdout, stderr, err := Td.RunOsmCli("mesh", "upgrade", "--osm-namespace="+Td.OsmNamespace, setArgs)
 			Td.T.Log(stdout.String())
 			if err != nil {
 				Td.T.Log("stderr:\n" + stderr.String())

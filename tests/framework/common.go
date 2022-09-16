@@ -568,7 +568,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	}
 
 	td.T.Log("Installing OSM")
-	stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args...)
+	stdout, stderr, err := td.RunOsmCli(args...)
 	if err != nil {
 		td.T.Logf("error running osm install")
 		td.T.Logf("stdout:\n%s", stdout)
@@ -1063,6 +1063,11 @@ func (td *OsmTestData) RunLocal(path string, args ...string) (*bytes.Buffer, *by
 	return stdout, stderr, err
 }
 
+// RunOsmCli executes the local osm binary built for the test
+func (td *OsmTestData) RunOsmCli(args ...string) (*bytes.Buffer, *bytes.Buffer, error) {
+	return Td.RunLocal(filepath.FromSlash("../../bin/osm"), args...)
+}
+
 // RunRemote runs command in remote container
 func (td *OsmTestData) RunRemote(
 	ns string, podName string, containerName string,
@@ -1429,7 +1434,7 @@ func (td *OsmTestData) GetBugReport() error {
 
 	args := []string{"support", "bug-report", "--all", fmt.Sprintf("-o=%s/osm_bug_report.tar.gz", absTestDirPath)}
 
-	stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args...)
+	stdout, stderr, err := td.RunOsmCli(args...)
 
 	td.T.Logf("stdout:\n%s", stdout)
 
