@@ -19,6 +19,7 @@ import (
 	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	types "k8s.io/apimachinery/pkg/types"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // MockMeshCataloger is a mock of MeshCataloger interface.
@@ -42,6 +43,18 @@ func NewMockMeshCataloger(ctrl *gomock.Controller) *MockMeshCataloger {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockMeshCataloger) EXPECT() *MockMeshCatalogerMockRecorder {
 	return m.recorder
+}
+
+// AddMRCEventsHandler mocks base method.
+func (m *MockMeshCataloger) AddMRCEventsHandler(arg0 cache.ResourceEventHandlerFuncs) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AddMRCEventsHandler", arg0)
+}
+
+// AddMRCEventsHandler indicates an expected call of AddMRCEventsHandler.
+func (mr *MockMeshCatalogerMockRecorder) AddMRCEventsHandler(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMRCEventsHandler", reflect.TypeOf((*MockMeshCataloger)(nil).AddMRCEventsHandler), arg0)
 }
 
 // GetEgressTrafficPolicy mocks base method.

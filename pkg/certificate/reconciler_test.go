@@ -11,14 +11,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
 	fakeConfigClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
+	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 func TestCheckAndUpdate(t *testing.T) {
 	a := tassert.New(t)
 
-	mrcClient := fakeMRCClient{}
+	mrcClient := &fakeMRCClient{}
 	checkStatus := func(ctx context.Context, mrc *v1alpha2.MeshRootCertificate) (bool, error) {
 		if mrc.Status.State != constants.MRCStatePending {
 			return false, fmt.Errorf("incorrect rotation state")
@@ -37,13 +42,15 @@ func TestCheckAndUpdate(t *testing.T) {
 			Status: "True",
 			Reason: "CertificatePassivelyInUse",
 		})
-		_, err := mrcClient.UpdateStatus(mrc)
+		if mrcClient == nil {
+			return fmt.Errorf("error")
+		}
+		_, err := mrcClient.UpdateMeshRootCertificateStatus(mrc)
 		a.NoError(err)
 		return nil
 	}
 	mrcName := "osm-mesh-root-certificate"
 
-	// TODO: Add check for fails to meet condition
 	testCases := []struct {
 		name             string
 		currentResource  v1alpha2.MeshRootCertificate
@@ -53,7 +60,7 @@ func TestCheckAndUpdate(t *testing.T) {
 			name: "successfully updated MRC",
 			currentResource: v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
+					Name:      mrcName,
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
@@ -82,7 +89,7 @@ func TestCheckAndUpdate(t *testing.T) {
 			},
 			expectedResource: v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
+					Name:      mrcName,
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
@@ -121,7 +128,7 @@ func TestCheckAndUpdate(t *testing.T) {
 			name: "MRC not updated. checkStatus errors",
 			currentResource: v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
+					Name:      mrcName,
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
@@ -150,7 +157,7 @@ func TestCheckAndUpdate(t *testing.T) {
 			},
 			expectedResource: v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
+					Name:      mrcName,
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
@@ -182,17 +189,27 @@ func TestCheckAndUpdate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mrcClient.fakeConfigClient = fakeConfigClientset.NewSimpleClientset(&tc.currentResource)
+			stop := make(chan struct{})
+			defer close(stop)
+
+			configClient := fakeConfigClientset.NewSimpleClientset(&tc.currentResource)
+			ic, err := informers.NewInformerCollection("osm-system", stop, informers.WithConfigClient(configClient, tests.OsmMeshConfigName, "osm-system"))
+			_ = ic.Add(informers.InformerKeyMeshRootCertificate, tc.currentResource, t)
+			a.NoError(err)
+			k8sClient := k8s.NewClient("osm-system", tests.OsmMeshConfigName, ic, nil, configClient, messaging.NewBroker(stop))
+			kubeClient := kube.NewClient(k8sClient)
+			mrcClient.Interface = kubeClient
+			a.NotNil(mrcClient.Interface)
+
 			mrcReconciler := MRCReconciler{mrcName, updateStatus, checkStatus}
 			ctx, cancel := context.WithCancel(context.Background())
-			// TODO: Does this cancel after each loop?
 			defer cancel()
+
 			// Start mrc reconciliation loop
-			mrcReconciler.CheckAndUpdate(ctx, &mrcClient, 5*time.Millisecond)
+			mrcReconciler.CheckAndUpdate(ctx, mrcClient, 5*time.Millisecond)
 			time.Sleep(1 * time.Second)
 
-			updatedMRC, err := mrcClient.fakeConfigClient.ConfigV1alpha2().MeshRootCertificates("osm-system").Get(ctx, mrcName, metav1.GetOptions{})
-			a.NoError(err)
+			updatedMRC := mrcClient.GetMeshRootCertificate(mrcName)
 			a.Equal(&tc.expectedResource, updatedMRC)
 		})
 	}

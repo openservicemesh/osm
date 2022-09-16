@@ -15,6 +15,7 @@ import (
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
 	types "k8s.io/apimachinery/pkg/types"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // MockInterface is a mock of Interface interface.
@@ -38,6 +39,18 @@ func NewMockInterface(ctrl *gomock.Controller) *MockInterface {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockInterface) EXPECT() *MockInterfaceMockRecorder {
 	return m.recorder
+}
+
+// AddMRCEventsHandler mocks base method.
+func (m *MockInterface) AddMRCEventsHandler(arg0 cache.ResourceEventHandlerFuncs) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AddMRCEventsHandler", arg0)
+}
+
+// AddMRCEventsHandler indicates an expected call of AddMRCEventsHandler.
+func (mr *MockInterfaceMockRecorder) AddMRCEventsHandler(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMRCEventsHandler", reflect.TypeOf((*MockInterface)(nil).AddMRCEventsHandler), arg0)
 }
 
 // GetHostnamesForService mocks base method.

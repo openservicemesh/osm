@@ -7,6 +7,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/cache"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -428,4 +429,9 @@ func (c *Client) ListMeshRootCertificates() ([]*configv1alpha2.MeshRootCertifica
 	}
 
 	return mrcs, nil
+}
+
+// AddMRCEventsHandler adds the event handler for MRCEvents
+func (c *Client) AddMRCEventsHandler(handlerFuncs cache.ResourceEventHandlerFuncs) {
+	c.informers.AddEventHandler(osminformers.InformerKeyMeshRootCertificate, handlerFuncs)
 }

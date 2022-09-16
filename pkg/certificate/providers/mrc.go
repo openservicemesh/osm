@@ -15,31 +15,11 @@ import (
 // to observe MRCs (via List() and Watch()) as well as generate
 // `certificate.Provider`s from those MRCs
 type MRCComposer struct {
-	computeClient compute.Interface
+	compute.Interface
 	// TODO(#4863): remove this once informer is collapsed into k8s.client
 	informerCollection *informers.InformerCollection
 
 	MRCProviderGenerator
-}
-
-// List returns the MRCs in the mesh
-func (m *MRCComposer) List() ([]*v1alpha2.MeshRootCertificate, error) {
-	return m.computeClient.ListMeshRootCertificates()
-}
-
-// Get returns the specified MRC
-func (m *MRCComposer) Get(name string) *v1alpha2.MeshRootCertificate {
-	return m.computeClient.GetMeshRootCertificate(name)
-}
-
-// UpdateStatus updates the status of the MRC and returns the updated MRC
-func (m *MRCComposer) UpdateStatus(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
-	return m.computeClient.UpdateMeshRootCertificateStatus(obj)
-}
-
-// Update updates the spec of the MRC and returns the updated MRC
-func (m *MRCComposer) Update(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
-	return m.computeClient.UpdateMeshRootCertificate(obj)
 }
 
 // Watch returns a channel that receives events whenever MRCs are added, updated, and deleted
@@ -48,7 +28,7 @@ func (m *MRCComposer) Update(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshR
 // to be ordered for any particular resources, but NOT across different resources.
 func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
 	eventChan := make(chan certificate.MRCEvent)
-	m.informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, cache.ResourceEventHandlerFuncs{
+	m.AddMRCEventsHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			mrc := obj.(*v1alpha2.MeshRootCertificate)
 			log.Debug().Msgf("received MRC add event for MRC %s/%s", mrc.GetNamespace(), mrc.GetName())

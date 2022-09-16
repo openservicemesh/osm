@@ -17,7 +17,7 @@ func (r *MRCReconciler) CheckAndUpdate(ctx context.Context, mrcClient MRCClient,
 				log.Info().Msgf("Stopping status reconciliation loop for MRC %s", r.mrcName)
 				return
 			case <-ticker.C:
-				mrc := mrcClient.Get(r.mrcName)
+				mrc := mrcClient.GetMeshRootCertificate(r.mrcName)
 				if mrc == nil {
 					log.Error().Msgf("failed to get MRC %s in status reconciliation loop", r.mrcName)
 					continue

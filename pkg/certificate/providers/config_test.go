@@ -17,6 +17,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/compute"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	fakeConfigClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
@@ -30,6 +31,7 @@ import (
 func TestGetCertificateManager(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	k8sMock := k8s.NewMockController(mockCtrl)
+	compute := kube.NewClient(k8sMock)
 	k8sMock.EXPECT().GetMeshConfig().AnyTimes()
 
 	type testCase struct {
@@ -133,7 +135,7 @@ func TestGetCertificateManager(t *testing.T) {
 				getCA = oldCA
 			}()
 
-			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, k8sMock, 1*time.Hour, "cluster.local")
+			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, compute, 1*time.Hour, "cluster.local")
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)

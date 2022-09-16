@@ -13,6 +13,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/compute"
 )
 
 const (
@@ -123,10 +124,7 @@ type Manager struct {
 
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
 type MRCClient interface {
-	List() ([]*v1alpha2.MeshRootCertificate, error)
-	Get(name string) *v1alpha2.MeshRootCertificate
-	UpdateStatus(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error)
-	Update(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error)
+	compute.Interface
 	MRCEventBroker
 
 	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.

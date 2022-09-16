@@ -14,21 +14,6 @@ func (c *MRCCompatClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 	}, nil
 }
 
-// Get returns the pre-generated MRC.
-func (c *MRCCompatClient) Get(name string) *v1alpha2.MeshRootCertificate {
-	return c.mrc
-}
-
-// UpdateStatus returns the updated MRC. Should never be called when using the MRCCompatClient.
-func (c *MRCCompatClient) UpdateStatus(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
-	return c.mrc, nil
-}
-
-// Update returns the updated MRC. Should never be called when using the MRCCompatClient.
-func (c *MRCCompatClient) Update(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
-	return c.mrc, nil
-}
-
 // Watch is a basic Watch implementation for the MRC attached to the compat client
 func (c *MRCCompatClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
 	ch := make(chan certificate.MRCEvent)

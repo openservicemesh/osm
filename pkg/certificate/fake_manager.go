@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	fakeConfigClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/compute"
 
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -20,34 +20,11 @@ var (
 )
 
 type fakeMRCClient struct {
-	fakeConfigClient *fakeConfigClientset.Clientset
+	compute.Interface
 }
 
 func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error) {
 	return &fakeIssuer{}, pem.RootCertificate("rootCA"), nil
-}
-
-// List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
-func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
-	// return single empty object in the list.
-	return []*v1alpha2.MeshRootCertificate{{
-		Spec: v1alpha2.MeshRootCertificateSpec{
-			TrustDomain: "fake.domain.com",
-		},
-	}}, nil
-}
-
-func (c *fakeMRCClient) Get(name string) *v1alpha2.MeshRootCertificate {
-	mrc, _ := c.fakeConfigClient.ConfigV1alpha2().MeshRootCertificates("osm-system").Get(context.Background(), name, metav1.GetOptions{})
-	return mrc
-}
-
-func (c *fakeMRCClient) Update(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
-	return c.fakeConfigClient.ConfigV1alpha2().MeshRootCertificates("osm-system").Update(context.Background(), obj, metav1.UpdateOptions{})
-}
-
-func (c *fakeMRCClient) UpdateStatus(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
-	return c.fakeConfigClient.ConfigV1alpha2().MeshRootCertificates("osm-system").UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
 }
 
 func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {

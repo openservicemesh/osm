@@ -627,9 +627,8 @@ func TestConfigUpdateStatus(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			kubeClient := testclient.NewSimpleClientset()
 			configClient := fakeConfigClient.NewSimpleClientset(tc.existingResource.(runtime.Object))
-			ic, err := informers.NewInformerCollection(tests.MeshName, nil, informers.WithKubeClient(kubeClient))
+			ic, err := informers.NewInformerCollection(tests.MeshName, nil)
 			a.Nil(err)
 			c := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, configClient, nil)
 			switch v := tc.updatedResource.(type) {

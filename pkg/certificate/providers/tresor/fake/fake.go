@@ -13,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -22,6 +23,7 @@ const (
 )
 
 type fakeMRCClient struct {
+	compute.Interface
 	mrcChannel chan certificate.MRCEvent
 }
 
@@ -119,12 +121,6 @@ func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (
 	return issuer, cert.GetTrustedCAs(), nil
 }
 
-// List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
-func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
-	// return single empty object in the list.
-	return []*v1alpha2.MeshRootCertificate{{Spec: v1alpha2.MeshRootCertificateSpec{TrustDomain: "fake.example.com"}}}, nil
-}
-
 func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
 	// send event for first CA created
 	go func() {
@@ -132,21 +128,6 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent,
 	}()
 
 	return c.mrcChannel, nil
-}
-
-// Get returns the pre-generated MRC
-func (c *fakeMRCClient) Get(name string) *v1alpha2.MeshRootCertificate {
-	return &v1alpha2.MeshRootCertificate{Spec: v1alpha2.MeshRootCertificateSpec{TrustDomain: "fake.example.com"}}
-}
-
-// Update returns the updated MRC
-func (c *fakeMRCClient) Update(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
-	return obj, nil
-}
-
-// UpdateStatus returns the updated MRC
-func (c *fakeMRCClient) UpdateStatus(obj *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
-	return obj, nil
 }
 
 // NewFake constructs a fake certificate client using a certificate
