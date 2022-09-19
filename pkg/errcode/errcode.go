@@ -144,6 +144,9 @@ const (
 
 	// ErrRotatingCert indicates a certificate could not be rotated
 	ErrRotatingCert
+
+	// ErrUpdatingMRCStatus indicates the MeshRootCertificate status could not be updated
+	ErrUpdatingMRCStatus
 )
 
 // Range 4100-4150 reserved for PubSub system
@@ -564,6 +567,10 @@ The certificate authority privided when issuing a certificate was invalid.
 
 	ErrRotatingCert: `
 The specified certificate could not be rotated.
+`,
+
+	ErrUpdatingMRCStatus: `
+The specified MeshRootCertificate could not be updated.
 `,
 
 	//

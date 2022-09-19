@@ -16,12 +16,12 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	fakeConfigClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/messaging"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
@@ -153,10 +153,6 @@ func TestGetCertificateManager(t *testing.T) {
 }
 
 func TestGetCertificateManagerFromMRC(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	mockCompute := compute.NewMockInterface(mockCtrl)
-	mockCompute.EXPECT().GetMeshConfig().AnyTimes()
-
 	type testCase struct {
 		name        string
 		expectError bool
@@ -230,6 +226,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				},
 			}),
 		},
+
 		{
 			name:              "tresor with no secret",
 			options:           TresorOptions{},
@@ -693,7 +690,13 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 			assert.NoError(err)
 			assert.NotNil(ic)
 
-			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, mockCompute, ic, 1*time.Hour)
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+			k8sClient := k8s.NewClient("osm-system", "", ic, nil, tc.configClient, broker)
+			compute := kube.NewClient(k8sClient)
+
+			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, compute, ic, 1*time.Hour)
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)

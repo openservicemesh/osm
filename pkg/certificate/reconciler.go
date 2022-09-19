@@ -3,6 +3,8 @@ package certificate
 import (
 	"context"
 	"time"
+
+	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 // CheckAndUpdate checks for a MRC to reach a desired condition and when the condition is met,
@@ -38,7 +40,8 @@ func (r *MRCReconciler) CheckAndUpdate(ctx context.Context, mrcClient MRCClient,
 				// update status does not need to implement its own retry logic. Updating the status will
 				// be retried in the MRC reconciler's next iteration
 				if err := r.updateStatus(ctx, mrc); err != nil {
-					log.Warn().Err(err).Msgf("failed to update status of MRC %s in status reconciliation loop. Condition was met", r.mrcName)
+					log.Warn().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMRCStatus)).
+						Msgf("failed to update status of MRC %s in status reconciliation loop. Condition was met", r.mrcName)
 					continue
 				}
 				return
