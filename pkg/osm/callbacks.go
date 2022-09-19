@@ -83,7 +83,7 @@ func (cp *ControlPlane[T]) scheduleUpdate(ctx context.Context, proxy *envoy.Prox
 	cp.workqueues.AddJob(
 		func() {
 			t := time.Now()
-			log.Debug().Msgf("Starting update for proxy %s", proxy.String())
+			log.Debug().Str("proxy", proxy.String()).Msg("Starting update for proxy")
 
 			if err := cp.update(ctx, proxy); err != nil {
 				log.Error().Err(err).Str("proxy", proxy.String()).Msg("Error generating resources for proxy")
@@ -102,7 +102,7 @@ func (cp *ControlPlane[T]) update(ctx context.Context, proxy *envoy.Proxy) error
 	if err := cp.configServer.UpdateProxy(ctx, proxy, resources); err != nil {
 		return err
 	}
-	log.Debug().Msgf("successfully updated resources for proxy %s", proxy.String())
+	log.Debug().Str("proxy", proxy.String()).Msg("successfully updated resources for proxy")
 	return nil
 }
 

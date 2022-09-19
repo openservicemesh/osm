@@ -28,7 +28,6 @@ import (
 type fakeConfig string
 
 type fakeGenerator struct {
-	// map of
 	mu        sync.Mutex
 	callCount map[string]int
 }

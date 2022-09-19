@@ -18,7 +18,6 @@ const (
 	remoteClusterPriority = uint32(1)
 )
 
-// EndpointsBuilder is a helper type to build Envoy endpoints resources
 // EndpointsBuilder is a helper struct to build Envoy endpoint resources
 type EndpointsBuilder struct {
 	upstreamSvcEndpoints map[service.MeshService][]endpoint.Endpoint
