@@ -22,8 +22,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy/lds"
-	"github.com/openservicemesh/osm/pkg/envoy/rds"
+	"github.com/openservicemesh/osm/pkg/envoy/generator/lds"
+	"github.com/openservicemesh/osm/pkg/envoy/generator/rds"
 	envoySecrets "github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"

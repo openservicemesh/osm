@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	smiAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
@@ -26,17 +27,18 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
-	"github.com/openservicemesh/osm/pkg/envoy/ads"
+	"github.com/openservicemesh/osm/pkg/envoy/generator"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/envoy/server"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
@@ -47,6 +49,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/osm"
 	"github.com/openservicemesh/osm/pkg/reconciler"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -233,10 +236,14 @@ func main() {
 	)
 
 	proxyRegistry := registry.NewProxyRegistry()
-
 	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, k8sClient.GetMeshConfig().Spec.Observability.EnableDebugServer, osmNamespace, certManager, k8sClient, msgBroker)
-	if err := xdsServer.Start(ctx, cancel, constants.ADSServerPort); err != nil {
+	xdsServer := server.NewADSServer()
+	xdsGenerator := generator.NewEnvoyConfigGenerator(meshCatalog, certManager)
+
+	cp := osm.NewControlPlane[map[string][]types.Resource](xdsServer, xdsGenerator, meshCatalog, proxyRegistry, certManager, msgBroker)
+	xdsServer.SetCallbacks(cp)
+
+	if err := xdsServer.Start(ctx, certManager, cancel, constants.ADSServerPort); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
 
@@ -248,7 +255,7 @@ func main() {
 
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
-	debugConfig := debugger.NewDebugConfig(certManager, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, k8sClient, msgBroker)
+	debugConfig := debugger.NewDebugConfig(certManager, xdsGenerator, meshCatalog, proxyRegistry, kubeConfig, kubeClient, k8sClient, msgBroker)
 	go debugConfig.StartDebugServerConfigListener(stop)
 
 	// Start the k8s pod watcher that updates corresponding k8s secrets
@@ -267,10 +274,8 @@ func main() {
 	// Initialize OSM's http service server
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Health/Liveness probes
-	httpServer.AddHandlers(map[string]http.Handler{
-		constants.OSMControllerReadinessPath: http.HandlerFunc(health.SimpleHandler),
-		constants.OSMControllerLivenessPath:  http.HandlerFunc(health.SimpleHandler),
-	})
+	httpServer.AddHandler(constants.OSMControllerReadinessPath, http.HandlerFunc(health.SimpleHandler))
+	httpServer.AddHandler(constants.OSMControllerLivenessPath, http.HandlerFunc(health.SimpleHandler))
 	// Metrics
 	httpServer.AddHandler(constants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
 	// Version

@@ -115,7 +115,6 @@ func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (
 	if err != nil {
 		return nil, nil, err
 	}
-
 	return issuer, cert.GetTrustedCAs(), nil
 }
 
