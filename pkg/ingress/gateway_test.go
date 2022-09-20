@@ -214,7 +214,7 @@ func secretIsForSAN(secret *corev1.Secret, san string) bool {
 		return false
 	}
 
-	cert, err := certificate.NewRootCertificateFromPEM(pemCert, pemKey)
+	cert, err := certificate.NewCertificateFromPEM(pemCert, pemKey, pemCert, "", "")
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting certificate from PEM")
 		return false

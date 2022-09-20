@@ -24,6 +24,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/health"
@@ -198,6 +199,7 @@ func main() {
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
 	kubeController := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, msgBroker, k8s.Namespaces)
+	computeClient := kube.NewClient(kubeController)
 
 	certOpts, err := getCertOptions()
 	if err != nil {
@@ -228,7 +230,7 @@ func main() {
 	}
 
 	// Initialize bootstrap secret rotator
-	bootstrapSecretRotator := injector.NewBootstrapSecretRotator(kubeController, certManager, constants.CertCheckInterval)
+	bootstrapSecretRotator := injector.NewBootstrapSecretRotator(computeClient, certManager, constants.CertCheckInterval)
 	bootstrapSecretRotator.StartBootstrapSecretRotationTicker(ctx)
 
 	version.SetMetric()

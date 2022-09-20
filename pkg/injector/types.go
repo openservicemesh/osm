@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/compute"
 
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -40,7 +41,7 @@ type Config struct {
 // BootstrapSecretRotator is the type used to represent
 // the information needed for bootstrap secret rotation
 type BootstrapSecretRotator struct {
-	kubeController k8s.Controller
-	certManager    *certificate.Manager
-	checkInterval  time.Duration
+	computeInterface compute.Interface
+	certManager      *certificate.Manager
+	checkInterval    time.Duration
 }

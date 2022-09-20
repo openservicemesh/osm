@@ -83,32 +83,12 @@ func (c *Certificate) GetValidatingIssuerID() string {
 	return c.validatingIssuerID
 }
 
-// NewRootCertificateFromPEM is a helper returning a *certificate.Certificate from the PEM components given.
-func NewRootCertificateFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey) (*Certificate, error) {
-	x509Cert, err := DecodePEMCertificate(pemCert)
-	if err != nil {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMCert)).
-			Msg("Error converting PEM cert to x509 to obtain serial number")
-		return nil, err
-	}
-
-	return &Certificate{
-		CommonName:   CommonName(x509Cert.Subject.CommonName),
-		SerialNumber: SerialNumber(x509Cert.SerialNumber.String()),
-		CertChain:    pemCert,
-		IssuingCA:    pem.RootCertificate(pemCert),
-		TrustedCAs:   pem.RootCertificate(pemCert),
-		PrivateKey:   pemKey,
-		Expiration:   x509Cert.NotAfter,
-	}, nil
-}
-
-// NewCertificate builds *certificate.Certificate
-func NewCertificate(pemCert, pemKey, caCert []byte,
+// NewCertificateFromPEM is a helper returning a *certificate.Certificate from the PEM components, signingIssuerID, and validatingIssuerID given
+func NewCertificateFromPEM(pemCert, pemKey, caCert []byte,
 	signingIssuerID, validatingIssuerID string) (*Certificate, error) {
 	x509Cert, err := DecodePEMCertificate(pemCert)
 	if err != nil {
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrDecodingPEMCert)).
 			Msg("Error converting PEM cert to x509 to obtain serial number")
 		return nil, err

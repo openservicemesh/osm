@@ -1911,7 +1911,7 @@ func TestCheckForExistingActiveMRC(t *testing.T) {
 			}
 
 			broker := messaging.NewBroker(stop)
-			k8sClient := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, broker)
+			k8sClient := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil, broker)
 			computeClient := kube.NewClient(k8sClient)
 
 			v := validator{computeClient: computeClient}

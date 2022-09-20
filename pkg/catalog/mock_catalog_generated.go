@@ -5,6 +5,7 @@
 package catalog
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -13,6 +14,7 @@ import (
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
 	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	identity "github.com/openservicemesh/osm/pkg/identity"
+	models "github.com/openservicemesh/osm/pkg/models"
 	service "github.com/openservicemesh/osm/pkg/service"
 	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
@@ -242,6 +244,20 @@ func (m *MockMeshCataloger) GetResolvableEndpointsForService(arg0 service.MeshSe
 func (mr *MockMeshCatalogerMockRecorder) GetResolvableEndpointsForService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResolvableEndpointsForService", reflect.TypeOf((*MockMeshCataloger)(nil).GetResolvableEndpointsForService), arg0)
+}
+
+// GetSecret mocks base method.
+func (m *MockMeshCataloger) GetSecret(arg0, arg1 string) *models.Secret {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSecret", arg0, arg1)
+	ret0, _ := ret[0].(*models.Secret)
+	return ret0
+}
+
+// GetSecret indicates an expected call of GetSecret.
+func (mr *MockMeshCatalogerMockRecorder) GetSecret(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecret", reflect.TypeOf((*MockMeshCataloger)(nil).GetSecret), arg0, arg1)
 }
 
 // GetServicesForServiceIdentity mocks base method.
@@ -570,6 +586,20 @@ func (mr *MockMeshCatalogerMockRecorder) ListRetryPoliciesForServiceAccount(arg0
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRetryPoliciesForServiceAccount", reflect.TypeOf((*MockMeshCataloger)(nil).ListRetryPoliciesForServiceAccount), arg0)
 }
 
+// ListSecrets mocks base method.
+func (m *MockMeshCataloger) ListSecrets() []*models.Secret {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListSecrets")
+	ret0, _ := ret[0].([]*models.Secret)
+	return ret0
+}
+
+// ListSecrets indicates an expected call of ListSecrets.
+func (mr *MockMeshCatalogerMockRecorder) ListSecrets() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSecrets", reflect.TypeOf((*MockMeshCataloger)(nil).ListSecrets))
+}
+
 // ListServiceAccountsFromTrafficTargets mocks base method.
 func (m *MockMeshCataloger) ListServiceAccountsFromTrafficTargets() []identity.K8sServiceAccount {
 	m.ctrl.T.Helper()
@@ -727,6 +757,20 @@ func (m *MockMeshCataloger) UpdateMeshRootCertificateStatus(arg0 *v1alpha2.MeshR
 func (mr *MockMeshCatalogerMockRecorder) UpdateMeshRootCertificateStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeshRootCertificateStatus", reflect.TypeOf((*MockMeshCataloger)(nil).UpdateMeshRootCertificateStatus), arg0)
+}
+
+// UpdateSecret mocks base method.
+func (m *MockMeshCataloger) UpdateSecret(arg0 context.Context, arg1 *models.Secret) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSecret", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateSecret indicates an expected call of UpdateSecret.
+func (mr *MockMeshCatalogerMockRecorder) UpdateSecret(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSecret", reflect.TypeOf((*MockMeshCataloger)(nil).UpdateSecret), arg0, arg1)
 }
 
 // UpdateUpstreamTrafficSettingStatus mocks base method.

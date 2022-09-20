@@ -10,7 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 )
 
-func TestNewFromPEM(t *testing.T) {
+func TestNewCertificateFromPEM(t *testing.T) {
 	assert := tassert.New(t)
 
 	cn := CommonName("Test CA")
@@ -62,7 +62,7 @@ func TestNewFromPEM(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c, err := NewRootCertificateFromPEM(test.pemCert, test.pemKey)
+			c, err := NewCertificateFromPEM(test.pemCert, test.pemKey, test.pemCert, "", "")
 			assert.Equal(test.expectedErr, err != nil)
 
 			if !test.expectedErr {

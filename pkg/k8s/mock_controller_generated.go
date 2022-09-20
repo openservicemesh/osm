@@ -12,6 +12,7 @@ import (
 	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	envoy "github.com/openservicemesh/osm/pkg/envoy"
+	models "github.com/openservicemesh/osm/pkg/models"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -143,10 +144,10 @@ func (mr *MockControllerMockRecorder) GetPodForProxy(arg0 interface{}) *gomock.C
 }
 
 // GetSecret mocks base method.
-func (m *MockController) GetSecret(arg0, arg1 string) *v1.Secret {
+func (m *MockController) GetSecret(arg0, arg1 string) *models.Secret {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSecret", arg0, arg1)
-	ret0, _ := ret[0].(*v1.Secret)
+	ret0, _ := ret[0].(*models.Secret)
 	return ret0
 }
 
@@ -313,10 +314,10 @@ func (mr *MockControllerMockRecorder) ListRetryPolicies() *gomock.Call {
 }
 
 // ListSecrets mocks base method.
-func (m *MockController) ListSecrets() []*v1.Secret {
+func (m *MockController) ListSecrets() []*models.Secret {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListSecrets")
-	ret0, _ := ret[0].([]*v1.Secret)
+	ret0, _ := ret[0].([]*models.Secret)
 	return ret0
 }
 
@@ -455,18 +456,18 @@ func (mr *MockControllerMockRecorder) UpdateMeshRootCertificateStatus(arg0 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeshRootCertificateStatus", reflect.TypeOf((*MockController)(nil).UpdateMeshRootCertificateStatus), arg0)
 }
 
-// UpdateSecretData mocks base method.
-func (m *MockController) UpdateSecretData(arg0 context.Context, arg1 *v1.Secret, arg2 map[string][]byte) error {
+// UpdateSecret mocks base method.
+func (m *MockController) UpdateSecret(arg0 context.Context, arg1 *models.Secret) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateSecretData", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "UpdateSecret", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateSecretData indicates an expected call of UpdateSecretData.
-func (mr *MockControllerMockRecorder) UpdateSecretData(arg0, arg1, arg2 interface{}) *gomock.Call {
+// UpdateSecret indicates an expected call of UpdateSecret.
+func (mr *MockControllerMockRecorder) UpdateSecret(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSecretData", reflect.TypeOf((*MockController)(nil).UpdateSecretData), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSecret", reflect.TypeOf((*MockController)(nil).UpdateSecret), arg0, arg1)
 }
 
 // UpdateUpstreamTrafficSettingStatus mocks base method.

@@ -23,6 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 var (
@@ -104,14 +105,14 @@ type Client struct {
 // Controller is the controller interface for K8s services
 type Controller interface {
 	PassthroughInterface
-	// ListSecrets returns a list of secrets
-	ListSecrets() []*corev1.Secret
-
 	// GetSecret returns the secret for a given namespace and secret name
-	GetSecret(string, string) *corev1.Secret
+	GetSecret(string, string) *models.Secret
 
-	// UpdateSecretData updates the secret with the provided data
-	UpdateSecretData(context.Context, *corev1.Secret, map[string][]byte) error
+	// ListSecrets returns a list of secrets
+	ListSecrets() []*models.Secret
+
+	// UpdateSecret updates the given secret
+	UpdateSecret(context.Context, *models.Secret) error
 
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service
@@ -134,6 +135,7 @@ type Controller interface {
 	// GetEndpoints returns the endpoints for a given service, if found
 	GetEndpoints(name, namespace string) (*corev1.Endpoints, error)
 
+	// GetPodForProxy returns the pod that the given proxy is attached to, based on the UUID and service identity.
 	GetPodForProxy(proxy *envoy.Proxy) (*corev1.Pod, error)
 }
 

@@ -26,6 +26,7 @@ import (
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/models"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -2431,6 +2432,120 @@ func TestGetMeshService(t *testing.T) {
 			actual, err := c.GetMeshService(tc.namespacedSvc.Name, tc.namespacedSvc.Namespace, tc.port)
 			a.Equal(tc.expectedTargetPort, actual.TargetPort)
 			a.Equal(tc.expectErr, err != nil)
+		})
+	}
+}
+func TestGetSecret(t *testing.T) {
+	testCases := []struct {
+		name       string
+		secret     *corev1.Secret
+		secretName string
+		namespace  string
+		expSecret  *models.Secret
+	}{
+		{
+			name:       "gets the secret from the cache",
+			secretName: "foo",
+			namespace:  "ns1",
+			expSecret: &models.Secret{
+				Name:      "foo",
+				Namespace: "ns1",
+			},
+		},
+		{
+			name: "returns nil if the secret is not found in the cache",
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "ns1",
+				},
+			},
+			secretName: "doesntExist",
+			namespace:  "ns1",
+			expSecret:  nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			controller := k8s.NewMockController(mockCtrl)
+			controller.EXPECT().GetSecret(tc.secretName, tc.namespace).Return(tc.expSecret)
+
+			c := NewClient(controller)
+			actual := c.GetSecret(tc.secretName, tc.namespace)
+			a.Equal(tc.expSecret, actual)
+		})
+	}
+}
+
+func TestListSecrets(t *testing.T) {
+	testCases := []struct {
+		name       string
+		secrets    []*models.Secret
+		expSecrets []*models.Secret
+	}{
+		{
+			name: "list multiple secrets",
+			secrets: []*models.Secret{
+				{Name: "s1"},
+				{Name: "s2"},
+			},
+			expSecrets: []*models.Secret{
+				{Name: "s1"},
+				{Name: "s2"},
+			},
+		},
+		{
+			name:       "list one secret",
+			secrets:    []*models.Secret{{Name: "s1"}},
+			expSecrets: []*models.Secret{{Name: "s1"}},
+		},
+		{
+			name:       "no secrets",
+			secrets:    []*models.Secret{},
+			expSecrets: []*models.Secret{},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			controller := k8s.NewMockController(mockCtrl)
+			controller.EXPECT().ListSecrets().Return(tc.secrets)
+
+			c := NewClient(controller)
+			actual := c.ListSecrets()
+			a.ElementsMatch(tc.expSecrets, actual)
+		})
+	}
+}
+
+func TestUpdateSecret(t *testing.T) {
+	testCases := []struct {
+		name   string
+		secret *models.Secret
+		expErr bool
+	}{
+		{
+			name: "Update secret",
+			secret: &models.Secret{
+				Name:      "s1",
+				Namespace: "ns",
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			controller := k8s.NewMockController(mockCtrl)
+			controller.EXPECT().UpdateSecret(context.Background(), tc.secret).Return(nil)
+
+			c := NewClient(controller)
+			err := c.UpdateSecret(context.Background(), tc.secret)
+			a.Nil(err)
 		})
 	}
 }

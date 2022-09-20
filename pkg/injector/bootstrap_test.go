@@ -21,9 +21,9 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/tests/certificates"
 )
@@ -335,61 +335,53 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 	})
 })
 
-func TestListBootstrapSecrets(t *testing.T) {
+func TestGetBootstrapSecrets(t *testing.T) {
 	testCases := []struct {
 		name       string
-		secrets    []*corev1.Secret
-		expSecrets []*corev1.Secret
+		secrets    []*models.Secret
+		expSecrets []*models.Secret
 	}{
 		{
 			name: "get bootstrap secrets from k8s secrets",
-			secrets: []*corev1.Secret{
+			secrets: []*models.Secret{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "notBootstrapSecret",
-						Namespace: "testNamespace",
-					},
+					Name:      "notBootstrapSecret",
+					Namespace: "testNamespace",
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      bootstrapSecretPrefix + "proxyUUID",
-						Namespace: "testNamespace",
-					},
+					Name:      bootstrapSecretPrefix + "proxyUUID",
+					Namespace: "testNamespace",
 				},
 			},
-			expSecrets: []*corev1.Secret{
+			expSecrets: []*models.Secret{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      bootstrapSecretPrefix + "proxyUUID",
-						Namespace: "testNamespace",
-					},
+					Name:      bootstrapSecretPrefix + "proxyUUID",
+					Namespace: "testNamespace",
 				},
 			},
 		},
 		{
 			name: "no bootstrap secrets in k8s secrets",
-			secrets: []*corev1.Secret{
+			secrets: []*models.Secret{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "notBootstrapSecret",
-						Namespace: "testNamespace",
-					},
+					Name:      "notBootstrapSecret",
+					Namespace: "testNamespace",
 				},
 			},
-			expSecrets: []*corev1.Secret{},
+			expSecrets: []*models.Secret{},
 		},
 	}
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			mockController := k8s.NewMockController(gomock.NewController(t))
-			mockController.EXPECT().ListSecrets().Return(tc.secrets)
+			mockInterface := compute.NewMockInterface(gomock.NewController(t))
+			mockInterface.EXPECT().ListSecrets().Return(tc.secrets)
 
 			certManager, err := certificate.FakeCertManager()
 			assert.Nil(err)
 
-			b := NewBootstrapSecretRotator(mockController, certManager, time.Duration(1))
+			b := NewBootstrapSecretRotator(mockInterface, certManager, time.Duration(1))
 
 			actual := b.getBootstrapSecrets()
 			assert.ElementsMatch(tc.expSecrets, actual)
@@ -414,15 +406,29 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 	assert.Nil(err)
 
 	testCases := []struct {
-		name         string
-		certNames    []string
-		secrets      []*corev1.Secret
-		shouldRotate bool
+		name          string
+		certNames     []string
+		secrets       []*models.Secret
+		corev1Secrets []*corev1.Secret
+		shouldRotate  bool
 	}{
 		{
 			name:      "don't update bootstrap secret",
 			certNames: []string{commonName1.String()},
-			secrets: []*corev1.Secret{
+			secrets: []*models.Secret{
+				{
+					Name:      secretName1,
+					Namespace: testNs,
+					Data: map[string][]byte{
+						bootstrap.EnvoyXDSCACertFile: {},
+						bootstrap.EnvoyXDSCertFile:   []byte(pemCert),
+						bootstrap.EnvoyXDSKeyFile:    []byte(pemKey),
+						signingIssuerIDKey:           []byte("osm-mesh-root-certificate"),
+						validatingIssuerIDKey:        []byte("osm-mesh-root-certificate"),
+					},
+				},
+			},
+			corev1Secrets: []*corev1.Secret{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      secretName1,
@@ -432,8 +438,8 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 						bootstrap.EnvoyXDSCACertFile: {},
 						bootstrap.EnvoyXDSCertFile:   []byte(pemCert),
 						bootstrap.EnvoyXDSKeyFile:    []byte(pemKey),
-						signingIssuerID:              []byte("osm-mesh-root-certificate"),
-						validatingIssuerID:           []byte("osm-mesh-root-certificate"),
+						signingIssuerIDKey:           []byte("osm-mesh-root-certificate"),
+						validatingIssuerIDKey:        []byte("osm-mesh-root-certificate"),
 					},
 				},
 			},
@@ -442,7 +448,18 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 		{
 			name:      "update bootstrap secret",
 			certNames: []string{commonName1.String()},
-			secrets: []*corev1.Secret{
+			secrets: []*models.Secret{
+				{
+					Name:      secretName1,
+					Namespace: testNs,
+					Data: map[string][]byte{
+						bootstrap.EnvoyXDSCACertFile: {},
+						bootstrap.EnvoyXDSCertFile:   []byte(certificates.SampleCertificatePEM),
+						bootstrap.EnvoyXDSKeyFile:    []byte(certificates.SamplePrivateKeyPEM),
+					},
+				},
+			},
+			corev1Secrets: []*corev1.Secret{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      secretName1,
@@ -460,7 +477,27 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 		{
 			name:      "update multiple bootstrap secret",
 			certNames: []string{commonName1.String(), commonName2.String()},
-			secrets: []*corev1.Secret{
+			secrets: []*models.Secret{
+				{
+					Name:      secretName1,
+					Namespace: testNs,
+					Data: map[string][]byte{
+						bootstrap.EnvoyXDSCACertFile: {},
+						bootstrap.EnvoyXDSCertFile:   []byte(certificates.SampleCertificatePEM),
+						bootstrap.EnvoyXDSKeyFile:    []byte(certificates.SamplePrivateKeyPEM),
+					},
+				},
+				{
+					Name:      secretName2,
+					Namespace: testNs,
+					Data: map[string][]byte{
+						bootstrap.EnvoyXDSCACertFile: {},
+						bootstrap.EnvoyXDSCertFile:   []byte(certificates.SampleCertificatePEM),
+						bootstrap.EnvoyXDSKeyFile:    []byte(certificates.SamplePrivateKeyPEM),
+					},
+				},
+			},
+			corev1Secrets: []*corev1.Secret{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      secretName1,
@@ -495,30 +532,21 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 
 			objs := make([]runtime.Object, len(tc.secrets))
 			for i := range tc.secrets {
-				objs[i] = tc.secrets[i]
+				objs[i] = tc.corev1Secrets[i]
 			}
 			fakeK8sClient := fake.NewSimpleClientset(objs...)
-			mockController := k8s.NewMockController(gomock.NewController(t))
-			mockController.EXPECT().ListSecrets().Return(tc.secrets)
+			mockInterface := compute.NewMockInterface(gomock.NewController(t))
+			mockInterface.EXPECT().ListSecrets().Return(tc.secrets)
 			for i := 0; i < len(tc.secrets); i++ {
-				mockController.EXPECT().GetSecret(tc.secrets[i].Name, testNs).Return(tc.secrets[i])
+				mockInterface.EXPECT().GetSecret(tc.secrets[i].Name, testNs).Return(tc.secrets[i])
 			}
+
 			if tc.shouldRotate {
 				for i := 0; i < len(tc.secrets); i++ {
-					cert, err := certManager.IssueCertificate(certificate.ForCommonName(tc.certNames[i]))
-					assert.Nil(err)
-
-					secretData := map[string][]byte{
-						bootstrap.EnvoyXDSCACertFile: cert.GetTrustedCAs(),
-						bootstrap.EnvoyXDSCertFile:   cert.GetCertificateChain(),
-						bootstrap.EnvoyXDSKeyFile:    cert.GetPrivateKey(),
-						signingIssuerID:              []byte(cert.GetSigningIssuerID()),
-						validatingIssuerID:           []byte(cert.GetValidatingIssuerID()),
-					}
-					mockController.EXPECT().UpdateSecretData(context.Background(), tc.secrets[i], secretData)
+					mockInterface.EXPECT().UpdateSecret(context.Background(), tc.secrets[i])
 				}
 			}
-			bootstrapSecretRotator := NewBootstrapSecretRotator(mockController, certManager, time.Duration(1))
+			bootstrapSecretRotator := NewBootstrapSecretRotator(mockInterface, certManager, time.Duration(1))
 			bootstrapSecretRotator.rotateBootstrapSecrets(context.Background())
 
 			secretList, err := fakeK8sClient.CoreV1().Secrets(testNs).List(context.Background(), metav1.ListOptions{})
@@ -540,16 +568,14 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 func TestGetCertFromSecret(t *testing.T) {
 	testCases := []struct {
 		name    string
-		secret  *corev1.Secret
+		secret  *models.Secret
 		expCert bool
 		expErr  error
 	}{
 		{
 			name: "valid bootstrap secret",
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bootstrapSecret",
-				},
+			secret: &models.Secret{
+				Name: "bootstrapSecret",
 				Data: map[string][]byte{
 					bootstrap.EnvoyXDSCACertFile: {},
 					bootstrap.EnvoyXDSCertFile:   []byte(certificates.SampleCertificatePEM),
@@ -561,10 +587,8 @@ func TestGetCertFromSecret(t *testing.T) {
 		},
 		{
 			name: "invalid bootstrap secret - missing cert field - sds_cert.pem",
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "invalidSecret",
-				},
+			secret: &models.Secret{
+				Name: "invalidSecret",
 				Data: map[string][]byte{
 					bootstrap.EnvoyXDSCACertFile: {},
 					bootstrap.EnvoyXDSKeyFile:    {},
@@ -575,10 +599,8 @@ func TestGetCertFromSecret(t *testing.T) {
 		},
 		{
 			name: "invalid bootstrap secret - missing cert field - sds_key.pem",
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "invalidSecret",
-				},
+			secret: &models.Secret{
+				Name: "invalidSecret",
 				Data: map[string][]byte{
 					bootstrap.EnvoyXDSCertFile:   {},
 					bootstrap.EnvoyXDSCACertFile: {},
@@ -589,10 +611,8 @@ func TestGetCertFromSecret(t *testing.T) {
 		},
 		{
 			name: "unable to decode PEM",
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "invalidSecret",
-				},
+			secret: &models.Secret{
+				Name: "invalidSecret",
 				Data: map[string][]byte{
 					bootstrap.EnvoyXDSCertFile:   {},
 					bootstrap.EnvoyXDSCACertFile: {},

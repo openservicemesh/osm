@@ -17,6 +17,7 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	configv1alpha2Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/models"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -181,9 +182,26 @@ func (c *Client) GetService(name, namespace string) *corev1.Service {
 	return nil
 }
 
+// GetSecret returns the secret for a given secret name and namespace
+func (c *Client) GetSecret(name, namespace string) *models.Secret {
+	secretIf, exists, err := c.informers.GetByKey(informers.InformerKeySecret, key(name, namespace))
+	if exists && err == nil {
+		corev1Secret, ok := secretIf.(*corev1.Secret)
+		if !ok {
+			return nil
+		}
+		return &models.Secret{
+			Name:      corev1Secret.Name,
+			Namespace: corev1Secret.Namespace,
+			Data:      corev1Secret.Data,
+		}
+	}
+	return nil
+}
+
 // ListSecrets returns a list of secrets
-func (c *Client) ListSecrets() []*corev1.Secret {
-	var secrets []*corev1.Secret
+func (c *Client) ListSecrets() []*models.Secret {
+	var secrets []*models.Secret
 
 	for _, secretPtr := range c.informers.List(informers.InformerKeySecret) {
 		if secretPtr == nil {
@@ -194,26 +212,24 @@ func (c *Client) ListSecrets() []*corev1.Secret {
 			continue
 		}
 
-		secrets = append(secrets, secret)
+		secrets = append(secrets, &models.Secret{
+			Name:      secret.Name,
+			Namespace: secret.Namespace,
+			Data:      secret.Data,
+		})
 	}
 
 	return secrets
 }
 
-// GetSecret returns the secret for a given secret name and namespace
-func (c *Client) GetSecret(name, namespace string) *corev1.Secret {
-	secretIf, exists, err := c.informers.GetByKey(osminformers.InformerKeySecret, key(name, namespace))
-	if exists && err == nil {
-		secret := secretIf.(*corev1.Secret)
-		return secret
+// UpdateSecret updates the given secret
+func (c *Client) UpdateSecret(ctx context.Context, secret *models.Secret) error {
+	corev1Secret, err := c.kubeClient.CoreV1().Secrets(secret.Namespace).Get(ctx, secret.Name, metav1.GetOptions{})
+	if err != nil {
+		return err
 	}
-	return nil
-}
-
-// UpdateSecretData updates the secret with the provided data
-func (c *Client) UpdateSecretData(ctx context.Context, secret *corev1.Secret, secretData map[string][]byte) error {
-	secret.Data = secretData
-	_, err := c.kubeClient.CoreV1().Secrets(secret.Namespace).Update(ctx, secret, metav1.UpdateOptions{})
+	corev1Secret.Data = secret.Data
+	_, err = c.kubeClient.CoreV1().Secrets(secret.Namespace).Update(ctx, corev1Secret, metav1.UpdateOptions{})
 	return err
 }
 

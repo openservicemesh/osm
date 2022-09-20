@@ -33,6 +33,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -250,7 +251,7 @@ func TestListSecrets(t *testing.T) {
 	testCases := []struct {
 		name     string
 		secrets  []*corev1.Secret
-		expected []*corev1.Secret
+		expected []*models.Secret
 	}{
 		{
 			name: "get multiple k8s secrets",
@@ -268,18 +269,14 @@ func TestListSecrets(t *testing.T) {
 					},
 				},
 			},
-			expected: []*corev1.Secret{
+			expected: []*models.Secret{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "ns1",
-						Name:      "s1",
-					},
+					Namespace: "ns1",
+					Name:      "s1",
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "ns2",
-						Name:      "s2",
-					},
+					Namespace: "ns2",
+					Name:      "s2",
 				},
 			},
 		},
@@ -293,19 +290,17 @@ func TestListSecrets(t *testing.T) {
 					},
 				},
 			},
-			expected: []*corev1.Secret{
+			expected: []*models.Secret{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "ns1",
-						Name:      "s1",
-					},
+					Namespace: "ns1",
+					Name:      "s1",
 				},
 			},
 		},
 		{
 			name:     "no k8s secret",
 			secrets:  []*corev1.Secret{},
-			expected: []*corev1.Secret{},
+			expected: []*models.Secret{},
 		},
 	}
 
@@ -332,7 +327,7 @@ func TestGetSecret(t *testing.T) {
 		secret     *corev1.Secret
 		secretName string
 		namespace  string
-		expSecret  *corev1.Secret
+		expSecret  *models.Secret
 	}{
 		{
 			name: "gets the secret from the cache",
@@ -344,11 +339,9 @@ func TestGetSecret(t *testing.T) {
 			},
 			secretName: "foo",
 			namespace:  "ns1",
-			expSecret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "foo",
-					Namespace: "ns1",
-				},
+			expSecret: &models.Secret{
+				Name:      "foo",
+				Namespace: "ns1",
 			},
 		},
 		{
@@ -380,22 +373,26 @@ func TestGetSecret(t *testing.T) {
 	}
 }
 
-func TestUpdateSecretData(t *testing.T) {
+func TestUpdateSecret(t *testing.T) {
 	testCases := []struct {
-		name       string
-		secret     *corev1.Secret
-		secretData map[string][]byte
+		name         string
+		corev1Secret *corev1.Secret
+		secret       *models.Secret
+		secretData   map[string][]byte
 	}{
 		{
-			name: "Update secret data",
-			secret: &corev1.Secret{
+			name: "Update secret",
+			corev1Secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
 					Name:      "s1",
-				},
-				Data: map[string][]byte{"a": {}},
+					Namespace: "ns1"},
+				Data: map[string][]byte{},
 			},
-			secretData: map[string][]byte{},
+			secret: &models.Secret{
+				Name:      "s1",
+				Namespace: "ns1",
+				Data:      map[string][]byte{"a": {}},
+			},
 		},
 	}
 
@@ -404,13 +401,22 @@ func TestUpdateSecretData(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			err = ic.Add(informers.InformerKeySecret, tc.secret, t)
+
+			err = ic.Add(informers.InformerKeySecret, tc.corev1Secret, t)
 			a.Nil(err)
-			fakeK8sClient := fake.NewSimpleClientset(tc.secret)
+
+			fakeK8sClient := fake.NewSimpleClientset()
 			c := NewClient(testNs, tests.OsmMeshConfigName, ic, fakeK8sClient, nil, nil, nil)
 
-			err = c.UpdateSecretData(context.Background(), tc.secret, tc.secretData)
+			_, err = c.kubeClient.CoreV1().Secrets("ns1").Create(context.Background(), tc.corev1Secret, metav1.CreateOptions{})
 			a.Nil(err)
+
+			err = c.UpdateSecret(context.Background(), tc.secret)
+			a.Nil(err)
+
+			secret, err := c.kubeClient.CoreV1().Secrets("ns1").Get(context.Background(), tc.secret.Name, metav1.GetOptions{})
+			a.Nil(err)
+			a.Equal(tc.secret.Data, secret.Data)
 		})
 	}
 }
