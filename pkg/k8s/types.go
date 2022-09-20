@@ -17,7 +17,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	configv1alpha2Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
-	"github.com/openservicemesh/osm/pkg/smi"
 
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -88,12 +87,6 @@ const (
 	// TrafficTarget lookup identifier
 	TrafficTarget InformerKey = "TrafficTarget"
 )
-
-// TrafficTargetListOption is a function type that implements filters on TrafficTarget lister
-type TrafficTargetListOption func(o *smi.TrafficTargetListOpt)
-
-// TrafficSplitListOption is a function type that implements filters on the TrafficSplit lister
-type TrafficSplitListOption func(o *smi.TrafficSplitListOpt)
 
 // Client is the type used to represent the k8s client for the native k8s resources
 type Client struct {

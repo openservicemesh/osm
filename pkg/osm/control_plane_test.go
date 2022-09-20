@@ -94,10 +94,9 @@ func TestControlLoop(t *testing.T) {
 	provider.EXPECT().VerifyProxy(gomock.Any()).AnyTimes()
 
 	meshCatalog := catalog.NewMeshCatalog(
-		nil,
+		provider,
 		tresorFake.NewFake(time.Hour),
 		stop,
-		provider,
 		messaging.NewBroker(stop),
 	)
 
