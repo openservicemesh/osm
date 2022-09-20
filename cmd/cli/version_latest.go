@@ -45,9 +45,8 @@ func outputLatestReleaseVersion(out io.Writer, latestRelease string, currentRele
 	}
 	current, err := version.ParseSemantic(currentRelease)
 	if err != nil {
-		return err
-	}
-	if current.LessThan(latest) {
+		fmt.Fprintf(out, "\nOSM in %s version. Latest available version is %s.\n\n", currentRelease, latestRelease)
+	} else if current.LessThan(latest) {
 		fmt.Fprintf(out, "\nOSM %s is now available. Please see https://github.com/openservicemesh/osm/releases/latest.\nWARNING: upgrading could introduce breaking changes. Please review the release notes.\n\n", latestRelease)
 	}
 	return nil
