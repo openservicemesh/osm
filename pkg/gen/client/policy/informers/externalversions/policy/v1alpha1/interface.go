@@ -27,6 +27,8 @@ type Interface interface {
 	IngressBackends() IngressBackendInformer
 	// Retries returns a RetryInformer.
 	Retries() RetryInformer
+	// Telemetries returns a TelemetryInformer.
+	Telemetries() TelemetryInformer
 	// UpstreamTrafficSettings returns a UpstreamTrafficSettingInformer.
 	UpstreamTrafficSettings() UpstreamTrafficSettingInformer
 }
@@ -55,6 +57,11 @@ func (v *version) IngressBackends() IngressBackendInformer {
 // Retries returns a RetryInformer.
 func (v *version) Retries() RetryInformer {
 	return &retryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// Telemetries returns a TelemetryInformer.
+func (v *version) Telemetries() TelemetryInformer {
+	return &telemetryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // UpstreamTrafficSettings returns a UpstreamTrafficSettingInformer.

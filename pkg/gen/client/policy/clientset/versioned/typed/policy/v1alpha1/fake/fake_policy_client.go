@@ -37,6 +37,10 @@ func (c *FakePolicyV1alpha1) Retries(namespace string) v1alpha1.RetryInterface {
 	return &FakeRetries{c, namespace}
 }
 
+func (c *FakePolicyV1alpha1) Telemetries(namespace string) v1alpha1.TelemetryInterface {
+	return &FakeTelemetries{c, namespace}
+}
+
 func (c *FakePolicyV1alpha1) UpstreamTrafficSettings(namespace string) v1alpha1.UpstreamTrafficSettingInterface {
 	return &FakeUpstreamTrafficSettings{c, namespace}
 }

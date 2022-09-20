@@ -41,6 +41,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&MeshConfigList{},
 		&MeshRootCertificate{},
 		&MeshRootCertificateList{},
+		&ExtensionService{},
+		&ExtensionServiceList{},
 	)
 
 	metav1.AddToGroupVersion(

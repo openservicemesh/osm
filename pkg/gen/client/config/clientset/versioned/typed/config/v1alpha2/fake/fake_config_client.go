@@ -25,6 +25,10 @@ type FakeConfigV1alpha2 struct {
 	*testing.Fake
 }
 
+func (c *FakeConfigV1alpha2) ExtensionServices(namespace string) v1alpha2.ExtensionServiceInterface {
+	return &FakeExtensionServices{c, namespace}
+}
+
 func (c *FakeConfigV1alpha2) MeshConfigs(namespace string) v1alpha2.MeshConfigInterface {
 	return &FakeMeshConfigs{c, namespace}
 }

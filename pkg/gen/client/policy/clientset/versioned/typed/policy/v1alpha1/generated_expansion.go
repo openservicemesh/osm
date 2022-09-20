@@ -21,4 +21,6 @@ type IngressBackendExpansion interface{}
 
 type RetryExpansion interface{}
 
+type TelemetryExpansion interface{}
+
 type UpstreamTrafficSettingExpansion interface{}

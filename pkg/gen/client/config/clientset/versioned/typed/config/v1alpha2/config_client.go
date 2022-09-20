@@ -25,6 +25,7 @@ import (
 
 type ConfigV1alpha2Interface interface {
 	RESTClient() rest.Interface
+	ExtensionServicesGetter
 	MeshConfigsGetter
 	MeshRootCertificatesGetter
 }
@@ -32,6 +33,10 @@ type ConfigV1alpha2Interface interface {
 // ConfigV1alpha2Client is used to interact with features provided by the config.openservicemesh.io group.
 type ConfigV1alpha2Client struct {
 	restClient rest.Interface
+}
+
+func (c *ConfigV1alpha2Client) ExtensionServices(namespace string) ExtensionServiceInterface {
+	return newExtensionServices(c, namespace)
 }
 
 func (c *ConfigV1alpha2Client) MeshConfigs(namespace string) MeshConfigInterface {
