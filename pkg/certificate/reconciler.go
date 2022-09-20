@@ -16,12 +16,12 @@ func (r *MRCReconciler) CheckAndUpdate(ctx context.Context, mrcClient MRCClient,
 			select {
 			case <-ctx.Done():
 				ticker.Stop()
-				log.Info().Msgf("Stopping status reconciliation loop for MRC %s", r.mrcName)
+				log.Info().Str(mrcShortName, r.mrcName).Msg("stopping status reconciliation loop")
 				return
 			case <-ticker.C:
 				mrc := mrcClient.GetMeshRootCertificate(r.mrcName)
 				if mrc == nil {
-					log.Error().Msgf("failed to get MRC %s in status reconciliation loop", r.mrcName)
+					log.Error().Str(mrcShortName, r.mrcName).Msg("failed to get MRC in status reconciliation loop")
 					continue
 				}
 
@@ -30,9 +30,20 @@ func (r *MRCReconciler) CheckAndUpdate(ctx context.Context, mrcClient MRCClient,
 				// i.e. prior to this reconciliation loop, another component has already moved the rotation
 				// to the next state after seeing the valid status condition without this check, the MRC
 				// reconciliation loop might never terminate
-				if err != nil {
+				if err == ErrUnexpectedMRCStatusInReconciler {
+					log.Info().Err(err).Str(mrcShortName, r.mrcName).Msg("exiting status reconciliation loop")
 					return
 				}
+				if err == ErrMRCErrorStatusInReconciler {
+					log.Info().Err(err).Str(mrcShortName, r.mrcName).Msg("waiting for non error state in reconciliation loop")
+					continue
+				}
+				if err != nil {
+					log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCheckingMRCStatus)).Str(mrcShortName, r.mrcName).
+						Msg("failed to check the status of the MRC in the reconciliation loop")
+					continue
+				}
+
 				if !meetsCondition {
 					continue
 				}
@@ -40,8 +51,8 @@ func (r *MRCReconciler) CheckAndUpdate(ctx context.Context, mrcClient MRCClient,
 				// update status does not need to implement its own retry logic. Updating the status will
 				// be retried in the MRC reconciler's next iteration
 				if err := r.updateStatus(ctx, mrc); err != nil {
-					log.Warn().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMRCStatus)).
-						Msgf("failed to update status of MRC %s in status reconciliation loop. Condition was met", r.mrcName)
+					log.Warn().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingMRCStatus)).Str(mrcShortName, r.mrcName).
+						Msg("failed to update MRC status status reconciliation loop. Condition was met")
 					continue
 				}
 				return

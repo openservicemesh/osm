@@ -226,6 +226,12 @@ const (
 	// MRCComponentStatusValidating is the validating status option for the component status of the MeshRootCertificate
 	MRCComponentStatusValidating = "Validating"
 
+	// MRCComponentStatusIssuing is the issuing status option for the component status of the MeshRootCertificate
+	MRCComponentStatusIssuing = "Issuing"
+
+	// MRCComponentStatusError is the error status option for the component status of the MeshRootCertificate
+	MRCComponentStatusError = "Error"
+
 	// MRCConditionStatusUnknown is the unknown status option for the condition status of the MeshRootCertificate
 	MRCConditionStatusUnknown = "Unknown"
 

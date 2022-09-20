@@ -147,6 +147,9 @@ const (
 
 	// ErrUpdatingMRCStatus indicates the MeshRootCertificate status could not be updated
 	ErrUpdatingMRCStatus
+
+	// ErrCheckingMRCStatus indicates the MeshRootCertificate status could not be checked
+	ErrCheckingMRCStatus
 )
 
 // Range 4100-4150 reserved for PubSub system

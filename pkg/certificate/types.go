@@ -122,6 +122,8 @@ type Manager struct {
 	pubsub *pubsub.PubSub
 }
 
+const mrcShortName string = "mrc"
+
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
 type MRCClient interface {
 	compute.Interface

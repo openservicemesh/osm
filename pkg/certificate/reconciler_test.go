@@ -2,7 +2,6 @@ package certificate
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -23,17 +22,20 @@ import (
 func TestCheckAndUpdate(t *testing.T) {
 	a := tassert.New(t)
 
+	var expCurrentComponentStatus, expUpdatedComponentStatus v1alpha2.MeshRootCertificateComponentStatus
+	var expectedError error
 	mrcClient := &fakeMRCClient{}
 	checkStatus := func(ctx context.Context, mrc *v1alpha2.MeshRootCertificate) (bool, error) {
-		if mrc.Status.State != constants.MRCStatePending {
-			return false, fmt.Errorf("incorrect rotation state")
+		if componentsErrored(mrc.Status.ComponentStatuses) {
+			a.Equal(expectedError, ErrMRCErrorStatusInReconciler)
+			return false, ErrMRCErrorStatusInReconciler
 		}
-		return (mrc.Status.ComponentStatuses.Bootstrap == constants.MRCComponentStatusValidating &&
-				mrc.Status.ComponentStatuses.Gateway == constants.MRCComponentStatusValidating &&
-				mrc.Status.ComponentStatuses.Sidecar == constants.MRCComponentStatusValidating &&
-				mrc.Status.ComponentStatuses.XDSControlPlane == constants.MRCComponentStatusValidating &&
-				mrc.Status.ComponentStatuses.Webhooks == constants.MRCComponentStatusValidating),
-			nil
+		if !componentsExpected(mrc.Status.ComponentStatuses, expCurrentComponentStatus, expUpdatedComponentStatus) {
+			a.Equal(expectedError, ErrUnexpectedMRCStatusInReconciler)
+			return false, ErrUnexpectedMRCStatusInReconciler
+		}
+
+		return componentsUpdated(mrc.Status.ComponentStatuses, expUpdatedComponentStatus), nil
 	}
 	updateStatus := func(ctx context.Context, mrc *v1alpha2.MeshRootCertificate) error {
 		mrc.Status.State = constants.MRCStateValidating
@@ -42,9 +44,7 @@ func TestCheckAndUpdate(t *testing.T) {
 			Status: "True",
 			Reason: "CertificatePassivelyInUse",
 		})
-		if mrcClient == nil {
-			return fmt.Errorf("error")
-		}
+
 		_, err := mrcClient.UpdateMeshRootCertificateStatus(mrc)
 		a.NoError(err)
 		return nil
@@ -52,9 +52,13 @@ func TestCheckAndUpdate(t *testing.T) {
 	mrcName := "osm-mesh-root-certificate"
 
 	testCases := []struct {
-		name             string
-		currentResource  v1alpha2.MeshRootCertificate
-		expectedResource v1alpha2.MeshRootCertificate
+		name                                string
+		currentResource                     v1alpha2.MeshRootCertificate
+		expectedResource                    v1alpha2.MeshRootCertificate
+		expectedResourceWithConditionUpdate v1alpha2.MeshRootCertificate
+		expectedCurrentComponentStatus      v1alpha2.MeshRootCertificateComponentStatus
+		expectedUpdatedComponentStatus      v1alpha2.MeshRootCertificateComponentStatus
+		expectedError                       error
 	}{
 		{
 			name: "successfully updated MRC",
@@ -79,6 +83,35 @@ func TestCheckAndUpdate(t *testing.T) {
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStatePending,
 					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
+						Webhooks:        constants.MRCComponentStatusUnknown,
+						XDSControlPlane: constants.MRCComponentStatusUnknown,
+						Sidecar:         constants.MRCComponentStatusUnknown,
+						Bootstrap:       constants.MRCComponentStatusUnknown,
+						Gateway:         constants.MRCComponentStatusUnknown,
+					},
+				},
+			},
+			expectedResource: v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      mrcName,
+					Namespace: "osm-system",
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					Provider: v1alpha2.ProviderSpec{
+						Tresor: &v1alpha2.TresorProviderSpec{
+							CA: v1alpha2.TresorCASpec{
+								SecretRef: v1.SecretReference{
+									Name:      "osm-ca-bundle",
+									Namespace: "osm-system",
+								},
+							},
+						},
+					},
+				},
+				Intent: constants.MRCIntentPassive,
+				Status: v1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateValidating,
+					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
 						Webhooks:        constants.MRCComponentStatusValidating,
 						XDSControlPlane: constants.MRCComponentStatusValidating,
 						Sidecar:         constants.MRCComponentStatusValidating,
@@ -87,7 +120,7 @@ func TestCheckAndUpdate(t *testing.T) {
 					},
 				},
 			},
-			expectedResource: v1alpha2.MeshRootCertificate{
+			expectedResourceWithConditionUpdate: v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      mrcName,
 					Namespace: "osm-system",
@@ -123,9 +156,11 @@ func TestCheckAndUpdate(t *testing.T) {
 					},
 				},
 			},
+			expectedCurrentComponentStatus: constants.MRCComponentStatusUnknown,
+			expectedUpdatedComponentStatus: constants.MRCComponentStatusValidating,
 		},
 		{
-			name: "MRC not updated. checkStatus errors",
+			name: "MRC not updated. checkStatus errors due to unexpected status",
 			currentResource: v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      mrcName,
@@ -147,11 +182,11 @@ func TestCheckAndUpdate(t *testing.T) {
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateValidating,
 					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-						Webhooks:        constants.MRCComponentStatusValidating,
-						XDSControlPlane: constants.MRCComponentStatusValidating,
-						Sidecar:         constants.MRCComponentStatusValidating,
-						Bootstrap:       constants.MRCComponentStatusValidating,
-						Gateway:         constants.MRCComponentStatusValidating,
+						Webhooks:        constants.MRCComponentStatusUnknown,
+						XDSControlPlane: constants.MRCComponentStatusUnknown,
+						Sidecar:         constants.MRCComponentStatusUnknown,
+						Bootstrap:       constants.MRCComponentStatusUnknown,
+						Gateway:         constants.MRCComponentStatusUnknown,
 					},
 				},
 			},
@@ -176,7 +211,7 @@ func TestCheckAndUpdate(t *testing.T) {
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateValidating,
 					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-						Webhooks:        constants.MRCComponentStatusValidating,
+						Webhooks:        constants.MRCComponentStatusIssuing,
 						XDSControlPlane: constants.MRCComponentStatusValidating,
 						Sidecar:         constants.MRCComponentStatusValidating,
 						Bootstrap:       constants.MRCComponentStatusValidating,
@@ -184,6 +219,9 @@ func TestCheckAndUpdate(t *testing.T) {
 					},
 				},
 			},
+			expectedCurrentComponentStatus: constants.MRCComponentStatusUnknown,
+			expectedUpdatedComponentStatus: constants.MRCComponentStatusValidating,
+			expectedError:                  ErrUnexpectedMRCStatusInReconciler,
 		},
 	}
 
@@ -206,11 +244,20 @@ func TestCheckAndUpdate(t *testing.T) {
 			defer cancel()
 
 			// Start mrc reconciliation loop
+			expCurrentComponentStatus = tc.expectedCurrentComponentStatus
+			expUpdatedComponentStatus = tc.expectedUpdatedComponentStatus
+			expectedError = tc.expectedError
 			mrcReconciler.CheckAndUpdate(ctx, mrcClient, 5*time.Millisecond)
+
+			// Update mrc to expectedResource
+			_, err = mrcClient.UpdateMeshRootCertificateStatus(&tc.expectedResource)
+			a.NoError(err)
 			time.Sleep(1 * time.Second)
 
-			updatedMRC := mrcClient.GetMeshRootCertificate(mrcName)
-			a.Equal(&tc.expectedResource, updatedMRC)
+			if tc.expectedError == nil {
+				updatedMRC := mrcClient.GetMeshRootCertificate(mrcName)
+				a.Equal(&tc.expectedResourceWithConditionUpdate, updatedMRC)
+			}
 		})
 	}
 }
