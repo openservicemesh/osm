@@ -14,35 +14,39 @@ import (
 
 var errNoMatchingPort = errors.New("no matching port")
 
-func rewriteHealthProbes(pod *corev1.Pod) models.HealthProbes {
-	probes := models.HealthProbes{}
-	for idx := range pod.Spec.Containers {
+func rewriteHealthProbes(pod *corev1.Pod) map[string]models.HealthProbes {
+	probes := map[string]models.HealthProbes{}
+	for idx, c := range pod.Spec.Containers {
+		containerProbes := models.HealthProbes{}
 		if probe := rewriteLiveness(&pod.Spec.Containers[idx]); probe != nil {
-			probes.Liveness = probe
+			containerProbes.Liveness = probe
 		}
 		if probe := rewriteReadiness(&pod.Spec.Containers[idx]); probe != nil {
-			probes.Readiness = probe
+			containerProbes.Readiness = probe
 		}
 		if probe := rewriteStartup(&pod.Spec.Containers[idx]); probe != nil {
-			probes.Startup = probe
+			containerProbes.Startup = probe
+		}
+		if containerProbes.Liveness != nil || containerProbes.Readiness != nil || containerProbes.Startup != nil {
+			probes[c.Name] = containerProbes
 		}
 	}
 	return probes
 }
 
 func rewriteLiveness(container *corev1.Container) *models.HealthProbe {
-	return rewriteProbe(container.LivenessProbe, "liveness", constants.LivenessProbePath, constants.LivenessProbePort, &container.Ports)
+	return rewriteProbe(container.Name, container.LivenessProbe, "liveness", constants.LivenessProbePath, constants.LivenessProbePort, &container.Ports)
 }
 
 func rewriteReadiness(container *corev1.Container) *models.HealthProbe {
-	return rewriteProbe(container.ReadinessProbe, "readiness", constants.ReadinessProbePath, constants.ReadinessProbePort, &container.Ports)
+	return rewriteProbe(container.Name, container.ReadinessProbe, "readiness", constants.ReadinessProbePath, constants.ReadinessProbePort, &container.Ports)
 }
 
 func rewriteStartup(container *corev1.Container) *models.HealthProbe {
-	return rewriteProbe(container.StartupProbe, "startup", constants.StartupProbePath, constants.StartupProbePort, &container.Ports)
+	return rewriteProbe(container.Name, container.StartupProbe, "startup", constants.StartupProbePath, constants.StartupProbePort, &container.Ports)
 }
 
-func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, containerPorts *[]corev1.ContainerPort) *models.HealthProbe {
+func rewriteProbe(containerName string, probe *corev1.Probe, probeType, path string, port int32, containerPorts *[]corev1.ContainerPort) *models.HealthProbe {
 	if probe == nil {
 		return nil
 	}
@@ -55,7 +59,7 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 		originalProbe.IsHTTP = len(probe.HTTPGet.Scheme) == 0 || probe.HTTPGet.Scheme == corev1.URISchemeHTTP
 		originalProbe.Path = probe.HTTPGet.Path
 		if originalProbe.IsHTTP {
-			probe.HTTPGet.Path = path
+			probe.HTTPGet.Path = fmt.Sprintf("%s/%s", path, containerName)
 			newPath = probe.HTTPGet.Path
 		}
 	} else if probe.TCPSocket != nil {

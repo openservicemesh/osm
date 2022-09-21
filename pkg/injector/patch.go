@@ -122,7 +122,15 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		return nil, err
 	}
 
-	if originalHealthProbes.UsesTCP() {
+	var usesTCP bool
+	for _, probes := range originalHealthProbes {
+		if probes.UsesTCP() {
+			usesTCP = true
+			break
+		}
+	}
+
+	if usesTCP {
 		healthcheckContainer := corev1.Container{
 			Name:            "osm-healthcheck",
 			Image:           os.Getenv("OSM_DEFAULT_HEALTHCHECK_CONTAINER_IMAGE"),
