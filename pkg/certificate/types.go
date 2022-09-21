@@ -13,6 +13,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/compute"
 )
 
 const (
@@ -123,7 +124,7 @@ type Manager struct {
 
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
 type MRCClient interface {
-	List() ([]*v1alpha2.MeshRootCertificate, error)
+	compute.Interface
 	MRCEventBroker
 
 	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.
@@ -136,8 +137,12 @@ type MRCEventType string
 // MRCEvent describes a change event on a given MRC
 type MRCEvent struct {
 	Type MRCEventType
+
+	// The previous last observed version of the MRC as of the time of this event
+	OldMRC *v1alpha2.MeshRootCertificate
+
 	// The last observed version of the MRC as of the time of this event
-	MRC *v1alpha2.MeshRootCertificate
+	NewMRC *v1alpha2.MeshRootCertificate
 }
 
 var (
@@ -154,4 +159,17 @@ type MRCEventBroker interface {
 	// MRCs. Watch returns a channel that emits events, and
 	// an error if the subscription goes awry.
 	Watch(context.Context) (<-chan MRCEvent, error)
+}
+
+// UpdateMRCStatus updates the status of an MRC to the desired state
+type UpdateMRCStatus func(ctx context.Context, mrc *v1alpha2.MeshRootCertificate) error
+
+// CheckMRCStatus checks if the MRC status is in the desired state
+type CheckMRCStatus func(ctx context.Context, mrc *v1alpha2.MeshRootCertificate) (bool, error)
+
+// MRCReconciler defines the actions of a reconciler used to determine when and how to update an MRC's status
+type MRCReconciler struct {
+	mrcName      string
+	updateStatus UpdateMRCStatus
+	checkStatus  CheckMRCStatus
 }

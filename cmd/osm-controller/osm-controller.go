@@ -197,6 +197,8 @@ func main() {
 
 	meshSpec := smi.NewSMIClient(informerCollection, osmNamespace, k8sClient, msgBroker)
 
+	computeClient := kube.NewClient(k8sClient)
+
 	certOpts, err := getCertOptions()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
@@ -206,21 +208,19 @@ func main() {
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
 		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, k8sClient, informerCollection, 5*time.Second)
+			certOpts, computeClient, informerCollection, 5*time.Second)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error fetching certificate manager of kind %s from MRC", certProviderKind)
 		}
 	} else {
 		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, k8sClient, 5*time.Second, trustDomain)
+			certOpts, computeClient, 5*time.Second, trustDomain)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error fetching certificate manager of kind %s", certProviderKind)
 		}
 	}
-
-	computeClient := kube.NewClient(k8sClient)
 
 	ingress.Initialize(kubeClient, k8sClient, stop, certManager, msgBroker)
 

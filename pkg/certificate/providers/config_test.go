@@ -16,10 +16,12 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	fakeConfigClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/messaging"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
@@ -29,6 +31,7 @@ import (
 func TestGetCertificateManager(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	k8sMock := k8s.NewMockController(mockCtrl)
+	compute := kube.NewClient(k8sMock)
 	k8sMock.EXPECT().GetMeshConfig().AnyTimes()
 
 	type testCase struct {
@@ -132,7 +135,7 @@ func TestGetCertificateManager(t *testing.T) {
 				getCA = oldCA
 			}()
 
-			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, k8sMock, 1*time.Hour, "cluster.local")
+			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, compute, 1*time.Hour, "cluster.local")
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)
@@ -150,10 +153,6 @@ func TestGetCertificateManager(t *testing.T) {
 }
 
 func TestGetCertificateManagerFromMRC(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	k8sMock := k8s.NewMockController(mockCtrl)
-	k8sMock.EXPECT().GetMeshConfig().AnyTimes()
-
 	type testCase struct {
 		name        string
 		expectError bool
@@ -690,7 +689,13 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 			assert.NoError(err)
 			assert.NotNil(ic)
 
-			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, k8sMock, ic, 1*time.Hour)
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+			k8sClient := k8s.NewClient("osm-system", "", ic, nil, tc.configClient, broker)
+			compute := kube.NewClient(k8sClient)
+
+			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, compute, ic, 1*time.Hour)
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)

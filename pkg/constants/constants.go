@@ -220,6 +220,9 @@ const (
 	// MRCComponentStatusUnknown is the unknown status option for the component status of the MeshRootCertificate
 	MRCComponentStatusUnknown = "Unknown"
 
+	// MRCComponentStatusIssuing is the issuing status option for the component status of the MeshRootCertificate
+	MRCComponentStatusIssuing = "Issuing"
+
 	// MRCConditionStatusUnknown is the unknown status option for the condition status of the MeshRootCertificate
 	MRCConditionStatusUnknown = "Unknown"
 

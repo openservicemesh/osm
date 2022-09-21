@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/compute"
 
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -18,20 +19,12 @@ var (
 	validity = time.Hour
 )
 
-type fakeMRCClient struct{}
+type fakeMRCClient struct {
+	compute.Interface
+}
 
 func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error) {
 	return &fakeIssuer{}, pem.RootCertificate("rootCA"), nil
-}
-
-// List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
-func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
-	// return single empty object in the list.
-	return []*v1alpha2.MeshRootCertificate{{
-		Spec: v1alpha2.MeshRootCertificateSpec{
-			TrustDomain: "fake.domain.com",
-		},
-	}}, nil
 }
 
 func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
@@ -39,7 +32,7 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 	go func() {
 		ch <- MRCEvent{
 			Type: MRCEventAdded,
-			MRC: &v1alpha2.MeshRootCertificate{
+			NewMRC: &v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "osm-mesh-root-certificate",
 					Namespace: "osm-system",

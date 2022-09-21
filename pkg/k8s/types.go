@@ -7,6 +7,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/cache"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -149,4 +150,7 @@ type PassthroughInterface interface {
 
 	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resources with namespaced name
 	GetUpstreamTrafficSetting(*types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting
+
+	// AddMRCEventsHandler adds event handlers to create MRCEvents
+	AddMRCEventsHandler(cache.ResourceEventHandlerFuncs)
 }

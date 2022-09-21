@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/cskr/pubsub"
+	"k8s.io/client-go/util/retry"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -83,7 +85,7 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 					return
 				}
 
-				err = m.handleMRCEvent(mrcClient, event)
+				err = m.handleMRCEvent(ctx, mrcClient, event)
 				if err != nil {
 					log.Error().Err(err).Msgf("error encountered processing MRCEvent")
 					continue
@@ -116,10 +118,10 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 	return nil
 }
 
-func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
+func (m *Manager) handleMRCEvent(ctx context.Context, mrcClient MRCClient, event MRCEvent) error {
 	switch event.Type {
 	case MRCEventAdded:
-		mrc := event.MRC
+		mrc := event.NewMRC
 		if mrc.Status.State == constants.MRCStateError {
 			log.Debug().Msgf("skipping MRC with error state %s", mrc.GetName())
 			return nil
@@ -152,9 +154,83 @@ func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
 			m.mu.Unlock()
 		}
 	case MRCEventUpdated:
-		// TODO
+		oldMRC := event.OldMRC
+		newMRC := event.NewMRC
+
+		// check if the MRC's intent has been updated from active to passive and the
+		// certificate statuses are all issuing
+		if oldMRC.Intent != newMRC.Intent && newMRC.Intent == constants.MRCIntentPassive &&
+			componentsAreIssuing(newMRC) {
+			log.Debug().Str("mrc", newMRC.Name).Msg("handling active to passive MRC status change")
+			err := handleActiveToPassiveMRCStatusChange(mrcClient, event)
+			if err != nil {
+				return err
+			}
+
+			// define reconciler
+			mrcReconciler := MRCReconciler{
+				mrcName:      newMRC.Name,
+				updateStatus: nil,
+				checkStatus:  nil,
+			}
+
+			// start MRC reconciliation loop
+			mrcReconciler.CheckAndUpdate(ctx, mrcClient, 5*time.Second)
+		}
 	}
 
+	return nil
+}
+
+func handleActiveToPassiveMRCStatusChange(mrcClient MRCClient, event MRCEvent) error {
+	newMRC := event.NewMRC
+
+	newIssuingRollbackCond := v1alpha2.MeshRootCertificateCondition{
+		Type:   issuingRollback,
+		Status: trueStatus,
+		Reason: string(passiveStateCertIssuedReason),
+	}
+	newValidatingRollbackCond := v1alpha2.MeshRootCertificateCondition{
+		Type:   validatingRollback,
+		Status: trueStatus,
+		Reason: string(passiveStateCertTrustedReason),
+	}
+
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		mrc := mrcClient.GetMeshRootCertificate(newMRC.Name)
+		if mrc == nil {
+			return ErrMRCNotFound
+		}
+
+		// check condition hasn't already been updated
+		if mrcHasCondition(mrc, newIssuingRollbackCond) && mrcHasCondition(mrc, newValidatingRollbackCond) {
+			log.Debug().Str("mrc", mrc.Name).Msgf("MRC condition already set")
+			return nil
+		}
+
+		// check condition requirements
+		if componentsHaveError(mrc) {
+			return fmt.Errorf("mrc components have errors")
+		}
+		if !componentsAreIssuing(mrc) {
+			return fmt.Errorf("mrc components are not issuing")
+		}
+		if mrc.Intent != constants.MRCIntentPassive {
+			return fmt.Errorf("mrc does not have passive intent")
+		}
+
+		// set new conditions
+		setMRCCondition(mrc, newIssuingRollbackCond.Type, newIssuingRollbackCond.Status, mrcConditionReason(newIssuingRollbackCond.Reason), "")
+		setMRCCondition(mrc, newValidatingRollbackCond.Type, newValidatingRollbackCond.Status, mrcConditionReason(newIssuingRollbackCond.Reason), "")
+
+		_, err := mrcClient.UpdateMeshRootCertificateStatus(mrc)
+		return err
+
+	})
+	if err != nil {
+		log.Error().Str("mrc", newMRC.Name).Msgf("failed to updated MRC condition")
+		return nil
+	}
 	return nil
 }
 

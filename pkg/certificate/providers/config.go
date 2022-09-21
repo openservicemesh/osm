@@ -20,8 +20,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
@@ -45,7 +45,7 @@ var getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
 // NewCertificateManager returns a new certificate manager with a MRC compat client.
 // TODO(4713): Remove and use NewCertificateManagerFromMRC
 func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config,
-	providerNamespace string, option Options, kubeController k8s.Controller, checkInterval time.Duration, trustDomain string) (*certificate.Manager, error) {
+	providerNamespace string, option Options, computeClient compute.Interface, checkInterval time.Duration, trustDomain string) (*certificate.Manager, error) {
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 		MRCProviderGenerator: MRCProviderGenerator{
 			kubeClient:      kubeClient,
 			kubeConfig:      kubeConfig,
-			KeyBitSize:      utils.GetCertKeyBitSize(kubeController.GetMeshConfig()),
+			KeyBitSize:      utils.GetCertKeyBitSize(computeClient.GetMeshConfig()),
 			caExtractorFunc: getCA,
 		},
 		mrc: &v1alpha2.MeshRootCertificate{
@@ -104,6 +104,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 				},
 			},
 		},
+		Interface: computeClient,
 	}
 	// TODO(#4745): Remove after deprecating the osm.vault.token option.
 	if vaultOption, ok := option.(VaultOptions); ok {
@@ -113,15 +114,15 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 	return certificate.NewManager(
 		ctx,
 		mrcClient,
-		func() time.Duration { return utils.GetServiceCertValidityPeriod(kubeController.GetMeshConfig()) },
-		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(kubeController.GetMeshConfig()) },
+		func() time.Duration { return utils.GetServiceCertValidityPeriod(computeClient.GetMeshConfig()) },
+		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(computeClient.GetMeshConfig()) },
 		checkInterval,
 	)
 }
 
 // NewCertificateManagerFromMRC returns a new certificate manager.
 func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config,
-	providerNamespace string, option Options, kubeController k8s.Controller, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
+	providerNamespace string, option Options, computeClient compute.Interface, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}
@@ -130,10 +131,10 @@ func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Int
 		MRCProviderGenerator: MRCProviderGenerator{
 			kubeClient:      kubeClient,
 			kubeConfig:      kubeConfig,
-			KeyBitSize:      utils.GetCertKeyBitSize(kubeController.GetMeshConfig()),
+			KeyBitSize:      utils.GetCertKeyBitSize(computeClient.GetMeshConfig()),
 			caExtractorFunc: getCA,
 		},
-		informerCollection: ic,
+		Interface: computeClient,
 	}
 	// TODO(#4745): Remove after deprecating the osm.vault.token option.
 	if vaultOption, ok := option.(VaultOptions); ok {
@@ -143,8 +144,8 @@ func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Int
 	return certificate.NewManager(
 		ctx,
 		mrcClient,
-		func() time.Duration { return utils.GetServiceCertValidityPeriod(kubeController.GetMeshConfig()) },
-		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(kubeController.GetMeshConfig()) },
+		func() time.Duration { return utils.GetServiceCertValidityPeriod(computeClient.GetMeshConfig()) },
+		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(computeClient.GetMeshConfig()) },
 		checkInterval,
 	)
 }

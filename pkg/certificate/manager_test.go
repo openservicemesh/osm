@@ -331,7 +331,7 @@ func TestHandleMRCEvent(t *testing.T) {
 			mrcClient: &fakeMRCClient{},
 			mrcEvent: MRCEvent{
 				Type: MRCEventAdded,
-				MRC: &v1alpha2.MeshRootCertificate{
+				NewMRC: &v1alpha2.MeshRootCertificate{
 					ObjectMeta: v1.ObjectMeta{
 						Name: "my-mrc",
 					},
@@ -386,7 +386,7 @@ func TestHandleMRCEvent(t *testing.T) {
 			assert := tassert.New(t)
 			m := &Manager{}
 
-			err := m.handleMRCEvent(tt.mrcClient, tt.mrcEvent)
+			err := m.handleMRCEvent(context.Background(), tt.mrcClient, tt.mrcEvent)
 			if !tt.wantErr {
 				assert.NoError(err)
 			} else {
