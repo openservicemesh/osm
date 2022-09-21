@@ -353,7 +353,7 @@ func (b *Builder) getProbeResources() ([]*xds_listener.Listener, []*xds_cluster.
 	for containerName, probes := range b.OriginalHealthProbes {
 		// Liveness probe listener + cluster
 		livenessClusterName := fmt.Sprintf("%s_%s", containerName, livenessCluster)
-		livenessListenerBuilder.AddProbe(containerName, livenessClusterName, constants.LivenessProbePath, probes.Liveness, probes.Liveness.IsHTTP)
+		livenessListenerBuilder.AddProbe(containerName, livenessClusterName, constants.LivenessProbePath, probes.Liveness)
 		livenessCluster := buildProbeCluster(livenessClusterName, probes.Liveness)
 		if livenessCluster != nil {
 			clusters = append(clusters, livenessCluster)
@@ -361,7 +361,7 @@ func (b *Builder) getProbeResources() ([]*xds_listener.Listener, []*xds_cluster.
 
 		// Readiness probe listener + cluster
 		readinessClusterName := fmt.Sprintf("%s_%s", containerName, readinessCluster)
-		readinessListenerBuilder.AddProbe(containerName, readinessClusterName, constants.ReadinessProbePath, probes.Readiness, probes.Readiness.IsHTTP)
+		readinessListenerBuilder.AddProbe(containerName, readinessClusterName, constants.ReadinessProbePath, probes.Readiness)
 		readinessCluster := buildProbeCluster(readinessClusterName, probes.Readiness)
 		if readinessCluster != nil {
 			clusters = append(clusters, readinessCluster)
@@ -369,7 +369,7 @@ func (b *Builder) getProbeResources() ([]*xds_listener.Listener, []*xds_cluster.
 
 		// Startup probe listener + cluster
 		startupClusterName := fmt.Sprintf("%s_%s", containerName, startupCluster)
-		startupListenerBuilder.AddProbe(containerName, startupClusterName, constants.StartupProbePath, probes.Startup, probes.Startup.IsHTTP)
+		startupListenerBuilder.AddProbe(containerName, startupClusterName, constants.StartupProbePath, probes.Startup)
 		startupCluster := buildProbeCluster(startupClusterName, probes.Startup)
 		if startupCluster != nil {
 			clusters = append(clusters, startupCluster)

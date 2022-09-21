@@ -87,12 +87,12 @@ type probeListenerBuilder struct {
 	httpsClusterName  string
 }
 
-func (plb *probeListenerBuilder) AddProbe(containerName, clusterName, newProbePath string, probe *models.HealthProbe, isHTTP bool) {
+func (plb *probeListenerBuilder) AddProbe(containerName, clusterName, newProbePath string, probe *models.HealthProbe) {
 	if probe == nil || probe.IsTCPSocket {
 		return
 	}
 
-	if isHTTP {
+	if probe.IsHTTP {
 		plb.virtualHostRoutes = append(plb.virtualHostRoutes, probeListenerRoute{
 			pathPrefixMatch:   fmt.Sprintf("%s/%s", newProbePath, containerName),
 			clusterName:       clusterName,
