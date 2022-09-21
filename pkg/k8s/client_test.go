@@ -15,19 +15,24 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	testclient "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/tools/cache"
+
+	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	smiAccessClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
+	smiSpecClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned/fake"
+	smiSplitClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	fakeConfigClient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/tests"
-
-	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 )
 
 var (
@@ -929,7 +934,7 @@ func TestListRetryPolicy(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockKubeController := NewMockController(mockCtrl)
-	mockKubeController.EXPECT().IsMonitoredNamespace("test").Return(true).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(testNs).Return(true).AnyTimes()
 
 	outMeshResource := &policyv1alpha1.Retry{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1196,4 +1201,223 @@ func TestListMeshRootCertificates(t *testing.T) {
 	mrcList, err = c.ListMeshRootCertificates()
 	a.NoError(err)
 	a.ElementsMatch(newList, mrcList)
+}
+
+func TestListHTTPTrafficSpecs(t *testing.T) {
+	nsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+		},
+	}
+
+	a := assert.New(t)
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+
+	informerCollection, err := informers.NewInformerCollection("osm", nil,
+		informers.WithKubeClient(testclient.NewSimpleClientset()),
+		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+	)
+	a.Nil(err)
+	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil)
+	a.Nil(err)
+	a.NotNil(c)
+
+	obj := &smiSpecs.HTTPRouteGroup{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "HTTPRouteGroup",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNs,
+			Name:      "test-ListHTTPTrafficSpecs",
+		},
+		Spec: smiSpecs.HTTPRouteGroupSpec{
+			Matches: []smiSpecs.HTTPMatch{
+				{
+					Name:      tests.BuyBooksMatchName,
+					PathRegex: tests.BookstoreBuyPath,
+					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
+					},
+				},
+				{
+					Name:      tests.SellBooksMatchName,
+					PathRegex: tests.BookstoreSellPath,
+					Methods:   []string{"GET"},
+				},
+				{
+					Name: tests.WildcardWithHeadersMatchName,
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
+					},
+				},
+			},
+		},
+	}
+	err = c.informers.Add(informers.InformerKeyNamespace, nsObj, t)
+	a.Nil(err)
+	err = c.informers.Add(informers.InformerKeyHTTPRouteGroup, obj, t)
+	a.Nil(err)
+
+	// Verify
+	actual := c.ListHTTPTrafficSpecs()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+}
+
+func TestGetHTTPRouteGroup(t *testing.T) {
+	nsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+		},
+	}
+
+	a := assert.New(t)
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	informerCollection, err := informers.NewInformerCollection("osm", nil,
+		informers.WithKubeClient(testclient.NewSimpleClientset()),
+		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+	)
+	a.Nil(err)
+	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil)
+	a.Nil(err)
+	a.NotNil(c)
+
+	obj := &smiSpecs.HTTPRouteGroup{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "HTTPRouteGroup",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNs,
+			Name:      "foo",
+		},
+		Spec: smiSpecs.HTTPRouteGroupSpec{
+			Matches: []smiSpecs.HTTPMatch{
+				{
+					Name:      tests.BuyBooksMatchName,
+					PathRegex: tests.BookstoreBuyPath,
+					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
+					},
+				},
+				{
+					Name:      tests.SellBooksMatchName,
+					PathRegex: tests.BookstoreSellPath,
+					Methods:   []string{"GET"},
+				},
+				{
+					Name: tests.WildcardWithHeadersMatchName,
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
+					},
+				},
+			},
+		},
+	}
+	err = c.informers.Add(informers.InformerKeyNamespace, nsObj, t)
+	a.Nil(err)
+	err = c.informers.Add(informers.InformerKeyHTTPRouteGroup, obj, t)
+	a.Nil(err)
+
+	// Verify
+	key, _ := cache.MetaNamespaceKeyFunc(obj)
+	actual := c.GetHTTPRouteGroup(key)
+	a.Equal(obj, actual)
+
+	invalid := c.GetHTTPRouteGroup("invalid")
+	a.Nil(invalid)
+}
+
+func TestListTCPTrafficSpecs(t *testing.T) {
+	nsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+		},
+	}
+
+	a := assert.New(t)
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	informerCollection, err := informers.NewInformerCollection("osm", nil,
+		informers.WithKubeClient(testclient.NewSimpleClientset()),
+		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+	)
+
+	a.Nil(err)
+	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil)
+	a.Nil(err)
+	a.NotNil(c)
+
+	obj := &smiSpecs.TCPRoute{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "TCPRoute",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNs,
+			Name:      "tcp-route",
+		},
+		Spec: smiSpecs.TCPRouteSpec{},
+	}
+	err = c.informers.Add(informers.InformerKeyNamespace, nsObj, t)
+	a.Nil(err)
+	err = c.informers.Add(informers.InformerKeyTCPRoute, obj, t)
+	a.Nil(err)
+
+	// Verify
+	actual := c.ListTCPTrafficSpecs()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+}
+
+func TestGetTCPRoute(t *testing.T) {
+	nsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+		},
+	}
+	a := assert.New(t)
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	informerCollection, err := informers.NewInformerCollection("osm", nil,
+		informers.WithKubeClient(testclient.NewSimpleClientset()),
+		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+	)
+	a.Nil(err)
+	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil)
+	a.Nil(err)
+	a.NotNil(c)
+
+	obj := &smiSpecs.TCPRoute{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "TCPRoute",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNs,
+			Name:      "tcp-route",
+		},
+		Spec: smiSpecs.TCPRouteSpec{},
+	}
+	err = c.informers.Add(informers.InformerKeyNamespace, nsObj, t)
+	a.Nil(err)
+	err = c.informers.Add(informers.InformerKeyTCPRoute, obj, t)
+	a.Nil(err)
+
+	// Verify
+	key, _ := cache.MetaNamespaceKeyFunc(obj)
+	actual := c.GetTCPRoute(key)
+	a.Equal(obj, actual)
+
+	invalid := c.GetTCPRoute("invalid")
+	a.Nil(invalid)
 }

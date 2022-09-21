@@ -60,7 +60,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		// Check if there is a traffic split corresponding to this service.
 		// The upstream clusters are to be derived from the traffic split backends
 		// in that case.
-		trafficSplits := mc.meshSpec.ListTrafficSplits(smi.WithTrafficSplitApexService(meshSvc))
+		trafficSplits := mc.ListTrafficSplitsByOptions(smi.WithTrafficSplitApexService(meshSvc))
 		if len(trafficSplits) > 1 {
 			// TODO: enhancement(#2759)
 			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMultipleSMISplitPerServiceUnsupported)).
@@ -143,7 +143,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	serviceSet := mapset.NewSet()
 	var allowedServices []service.MeshService
 
-	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
+	for _, t := range mc.ListTrafficTargetsByOptions() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
 			if source.Name != svcAccount.Name || source.Namespace != svcAccount.Namespace {
 				// Source doesn't match the downstream's service identity

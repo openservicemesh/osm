@@ -21,7 +21,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -75,13 +74,12 @@ func TestGenerateConfig(t *testing.T) {
 			Port: endpoint.Port(8080),
 		},
 	}).AnyTimes()
-	smiClient := smi.NewMockMeshSpec(mockCtrl)
-	smiClient.EXPECT().ListTrafficSplits(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().ListTrafficSplits().Return(nil).AnyTimes()
 
 	certManager := tresorFake.NewFake(time.Hour)
 	stop := make(chan struct{})
 
-	mc := catalog.NewMeshCatalog(smiClient, certManager, stop, provider, messaging.NewBroker(stop))
+	mc := catalog.NewMeshCatalog(provider, certManager, stop, messaging.NewBroker(stop))
 
 	g := NewEnvoyConfigGenerator(mc, certManager)
 

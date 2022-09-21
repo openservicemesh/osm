@@ -7,8 +7,18 @@ import (
 	"github.com/golang/mock/gomock"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	smiAccessClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
+	smiSpecClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned/fake"
+	smiSplitClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned/fake"
+	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/tests"
 
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -21,9 +31,9 @@ func TestListInboundServiceIdentities(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+	mockCompute := compute.NewMockInterface(mockCtrl)
 	meshCatalog := MeshCatalog{
-		meshSpec: mockMeshSpec,
+		Interface: mockCompute,
 	}
 
 	testCases := []struct {
@@ -55,6 +65,10 @@ func TestListInboundServiceIdentities(t *testing.T) {
 							Name:      "sa-1",
 							Namespace: "ns-1",
 						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
+						}},
 					},
 				},
 				{
@@ -76,6 +90,10 @@ func TestListInboundServiceIdentities(t *testing.T) {
 							Kind:      "ServiceAccount",
 							Name:      "sa-1",
 							Namespace: "ns-1",
+						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
 						}},
 					},
 				},
@@ -121,6 +139,10 @@ func TestListInboundServiceIdentities(t *testing.T) {
 							Name:      "sa-1",
 							Namespace: "ns-1",
 						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
+						}},
 					},
 				},
 			},
@@ -160,6 +182,10 @@ func TestListInboundServiceIdentities(t *testing.T) {
 							Name:      "sa-1",
 							Namespace: "ns-1",
 						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
+						}},
 					},
 				},
 			},
@@ -179,7 +205,7 @@ func TestListInboundServiceIdentities(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
-			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
+			mockCompute.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
 
 			actual := meshCatalog.ListInboundServiceIdentities(tc.serviceIdentity)
 			assert.ElementsMatch(actual, tc.expectedInboundServiceIdentities)
@@ -192,9 +218,9 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+	mockCompute := compute.NewMockInterface(mockCtrl)
 	meshCatalog := MeshCatalog{
-		meshSpec: mockMeshSpec,
+		Interface: mockCompute,
 	}
 
 	testCases := []struct {
@@ -226,6 +252,10 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 							Name:      "sa-1",
 							Namespace: "ns-1",
 						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
+						}},
 					},
 				},
 				{
@@ -247,6 +277,10 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 							Kind:      "ServiceAccount",
 							Name:      "sa-1",
 							Namespace: "ns-1",
+						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
 						}},
 					},
 				},
@@ -296,6 +330,10 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 							Name:      "sa-1",
 							Namespace: "ns-1",
 						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
+						}},
 					},
 				},
 			},
@@ -335,6 +373,10 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 							Name:      "sa-1",
 							Namespace: "ns-1",
 						}},
+						Rules: []smiAccess.TrafficTargetRule{{
+							Kind: "HTTPRouteGroup",
+							Name: "rule",
+						}},
 					},
 				},
 			},
@@ -354,7 +396,7 @@ func TestListOutboundServiceIdentities(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
-			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
+			mockCompute.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).Times(1)
 
 			actual := meshCatalog.ListOutboundServiceIdentities(tc.serviceIdentity)
 			assert.ElementsMatch(actual, tc.expectedOutboundServiceIdentities)
@@ -842,23 +884,22 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
 			// Initialize test objects
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			provider := compute.NewMockInterface(mockCtrl)
+			mockCompute := compute.NewMockInterface(mockCtrl)
 			meshCatalog := MeshCatalog{
-				meshSpec:  mockMeshSpec,
-				Interface: provider,
+				Interface: mockCompute,
 			}
-			provider.EXPECT().GetMeshConfig().AnyTimes()
+
+			mockCompute.EXPECT().GetMeshConfig().AnyTimes()
 
 			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
-			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()
+			mockCompute.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()
 			for _, trafficTarget := range tc.trafficTargets {
 				for _, rule := range trafficTarget.Spec.Rules {
 					if rule.Kind != smi.TCPRouteKind {
 						continue
 					}
 					routeName := fmt.Sprintf("%s/%s", trafficTarget.Spec.Destination.Namespace, rule.Name)
-					mockMeshSpec.EXPECT().GetTCPRoute(routeName).Return(tc.tcpRoutes[routeName]).AnyTimes()
+					mockCompute.EXPECT().GetTCPRoute(routeName).Return(tc.tcpRoutes[routeName]).AnyTimes()
 				}
 			}
 
@@ -867,4 +908,161 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			assert.ElementsMatch(tc.expectedTrafficTargets, actual)
 		})
 	}
+}
+
+func TestListTrafficSplitsByOptions(t *testing.T) {
+	a := assert.New(t)
+
+	mockCtrl := gomock.NewController(t)
+	mockCompute := compute.NewMockInterface(mockCtrl)
+	mockCompute.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
+
+	testNamespaceName := "test"
+	fakeClient := fakePolicyClient.NewSimpleClientset()
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient), informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet))
+	a.Nil(err)
+	meshCatalog := MeshCatalog{
+		Interface: mockCompute,
+	}
+
+	obj := &smiSplit.TrafficSplit{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-ListTrafficSplits",
+			Namespace: testNamespaceName,
+		},
+		Spec: smiSplit.TrafficSplitSpec{
+			Service: tests.BookstoreApexServiceName,
+			Backends: []smiSplit.TrafficSplitBackend{
+				{
+					Service: tests.BookstoreV1ServiceName,
+					Weight:  tests.Weight90,
+				},
+				{
+					Service: tests.BookstoreV2ServiceName,
+					Weight:  tests.Weight10,
+				},
+			},
+		},
+	}
+	err = ic.Add(informers.InformerKeyTrafficSplit, obj, t)
+	a.Nil(err)
+	mockCompute.EXPECT().ListTrafficSplits().Return([]*smiSplit.TrafficSplit{obj}).AnyTimes()
+
+	// Verify
+	actual := meshCatalog.ListTrafficSplits()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+
+	// Verify filter for apex service
+	filteredApexAvailable := meshCatalog.ListTrafficSplitsByOptions(smi.WithTrafficSplitApexService(service.MeshService{Name: tests.BookstoreApexServiceName, Namespace: testNamespaceName}))
+	a.Len(filteredApexAvailable, 1)
+	a.Equal(obj, filteredApexAvailable[0])
+	filteredApexUnavailable := meshCatalog.ListTrafficSplitsByOptions(smi.WithTrafficSplitApexService(tests.BookstoreV1Service))
+	a.Len(filteredApexUnavailable, 0)
+
+	// Verify filter for backend service
+	filteredBackendAvailable := meshCatalog.ListTrafficSplitsByOptions(smi.WithTrafficSplitBackendService(service.MeshService{Name: tests.BookstoreV1ServiceName, Namespace: testNamespaceName}))
+	a.Len(filteredBackendAvailable, 1)
+	a.Equal(obj, filteredBackendAvailable[0])
+	filteredBackendNameMismatch := meshCatalog.ListTrafficSplitsByOptions(smi.WithTrafficSplitBackendService(service.MeshService{Namespace: testNamespaceName, Name: "invalid"}))
+	a.Len(filteredBackendNameMismatch, 0)
+	filteredBackendNamespaceMismatch := meshCatalog.ListTrafficSplitsByOptions(smi.WithTrafficSplitBackendService(service.MeshService{Namespace: "invalid", Name: tests.BookstoreV1ServiceName}))
+	a.Len(filteredBackendNamespaceMismatch, 0)
+}
+
+func TestListTrafficTargetsByOptions(t *testing.T) {
+	a := assert.New(t)
+
+	mockCtrl := gomock.NewController(t)
+	mockCompute := compute.NewMockInterface(mockCtrl)
+	mockCompute.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
+
+	testNamespaceName := "test"
+	fakeClient := fakePolicyClient.NewSimpleClientset()
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient), informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet))
+	a.Nil(err)
+	meshCatalog := MeshCatalog{
+		Interface: mockCompute,
+	}
+
+	obj := &smiAccess.TrafficTarget{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "access.smi-spec.io/v1alpha3",
+			Kind:       "TrafficTarget",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-ListTrafficTargets",
+			Namespace: testNamespaceName,
+		},
+		Spec: smiAccess.TrafficTargetSpec{
+			Destination: smiAccess.IdentityBindingSubject{
+				Kind:      "ServiceAccount",
+				Name:      tests.BookstoreServiceAccountName,
+				Namespace: testNamespaceName,
+			},
+			Sources: []smiAccess.IdentityBindingSubject{{
+				Kind:      "ServiceAccount",
+				Name:      tests.BookbuyerServiceAccountName,
+				Namespace: testNamespaceName,
+			}},
+			Rules: []smiAccess.TrafficTargetRule{{
+				Kind:    "HTTPRouteGroup",
+				Name:    tests.RouteGroupName,
+				Matches: []string{tests.BuyBooksMatchName},
+			}},
+		},
+	}
+	err = ic.Add(informers.InformerKeyTrafficTarget, obj, t)
+	a.Nil(err)
+	mockCompute.EXPECT().ListTrafficTargets().Return([]*smiAccess.TrafficTarget{obj}).AnyTimes()
+
+	// Verify
+	actual := meshCatalog.ListTrafficTargets()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+
+	// Verify destination based filtering
+	filteredAvailable := meshCatalog.ListTrafficTargetsByOptions(smi.WithTrafficTargetDestination(identity.K8sServiceAccount{Namespace: testNamespaceName, Name: tests.BookstoreServiceAccountName}))
+	a.Len(filteredAvailable, 1)
+	filteredUnavailable := meshCatalog.ListTrafficTargetsByOptions(smi.WithTrafficTargetDestination(identity.K8sServiceAccount{Namespace: testNamespaceName, Name: "unavailable"}))
+	a.Len(filteredUnavailable, 0)
+}
+
+func TestListSMIPolicies(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockCompute := compute.NewMockInterface(mockCtrl)
+
+	splits := []*smiSplit.TrafficSplit{&tests.TrafficSplit}
+	targets := []*smiAccess.TrafficTarget{&tests.TrafficTarget}
+	httpRoutes := []*smiSpecs.HTTPRouteGroup{&tests.HTTPRouteGroup}
+	svcAccounts := []identity.K8sServiceAccount{tests.BookbuyerServiceAccount, tests.BookstoreServiceAccount}
+
+	mockCompute.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true).AnyTimes()
+	mockCompute.EXPECT().ListTrafficSplits().Return(splits).AnyTimes()
+	mockCompute.EXPECT().ListTrafficTargets().Return(targets).AnyTimes()
+	mockCompute.EXPECT().ListHTTPTrafficSpecs().Return(httpRoutes).AnyTimes()
+
+	mc := &MeshCatalog{
+		Interface: mockCompute,
+	}
+
+	a := assert.New(t)
+
+	trafficSplits := mc.ListTrafficSplits()
+	serviceAccounts := mc.ListServiceAccountsFromTrafficTargets()
+	routeGroups := mc.ListHTTPTrafficSpecs()
+	trafficTargets := mc.ListTrafficTargets()
+
+	a.ElementsMatch(trafficSplits, splits)
+	a.ElementsMatch(targets, trafficTargets)
+	a.ElementsMatch(httpRoutes, routeGroups)
+	a.ElementsMatch(svcAccounts, serviceAccounts)
 }

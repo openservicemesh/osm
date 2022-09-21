@@ -27,24 +27,26 @@ func TestGetSMIPolicies(t *testing.T) {
 		meshCatalog: mock,
 	}
 
-	mock.EXPECT().ListSMIPolicies().Return(
+	mock.EXPECT().ListTrafficSplits().Return(
 		[]*split.TrafficSplit{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "bar",
 				}},
-		},
+		})
+	mock.EXPECT().ListServiceAccountsFromTrafficTargets().Return(
 		[]identity.K8sServiceAccount{
 			tests.BookbuyerServiceAccount,
-		},
+		})
+	mock.EXPECT().ListHTTPTrafficSpecs().Return(
 		[]*spec.HTTPRouteGroup{
 			&tests.HTTPRouteGroup,
-		},
+		})
+	mock.EXPECT().ListTrafficTargets().Return(
 		[]*access.TrafficTarget{
 			&tests.TrafficTarget,
-		},
-	)
+		})
 
 	smiPoliciesHandler := ds.getSMIPoliciesHandler()
 	responseRecorder := httptest.NewRecorder()

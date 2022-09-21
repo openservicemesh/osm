@@ -6,18 +6,15 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/ticker"
 )
 
 // NewMeshCatalog creates a new service catalog
-func NewMeshCatalog(meshSpec smi.MeshSpec, certManager *certificate.Manager,
+func NewMeshCatalog(computeInterface compute.Interface, certManager *certificate.Manager,
 	stop <-chan struct{},
-	computeInterface compute.Interface,
 	msgBroker *messaging.Broker) *MeshCatalog {
 	mc := &MeshCatalog{
 		Interface:   computeInterface,
-		meshSpec:    meshSpec,
 		certManager: certManager,
 	}
 

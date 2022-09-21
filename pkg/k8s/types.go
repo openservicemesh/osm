@@ -8,6 +8,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -74,6 +78,14 @@ const (
 	Retry InformerKey = "Retry"
 	// UpstreamTrafficSetting lookup identifier
 	UpstreamTrafficSetting InformerKey = "UpstreamTrafficSetting"
+	// TrafficSplit lookup identifier
+	TrafficSplit InformerKey = "TrafficSplit"
+	// HTTPRouteGroup lookup identifier
+	HTTPRouteGroup InformerKey = "HTTPRouteGroup"
+	// TCPRoute lookup identifier
+	TCPRoute InformerKey = "TCPRoute"
+	// TrafficTarget lookup identifier
+	TrafficTarget InformerKey = "TrafficTarget"
 )
 
 // Client is the type used to represent the k8s client for the native k8s resources
@@ -89,6 +101,7 @@ type Client struct {
 // Controller is the controller interface for K8s services
 type Controller interface {
 	PassthroughInterface
+
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service
 
@@ -97,10 +110,6 @@ type Controller interface {
 
 	// GetService returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
 	GetService(name, namespace string) *corev1.Service
-
-	// IsMonitoredNamespace returns whether a namespace with the given name is being monitored
-	// by the mesh
-	IsMonitoredNamespace(string) bool
 
 	// ListNamespaces returns the namespaces monitored by the mesh
 	ListNamespaces() ([]*corev1.Namespace, error)
@@ -126,6 +135,10 @@ type Controller interface {
 // we control the definition it is reasonable to assume a non-k8s implementation would be obligated to implement as
 // well.
 type PassthroughInterface interface {
+	// IsMonitoredNamespace returns whether a namespace with the given name is being monitored
+	// by the mesh
+	IsMonitoredNamespace(string) bool
+
 	GetMeshConfig() configv1alpha2.MeshConfig
 	GetMeshRootCertificate(mrcName string) *configv1alpha2.MeshRootCertificate
 	ListMeshRootCertificates() ([]*configv1alpha2.MeshRootCertificate, error)
@@ -149,4 +162,23 @@ type PassthroughInterface interface {
 
 	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resources with namespaced name
 	GetUpstreamTrafficSetting(*types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting
+
+	// ListTrafficSplits lists SMI TrafficSplit resources
+	ListTrafficSplits() []*split.TrafficSplit
+
+	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
+	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
+
+	// GetHTTPRouteGroup returns an SMI HTTPRouteGroup resource given its name of the form <namespace>/<name>
+	GetHTTPRouteGroup(string) *spec.HTTPRouteGroup
+
+	// ListTCPTrafficSpecs lists SMI TCPRoute resources
+	ListTCPTrafficSpecs() []*spec.TCPRoute
+
+	// GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>
+	GetTCPRoute(string) *spec.TCPRoute
+
+	// ListTrafficTargets lists SMI TrafficTarget resources. An optional filter can be applied to filter the
+	// returned list
+	ListTrafficTargets() []*access.TrafficTarget
 }
