@@ -17,9 +17,11 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
+	fakeConfigClient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
+	"github.com/openservicemesh/osm/pkg/tests"
 
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -784,9 +786,9 @@ func TestIngressBackendValidator(t *testing.T) {
 			assert.NoError(err)
 
 			k8sClient := k8s.NewClient("osm-namespace", "osm-mesh-config", informerCollection, fakeClient, nil, broker)
-			policyClient := kube.NewClient(k8sClient)
-			pv := &policyValidator{
-				policyClient: policyClient,
+			computeClient := kube.NewClient(k8sClient)
+			pv := &validator{
+				computeClient: computeClient,
 			}
 
 			// Block until we start getting ingressbackend updates
@@ -1309,10 +1311,10 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 			assert.NoError(err)
 
 			k8sClient := k8s.NewClient("test-namespace", "test-mesh-config", informerCollection, fakeClient, nil, broker)
-			policyClient := kube.NewClient(k8sClient)
+			computeClient := kube.NewClient(k8sClient)
 
-			pv := &policyValidator{
-				policyClient: policyClient,
+			pv := &validator{
+				computeClient: computeClient,
 			}
 
 			if len(objects) > 0 {
@@ -1531,7 +1533,8 @@ func TestMeshRootCertificateValidator(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			resp, err := meshRootCertificateValidator(tc.input)
+			v := validator{}
+			resp, err := v.meshRootCertificateValidator(tc.input)
 			if tc.expErrStr == "" {
 				assert.NoError(err)
 				assert.Nil(resp)
@@ -1739,6 +1742,183 @@ func TestValidateMRCProvider(t *testing.T) {
 				assert.Error(err)
 				assert.Equal(tc.expErrStr, err.Error())
 			}
+		})
+	}
+}
+
+func TestCheckForExistingActiveMRC(t *testing.T) {
+	testCases := []struct {
+		name      string
+		mrc       *configv1alpha2.MeshRootCertificate
+		mrcList   []*configv1alpha2.MeshRootCertificate
+		expReturn bool
+	}{
+		{
+			name: "new active MRC, no existing active MRCs",
+			mrc: &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
+					Intent:      constants.MRCIntentActive,
+					Provider: configv1alpha2.ProviderSpec{
+						Tresor: &configv1alpha2.TresorProviderSpec{
+							CA: configv1alpha2.TresorCASpec{
+								SecretRef: v1.SecretReference{
+									Name:      "osm-ca-bundle",
+									Namespace: "osm-system",
+								},
+							},
+						},
+					},
+				},
+			},
+			mrcList: []*configv1alpha2.MeshRootCertificate{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "osm-mesh-root-certificate-2",
+						Namespace: "osm-system",
+					},
+					Spec: configv1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "cluster.local",
+						Intent:      constants.MRCIntentPassive,
+						Provider: configv1alpha2.ProviderSpec{
+							Tresor: &configv1alpha2.TresorProviderSpec{
+								CA: configv1alpha2.TresorCASpec{
+									SecretRef: v1.SecretReference{
+										Name:      "osm-ca-bundle",
+										Namespace: "osm-system",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expReturn: false,
+		},
+		{
+			name: "new active MRC, existing active MRCs",
+			mrc: &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
+					Intent:      constants.MRCIntentActive,
+					Provider: configv1alpha2.ProviderSpec{
+						Tresor: &configv1alpha2.TresorProviderSpec{
+							CA: configv1alpha2.TresorCASpec{
+								SecretRef: v1.SecretReference{
+									Name:      "osm-ca-bundle",
+									Namespace: "osm-system",
+								},
+							},
+						},
+					},
+				},
+			},
+			mrcList: []*configv1alpha2.MeshRootCertificate{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "osm-mesh-root-certificate-2",
+						Namespace: "osm-system",
+					},
+					Spec: configv1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "cluster.local",
+						Intent:      constants.MRCIntentActive,
+						Provider: configv1alpha2.ProviderSpec{
+							Tresor: &configv1alpha2.TresorProviderSpec{
+								CA: configv1alpha2.TresorCASpec{
+									SecretRef: v1.SecretReference{
+										Name:      "osm-ca-bundle",
+										Namespace: "osm-system",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expReturn: true,
+		},
+		{
+			name: "updated active MRC",
+			mrc: &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
+					Intent:      constants.MRCIntentActive,
+					Provider: configv1alpha2.ProviderSpec{
+						Tresor: &configv1alpha2.TresorProviderSpec{
+							CA: configv1alpha2.TresorCASpec{
+								SecretRef: v1.SecretReference{
+									Name:      "osm-ca-bundle",
+									Namespace: "osm-system",
+								},
+							},
+						},
+					},
+				},
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
+				},
+			},
+			mrcList: []*configv1alpha2.MeshRootCertificate{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "osm-mesh-root-certificate",
+						Namespace: "osm-system",
+					},
+					Spec: configv1alpha2.MeshRootCertificateSpec{
+						TrustDomain: "cluster.local",
+						Intent:      constants.MRCIntentActive,
+						Provider: configv1alpha2.ProviderSpec{
+							Tresor: &configv1alpha2.TresorProviderSpec{
+								CA: configv1alpha2.TresorCASpec{
+									SecretRef: v1.SecretReference{
+										Name:      "osm-ca-bundle",
+										Namespace: "osm-system",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expReturn: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+
+			mrcClient := fakeConfigClient.NewSimpleClientset()
+			stop := make(chan struct{})
+
+			ic, err := informers.NewInformerCollection(tests.MeshName, stop, informers.WithConfigClient(mrcClient, tests.OsmMeshConfigName, tests.OsmNamespace))
+			a.Nil(err)
+			for _, mrc := range tc.mrcList {
+				err = ic.Add(informers.InformerKeyMeshRootCertificate, mrc, t)
+				a.NoError(err)
+			}
+
+			broker := messaging.NewBroker(stop)
+			k8sClient := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, broker)
+			computeClient := kube.NewClient(k8sClient)
+
+			v := validator{computeClient: computeClient}
+
+			foundActive, err := v.checkForExistingActiveMRC(tc.mrc)
+			a.NoError(err)
+			a.Equal(tc.expReturn, foundActive)
 		})
 	}
 }
