@@ -271,7 +271,9 @@ location = /50x.html {
 				c.Command = []string{"gunicorn", "-b", "0.0.0.0:14001", "httpbin:app", "-k", "gevent"}
 				c.Ports = append(c.Ports, corev1.ContainerPort{ContainerPort: 14001})
 			}))
+
 			httpsPod := makePod("nginx-https", https)
+
 			tcpPod := makePod("nginx-tcp", tcp)
 			tcpPod.Spec.Containers = append(tcpPod.Spec.Containers, makeContainer("httpbin", "kennethreitz/httpbin", &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
@@ -284,10 +286,25 @@ location = /50x.html {
 				c.Ports = append(c.Ports, corev1.ContainerPort{ContainerPort: 14001})
 			}))
 
+			mixedPod := makePod("nginx-mixed", https)
+			mixedPod.Spec.Containers = append(mixedPod.Spec.Containers, makeContainer("httpbin", "kennethreitz/httpbin", &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path:   "/",
+						Port:   intstr.FromInt(14001),
+						Scheme: corev1.URISchemeHTTP,
+					},
+				},
+			}, func(c *corev1.Container) {
+				c.Command = []string{"gunicorn", "-b", "0.0.0.0:14001", "httpbin:app", "-k", "gevent"}
+				c.Ports = append(c.Ports, corev1.ContainerPort{ContainerPort: 14001})
+			}))
+
 			pods := []*corev1.Pod{
 				httpPod,
 				httpsPod,
 				tcpPod,
+				mixedPod,
 			}
 
 			_, err := Td.Client.CoreV1().Secrets(ns).Create(context.TODO(), tls, metav1.CreateOptions{})

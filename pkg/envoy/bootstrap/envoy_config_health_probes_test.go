@@ -65,10 +65,9 @@ var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the 
 		"getVirtualHostsMultiple": func() protoreflect.ProtoMessage {
 			return getVirtualHost(allRoutes)
 		},
-		"getProbeCluster":     func() protoreflect.ProtoMessage { return getProbeCluster("cluster-name", 12341234) },
-		"getLivenessCluster":  func() protoreflect.ProtoMessage { return buildLivenessCluster("my-container", liveness) },
-		"getReadinessCluster": func() protoreflect.ProtoMessage { return buildReadinessCluster("my-container", readiness) },
-		"getStartupCluster":   func() protoreflect.ProtoMessage { return buildStartupCluster("my-container", startup) },
+		"getLivenessCluster":  func() protoreflect.ProtoMessage { return buildProbeCluster("my-container", liveness) },
+		"getReadinessCluster": func() protoreflect.ProtoMessage { return buildProbeCluster("my-container", readiness) },
+		"getStartupCluster":   func() protoreflect.ProtoMessage { return buildProbeCluster("my-container", startup) },
 	}
 
 	listenerFunctionsToTest := map[string]func() (protoreflect.ProtoMessage, error){
@@ -110,7 +109,7 @@ func TestGetProbeCluster(t *testing.T) {
 		}
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
-				assert.Equal(t, test.expected, buildLivenessCluster(test.conainerName, test.probe))
+				assert.Equal(t, test.expected, buildProbeCluster(test.conainerName, test.probe))
 			})
 		}
 	})
@@ -123,7 +122,7 @@ func TestGetProbeCluster(t *testing.T) {
 		}
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
-				assert.Equal(t, test.expected, buildReadinessCluster(test.conainerName, test.probe))
+				assert.Equal(t, test.expected, buildProbeCluster(test.conainerName, test.probe))
 			})
 		}
 	})
@@ -136,7 +135,7 @@ func TestGetProbeCluster(t *testing.T) {
 		}
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
-				assert.Equal(t, test.expected, buildStartupCluster(test.conainerName, test.probe))
+				assert.Equal(t, test.expected, buildProbeCluster(test.conainerName, test.probe))
 			})
 		}
 	})
@@ -217,6 +216,16 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 					Address: "0.0.0.0",
 					PortSpecifier: &xds_core.SocketAddress_PortValue{
 						PortValue: 15901,
+					},
+				},
+			},
+		},
+		ListenerFilters: []*xds_listener.ListenerFilter{
+			{
+				Name: envoy.TLSInspectorFilterName,
+				ConfigType: &xds_listener.ListenerFilter_TypedConfig{
+					TypedConfig: &anypb.Any{
+						TypeUrl: envoy.TLSInspectorFilterTypeURL,
 					},
 				},
 			},
@@ -316,6 +325,16 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 				},
 			},
 		},
+		ListenerFilters: []*xds_listener.ListenerFilter{
+			{
+				Name: envoy.TLSInspectorFilterName,
+				ConfigType: &xds_listener.ListenerFilter_TypedConfig{
+					TypedConfig: &anypb.Any{
+						TypeUrl: envoy.TLSInspectorFilterTypeURL,
+					},
+				},
+			},
+		},
 		FilterChains: []*xds_listener.FilterChain{
 			{
 				Filters: []*xds_listener.Filter{
@@ -331,7 +350,7 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 	}
 
 	httpsProbeTCPProxy := &xds_tcp_proxy.TcpProxy{
-		StatPrefix: "health_probes",
+		StatPrefix: "health_probes_https",
 		AccessLog: []*xds_accesslog_filter.AccessLog{
 			tcpAccessLog,
 		},
@@ -356,8 +375,21 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 				},
 			},
 		},
+		ListenerFilters: []*xds_listener.ListenerFilter{
+			{
+				Name: envoy.TLSInspectorFilterName,
+				ConfigType: &xds_listener.ListenerFilter_TypedConfig{
+					TypedConfig: &anypb.Any{
+						TypeUrl: envoy.TLSInspectorFilterTypeURL,
+					},
+				},
+			},
+		},
 		FilterChains: []*xds_listener.FilterChain{
 			{
+				FilterChainMatch: &xds_listener.FilterChainMatch{
+					TransportProtocol: envoy.TransportProtocolTLS,
+				},
 				Filters: []*xds_listener.Filter{
 					{
 						Name: envoy.TCPProxyFilterName,
@@ -455,7 +487,6 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 				listenerName:      tt.fields.listenerName,
 				inboundPort:       tt.fields.inboundPort,
 				virtualHostRoutes: tt.fields.virtualHostRoutes,
-				isHTTP:            tt.fields.isHTTP,
 				httpsClusterName:  tt.fields.httpsClusterName,
 			}
 			marshalOptions := protojson.MarshalOptions{

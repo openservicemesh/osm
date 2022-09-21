@@ -351,55 +351,28 @@ func (b *Builder) getProbeResources() ([]*xds_listener.Listener, []*xds_cluster.
 	}
 
 	for containerName, probes := range b.OriginalHealthProbes {
-		// Is there a liveness probe in the Pod Spec?
-		if probes.Liveness != nil && !probes.Liveness.IsTCPSocket {
-			clusterName := fmt.Sprintf("%s_%s", containerName, livenessCluster)
-			if probes.Liveness.IsHTTP {
-				livenessListenerBuilder.isHTTP = true
-				livenessListenerBuilder.virtualHostRoutes = append(livenessListenerBuilder.virtualHostRoutes, probeListenerRoute{
-					pathPrefixMatch:   fmt.Sprintf("%s/%s", constants.LivenessProbePath, containerName),
-					clusterName:       clusterName,
-					pathPrefixRewrite: probes.Liveness.Path,
-				})
-			} else {
-				// NOTE: Only 1 HTTPS probe is supported per type (liveness, readiness, startup)
-				// This is due to the fact that we passthrough HTTPS and cannot do any kind of filtering on path
-				// Therefore, the last declared HTTPS probe will be the only one receiving traffic
-				livenessListenerBuilder.httpsClusterName = clusterName
-			}
-			clusters = append(clusters, buildLivenessCluster(clusterName, probes.Liveness))
+		// Liveness probe listener + cluster
+		livenessClusterName := fmt.Sprintf("%s_%s", containerName, livenessCluster)
+		livenessListenerBuilder.AddProbe(containerName, livenessClusterName, constants.LivenessProbePath, probes.Liveness, probes.Liveness.IsHTTP)
+		livenessCluster := buildProbeCluster(livenessClusterName, probes.Liveness)
+		if livenessCluster != nil {
+			clusters = append(clusters, livenessCluster)
 		}
 
-		// Is there a readiness probe in the Pod Spec?
-		if probes.Readiness != nil && !probes.Readiness.IsTCPSocket {
-			clusterName := fmt.Sprintf("%s_%s", containerName, readinessCluster)
-			if probes.Readiness.IsHTTP {
-				readinessListenerBuilder.isHTTP = true
-				readinessListenerBuilder.virtualHostRoutes = append(readinessListenerBuilder.virtualHostRoutes, probeListenerRoute{
-					pathPrefixMatch:   fmt.Sprintf("%s/%s", constants.ReadinessProbePath, containerName),
-					clusterName:       clusterName,
-					pathPrefixRewrite: probes.Readiness.Path,
-				})
-			} else {
-				readinessListenerBuilder.httpsClusterName = clusterName
-			}
-			clusters = append(clusters, buildReadinessCluster(clusterName, probes.Readiness))
+		// Readiness probe listener + cluster
+		readinessClusterName := fmt.Sprintf("%s_%s", containerName, readinessCluster)
+		readinessListenerBuilder.AddProbe(containerName, readinessClusterName, constants.ReadinessProbePath, probes.Readiness, probes.Readiness.IsHTTP)
+		readinessCluster := buildProbeCluster(readinessClusterName, probes.Readiness)
+		if readinessCluster != nil {
+			clusters = append(clusters, readinessCluster)
 		}
 
-		// Is there a startup probe in the Pod Spec?
-		if probes.Startup != nil && !probes.Startup.IsTCPSocket {
-			clusterName := fmt.Sprintf("%s_%s", containerName, startupCluster)
-			if probes.Startup.IsHTTP {
-				startupListenerBuilder.isHTTP = probes.Startup.IsHTTP
-				startupListenerBuilder.virtualHostRoutes = append(startupListenerBuilder.virtualHostRoutes, probeListenerRoute{
-					pathPrefixMatch:   fmt.Sprintf("%s/%s", constants.StartupProbePath, containerName),
-					clusterName:       clusterName,
-					pathPrefixRewrite: probes.Startup.Path,
-				})
-			} else {
-				startupListenerBuilder.httpsClusterName = clusterName
-			}
-			clusters = append(clusters, buildStartupCluster(clusterName, probes.Startup))
+		// Startup probe listener + cluster
+		startupClusterName := fmt.Sprintf("%s_%s", containerName, startupCluster)
+		startupListenerBuilder.AddProbe(containerName, startupClusterName, constants.StartupProbePath, probes.Startup, probes.Startup.IsHTTP)
+		startupCluster := buildProbeCluster(startupClusterName, probes.Startup)
+		if startupCluster != nil {
+			clusters = append(clusters, startupCluster)
 		}
 	}
 

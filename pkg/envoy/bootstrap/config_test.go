@@ -29,7 +29,7 @@ func TestBuild(t *testing.T) {
 			},
 			"my-container-2": {
 				Liveness:  &models.HealthProbe{Path: "/liveness", Port: 84, IsHTTP: true},
-				Readiness: &models.HealthProbe{Path: "/readiness", Port: 85, IsHTTP: true},
+				Readiness: &models.HealthProbe{Path: "/readiness", Port: 85}, // HTTPS (should overwrite my-containers probe)
 				Startup:   &models.HealthProbe{Path: "/startup", Port: 86, IsHTTP: true},
 			},
 		},
@@ -234,12 +234,38 @@ static_resources:
                   prefix_rewrite: /liveness
                   timeout: 1s
           stat_prefix: health_probes_http
+    listener_filters:
+    - name: tls_inspector
+      typed_config:
+        '@type': type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector
     name: liveness_listener
   - address:
       socket_address:
         address: 0.0.0.0
         port_value: 15902
     filter_chains:
+    - filter_chain_match:
+        transport_protocol: tls
+      filters:
+      - name: tcp_proxy
+        typed_config:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+          access_log:
+          - name: envoy.access_loggers.stream
+            typed_config:
+              '@type': type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+              log_format:
+                json_format:
+                  bytes_received: '%BYTES_RECEIVED%'
+                  bytes_sent: '%BYTES_SENT%'
+                  duration: '%DURATION%'
+                  requested_server_name: '%REQUESTED_SERVER_NAME%'
+                  response_flags: '%RESPONSE_FLAGS%'
+                  start_time: '%START_TIME%'
+                  upstream_cluster: '%UPSTREAM_CLUSTER%'
+                  upstream_host: '%UPSTREAM_HOST%'
+          cluster: my-container-2_readiness_cluster
+          stat_prefix: health_probes_https
     - filters:
       - name: envoy.filters.network.http_connection_manager
         typed_config:
@@ -286,13 +312,11 @@ static_resources:
                   cluster: my-container_readiness_cluster
                   prefix_rewrite: /readiness
                   timeout: 1s
-              - match:
-                  prefix: /osm-readiness-probe/my-container-2
-                route:
-                  cluster: my-container-2_readiness_cluster
-                  prefix_rewrite: /readiness
-                  timeout: 1s
           stat_prefix: health_probes_http
+    listener_filters:
+    - name: tls_inspector
+      typed_config:
+        '@type': type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector
     name: readiness_listener
   - address:
       socket_address:
@@ -352,6 +376,10 @@ static_resources:
                   prefix_rewrite: /startup
                   timeout: 1s
           stat_prefix: health_probes_http
+    listener_filters:
+    - name: tls_inspector
+      typed_config:
+        '@type': type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector
     name: startup_listener
 `
 	assert.Equal(expectedYAML, string(actualYAML))
