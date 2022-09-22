@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -128,7 +127,7 @@ var _ = OSMDescribe("Test Retry Policy",
 						defer GinkgoRecover()
 						result := Td.HTTPRequest(req)
 
-						stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "get", "stats", clientPod.Name, "--namespace", client)
+						stdout, stderr, err := Td.RunOsmCli("proxy", "get", "stats", clientPod.Name, "--namespace", client)
 						if err != nil {
 							Td.T.Logf("Could not get client stats: %v", stderr)
 						}
@@ -244,7 +243,7 @@ var _ = OSMDescribe("Test Retry Policy",
 						defer GinkgoRecover()
 						result := Td.HTTPRequest(req)
 
-						stdout, stderr, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), "proxy", "get", "stats", clientPod.Name, "--namespace", client)
+						stdout, stderr, err := Td.RunOsmCli("proxy", "get", "stats", clientPod.Name, "--namespace", client)
 						if err != nil {
 							Td.T.Logf("Could not get client stats: %v", stderr)
 						}
