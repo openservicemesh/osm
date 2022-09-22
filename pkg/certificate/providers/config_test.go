@@ -132,7 +132,7 @@ func TestGetCertificateManager(t *testing.T) {
 				getCA = oldCA
 			}()
 
-			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, k8sMock, 1*time.Hour, "cluster.local")
+			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, k8sMock, 1*time.Hour, "cluster.local", nil)
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)
@@ -690,7 +690,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 			assert.NoError(err)
 			assert.NotNil(ic)
 
-			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, k8sMock, ic, 1*time.Hour)
+			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, k8sMock, ic, 1*time.Hour, nil)
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)

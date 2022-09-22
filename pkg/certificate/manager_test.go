@@ -86,7 +86,7 @@ func TestRotor(t *testing.T) {
 
 	stop := make(chan struct{})
 	defer close(stop)
-	certManager, err := NewManager(context.Background(), &fakeMRCClient{}, getServiceCertValidityPeriod, getIngressGatewayCertValidityPeriod, 5*time.Second)
+	certManager, err := NewManager(context.Background(), &fakeMRCClient{}, getServiceCertValidityPeriod, getIngressGatewayCertValidityPeriod, 5*time.Second, nil)
 	require.NoError(err)
 
 	certA, err := certManager.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
@@ -331,7 +331,7 @@ func TestHandleMRCEvent(t *testing.T) {
 			mrcClient: &fakeMRCClient{},
 			mrcEvent: MRCEvent{
 				Type: MRCEventAdded,
-				MRC: &v1alpha2.MeshRootCertificate{
+				NewMRC: &v1alpha2.MeshRootCertificate{
 					ObjectMeta: v1.ObjectMeta{
 						Name: "my-mrc",
 					},
@@ -386,7 +386,7 @@ func TestHandleMRCEvent(t *testing.T) {
 			assert := tassert.New(t)
 			m := &Manager{}
 
-			err := m.handleMRCEvent(tt.mrcClient, tt.mrcEvent)
+			err := m.handleMRCEvent(context.Background(), tt.mrcClient, tt.mrcEvent)
 			if !tt.wantErr {
 				assert.NoError(err)
 			} else {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 )
 
@@ -16,6 +17,7 @@ import (
 type MRCComposer struct {
 	informerCollection *informers.InformerCollection
 	MRCProviderGenerator
+	compute.Interface
 }
 
 // List returns the MRCs stored in the informerCollection's store
@@ -48,18 +50,19 @@ func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, e
 			mrc := obj.(*v1alpha2.MeshRootCertificate)
 			log.Debug().Msgf("received MRC add event for MRC %s/%s", mrc.GetNamespace(), mrc.GetName())
 			eventChan <- certificate.MRCEvent{
-				Type: certificate.MRCEventAdded,
-				MRC:  mrc,
+				Type:   certificate.MRCEventAdded,
+				NewMRC: mrc,
 			}
 		},
-		// We don't really care about the previous version
-		// since the "state machine" of the MRC is well defined
-		UpdateFunc: func(_, newObj interface{}) {
-			mrc := newObj.(*v1alpha2.MeshRootCertificate)
-			log.Debug().Msgf("received MRC update event for MRC %s/%s", mrc.GetNamespace(), mrc.GetName())
+
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			oldMRC := oldObj.(*v1alpha2.MeshRootCertificate)
+			newMRC := newObj.(*v1alpha2.MeshRootCertificate)
+			log.Debug().Msgf("received MRC update event for MRC %s/%s", newMRC.GetNamespace(), newMRC.GetName())
 			eventChan <- certificate.MRCEvent{
-				Type: certificate.MRCEventUpdated,
-				MRC:  mrc,
+				Type:   certificate.MRCEventUpdated,
+				OldMRC: oldMRC,
+				NewMRC: newMRC,
 			}
 		},
 		// We don't care about deletes because the only deletes that should

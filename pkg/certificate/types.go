@@ -13,6 +13,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/compute"
 )
 
 const (
@@ -42,6 +43,7 @@ func (cn CommonName) String() string {
 }
 
 // certTypeInternal is the type of certificate. This is only used by OSM.
+// DEPRECATED. Please migrate to the exported CertificateType type
 type certType string
 
 const (
@@ -54,6 +56,17 @@ const (
 
 	// service is the CertType for certs issued for use by the data plane.
 	service certType = "service"
+)
+
+type CertificateType string
+
+const (
+	CertificateTypeValidatingWebhook CertificateType = "validatingWebhook"
+	CertificateTypeMutatingWebhook   CertificateType = "mutatingWebhook"
+	CertificateTypeXDSControlPlane   CertificateType = "xdsControlPlane"
+	CertificateTypeSidecar           CertificateType = "sidecar"
+	CertificateTypeBootstrap         CertificateType = "bootstrap"
+	CertificateTypeGateway           CertificateType = "gateway"
 )
 
 // Certificate represents an x509 certificate.
@@ -119,10 +132,13 @@ type Manager struct {
 	group singleflight.Group
 
 	pubsub *pubsub.PubSub
+
+	ownedCertTypes []CertificateType
 }
 
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
 type MRCClient interface {
+	compute.Interface
 	List() ([]*v1alpha2.MeshRootCertificate, error)
 	MRCEventBroker
 
@@ -136,8 +152,12 @@ type MRCEventType string
 // MRCEvent describes a change event on a given MRC
 type MRCEvent struct {
 	Type MRCEventType
+
+	// The previous last observed version of the MRC as of the time of this event
+	OldMRC *v1alpha2.MeshRootCertificate
+
 	// The last observed version of the MRC as of the time of this event
-	MRC *v1alpha2.MeshRootCertificate
+	NewMRC *v1alpha2.MeshRootCertificate
 }
 
 var (

@@ -19,11 +19,6 @@ func (ds DebugConfig) getCertHandler() http.Handler {
 		})
 
 		for idx, cert := range certs {
-			// TODO(5000): remove this check
-			if err := ds.certDebugger.CheckCacheMatch(cert); err != nil {
-				log.Warn().Msg(err.Error()) // don't log as a full error message
-			}
-
 			ca := cert.GetIssuingCA()
 			trustedCAs := cert.GetTrustedCAs()
 			chain := cert.GetCertificateChain()

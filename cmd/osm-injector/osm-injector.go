@@ -205,17 +205,21 @@ func main() {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
 	}
 	// Intitialize certificate manager/provider
+	ownedCertificateTypes := []certificate.CertificateType{
+		certificate.CertificateTypeBootstrap,
+		certificate.CertificateTypeMutatingWebhook,
+	}
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
 		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, kubeController, informerCollection, 5*time.Second)
+			certOpts, kubeController, informerCollection, 5*time.Second, ownedCertificateTypes)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s from MRC", certProviderKind)
 		}
 	} else {
 		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, kubeController, 5*time.Second, trustDomain)
+			certOpts, kubeController, 5*time.Second, trustDomain, ownedCertificateTypes)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s", certProviderKind)

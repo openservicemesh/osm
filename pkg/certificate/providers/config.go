@@ -45,7 +45,8 @@ var getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
 // NewCertificateManager returns a new certificate manager with a MRC compat client.
 // TODO(4713): Remove and use NewCertificateManagerFromMRC
 func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config,
-	providerNamespace string, option Options, kubeController k8s.Controller, checkInterval time.Duration, trustDomain string) (*certificate.Manager, error) {
+	providerNamespace string, option Options, kubeController k8s.Controller, checkInterval time.Duration, trustDomain string,
+	ownedCertTypes []certificate.CertificateType) (*certificate.Manager, error) {
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}
@@ -116,12 +117,14 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 		func() time.Duration { return utils.GetServiceCertValidityPeriod(kubeController.GetMeshConfig()) },
 		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(kubeController.GetMeshConfig()) },
 		checkInterval,
+		ownedCertTypes,
 	)
 }
 
 // NewCertificateManagerFromMRC returns a new certificate manager.
 func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config,
-	providerNamespace string, option Options, kubeController k8s.Controller, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
+	providerNamespace string, option Options, kubeController k8s.Controller, ic *informers.InformerCollection, checkInterval time.Duration,
+	ownedCertTypes []certificate.CertificateType) (*certificate.Manager, error) {
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}
@@ -146,6 +149,7 @@ func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Int
 		func() time.Duration { return utils.GetServiceCertValidityPeriod(kubeController.GetMeshConfig()) },
 		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(kubeController.GetMeshConfig()) },
 		checkInterval,
+		ownedCertTypes,
 	)
 }
 

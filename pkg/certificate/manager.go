@@ -3,14 +3,14 @@ package certificate
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/rand"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/cskr/pubsub"
+	"k8s.io/client-go/util/retry"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -21,11 +21,12 @@ var (
 )
 
 // NewManager creates a new CertificateManager with the passed MRCClient and options
-func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, checkInterval time.Duration) (*Manager, error) {
+func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, checkInterval time.Duration, ownedCertTypes []CertificateType) (*Manager, error) {
 	m := &Manager{
 		serviceCertValidityDuration: getServiceCertValidityPeriod,
 		ingressCertValidityDuration: getIngressCertValidityDuration,
 		pubsub:                      pubsub.New(1),
+		ownedCertTypes:              ownedCertTypes,
 	}
 
 	err := m.start(ctx, mrcClient)
@@ -83,7 +84,7 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 					return
 				}
 
-				err = m.handleMRCEvent(mrcClient, event)
+				err = m.handleMRCEvent(ctx, mrcClient, event)
 				if err != nil {
 					log.Error().Err(err).Msgf("error encountered processing MRCEvent")
 					continue
@@ -116,10 +117,10 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 	return nil
 }
 
-func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
+func (m *Manager) handleMRCEvent(ctx context.Context, mrcClient MRCClient, event MRCEvent) error {
 	switch event.Type {
 	case MRCEventAdded:
-		mrc := event.MRC
+		mrc := event.NewMRC
 		if mrc.Status.State == constants.MRCStateError {
 			log.Debug().Msgf("skipping MRC with error state %s", mrc.GetName())
 			return nil
@@ -152,7 +153,63 @@ func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
 			m.mu.Unlock()
 		}
 	case MRCEventUpdated:
-		// TODO
+		err := m.handleMRCUpdate(ctx, mrcClient, event.OldMRC, event.NewMRC)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *Manager) handleMRCUpdate(ctx context.Context, mrcClient MRCClient, oldMRC, newMRC *v1alpha2.MeshRootCertificate) error {
+	validatingRolloutCondition := getMRCCondition(newMRC, constants.MRCConditionTypeValidatingRollout)
+
+	switch {
+	// TODO: Export these to constants
+	// TODO: This branch logic should also be on MRCAdded to handle the case of a control plane restart
+	case validatingRolloutCondition.Status == "False" && validatingRolloutCondition.Reason == "Pending":
+		// Set the NewMRC's CA to the validating issuer
+		client, ca, err := mrcClient.GetCertIssuerForMRC(newMRC)
+		if err != nil {
+			return err
+		}
+		c := &issuer{Issuer: client, ID: newMRC.Name, CertificateAuthority: ca, TrustDomain: newMRC.Spec.TrustDomain}
+		m.mu.Lock()
+		m.validatingIssuer = c
+		m.mu.Unlock()
+
+		// don't block the update goroutine
+		go func(ctx context.Context) {
+			// TODO: Set to real value from MRC once API changes are merged
+			t := time.NewTimer(30 * time.Minute)
+			select {
+			case <-ctx.Done():
+				t.Stop()
+			case <-t.C:
+				for _, certType := range m.ownedCertTypes {
+					retry.RetryOnConflict(retry.DefaultRetry, func() error {
+						mrc := mrcClient.GetMeshRootCertificate(newMRC.Name)
+						switch certType {
+						case CertificateTypeSidecar:
+							// no need to update
+							if mrc.Status.ComponentStatuses.Sidecar == "Validating" {
+								return nil
+							}
+							mrc.Status.ComponentStatuses.Sidecar = "Validating" // TODO: Change to constant
+
+							_, err := mrcClient.UpdateMeshRootCertificateStatus(mrc)
+							if err != nil {
+								log.Error().Err(err).Msgf("Error updating MRC status")
+								return err
+							}
+						}
+
+						return nil
+					})
+				}
+			}
+		}(ctx)
 	}
 
 	return nil
@@ -218,10 +275,6 @@ func (m *Manager) checkAndRotate() {
 	})
 
 	for key, cert := range certs {
-		// TODO(5000): remove this check
-		if err := m.CheckCacheMatch(cert); err != nil {
-			log.Warn().Msg(err.Error()) // don't log as a full error message
-		}
 		opts := []IssueOption{}
 		opts = append(opts, withCommonNamePrefix(key))
 		opts = append(opts, withCertType(cert.certType))
@@ -362,27 +415,4 @@ func (m *Manager) SubscribeRotations(key string) (chan interface{}, func()) {
 		for range ch {
 		}
 	}
-}
-
-// CheckCacheMatch checks that the cert is the same cert present in the cache. it is currently only used for debugging
-// https://github.com/openservicemesh/osm/issues/5000
-// TODO(5000): delete this function once we fix the issue
-func (m *Manager) CheckCacheMatch(cert *Certificate) error {
-	if cert == nil {
-		return nil
-	}
-
-	// Currently, these don't get rotated, so we assume the cache is correct.
-	if cert.certType != service {
-		return nil
-	}
-	key := strings.TrimSuffix(cert.CommonName.String(), "."+m.GetTrustDomain())
-	cachedCert := m.getFromCache(key)
-	if cachedCert == nil {
-		return fmt.Errorf("no certificate found in cache for %s", cert.CommonName)
-	}
-	if cert != cachedCert {
-		return fmt.Errorf("certificate %s does not match cached certificate %s, this may be due to a race around rotation, or a caching issue", cert, cachedCert)
-	}
-	return nil
 }

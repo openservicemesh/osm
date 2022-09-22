@@ -11,6 +11,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -18,7 +19,9 @@ var (
 	validity = time.Hour
 )
 
-type fakeMRCClient struct{}
+type fakeMRCClient struct {
+	compute.Interface
+}
 
 func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error) {
 	return &fakeIssuer{}, pem.RootCertificate("rootCA"), nil
@@ -39,7 +42,7 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 	go func() {
 		ch <- MRCEvent{
 			Type: MRCEventAdded,
-			MRC: &v1alpha2.MeshRootCertificate{
+			NewMRC: &v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "osm-mesh-root-certificate",
 					Namespace: "osm-system",
@@ -130,6 +133,7 @@ func FakeCertManager() (*Manager, error) {
 		getCertValidityDuration,
 		getCertValidityDuration,
 		1*time.Hour,
+		nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error creating fakeCertManager, err: %w", err)

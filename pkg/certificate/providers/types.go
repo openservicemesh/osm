@@ -8,6 +8,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -77,6 +78,7 @@ type CertManagerOptions struct {
 type MRCCompatClient struct {
 	MRCProviderGenerator
 	mrc *v1alpha2.MeshRootCertificate
+	compute.Interface
 }
 
 // MRCProviderGenerator knows how to convert a given MRC to its appropriate provider.
