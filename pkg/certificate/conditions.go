@@ -23,37 +23,35 @@ const (
 	unknownStatus v1alpha2.MeshRootCertificateConditionStatus = "Unknown"
 )
 
-type mrcConditionReason string
-
 const (
-	pendingReason mrcConditionReason = "Pending"
+	pendingReason = "Pending"
 
 	// Accepted type
-	certificateAcceptedReason mrcConditionReason = "CertificateAccepted"
+	certificateAcceptedReason = "CertificateAccepted"
 
 	// ValidatingRollout type
-	passiveStateValidatingReason      mrcConditionReason = "PassiveState"
-	passivelyInUseForValidationReason mrcConditionReason = "CertificatePassivelyInUseForValidation"
+	passiveStateValidatingReason      = "PassiveState"
+	passivelyInUseForValidationReason = "CertificatePassivelyInUseForValidation"
 
 	// IssuingRollout type
-	passiveStateIssuingReason      mrcConditionReason = "PassiveState"
-	passivelyInUseForIssuingReason mrcConditionReason = "CertificatePassivelyInUseForIssuing"
+	passiveStateIssuingReason      = "PassiveState"
+	passivelyInUseForIssuingReason = "CertificatePassivelyInUseForIssuing"
 
 	// IssuingRollback type
-	isNotReadyIssuingReason      mrcConditionReason = "IsNotReady"
-	passiveStateCertIssuedReason mrcConditionReason = "PassiveStateAndCertIsBeingIssued"
-	noLongerIssuingReason        mrcConditionReason = "NoLongerIssuing"
+	isNotReadyIssuingReason      = "IsNotReady"
+	passiveStateCertIssuedReason = "PassiveStateAndCertIsBeingIssued"
+	noLongerIssuingReason        = "NoLongerIssuing"
 
 	// ValidatingRollback type
-	isNotReadyValidatingReason    mrcConditionReason = "IsNotReady"
-	passiveStateCertTrustedReason mrcConditionReason = "PassiveStateAndCertIsTrusted"
-	noLongerValidatingReason      mrcConditionReason = "NoLongerValidating"
+	isNotReadyValidatingReason    = "IsNotReady"
+	passiveStateCertTrustedReason = "PassiveStateAndCertIsTrusted"
+	noLongerValidatingReason      = "NoLongerValidating"
 
 	// Ready type
-	rotationCompleteReason mrcConditionReason = "RotationComplete"
+	rotationCompleteReason = "RotationComplete"
 )
 
-func setMRCCondition(mrc *v1alpha2.MeshRootCertificate, conditionType v1alpha2.MeshRootCertificateConditionType, conditionStatus v1alpha2.MeshRootCertificateConditionStatus, conditionReason mrcConditionReason, message string) {
+func setMRCCondition(mrc *v1alpha2.MeshRootCertificate, conditionType v1alpha2.MeshRootCertificateConditionType, conditionStatus v1alpha2.MeshRootCertificateConditionStatus, conditionReason string, message string) {
 	newCondition := v1alpha2.MeshRootCertificateCondition{
 		Type:    conditionType,
 		Status:  conditionStatus,

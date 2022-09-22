@@ -16,9 +16,9 @@ func componentsAreIssuing(mrc *v1alpha2.MeshRootCertificate) bool {
 
 // componentsHaveError returns true if any certificate component statuses are `error`
 func componentsHaveError(mrc *v1alpha2.MeshRootCertificate) bool {
-	return mrc.Status.ComponentStatuses.Bootstrap == constants.MRCComponentStatusIssuing &&
-		mrc.Status.ComponentStatuses.Gateway == constants.MRCComponentStatusIssuing &&
-		mrc.Status.ComponentStatuses.Sidecar == constants.MRCComponentStatusIssuing &&
-		mrc.Status.ComponentStatuses.Webhooks == constants.MRCComponentStatusIssuing &&
-		mrc.Status.ComponentStatuses.XDSControlPlane == constants.MRCComponentStatusIssuing
+	return mrc.Status.ComponentStatuses.Bootstrap == constants.MRCComponentStatusError &&
+		mrc.Status.ComponentStatuses.Gateway == constants.MRCComponentStatusError &&
+		mrc.Status.ComponentStatuses.Sidecar == constants.MRCComponentStatusError &&
+		mrc.Status.ComponentStatuses.Webhooks == constants.MRCComponentStatusError &&
+		mrc.Status.ComponentStatuses.XDSControlPlane == constants.MRCComponentStatusError
 }

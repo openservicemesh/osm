@@ -168,6 +168,7 @@ func (m *Manager) handleMRCEvent(ctx context.Context, mrcClient MRCClient, event
 			}
 
 			// define reconciler
+			// TODO(jaellio): Maybe it would make more sense for this to be the MRCController
 			mrcReconciler := MRCReconciler{
 				mrcName:      newMRC.Name,
 				updateStatus: nil,
@@ -220,8 +221,8 @@ func handleActiveToPassiveMRCStatusChange(mrcClient MRCClient, event MRCEvent) e
 		}
 
 		// set new conditions
-		setMRCCondition(mrc, newIssuingRollbackCond.Type, newIssuingRollbackCond.Status, mrcConditionReason(newIssuingRollbackCond.Reason), "")
-		setMRCCondition(mrc, newValidatingRollbackCond.Type, newValidatingRollbackCond.Status, mrcConditionReason(newIssuingRollbackCond.Reason), "")
+		setMRCCondition(mrc, newIssuingRollbackCond.Type, newIssuingRollbackCond.Status, newIssuingRollbackCond.Reason, "")
+		setMRCCondition(mrc, newValidatingRollbackCond.Type, newValidatingRollbackCond.Status, newIssuingRollbackCond.Reason, "")
 
 		_, err := mrcClient.UpdateMeshRootCertificateStatus(mrc)
 		return err
