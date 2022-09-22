@@ -9,7 +9,6 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-type transition func(context.Context, string, *v1alpha2.MeshRootCertificate, MRCClient) error
 type deferredCertificateStatusUpdate struct {
 	certificateTypes         []CertificateType
 	wait                     time.Duration
@@ -108,14 +107,14 @@ func newDeferredCertificateStatusUpdate(wait time.Duration, certificateTypes []C
 	return d
 }
 
-func (d *deferredCertificateStatusUpdate) genUpdateFunc(setFunc func(mrc *v1alpha2.MeshRootCertificate, status v1alpha2.MeshRootCertificateComponentStatus) bool) func() error {
+func (d *deferredCertificateStatusUpdate) genUpdateFunc(set setFunc) func() error {
 	return func() error {
 		mrc := d.mrcClient.GetMeshRootCertificate(d.targetMRCName)
 		if mrc == nil {
 			return fmt.Errorf("no MRC found with name %s in the osm control plane namespace", d.targetMRCName)
 		}
 
-		if !setFunc(mrc, d.targetCertificateStatus) {
+		if !set(mrc, d.targetCertificateStatus) {
 			return nil
 		}
 
