@@ -53,8 +53,8 @@ func BenchmarkDoValidation(b *testing.B) {
 	}
 	k8sClient := k8s.NewClient("osm-ns", tests.OsmMeshConfigName, informerCollection, policyClient, configClient, msgBroker)
 	compute := kube.NewClient(k8sClient)
-	kv := &policyValidator{
-		policyClient: compute,
+	kv := &validator{
+		computeClient: compute,
 	}
 
 	w := httptest.NewRecorder()

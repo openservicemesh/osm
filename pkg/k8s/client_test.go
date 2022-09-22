@@ -1161,9 +1161,8 @@ func TestListMeshRootCertificates(t *testing.T) {
 
 	mrcClient := fakeConfigClient.NewSimpleClientset()
 	stop := make(chan struct{})
-	osmMeshRootCertificateName := "osm-mesh-root-certificate"
 
-	ic, err := informers.NewInformerCollection(tests.MeshName, stop, informers.WithConfigClient(mrcClient, osmMeshRootCertificateName, tests.OsmNamespace))
+	ic, err := informers.NewInformerCollection(tests.MeshName, stop, informers.WithConfigClient(mrcClient, tests.OsmMeshConfigName, tests.OsmNamespace))
 	a.Nil(err)
 
 	c := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil)
