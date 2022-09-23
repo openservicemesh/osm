@@ -69,13 +69,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 			},
 			Status: v1alpha2.MeshRootCertificateStatus{
 				State: constants.MRCStateActive,
-				ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-					Webhooks:        constants.MRCComponentStatusUnknown,
-					XDSControlPlane: constants.MRCComponentStatusUnknown,
-					Sidecar:         constants.MRCComponentStatusUnknown,
-					Bootstrap:       constants.MRCComponentStatusUnknown,
-					Gateway:         constants.MRCComponentStatusUnknown,
-				},
+				// Statuses unset will be marked unknown
 				Conditions: []v1alpha2.MeshRootCertificateCondition{
 					{
 						Type:   constants.MRCConditionTypeReady,

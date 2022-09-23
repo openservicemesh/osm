@@ -192,13 +192,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
-					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-						Webhooks:        constants.MRCComponentStatusUnknown,
-						XDSControlPlane: constants.MRCComponentStatusUnknown,
-						Sidecar:         constants.MRCComponentStatusUnknown,
-						Bootstrap:       constants.MRCComponentStatusUnknown,
-						Gateway:         constants.MRCComponentStatusUnknown,
-					},
+					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
 							Type:   constants.MRCConditionTypeReady,
@@ -253,13 +247,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
-					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-						Webhooks:        constants.MRCComponentStatusUnknown,
-						XDSControlPlane: constants.MRCComponentStatusUnknown,
-						Sidecar:         constants.MRCComponentStatusUnknown,
-						Bootstrap:       constants.MRCComponentStatusUnknown,
-						Gateway:         constants.MRCComponentStatusUnknown,
-					},
+					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
 							Type:   constants.MRCConditionTypeReady,
@@ -311,13 +299,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
-					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-						Webhooks:        constants.MRCComponentStatusUnknown,
-						XDSControlPlane: constants.MRCComponentStatusUnknown,
-						Sidecar:         constants.MRCComponentStatusUnknown,
-						Bootstrap:       constants.MRCComponentStatusUnknown,
-						Gateway:         constants.MRCComponentStatusUnknown,
-					},
+					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
 							Type:   constants.MRCConditionTypeReady,
@@ -369,13 +351,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
-					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-						Webhooks:        constants.MRCComponentStatusUnknown,
-						XDSControlPlane: constants.MRCComponentStatusUnknown,
-						Sidecar:         constants.MRCComponentStatusUnknown,
-						Bootstrap:       constants.MRCComponentStatusUnknown,
-						Gateway:         constants.MRCComponentStatusUnknown,
-					},
+					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
 							Type:   constants.MRCConditionTypeReady,
@@ -432,13 +408,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
-					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-						Webhooks:        constants.MRCComponentStatusUnknown,
-						XDSControlPlane: constants.MRCComponentStatusUnknown,
-						Sidecar:         constants.MRCComponentStatusUnknown,
-						Bootstrap:       constants.MRCComponentStatusUnknown,
-						Gateway:         constants.MRCComponentStatusUnknown,
-					},
+					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
 							Type:   constants.MRCConditionTypeReady,
@@ -512,13 +482,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
-					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-						Webhooks:        constants.MRCComponentStatusUnknown,
-						XDSControlPlane: constants.MRCComponentStatusUnknown,
-						Sidecar:         constants.MRCComponentStatusUnknown,
-						Bootstrap:       constants.MRCComponentStatusUnknown,
-						Gateway:         constants.MRCComponentStatusUnknown,
-					},
+					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
 							Type:   constants.MRCConditionTypeReady,
@@ -576,13 +540,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
-					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-						Webhooks:        constants.MRCComponentStatusUnknown,
-						XDSControlPlane: constants.MRCComponentStatusUnknown,
-						Sidecar:         constants.MRCComponentStatusUnknown,
-						Bootstrap:       constants.MRCComponentStatusUnknown,
-						Gateway:         constants.MRCComponentStatusUnknown,
-					},
+					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
 							Type:   constants.MRCConditionTypeReady,
@@ -635,13 +593,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
-					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-						Webhooks:        constants.MRCComponentStatusUnknown,
-						XDSControlPlane: constants.MRCComponentStatusUnknown,
-						Sidecar:         constants.MRCComponentStatusUnknown,
-						Bootstrap:       constants.MRCComponentStatusUnknown,
-						Gateway:         constants.MRCComponentStatusUnknown,
-					},
+					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
 							Type:   constants.MRCConditionTypeReady,

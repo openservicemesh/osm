@@ -123,8 +123,24 @@ type TresorCASpec struct {
 type MeshRootCertificateIntent string
 
 // MeshRootCertificateComponentStatus specifies the status of the certificate component,
-// can be (`True`, `False`, `Unknown`).
+// can be (`Issuing`, `Validating`, `Unknown`).
 type MeshRootCertificateComponentStatus string
+
+const (
+	// Issuing means that the root cert described by this MRC is now issuing certs for this component of OSM.
+	Issuing MeshRootCertificateComponentStatus = "issuing"
+
+	// Validating means that the root cert's cert chain, described by this MRC is now part of the CABundle used to
+	// validate requests for this component..
+	Validating MeshRootCertificateComponentStatus = "validating"
+
+	// Unused means that the root cert described by this MRC is unused.
+	Unused MeshRootCertificateComponentStatus = "unused"
+
+	// UnknownComponentStatus means that the use of the root cert described by this MRC is in an unknown state for this
+	// component.
+	UnknownComponentStatus MeshRootCertificateComponentStatus = "unknown"
+)
 
 // MeshRootCertificateConditionStatus specifies the status of the MeshRootCertificate condition,
 // one of (`True`, `False`, `Unknown`).
@@ -136,11 +152,12 @@ type MeshRootCertificateConditionType string
 
 // MeshRootCertificateComponentStatuses is the set of statuses for each certificate component in the cluster.
 type MeshRootCertificateComponentStatuses struct {
-	Webhooks        MeshRootCertificateComponentStatus `json:"webhooks"`
-	XDSControlPlane MeshRootCertificateComponentStatus `json:"xdsControlPlane"`
-	Sidecar         MeshRootCertificateComponentStatus `json:"sidecar"`
-	Bootstrap       MeshRootCertificateComponentStatus `json:"bootstrap"`
-	Gateway         MeshRootCertificateComponentStatus `json:"gateway"`
+	ValidatingWebhook MeshRootCertificateComponentStatus `json:"validatingWebhook"`
+	MutatingWebhook   MeshRootCertificateComponentStatus `json:"mutatingWebhook"`
+	XDSControlPlane   MeshRootCertificateComponentStatus `json:"xdsControlPlane"`
+	Sidecar           MeshRootCertificateComponentStatus `json:"sidecar"`
+	Bootstrap         MeshRootCertificateComponentStatus `json:"bootstrap"`
+	Gateway           MeshRootCertificateComponentStatus `json:"gateway"`
 }
 
 // MeshRootCertificateCondition defines the condition of the MeshRootCertificate resource.
@@ -155,7 +172,7 @@ type MeshRootCertificateCondition struct {
 	// LastTransitionTime is the timestamp corresponding to the last status
 	// change of this condition.
 	// +optional
-	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 
 	// Reason is a brief machine readable explanation for the condition's last
 	// transition (should be in camelCase).
@@ -174,7 +191,13 @@ type MeshRootCertificateStatus struct {
 	// All states are specified in constants.go
 	State string `json:"state"`
 
+	// If present, this MRC can transition to the next state in the state machine after this timestamp.
+	TransitionAfter *metav1.Time `json:"transitionAfter,omitempty"`
+
 	// Set of statuses for each certificate component in the cluster (e.g. webhooks, bootstrap, etc.)
+	// NOTE: There is a caveat that since these components belong to horizontally scalable pods, it is possible that not
+	// all of these components will be ready. That is, one controller might mark the ADS server as ready, while all other
+	// controllers have yet to rotate their controller cert.
 	ComponentStatuses MeshRootCertificateComponentStatuses `json:"componentStatuses"`
 
 	// List of status conditions to indicate the status of a MeshRootCertificate.

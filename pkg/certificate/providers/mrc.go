@@ -70,3 +70,9 @@ func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, e
 
 	return eventChan, nil
 }
+
+// UpdateMeshRootCertificate updates the given mesh root certificate.
+func (m *MRCComposer) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) error {
+	// TODO(5046): implement this.
+	return nil
+}

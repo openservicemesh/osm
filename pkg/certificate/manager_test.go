@@ -320,15 +320,13 @@ func TestIssueCertificate(t *testing.T) {
 func TestHandleMRCEvent(t *testing.T) {
 	testCases := []struct {
 		name                 string
-		mrcClient            MRCClient
 		mrcEvent             MRCEvent
 		wantErr              bool
 		wantSigningIssuer    issuer
 		wantValidatingIssuer issuer
 	}{
 		{
-			name:      "success",
-			mrcClient: &fakeMRCClient{},
+			name: "success",
 			mrcEvent: MRCEvent{
 				Type: MRCEventAdded,
 				MRC: &v1alpha2.MeshRootCertificate{
@@ -340,13 +338,7 @@ func TestHandleMRCEvent(t *testing.T) {
 					},
 					Status: v1alpha2.MeshRootCertificateStatus{
 						State: constants.MRCStateActive,
-						ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-							Webhooks:        constants.MRCComponentStatusUnknown,
-							XDSControlPlane: constants.MRCComponentStatusUnknown,
-							Sidecar:         constants.MRCComponentStatusUnknown,
-							Bootstrap:       constants.MRCComponentStatusUnknown,
-							Gateway:         constants.MRCComponentStatusUnknown,
-						},
+						// unspecified component status will be unknown.
 						Conditions: []v1alpha2.MeshRootCertificateCondition{
 							{
 								Type:   constants.MRCConditionTypeReady,
@@ -384,9 +376,11 @@ func TestHandleMRCEvent(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			m := &Manager{}
+			m := &Manager{
+				mrcClient: &fakeMRCClient{},
+			}
 
-			err := m.handleMRCEvent(tt.mrcClient, tt.mrcEvent)
+			err := m.handleMRCEvent(tt.mrcEvent)
 			if !tt.wantErr {
 				assert.NoError(err)
 			} else {

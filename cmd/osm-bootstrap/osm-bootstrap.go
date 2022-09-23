@@ -434,13 +434,6 @@ func (b *bootstrap) createMeshRootCertificate() error {
 
 	createdMRC.Status = configv1alpha2.MeshRootCertificateStatus{
 		State: constants.MRCStatePending,
-		ComponentStatuses: configv1alpha2.MeshRootCertificateComponentStatuses{
-			Webhooks:        constants.MRCComponentStatusUnknown,
-			XDSControlPlane: constants.MRCComponentStatusUnknown,
-			Sidecar:         constants.MRCComponentStatusUnknown,
-			Bootstrap:       constants.MRCComponentStatusUnknown,
-			Gateway:         constants.MRCComponentStatusUnknown,
-		},
 		Conditions: []configv1alpha2.MeshRootCertificateCondition{
 			{
 				Type:   constants.MRCConditionTypeReady,
