@@ -72,6 +72,8 @@ const (
 	MeshConfig InformerKey = "MeshConfig"
 	// MeshRootCertificate lookup identifier
 	MeshRootCertificate InformerKey = "MeshRootCertificate"
+	// ExtensionService lookup identifier
+	ExtensionService InformerKey = "ExtensionService"
 	// Egress lookup identifier
 	Egress InformerKey = "Egress"
 	// IngressBackend lookup identifier
@@ -80,6 +82,8 @@ const (
 	Retry InformerKey = "Retry"
 	// UpstreamTrafficSetting lookup identifier
 	UpstreamTrafficSetting InformerKey = "UpstreamTrafficSetting"
+	// Telemetry lookup identifier
+	Telemetry InformerKey = "Telemetry"
 	// TrafficSplit lookup identifier
 	TrafficSplit InformerKey = "TrafficSplit"
 	// HTTPRouteGroup lookup identifier
@@ -193,4 +197,9 @@ type PassthroughInterface interface {
 	// ListTrafficTargets lists SMI TrafficTarget resources. An optional filter can be applied to filter the
 	// returned list
 	ListTrafficTargets() []*access.TrafficTarget
+
+	// GetTelemetryPolicy returns the Telemetry policy for the given proxy instance.
+	// It returns the most specific match if multiple matching policies exist, in the following
+	// order of preference: 1. selector match, 2. namespace match, 3. global match
+	GetTelemetryPolicy(*models.Proxy) *policyv1alpha1.Telemetry
 }

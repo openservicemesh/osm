@@ -105,9 +105,11 @@ func WithConfigClient(configClient configClientset.Interface, meshConfigName, os
 		})
 		meshConfiginformerFactory := configInformers.NewSharedInformerFactoryWithOptions(configClient, DefaultKubeEventResyncInterval, configInformers.WithNamespace(osmNamespace), listOption)
 		mrcInformerFactory := configInformers.NewSharedInformerFactoryWithOptions(configClient, DefaultKubeEventResyncInterval, configInformers.WithNamespace(osmNamespace))
+		extensionSvcInformerFactory := configInformers.NewSharedInformerFactoryWithOptions(configClient, DefaultKubeEventResyncInterval)
 
 		ic.informers[InformerKeyMeshConfig] = meshConfiginformerFactory.Config().V1alpha2().MeshConfigs().Informer()
 		ic.informers[InformerKeyMeshRootCertificate] = mrcInformerFactory.Config().V1alpha2().MeshRootCertificates().Informer()
+		ic.informers[InformerKeyExtensionService] = extensionSvcInformerFactory.Config().V1alpha2().ExtensionServices().Informer()
 	}
 }
 
@@ -120,6 +122,7 @@ func WithPolicyClient(policyClient policyClientset.Interface) InformerCollection
 		ic.informers[InformerKeyIngressBackend] = informerFactory.Policy().V1alpha1().IngressBackends().Informer()
 		ic.informers[InformerKeyUpstreamTrafficSetting] = informerFactory.Policy().V1alpha1().UpstreamTrafficSettings().Informer()
 		ic.informers[InformerKeyRetry] = informerFactory.Policy().V1alpha1().Retries().Informer()
+		ic.informers[InformerKeyTelemetry] = informerFactory.Policy().V1alpha1().Telemetries().Informer()
 	}
 }
 

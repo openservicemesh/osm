@@ -37,6 +37,8 @@ const (
 	InformerKeyMeshConfig InformerKey = "MeshConfig"
 	// InformerKeyMeshRootCertificate is the InformerKey for a MeshRootCertificate informer
 	InformerKeyMeshRootCertificate InformerKey = "MeshRootCertificate"
+	// InformerKeyExtensionService is the InformerKey for an ExtensionService informer
+	InformerKeyExtensionService InformerKey = "ExtensionService"
 
 	// InformerKeyEgress is the InformerKey for a Egress informer
 	InformerKeyEgress InformerKey = "Egress"
@@ -46,6 +48,8 @@ const (
 	InformerKeyUpstreamTrafficSetting InformerKey = "UpstreamTrafficSetting"
 	// InformerKeyRetry is the InformerKey for a Retry informer
 	InformerKeyRetry InformerKey = "Retry"
+	// InformerKeyTelemetry is the InformerKey for a Telemetry informer
+	InformerKeyTelemetry InformerKey = "Telemetry"
 )
 
 const (

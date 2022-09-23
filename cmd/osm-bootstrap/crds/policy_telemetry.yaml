@@ -1,0 +1,101 @@
+# Custom Resource Definition (CRD) for OSM's Telemetry API.
+#
+# Copyright Open Service Mesh authors.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: telemetries.policy.openservicemesh.io
+  labels:
+    app.kubernetes.io/name : "openservicemesh.io"
+spec:
+  group: policy.openservicemesh.io
+  scope: Namespaced
+  names:
+    kind: Telemetry
+    listKind: TelemetryList
+    shortNames:
+      - telemetry
+    singular: telemetry
+    plural: telemetries
+  conversion:
+    strategy: None
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+      - description: Current status of the Telemetry policy.
+        jsonPath: .status.currentStatus
+        name: Status
+        type: string
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                selector:
+                  description: selector (optional) defines the pod label selector for pods the Telemetry
+                    configuration is applicable to. It selects pods with matching label keys
+                    and values. If not specified, the configuration applies to all pods
+                    in the Telemetry resource's namespace.
+                  type: object
+                  additionalProperties: true
+                accessLog:
+                  description: accessLog (optional) defines the Envoy access log configuration.
+                  type: object
+                  properties:
+                    format:
+                      description: format (optional) defines the Envoy access log format.
+                        The format can either be unstructured or structured (e.g. JSON).
+                        Refer to https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#format-strings
+                        regarding how a format string can be specified.
+                      type: string
+                      minLength: 1
+                    openTelemetry:
+                      description: openTelemetry (optional) defines the OpenTelemetry configuration used to export the
+                        Envoy access logs to an OpenTelemetry collector.
+                      type: object
+                      required:
+                        - extensionService
+                      properties:
+                        extensionService:
+                          description: extensionService defines the reference to ExtensionService resource
+                            corresponding to the OpenTelemetry collector the access log should be exported to.
+                          type: object
+                          required:
+                            - namespace
+                            - name
+                          properties:
+                            namespace:
+                              description: Namespace of the ExtensionService resource.
+                              type: string
+                              minLength: 1
+                            name:
+                              description: Name of the ExtensionService resource.
+                              type: string
+                              minLength: 1
+                        attributes:
+                          description: attributes (optional) defines key-value pairs as additional metadata corresponding access log record.
+                          type: object
+                          additionalProperties: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      subresources:
+        # status enables the status subresource
+        status: {}

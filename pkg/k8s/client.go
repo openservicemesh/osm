@@ -3,26 +3,26 @@ package k8s
 import (
 	"context"
 
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	configv1alpha2Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
-	"github.com/openservicemesh/osm/pkg/models"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 // NewClient returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
@@ -47,10 +47,12 @@ func NewClient(osmNamespace, meshConfigName string, informerCollection *informer
 		Endpoints:              c.initEndpointMonitor,
 		MeshConfig:             c.initMeshConfigMonitor,
 		MeshRootCertificate:    c.initMRCMonitor,
+		ExtensionService:       c.initExtensionServiceMonitor,
 		Egress:                 c.initEgressMonitor,
 		IngressBackend:         c.initIngressBackendMonitor,
 		Retry:                  c.initRetryMonitor,
 		UpstreamTrafficSetting: c.initUpstreamTrafficSettingMonitor,
+		Telemetry:              c.initTelemetryMonitor,
 		TrafficSplit:           c.initTrafficSplitMonitor,
 		HTTPRouteGroup:         c.initHTTPRouteGroupMonitor,
 		TCPRoute:               c.initTCPRouteMonitor,
@@ -60,8 +62,8 @@ func NewClient(osmNamespace, meshConfigName string, informerCollection *informer
 	// If specific informers are not selected to be initialized, initialize all informers
 	if len(selectInformers) == 0 {
 		selectInformers = []InformerKey{
-			Namespaces, Services, ServiceAccounts, Pods, Endpoints, MeshConfig, MeshRootCertificate,
-			Egress, IngressBackend, Retry, UpstreamTrafficSetting, TrafficSplit, HTTPRouteGroup, TCPRoute,
+			Namespaces, Services, ServiceAccounts, Pods, Endpoints, MeshConfig, MeshRootCertificate, ExtensionService,
+			Egress, IngressBackend, Retry, UpstreamTrafficSetting, Telemetry, TrafficSplit, HTTPRouteGroup, TCPRoute,
 			TrafficTarget}
 	}
 
@@ -87,6 +89,10 @@ func (c *Client) initMRCMonitor() {
 	c.informers.AddEventHandler(informers.InformerKeyMeshRootCertificate, GetEventHandlerFuncs(nil, c.msgBroker))
 }
 
+func (c *Client) initExtensionServiceMonitor() {
+	c.informers.AddEventHandler(informers.InformerKeyExtensionService, GetEventHandlerFuncs(nil, c.msgBroker))
+}
+
 func (c *Client) initEgressMonitor() {
 	c.informers.AddEventHandler(informers.InformerKeyEgress, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
@@ -101,6 +107,10 @@ func (c *Client) initRetryMonitor() {
 
 func (c *Client) initUpstreamTrafficSettingMonitor() {
 	c.informers.AddEventHandler(informers.InformerKeyUpstreamTrafficSetting, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
+}
+
+func (c *Client) initTelemetryMonitor() {
+	c.informers.AddEventHandler(informers.InformerKeyTelemetry, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
 
 // Function to filter K8s meta Objects by OSM's isMonitoredNamespace
@@ -592,4 +602,53 @@ func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
 		trafficTargets = append(trafficTargets, trafficTarget)
 	}
 	return trafficTargets
+}
+
+// GetTelemetryPolicy returns the Telemetry policy for the given proxy instance.
+// It returns the most specific match if multiple matching policies exist, in the following
+// order of preference: 1. selector match, 2. namespace match, 3. global match
+func (c *Client) GetTelemetryPolicy(proxy *models.Proxy) *policyv1alpha1.Telemetry {
+	pod, _ := c.GetPodForProxy(proxy)
+	if pod == nil {
+		return nil
+	}
+
+	var policy *policyv1alpha1.Telemetry
+
+	for _, resource := range c.informers.List(informers.InformerKeyTelemetry) {
+		t := resource.(*policyv1alpha1.Telemetry)
+
+		// If there is a global policy and a more specific policy hasn't been
+		// found yet, consider the global policy as a candidate
+		if policy == nil && t.Namespace == c.osmNamespace {
+			policy = t
+			continue
+		}
+
+		if !c.IsMonitoredNamespace(t.Namespace) {
+			continue
+		}
+
+		// If the policy matches the namespace of the proxy's pod,
+		// consider this policy to be a candidate, but continue
+		// to look for a more specific policy that matches the pod
+		// based on a selector
+		if t.Namespace == pod.Namespace {
+			policy = t
+		}
+
+		// Look for a more specific match based on pod selector on the Telemetry resource.
+		// If we find a Telemetry resource that matches the pod's selector, this is
+		// the best match for this proxy.
+		selector := t.Spec.Selector
+		if len(selector) == 0 {
+			continue
+		}
+		sel := labels.Set(selector).AsSelector()
+		if sel.Matches(labels.Set(pod.Labels)) {
+			return t
+		}
+	}
+
+	return policy
 }
