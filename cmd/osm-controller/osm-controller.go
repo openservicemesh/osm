@@ -226,12 +226,7 @@ func main() {
 
 	ingress.Initialize(kubeClient, k8sClient, stop, certManager, msgBroker)
 
-	meshCatalog := catalog.NewMeshCatalog(
-		computeClient,
-		certManager,
-		stop,
-		msgBroker,
-	)
+	meshCatalog := catalog.NewMeshCatalog(computeClient, certManager)
 
 	proxyRegistry := registry.NewProxyRegistry()
 	// Create and start the ADS gRPC service

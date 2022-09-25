@@ -15,7 +15,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -25,8 +24,6 @@ type testParams struct {
 
 func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatalog {
 	mockCtrl := gomock.NewController(t)
-
-	stop := make(chan struct{})
 
 	provider := compute.NewMockInterface(mockCtrl)
 	provider.EXPECT().ListServices().Return([]service.MeshService{
@@ -50,6 +47,5 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	provider.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
 	provider.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{}).AnyTimes()
 
-	return NewMeshCatalog(provider, tresorFake.NewFake(1*time.Hour),
-		stop, messaging.NewBroker(stop))
+	return NewMeshCatalog(provider, tresorFake.NewFake(1*time.Hour))
 }

@@ -81,6 +81,7 @@ require (
 require (
 	github.com/spiffe/go-spiffe/v2 v2.1.1
 	go.opentelemetry.io/proto/otlp v0.15.0
+	go.uber.org/atomic v1.9.0
 	golang.org/x/exp v0.0.0-20220916125017-b168a2c6b86b
 	k8s.io/kubectl v0.24.2
 	sigs.k8s.io/mcs-api v0.1.0
@@ -365,7 +366,6 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
-	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2 // indirect

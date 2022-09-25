@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/util/workqueue"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -58,14 +55,14 @@ func TestAllEvents(t *testing.T) {
 				Type:   events.Added,
 				NewObj: i,
 			}
-			c.GetQueue().Add(podAdd)
+			c.AddEvent(podAdd)
 
 			podDel := events.PubSubMessage{
 				Kind:   events.Pod,
 				Type:   events.Deleted,
 				OldObj: i,
 			}
-			c.GetQueue().Add(podDel)
+			c.AddEvent(podDel)
 
 			podUpdate := events.PubSubMessage{
 				Kind:   events.Pod,
@@ -73,21 +70,21 @@ func TestAllEvents(t *testing.T) {
 				OldObj: i,
 				NewObj: i,
 			}
-			c.GetQueue().Add(podUpdate)
+			c.AddEvent(podUpdate)
 
 			epAdd := events.PubSubMessage{
 				Kind:   events.Endpoint,
 				Type:   events.Added,
 				NewObj: i,
 			}
-			c.GetQueue().Add(epAdd)
+			c.AddEvent(epAdd)
 
 			epDel := events.PubSubMessage{
 				Kind:   events.Endpoint,
 				Type:   events.Deleted,
 				OldObj: i,
 			}
-			c.GetQueue().Add(epDel)
+			c.AddEvent(epDel)
 
 			epUpdate := events.PubSubMessage{
 				Kind:   events.Endpoint,
@@ -95,7 +92,7 @@ func TestAllEvents(t *testing.T) {
 				OldObj: i,
 				NewObj: i,
 			}
-			c.GetQueue().Add(epUpdate)
+			c.AddEvent(epUpdate)
 
 			meshCfgUpdate := events.PubSubMessage{
 				Kind:   events.MeshConfig,
@@ -103,7 +100,7 @@ func TestAllEvents(t *testing.T) {
 				OldObj: &configv1alpha2.MeshConfig{},
 				NewObj: &configv1alpha2.MeshConfig{},
 			}
-			c.GetQueue().Add(meshCfgUpdate)
+			c.AddEvent(meshCfgUpdate)
 		}
 	}()
 
@@ -337,47 +334,6 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 	}
 }
 
-func TestRunProxyUpdateDispatcher(t *testing.T) {
-	a := assert.New(t)
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
-	b := NewBroker(stopCh) // this starts runProxyUpdateDispatcher() in a goroutine
-	proxyUpdateChan := b.GetProxyUpdatePubSub().Sub(ProxyUpdateTopic)
-	defer b.Unsub(b.proxyUpdatePubSub, proxyUpdateChan)
-
-	// Verify sliding window expiry
-	b.proxyUpdateCh <- ProxyUpdateTopic
-
-	time.Sleep(proxyUpdateSlidingWindow + 10*time.Millisecond)
-	<-proxyUpdateChan
-	a.EqualValues(b.GetTotalDispatchedProxyEventCount(), 1)
-
-	// Verify max window expiry
-	proxyUpdateReceived := make(chan struct{})
-	go func() {
-		<-proxyUpdateChan
-		close(proxyUpdateReceived)
-	}()
-	numEvents := 10
-	go func() {
-		// Sleep for at least 'proxyUpdateMaxWindow' duration (10s), while
-		// ensuring sliding window does not expire. 'proxyUpdateSlidingWindow'
-		// expires at 2s intervals, so ensure updates are sent within that window
-		// via the 1s sleep.
-		for i := 0; i < numEvents; i++ {
-			log.Trace().Msg("Dispatching event")
-			b.proxyUpdateCh <- ProxyUpdateTopic
-			time.Sleep(1 * time.Second)
-		}
-		// Verify channel close
-		close(b.proxyUpdateCh)
-	}()
-
-	<-proxyUpdateReceived
-	a.EqualValues(b.GetTotalDispatchedProxyEventCount(), 2) // 1 carried over from sliding window test
-}
-
 func TestGetPubSubTopicForProxyUUID(t *testing.T) {
 	a := assert.New(t)
 
@@ -467,25 +423,4 @@ osm_resource_namespace_count %s
 			a.Contains(rr.Body.String(), expectedResp)
 		})
 	}
-}
-
-func TestQueueLenMetric(t *testing.T) {
-	stop := make(chan struct{})
-	defer close(stop)
-
-	b := &Broker{
-		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
-		stop:  stop,
-	}
-	go b.queueLenMetric(10 * time.Millisecond)
-	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.EventsQueued)
-
-	numEvents := 10
-	for i := 0; i < numEvents; i++ {
-		b.queue.Add(i)
-	}
-
-	assert.Eventually(t, func() bool {
-		return metricsstore.DefaultMetricsStore.Contains(`osm_events_queued ` + strconv.Itoa(numEvents) + "\n")
-	}, 100*time.Millisecond, 10*time.Millisecond)
 }

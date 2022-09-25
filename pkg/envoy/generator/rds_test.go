@@ -20,7 +20,6 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
-	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
@@ -387,12 +386,12 @@ func TestGenerateRDSWithTrafficSplit(t *testing.T) {
 		provider.EXPECT().GetHostnamesForService(svc, true).Return(kube.NewClient(nil).GetHostnamesForService(svc, true)).AnyTimes()
 	}
 
-	meshCatalog := catalogFake.NewFakeMeshCatalog(provider)
+	cm := tresorFake.NewFake(1 * time.Hour)
+	meshCatalog := catalog.NewMeshCatalog(provider, cm)
 	proxy, err := getSidecarProxy(kubeClient, uuid.MustParse(tests.ProxyUUID), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace))
 	a.Nil(err)
 	a.NotNil(proxy)
 
-	cm := tresorFake.NewFake(1 * time.Hour)
 	a.NotNil(a)
 
 	g := NewEnvoyConfigGenerator(meshCatalog, cm)

@@ -93,12 +93,7 @@ func TestControlLoop(t *testing.T) {
 	provider.EXPECT().GetMeshConfig().AnyTimes()
 	provider.EXPECT().VerifyProxy(gomock.Any()).AnyTimes()
 
-	meshCatalog := catalog.NewMeshCatalog(
-		provider,
-		tresorFake.NewFake(time.Hour),
-		stop,
-		messaging.NewBroker(stop),
-	)
+	meshCatalog := catalog.NewMeshCatalog(provider, tresorFake.NewFake(time.Hour))
 
 	cp := NewControlPlane[fakeConfig](server, g, meshCatalog, registry.NewProxyRegistry(), certManager, messaging.NewBroker(stop))
 

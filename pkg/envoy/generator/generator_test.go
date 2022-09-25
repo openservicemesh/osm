@@ -18,7 +18,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -78,9 +77,7 @@ func TestGenerateConfig(t *testing.T) {
 	provider.EXPECT().GetTelemetryConfig(gomock.Any()).Return(models.TelemetryConfig{}).AnyTimes()
 
 	certManager := tresorFake.NewFake(time.Hour)
-	stop := make(chan struct{})
-
-	mc := catalog.NewMeshCatalog(provider, certManager, stop, messaging.NewBroker(stop))
+	mc := catalog.NewMeshCatalog(provider, certManager)
 
 	g := NewEnvoyConfigGenerator(mc, certManager)
 

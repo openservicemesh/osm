@@ -3,6 +3,7 @@ package generator
 import (
 	"context"
 	"testing"
+	"time"
 
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/golang/mock/gomock"
@@ -12,11 +13,12 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 
-	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -67,7 +69,7 @@ func TestEndpointConfiguration(t *testing.T) {
 		},
 	}}).AnyTimes()
 
-	meshCatalog := catalogFake.NewFakeMeshCatalog(provider)
+	meshCatalog := catalog.NewMeshCatalog(provider, tresorFake.NewFake(1*time.Hour))
 
 	proxy, err := getProxy(kubeClient)
 	assert.Empty(err)

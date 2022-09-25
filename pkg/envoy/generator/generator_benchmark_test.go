@@ -92,12 +92,9 @@ func setupTestGenerator(b *testing.B) (*models.Proxy, *EnvoyConfigGenerator) {
 	if err != nil {
 		b.Fatalf("Failed to create fake cert manager: %v", err)
 	}
-	mc := catalog.NewMeshCatalog(
-		kubeProvider,
-		certManager,
-		stop,
-		msgBroker,
-	)
+
+	// --- setup
+	mc := catalog.NewMeshCatalog(kubeProvider, certManager)
 
 	proxy := models.NewProxy(models.KindSidecar, proxyUUID, tests.BookstoreServiceIdentity, nil, 1)
 	return proxy, NewEnvoyConfigGenerator(mc, certManager)

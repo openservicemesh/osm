@@ -64,7 +64,7 @@ func TestWatchAndUpdateProxyBootstrapSecret(t *testing.T) {
 	a.Nil(err)
 
 	// Publish a podAdded event
-	msgBroker.PublishKubeEvent(events.PubSubMessage{
+	msgBroker.AddEvent(events.PubSubMessage{
 		Kind:   events.Pod,
 		Type:   events.Added,
 		NewObj: &pod,
@@ -176,7 +176,7 @@ func TestWatchAndUpdateLogLevel(t *testing.T) {
 			// add a delay before the test triggers events
 			time.Sleep(500 * time.Millisecond)
 
-			msgBroker.PublishKubeEvent(tc.event)
+			msgBroker.AddEvent(tc.event)
 
 			a.Eventually(func() bool {
 				return zerolog.GlobalLevel() == tc.expectedLogLevel

@@ -167,7 +167,7 @@ func TestProvisionIngressGatewayCert(t *testing.T) {
 			}
 
 			if tc.updatedMeshConfig != nil {
-				msgBroker.PublishKubeEvent(events.PubSubMessage{
+				msgBroker.AddEvent(events.PubSubMessage{
 					Kind:   events.MeshConfig,
 					Type:   events.Updated,
 					NewObj: tc.updatedMeshConfig,

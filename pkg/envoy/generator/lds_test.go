@@ -24,7 +24,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/generator/lds"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -33,7 +32,6 @@ import (
 func TestGenerateLDS(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
-	stop := make(chan struct{})
 
 	pod := tests.NewPodFixture(tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, map[string]string{
 		constants.AppLabel:               tests.BookbuyerService.Name,
@@ -92,12 +90,7 @@ func TestGenerateLDS(t *testing.T) {
 	}).AnyTimes()
 	provider.EXPECT().ListServicesForProxy(proxy).Return([]service.MeshService{tests.BookbuyerService}, nil).AnyTimes()
 
-	meshCatalog := catalog.NewMeshCatalog(
-		provider,
-		tresorFake.NewFake(time.Hour),
-		stop,
-		messaging.NewBroker(stop),
-	)
+	meshCatalog := catalog.NewMeshCatalog(provider, tresorFake.NewFake(time.Hour))
 
 	cm := tresorFake.NewFake(1 * time.Hour)
 	g := NewEnvoyConfigGenerator(meshCatalog, cm)

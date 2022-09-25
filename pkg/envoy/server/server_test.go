@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
+	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -40,10 +40,6 @@ func TestADSResponse(t *testing.T) {
 	provider.EXPECT().ListTrafficTargets().Return(nil).AnyTimes()
 	provider.EXPECT().GetTelemetryConfig(gomock.Any()).Return(models.TelemetryConfig{}).AnyTimes()
 
-	mc := catalogFake.NewFakeMeshCatalog(provider)
-
-	certManager := tresorFake.NewFake(1 * time.Hour)
-
 	provider.EXPECT().GetMeshConfig().Return(v1alpha2.MeshConfig{
 		Spec: v1alpha2.MeshConfigSpec{
 			Observability: v1alpha2.ObservabilitySpec{
@@ -55,6 +51,9 @@ func TestADSResponse(t *testing.T) {
 	provider.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
 	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)
+
+	certManager := tresorFake.NewFake(1 * time.Hour)
+	mc := catalog.NewMeshCatalog(provider, certManager)
 
 	s := NewADSServer()
 	ctx := context.Background()

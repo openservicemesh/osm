@@ -3,12 +3,9 @@ package messaging
 import (
 	"fmt"
 	"sync/atomic"
-	"time"
 
 	"github.com/cskr/pubsub"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/util/workqueue"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
@@ -17,49 +14,19 @@ import (
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
-const (
-	// proxyUpdateSlidingWindow is the sliding window duration used to batch proxy update events
-	proxyUpdateSlidingWindow = 2 * time.Second
-
-	// proxyUpdateMaxWindow is the max window duration used to batch proxy update events, and is
-	// the max amount of time a proxy update event can be held for batching before being dispatched.
-	proxyUpdateMaxWindow = 10 * time.Second
-)
-
 // NewBroker returns a new message broker instance and starts the internal goroutine
 // to process events added to the workqueue.
 func NewBroker(stopCh <-chan struct{}) *Broker {
-	b := &Broker{
-		queue:             workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+	return &Broker{
 		proxyUpdatePubSub: pubsub.New(0),
-		proxyUpdateCh:     make(chan string),
 		kubeEventPubSub:   pubsub.New(0),
 		stop:              stopCh,
 	}
-
-	go b.runWorkqueueProcessor()
-	go b.runProxyUpdateDispatcher()
-	go b.queueLenMetric(5 * time.Second)
-
-	return b
 }
 
-// Done returns a channel that's closed when the broker is shutdown.
+// Done returns whether the broker has completed processing events.
 func (b *Broker) Done() <-chan struct{} {
 	return b.stop
-}
-
-func (b *Broker) queueLenMetric(interval time.Duration) {
-	tick := time.NewTicker(interval)
-	defer tick.Stop()
-	for {
-		select {
-		case <-b.stop:
-			return
-		case <-tick.C:
-			metricsstore.DefaultMetricsStore.EventsQueued.Set(float64(b.queue.Len()))
-		}
-	}
 }
 
 // GetProxyUpdatePubSub returns the PubSub instance corresponding to proxy update events
@@ -75,11 +42,6 @@ func (b *Broker) SubscribeKubeEvents(topics ...string) (chan interface{}, func()
 	}
 }
 
-// PublishKubeEvent publishes the event to the kube event pubsub
-func (b *Broker) PublishKubeEvent(e events.PubSubMessage) {
-	b.kubeEventPubSub.Pub(e, e.Topic())
-}
-
 // GetTotalQProxyEventCount returns the total number of events read from the workqueue
 // pertaining to proxy updates
 func (b *Broker) GetTotalQProxyEventCount() uint64 {
@@ -92,150 +54,37 @@ func (b *Broker) GetTotalDispatchedProxyEventCount() uint64 {
 	return atomic.LoadUint64(&b.totalDispatchedProxyEventCount)
 }
 
-// runWorkqueueProcessor starts a goroutine to process events from the workqueue until
-// signalled to stop on the given channel.
-func (b *Broker) runWorkqueueProcessor() {
-	// Start the goroutine workqueue to process kubernetes events
-	// The continuous processing of items in the workqueue will run
-	// until signalled to stop.
-	// The 'wait.Until' helper is used here to ensure the processing
-	// of items in the workqueue continues until signalled to stop, even
-	// if 'processNextItems()' returns false.
-	go wait.Until(
-		func() {
-			for b.processNextItem() {
-			}
-		},
-		time.Second,
-		b.stop,
-	)
-}
-
-// runProxyUpdateDispatcher runs the dispatcher responsible for batching
-// proxy update events received in close proximity.
-// It batches proxy update events with the use of 2 timers:
-// 1. Sliding window timer that resets when a proxy update event is received
-// 2. Max window timer that caps the max duration a sliding window can be reset to
-// When either of the above timers expire, the proxy update event is published
-// on the dedicated pub-sub instance.
-func (b *Broker) runProxyUpdateDispatcher() {
-	// batchTimer and maxTimer are updated by the dispatcher routine
-	// when events are processed and timeouts expire. They are initialized
-	// with a large timeout (a decade) so they don't time out till an event
-	// is received.
-	noTimeout := 87600 * time.Hour // A decade
-	slidingTimer := time.NewTimer(noTimeout)
-	maxTimer := time.NewTimer(noTimeout)
-
-	// dispatchPending indicates whether a proxy update event is pending
-	// from being published on the pub-sub. A proxy update event will
-	// be held for 'proxyUpdateSlidingWindow' duration to be able to
-	// coalesce multiple proxy update events within that duration, before
-	// it is dispatched on the pub-sub. The 'proxyUpdateSlidingWindow' duration
-	// is a sliding window, which means each event received within a window
-	// slides the window further ahead in time, up to a max of 'proxyUpdateMaxWindow'.
-	//
-	// This mechanism is necessary to avoid triggering proxy update pub-sub events in
-	// a hot loop, which would otherwise result in CPU spikes on the controller.
-	// We want to coalesce as many proxy update events within the 'proxyUpdateMaxWindow'
-	// duration.
-	dispatchPending := false
-	batchCount := 0 // number of proxy update events batched per dispatch
-
-	var msgName string
-	for {
-		select {
-		case e, ok := <-b.proxyUpdateCh:
-			if !ok {
-				log.Warn().Msgf("Proxy update event chan closed, exiting dispatcher")
-				return
-			}
-			msgName = e
-
-			if !dispatchPending {
-				// No proxy update events are pending send on the pub-sub.
-				// Reset the dispatch timers. The events will be dispatched
-				// when either of the timers expire.
-				if !slidingTimer.Stop() {
-					<-slidingTimer.C
-				}
-				slidingTimer.Reset(proxyUpdateSlidingWindow)
-				if !maxTimer.Stop() {
-					<-maxTimer.C
-				}
-				maxTimer.Reset(proxyUpdateMaxWindow)
-				dispatchPending = true
-				batchCount++
-				log.Trace().Msgf("Pending dispatch of msg kind %s", msgName)
-			} else {
-				// A proxy update event is pending dispatch. Update the sliding window.
-				if !slidingTimer.Stop() {
-					<-slidingTimer.C
-				}
-				slidingTimer.Reset(proxyUpdateSlidingWindow)
-				batchCount++
-				log.Trace().Msgf("Reset sliding window for msg kind %s", msgName)
-			}
-
-		case <-slidingTimer.C:
-			slidingTimer.Reset(noTimeout) // 'slidingTimer' drained in this case statement
-			// Stop and drain 'maxTimer' before Reset()
-			if !maxTimer.Stop() {
-				// Drain channel. Refer to Reset() doc for more info.
-				<-maxTimer.C
-			}
-			maxTimer.Reset(noTimeout)
-			b.proxyUpdatePubSub.Pub(msgName, ProxyUpdateTopic)
-			atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
-			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
-			log.Trace().Msgf("Sliding window expired, msg kind %s, batch size %d", msgName, batchCount)
-			dispatchPending = false
-			batchCount = 0
-
-		case <-maxTimer.C:
-			maxTimer.Reset(noTimeout) // 'maxTimer' drained in this case statement
-			// Stop and drain 'slidingTimer' before Reset()
-			if !slidingTimer.Stop() {
-				// Drain channel. Refer to Reset() doc for more info.
-				<-slidingTimer.C
-			}
-			slidingTimer.Reset(noTimeout)
-			b.proxyUpdatePubSub.Pub(msgName, ProxyUpdateTopic)
-			atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
-			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
-			log.Trace().Msgf("Max window expired, msg kind %s, batch size %d", msgName, batchCount)
-			dispatchPending = false
-			batchCount = 0
-
-		case <-b.stop:
-			log.Info().Msg("Proxy update dispatcher received stop signal, exiting")
-			return
-		}
-	}
+// GetTotalQEventCount returns the total number of events queued throughout
+// the lifetime of the workqueue.
+func (b *Broker) GetTotalQEventCount() uint64 {
+	return atomic.LoadUint64(&b.totalQEventCount)
 }
 
 // BroadcastProxyUpdate enqueues a broadcast to update all proxies.
 func (b *Broker) BroadcastProxyUpdate() {
-	b.queue.Add(events.PubSubMessage{Kind: events.ProxyUpdate, Type: events.Added})
+	b.AddEvent(events.PubSubMessage{Kind: events.ProxyUpdate, Type: events.Added})
 }
 
-// processEvent processes an event dispatched from the workqueue.
+// AddEvent processes an event, checking its type and distributing to the appropriate queues.
 // It does the following:
 // 1. If the event must update a proxy, it publishes a proxy update message
 // 2. Processes other internal control plane events
 // 3. Updates metrics associated with the event
-func (b *Broker) processEvent(msg events.PubSubMessage) {
+func (b *Broker) AddEvent(msg events.PubSubMessage) {
 	log.Trace().Msgf("Processing msg kind: %s", msg.Kind)
 	// Update proxies if applicable
 	publish, uuid := shouldPublish(msg)
 
 	if publish {
 		log.Trace().Msgf("Msg kind %s will update proxies", msg.Kind)
-		atomic.AddUint64(&b.totalQProxyEventCount, 1)
+
+		atomic.AddUint64(&b.totalQEventCount, 1)
+		atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
 		if uuid == "" {
 			// Pass the broadcast event to the dispatcher routine, that coalesces
 			// multiple broadcasts received in close proximity.
-			b.proxyUpdateCh <- msg.Topic()
+			b.proxyUpdatePubSub.Pub(msg, ProxyUpdateTopic)
+			metricsstore.DefaultMetricsStore.ProxyBroadcastEventCount.Inc()
 		} else {
 			// This is not a broadcast event, so it cannot be coalesced with
 			// other events as the event is specific to one or more proxies.
@@ -245,7 +94,7 @@ func (b *Broker) processEvent(msg events.PubSubMessage) {
 	}
 
 	// Publish event to other interested clients, e.g. log level changes, debug server on/off etc.
-	b.PublishKubeEvent(msg)
+	b.kubeEventPubSub.Pub(msg, msg.Topic())
 
 	// Update event metric
 	updateMetric(msg)

@@ -61,7 +61,7 @@ func (c *Client) handleEvent(event events.EventType, oldObj, newObj interface{})
 	logResourceEvent(msg.Topic(), obj)
 	ns := getNamespace(obj)
 	metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(msg.Topic(), ns).Inc()
-	c.msgBroker.GetQueue().AddRateLimited(msg)
+	c.msgBroker.AddEvent(msg)
 }
 
 func getNamespace(obj interface{}) string {
