@@ -42,15 +42,15 @@ var (
 
 func TestUninstallCmd(t *testing.T) {
 	tests := []struct {
-		name            string
-		meshName        string
-		meshNamespace   string
-		nsInMesh        string
-		force           bool
-		deleteNamespace bool
-		emptyMeshList   bool
-		meshExists      bool
-		userPromptsYes  bool
+		name               string
+		meshName           string
+		meshNamespace      string
+		workloadNamespaces []string
+		force              bool
+		deleteNamespace    bool
+		emptyMeshList      bool
+		meshExists         bool
+		userPromptsYes     bool
 	}{
 		{
 			name:            "no meshes in cluster",
@@ -73,15 +73,15 @@ func TestUninstallCmd(t *testing.T) {
 			meshExists:      false,
 		},
 		{
-			name:            "the mesh exist with one namespace added to mesh",
-			meshName:        testMeshName,
-			meshNamespace:   testNamespace,
-			nsInMesh:        testNsInMesh,
-			force:           false,
-			deleteNamespace: false,
-			userPromptsYes:  true,
-			emptyMeshList:   false,
-			meshExists:      true,
+			name:               "the mesh exist with one namespace added to mesh",
+			meshName:           testMeshName,
+			meshNamespace:      testNamespace,
+			workloadNamespaces: []string{testNsInMesh},
+			force:              false,
+			deleteNamespace:    false,
+			userPromptsYes:     true,
+			emptyMeshList:      false,
+			meshExists:         true,
 		},
 		{
 			name:            "the mesh DOES NOT exist and force delete set to true",
@@ -248,8 +248,9 @@ func TestUninstallCmd(t *testing.T) {
 			if !test.emptyMeshList {
 				_, err := addDeployment(fakeClientSet, "osm-controller-1", testMeshName, testNamespace, osmTestVersion, true)
 				assert.Nil(err)
-				if len(test.nsInMesh) != 0 {
-					nsSpec := createNamespaceSpec(test.nsInMesh, test.meshName, true, false, true)
+				for _, workloadNs := range test.workloadNamespaces {
+					// create workload namespace
+					nsSpec := createNamespaceSpec(workloadNs, test.meshName, true, false, true)
 					_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 					assert.Nil(err)
 				}
@@ -286,9 +287,9 @@ func TestUninstallCmd(t *testing.T) {
 
 				if test.userPromptsYes {
 					if test.meshExists {
-						if len(test.nsInMesh) != 0 {
+						for _, workloadNs := range test.workloadNamespaces {
 							// ensure osm related annotations are removed from namespace
-							ns, err := uninstall.clientSet.CoreV1().Namespaces().Get(context.TODO(), test.nsInMesh, metav1.GetOptions{})
+							ns, err := uninstall.clientSet.CoreV1().Namespaces().Get(context.TODO(), workloadNs, metav1.GetOptions{})
 							assert.Nil(err)
 							assert.Empty(ns.Labels[constants.OSMKubeResourceMonitorAnnotation])
 							assert.Empty(ns.Labels[constants.IgnoreLabel])
@@ -306,8 +307,8 @@ func TestUninstallCmd(t *testing.T) {
 					} else {
 						namespaces, err := uninstall.clientSet.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 						assert.Nil(err)
-						if len(test.nsInMesh) != 0 {
-							assert.Equal(len(existingNamespaces)+1, len(namespaces.Items))
+						if len(test.workloadNamespaces) != 0 {
+							assert.Equal(len(existingNamespaces)+len(test.workloadNamespaces), len(namespaces.Items))
 						} else {
 							assert.Equal(len(existingNamespaces), len(namespaces.Items))
 						}
