@@ -14,6 +14,7 @@ import (
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/models"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -403,7 +404,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 			assert := tassert.New(t)
 			rb := &routesBuilder{
 				inboundPortSpecificRouteConfigs: testInbound.HTTPRouteConfigsPerPort,
-				proxy:                           &envoy.Proxy{},
+				proxy:                           &models.Proxy{},
 				statsHeaders:                    tc.statsHeaders,
 				trustDomain:                     "cluster.local",
 			}

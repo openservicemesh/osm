@@ -16,19 +16,19 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/signals"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	policyFake "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func setupTestGenerator(b *testing.B) (*envoy.Proxy, *EnvoyConfigGenerator) {
+func setupTestGenerator(b *testing.B) (*models.Proxy, *EnvoyConfigGenerator) {
 	stop := signals.RegisterExitHandlers()
 	msgBroker := messaging.NewBroker(stop)
 	kubeClient := k8sClientFake.NewSimpleClientset()
@@ -119,7 +119,7 @@ func setupTestGenerator(b *testing.B) (*envoy.Proxy, *EnvoyConfigGenerator) {
 		b.Fatalf("Failed to create service: %v", err)
 	}
 
-	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil, 1)
+	proxy := models.NewProxy(models.KindSidecar, proxyUUID, proxySvcAccount.ToServiceIdentity(), nil, 1)
 
 	return proxy, NewEnvoyConfigGenerator(mc, certManager)
 }

@@ -13,15 +13,15 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/compute"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
+func getProxy(kubeClient kubernetes.Interface) (*models.Proxy, error) {
 	podLabels := map[string]string{
 		constants.AppLabel:               tests.BookbuyerService.Name,
 		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
@@ -46,7 +46,7 @@ func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
 		}
 	}
 
-	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookbuyerServiceIdentity, nil, 1), nil
+	return models.NewProxy(models.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookbuyerServiceIdentity, nil, 1), nil
 }
 
 func TestEndpointConfiguration(t *testing.T) {
@@ -74,7 +74,7 @@ func TestEndpointConfiguration(t *testing.T) {
 	assert.NotNil(meshCatalog)
 	assert.NotNil(proxy)
 
-	proxy = envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookbuyerServiceIdentity, nil, 1)
+	proxy = models.NewProxy(models.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookbuyerServiceIdentity, nil, 1)
 
 	g := NewEnvoyConfigGenerator(meshCatalog, nil)
 	resources, err := g.generateEDS(context.Background(), proxy)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 const (
@@ -52,7 +53,7 @@ func (g *EnvoyConfigGenerator) trackXDSLog(proxyUUID string, typeURL envoy.TypeU
 	g.xdsLog[proxyUUID][typeURL] = timeSlice
 }
 
-func xdsPathTimeTrack(startedAt time.Time, typeURI envoy.TypeURI, proxy *envoy.Proxy, success bool) {
+func xdsPathTimeTrack(startedAt time.Time, typeURI envoy.TypeURI, proxy *models.Proxy, success bool) {
 	elapsed := time.Since(startedAt)
 
 	log.Debug().Str("proxy", proxy.String()).Msgf("Time taken proxy to generate response for request with typeURI=%s: %s", typeURI, elapsed)

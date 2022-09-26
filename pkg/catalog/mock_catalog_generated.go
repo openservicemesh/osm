@@ -12,7 +12,6 @@ import (
 	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
-	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	models "github.com/openservicemesh/osm/pkg/models"
 	service "github.com/openservicemesh/osm/pkg/service"
@@ -218,7 +217,7 @@ func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshTrafficPolicy(arg0 inter
 }
 
 // GetProxyStatsHeaders mocks base method.
-func (m *MockMeshCataloger) GetProxyStatsHeaders(arg0 *envoy.Proxy) (map[string]string, error) {
+func (m *MockMeshCataloger) GetProxyStatsHeaders(arg0 *models.Proxy) (map[string]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProxyStatsHeaders", arg0)
 	ret0, _ := ret[0].(map[string]string)
@@ -345,7 +344,7 @@ func (mr *MockMeshCatalogerMockRecorder) GetUpstreamTrafficSettingByService(arg0
 }
 
 // IsMetricsEnabled mocks base method.
-func (m *MockMeshCataloger) IsMetricsEnabled(arg0 *envoy.Proxy) (bool, error) {
+func (m *MockMeshCataloger) IsMetricsEnabled(arg0 *models.Proxy) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsMetricsEnabled", arg0)
 	ret0, _ := ret[0].(bool)
@@ -644,7 +643,7 @@ func (mr *MockMeshCatalogerMockRecorder) ListServices() *gomock.Call {
 }
 
 // ListServicesForProxy mocks base method.
-func (m *MockMeshCataloger) ListServicesForProxy(arg0 *envoy.Proxy) ([]service.MeshService, error) {
+func (m *MockMeshCataloger) ListServicesForProxy(arg0 *models.Proxy) ([]service.MeshService, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListServicesForProxy", arg0)
 	ret0, _ := ret[0].([]service.MeshService)
@@ -789,7 +788,7 @@ func (mr *MockMeshCatalogerMockRecorder) UpdateUpstreamTrafficSettingStatus(arg0
 }
 
 // VerifyProxy mocks base method.
-func (m *MockMeshCataloger) VerifyProxy(arg0 *envoy.Proxy) error {
+func (m *MockMeshCataloger) VerifyProxy(arg0 *models.Proxy) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "VerifyProxy", arg0)
 	ret0, _ := ret[0].(error)

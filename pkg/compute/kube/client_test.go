@@ -30,7 +30,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
@@ -616,7 +615,7 @@ func TestIsMetricsEnabled(t *testing.T) {
 			}
 			c := NewClient(k)
 
-			actual, err := c.IsMetricsEnabled(&envoy.Proxy{})
+			actual, err := c.IsMetricsEnabled(&models.Proxy{})
 			assert.Equal(tc.expectEnabled, actual)
 			if tc.expectErr {
 				assert.Error(err)
@@ -634,14 +633,14 @@ func TestListServicesForProxy(t *testing.T) {
 		name      string
 		endpoints identity.ServiceIdentity
 		pods      []*corev1.Pod
-		proxy     *envoy.Proxy
+		proxy     *models.Proxy
 		services  []*corev1.Service
 		expected  []service.MeshService
 		expectErr bool
 	}{
 		{
 			name:  "Returns the list of MeshServices matching the given pod",
-			proxy: envoy.NewProxy(envoy.KindSidecar, goodUUID, identity.New("sa1", "ns1"), &net.IPAddr{}, 1),
+			proxy: models.NewProxy(models.KindSidecar, goodUUID, identity.New("sa1", "ns1"), &net.IPAddr{}, 1),
 			pods: []*corev1.Pod{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -702,7 +701,7 @@ func TestListServicesForProxy(t *testing.T) {
 		},
 		{
 			name:  "No matching services found",
-			proxy: envoy.NewProxy(envoy.KindSidecar, goodUUID, identity.New("sa1", "ns1"), &net.IPAddr{}, 1),
+			proxy: models.NewProxy(models.KindSidecar, goodUUID, identity.New("sa1", "ns1"), &net.IPAddr{}, 1),
 			pods: []*corev1.Pod{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -747,7 +746,7 @@ func TestListServicesForProxy(t *testing.T) {
 		},
 		{
 			name:  "Error: pod not found",
-			proxy: envoy.NewProxy(envoy.KindSidecar, goodUUID, identity.New("sa1", "ns1"), &net.IPAddr{}, 1),
+			proxy: models.NewProxy(models.KindSidecar, goodUUID, identity.New("sa1", "ns1"), &net.IPAddr{}, 1),
 			pods: []*corev1.Pod{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1519,19 +1518,19 @@ func TestGetProxyStatsHeaders(t *testing.T) {
 	const namespace = "ns1"
 	testCases := []struct {
 		name      string
-		proxy     *envoy.Proxy
+		proxy     *models.Proxy
 		pod       *corev1.Pod
 		expected  map[string]string
 		expectErr bool
 	}{
 		{
 			name:      "pod not found",
-			proxy:     envoy.NewProxy(envoy.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
+			proxy:     models.NewProxy(models.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
 			expectErr: true,
 		},
 		{
 			name:  "pod has bad service account",
-			proxy: envoy.NewProxy(envoy.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
+			proxy: models.NewProxy(models.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
 			pod: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: namespace,
@@ -1547,7 +1546,7 @@ func TestGetProxyStatsHeaders(t *testing.T) {
 		},
 		{
 			name:  "full stats headers from deployment",
-			proxy: envoy.NewProxy(envoy.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
+			proxy: models.NewProxy(models.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
 
 			pod: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1581,7 +1580,7 @@ func TestGetProxyStatsHeaders(t *testing.T) {
 		},
 		{
 			name:  "no owner references",
-			proxy: envoy.NewProxy(envoy.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
+			proxy: models.NewProxy(models.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
 
 			pod: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1610,7 +1609,7 @@ func TestGetProxyStatsHeaders(t *testing.T) {
 		},
 		{
 			name:  "full stats headers from replicaset with hyphen",
-			proxy: envoy.NewProxy(envoy.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
+			proxy: models.NewProxy(models.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
 
 			pod: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1644,7 +1643,7 @@ func TestGetProxyStatsHeaders(t *testing.T) {
 		},
 		{
 			name:  "full stats headers from replicaset without hyphen",
-			proxy: envoy.NewProxy(envoy.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
+			proxy: models.NewProxy(models.KindSidecar, uuid1, identity.New("sa1", namespace), &net.IPAddr{}, 1),
 
 			pod: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{

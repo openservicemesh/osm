@@ -6,13 +6,13 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/generator/eds"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // generateCDS creates a new Endpoint Discovery Response.
-func (g *EnvoyConfigGenerator) generateEDS(ctx context.Context, proxy *envoy.Proxy) ([]types.Resource, error) {
+func (g *EnvoyConfigGenerator) generateEDS(ctx context.Context, proxy *models.Proxy) ([]types.Resource, error) {
 	meshSvcEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
 	builder := eds.NewEndpointsBuilder()
 

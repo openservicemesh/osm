@@ -17,7 +17,6 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -136,7 +135,7 @@ func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 }
 
 // ListServicesForProxy maps an Envoy instance to a number of Kubernetes services.
-func (c *client) ListServicesForProxy(p *envoy.Proxy) ([]service.MeshService, error) {
+func (c *client) ListServicesForProxy(p *models.Proxy) ([]service.MeshService, error) {
 	pod, err := c.kubeController.GetPodForProxy(p)
 	if err != nil {
 		return nil, err
@@ -248,7 +247,7 @@ func (c *client) ListServices() []service.MeshService {
 }
 
 // IsMetricsEnabled checks if prometheus metrics scraping are enabled on this pod.
-func (c *client) IsMetricsEnabled(proxy *envoy.Proxy) (bool, error) {
+func (c *client) IsMetricsEnabled(proxy *models.Proxy) (bool, error) {
 	pod, err := c.kubeController.GetPodForProxy(proxy)
 	if err != nil {
 		return false, err
@@ -410,7 +409,7 @@ func DetectIngressBackendConflicts(x policyv1alpha1.IngressBackend, y policyv1al
 }
 
 // GetProxyStatsHeaders returns stats headers for the given proxy.
-func (c *client) GetProxyStatsHeaders(p *envoy.Proxy) (map[string]string, error) {
+func (c *client) GetProxyStatsHeaders(p *models.Proxy) (map[string]string, error) {
 	pod, err := c.kubeController.GetPodForProxy(p)
 	if err != nil {
 		log.Warn().Str("proxy", p.String()).Msg("Could not find pod for connecting proxy. No metadata was recorded.")
@@ -444,7 +443,7 @@ func (c *client) GetProxyStatsHeaders(p *envoy.Proxy) (map[string]string, error)
 }
 
 // VerifyProxy attempts to lookup a pod that matches the given proxy instance by service identity, namespace, and UUID.
-func (c *client) VerifyProxy(proxy *envoy.Proxy) error {
+func (c *client) VerifyProxy(proxy *models.Proxy) error {
 	_, err := c.kubeController.GetPodForProxy(proxy)
 	return err
 }

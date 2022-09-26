@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 var (
@@ -21,7 +22,7 @@ var (
 // EnvoyConfigGenerator is used to generate all xDS response types per proxy.
 type EnvoyConfigGenerator struct {
 	catalog        catalog.MeshCataloger
-	generators     map[envoy.TypeURI]func(context.Context, *envoy.Proxy) ([]types.Resource, error)
+	generators     map[envoy.TypeURI]func(context.Context, *models.Proxy) ([]types.Resource, error)
 	certManager    *certificate.Manager
 	xdsMapLogMutex sync.Mutex
 	xdsLog         map[string]map[envoy.TypeURI][]time.Time
@@ -34,7 +35,7 @@ func NewEnvoyConfigGenerator(catalog catalog.MeshCataloger, certManager *certifi
 		certManager: certManager,
 		xdsLog:      make(map[string]map[envoy.TypeURI][]time.Time),
 	}
-	g.generators = map[envoy.TypeURI]func(context.Context, *envoy.Proxy) ([]types.Resource, error){
+	g.generators = map[envoy.TypeURI]func(context.Context, *models.Proxy) ([]types.Resource, error){
 		envoy.TypeCDS: g.generateCDS,
 		envoy.TypeEDS: g.generateEDS,
 		envoy.TypeLDS: g.generateLDS,
@@ -45,7 +46,7 @@ func NewEnvoyConfigGenerator(catalog catalog.MeshCataloger, certManager *certifi
 }
 
 // GenerateConfig generates and returns the resources for the given proxy.
-func (g *EnvoyConfigGenerator) GenerateConfig(ctx context.Context, proxy *envoy.Proxy) (map[string][]types.Resource, error) {
+func (g *EnvoyConfigGenerator) GenerateConfig(ctx context.Context, proxy *models.Proxy) (map[string][]types.Resource, error) {
 	cacheResourceMap := map[string][]types.Resource{}
 	for typeURI, handler := range g.generators {
 		log.Trace().Str("proxy", proxy.String()).Msgf("Getting resources for type %s", typeURI.Short())

@@ -26,7 +26,6 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	fakeConfigClient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -856,33 +855,33 @@ func TestGetPodForProxy(t *testing.T) {
 	testCases := []struct {
 		name  string
 		pod   *corev1.Pod
-		proxy *envoy.Proxy
+		proxy *models.Proxy
 		err   error
 	}{
 		{
 			name:  "fails when UUID does not match",
-			proxy: envoy.NewProxy(envoy.KindSidecar, uuid.New(), tests.BookstoreServiceIdentity, nil, 1),
+			proxy: models.NewProxy(models.KindSidecar, uuid.New(), tests.BookstoreServiceIdentity, nil, 1),
 			err:   errDidNotFindPodForUUID,
 		},
 		{
 			name:  "fails when service account does not match certificate",
-			proxy: &envoy.Proxy{UUID: proxyUUID, Identity: identity.New("bad-name", namespace)},
+			proxy: &models.Proxy{UUID: proxyUUID, Identity: identity.New("bad-name", namespace)},
 			err:   errServiceAccountDoesNotMatchProxy,
 		},
 		{
 			name:  "2 pods with same uuid",
-			proxy: envoy.NewProxy(envoy.KindSidecar, someOtherEnvoyUID, tests.BookstoreServiceIdentity, nil, 1),
+			proxy: models.NewProxy(models.KindSidecar, someOtherEnvoyUID, tests.BookstoreServiceIdentity, nil, 1),
 			err:   errMoreThanOnePodForUUID,
 		},
 		{
 			name:  "fails when namespace does not match certificate",
-			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, "bad-namespace"), nil, 1),
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, "bad-namespace"), nil, 1),
 			err:   errNamespaceDoesNotMatchProxy,
 		},
 		{
 			name:  "works as expected",
 			pod:   pod,
-			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, tests.BookstoreServiceIdentity, nil, 1),
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, tests.BookstoreServiceIdentity, nil, 1),
 		},
 	}
 

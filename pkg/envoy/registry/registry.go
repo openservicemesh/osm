@@ -1,18 +1,16 @@
 package registry
 
-import (
-	"github.com/openservicemesh/osm/pkg/envoy"
-)
+import "github.com/openservicemesh/osm/pkg/models"
 
 // NewProxyRegistry initializes a new empty *ProxyRegistry.
 func NewProxyRegistry() *ProxyRegistry {
 	return &ProxyRegistry{
-		connectedProxies: make(map[int64]*envoy.Proxy),
+		connectedProxies: make(map[int64]*models.Proxy),
 	}
 }
 
 // RegisterProxy registers a newly connected proxy.
-func (pr *ProxyRegistry) RegisterProxy(proxy *envoy.Proxy) {
+func (pr *ProxyRegistry) RegisterProxy(proxy *models.Proxy) {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 	pr.connectedProxies[proxy.GetConnectionID()] = proxy
@@ -20,7 +18,7 @@ func (pr *ProxyRegistry) RegisterProxy(proxy *envoy.Proxy) {
 }
 
 // GetConnectedProxy loads a connected proxy from the registry.
-func (pr *ProxyRegistry) GetConnectedProxy(connectionID int64) *envoy.Proxy {
+func (pr *ProxyRegistry) GetConnectedProxy(connectionID int64) *models.Proxy {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 	return pr.connectedProxies[connectionID]
@@ -43,11 +41,11 @@ func (pr *ProxyRegistry) GetConnectedProxyCount() int {
 }
 
 // ListConnectedProxies lists the Envoy proxies already connected and the time they first connected.
-func (pr *ProxyRegistry) ListConnectedProxies() map[string]*envoy.Proxy {
+func (pr *ProxyRegistry) ListConnectedProxies() map[string]*models.Proxy {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 
-	proxies := make(map[string]*envoy.Proxy, len(pr.connectedProxies))
+	proxies := make(map[string]*models.Proxy, len(pr.connectedProxies))
 	for _, p := range pr.connectedProxies {
 		// A proxy could connect twice quickly and not register the disconnect, so we return the proxy with the higher connection ID.
 		if prior := proxies[p.UUID.String()]; prior == nil || prior.GetConnectionID() < p.GetConnectionID() {

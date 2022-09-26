@@ -19,10 +19,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/compute"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 type fakeConfig string
@@ -38,7 +38,7 @@ func (g *fakeGenerator) getCallCount(uuid string) int {
 	return g.callCount[uuid]
 }
 
-func (g *fakeGenerator) GenerateConfig(ctx context.Context, proxy *envoy.Proxy) (fakeConfig, error) {
+func (g *fakeGenerator) GenerateConfig(ctx context.Context, proxy *models.Proxy) (fakeConfig, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.callCount[proxy.UUID.String()]++
@@ -64,7 +64,7 @@ func (s *fakeServer) getCallCount(uuid string) int {
 	return s.callCount[uuid]
 }
 
-func (s *fakeServer) UpdateProxy(ctx context.Context, proxy *envoy.Proxy, config fakeConfig) error {
+func (s *fakeServer) UpdateProxy(ctx context.Context, proxy *models.Proxy, config fakeConfig) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.callCount[proxy.UUID.String()]++
@@ -110,12 +110,12 @@ func TestControlLoop(t *testing.T) {
 
 	uuid1 := uuid.New()
 	id1 := identity.New("p2", "ns2")
-	cert1, err := certManager.IssueCertificate(certificate.ForCommonNamePrefix(envoy.NewXDSCertCNPrefix(uuid1, envoy.KindSidecar, id1)))
+	cert1, err := certManager.IssueCertificate(certificate.ForCommonNamePrefix(models.NewXDSCertCNPrefix(uuid1, models.KindSidecar, id1)))
 	tassert.NoError(err)
 
 	uuid2 := uuid.New()
 	id2 := identity.New("p2", "ns2")
-	cert2, err := certManager.IssueCertificate(certificate.ForCommonNamePrefix(envoy.NewXDSCertCNPrefix(uuid2, envoy.KindSidecar, id2)))
+	cert2, err := certManager.IssueCertificate(certificate.ForCommonNamePrefix(models.NewXDSCertCNPrefix(uuid2, models.KindSidecar, id2)))
 	tassert.NoError(err)
 
 	x509Cert1, err := certificate.DecodePEMCertificate(cert1.GetCertificateChain())

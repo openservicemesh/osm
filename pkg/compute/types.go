@@ -8,7 +8,6 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/models"
@@ -50,12 +49,12 @@ type Interface interface {
 	// the scope of the provider
 	GetResolvableEndpointsForService(service.MeshService) []endpoint.Endpoint
 
-	IsMetricsEnabled(*envoy.Proxy) (bool, error)
+	IsMetricsEnabled(*models.Proxy) (bool, error)
 
 	GetHostnamesForService(svc service.MeshService, localNamespace bool) []string
 
 	// ListServicesForProxy gets the services that map to the given proxy.
-	ListServicesForProxy(p *envoy.Proxy) ([]service.MeshService, error)
+	ListServicesForProxy(p *models.Proxy) ([]service.MeshService, error)
 
 	// ListEgressPoliciesForServiceAccount lists the Egress policies for the given source identity based on service accounts
 	ListEgressPoliciesForServiceAccount(sa identity.K8sServiceAccount) []*policyv1alpha1.Egress
@@ -75,10 +74,10 @@ type Interface interface {
 	// GetUpstreamTrafficSettingByHost returns the UpstreamTrafficSetting resource that matches the host
 	GetUpstreamTrafficSettingByHost(host string) *policyv1alpha1.UpstreamTrafficSetting
 
-	GetProxyStatsHeaders(p *envoy.Proxy) (map[string]string, error)
+	GetProxyStatsHeaders(p *models.Proxy) (map[string]string, error)
 
 	// VerifyProxy attempts to lookup a pod that matches the given proxy instance by service identity, namespace, and UUID
-	VerifyProxy(proxy *envoy.Proxy) error
+	VerifyProxy(proxy *models.Proxy) error
 
 	// ListNamespaces returns the namespaces monitored by the mesh
 	ListNamespaces() ([]string, error)

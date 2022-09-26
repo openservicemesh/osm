@@ -8,9 +8,9 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/generator/lds"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -19,7 +19,7 @@ import (
 // 1. Inbound listener to handle incoming traffic
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
-func (g *EnvoyConfigGenerator) generateLDS(ctx context.Context, proxy *envoy.Proxy) ([]types.Resource, error) {
+func (g *EnvoyConfigGenerator) generateLDS(ctx context.Context, proxy *models.Proxy) ([]types.Resource, error) {
 	var ldsResources []types.Resource
 
 	var statsHeaders map[string]string

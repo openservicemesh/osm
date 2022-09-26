@@ -6,15 +6,15 @@ import (
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // SecretsBuilder is responsible for constructing the SDS response.
 type SecretsBuilder struct {
-	proxy *envoy.Proxy
+	proxy *models.Proxy
 
 	// Service certificate for this proxy
 	serviceCert *certificate.Certificate
@@ -31,7 +31,7 @@ func NewBuilder() *SecretsBuilder { //nolint: revive // unexported-return
 }
 
 // SetProxy sets the proxy these secrets are destined for.
-func (b *SecretsBuilder) SetProxy(proxy *envoy.Proxy) *SecretsBuilder {
+func (b *SecretsBuilder) SetProxy(proxy *models.Proxy) *SecretsBuilder {
 	b.proxy = proxy
 	return b
 }

@@ -11,14 +11,14 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 var _ = Describe("Test catalog proxy register/unregister", func() {
 	proxyRegistry := NewProxyRegistry()
-	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil, 1)
+	proxy := models.NewProxy(models.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil, 1)
 
 	It("Proxy is valid", func() {
 		Expect(proxy).ToNot((BeNil()))
@@ -54,7 +54,7 @@ func TestRegisterUnregister(t *testing.T) {
 	proxyUUID := uuid.New()
 	var i int64
 	for i = 0; i < 10; i++ {
-		proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("foo", "bar"), nil, i)
+		proxy := models.NewProxy(models.KindSidecar, proxyUUID, identity.New("foo", "bar"), nil, i)
 		assert.Nil(proxyRegistry.GetConnectedProxy(i))
 		proxyRegistry.RegisterProxy(proxy)
 		assert.Equal(proxy, proxyRegistry.GetConnectedProxy(i))
@@ -79,7 +79,7 @@ func BenchmarkRegistryAdd(b *testing.B) {
 		total := 10000
 
 		for j := 0; j < total; j++ {
-			proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil, int64(j))
+			proxy := models.NewProxy(models.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil, int64(j))
 			proxyRegistry.RegisterProxy(proxy)
 			proxyRegistry.UnregisterProxy(int64(j))
 		}
@@ -102,7 +102,7 @@ func BenchmarkRegistryGetCount(b *testing.B) {
 	for j := 0; j < total; j++ {
 		go func() {
 			proxyRegistry.RegisterProxy(
-				envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil, 1))
+				models.NewProxy(models.KindSidecar, uuid.New(), identity.New("foo", "bar"), nil, 1))
 			wg.Done()
 		}()
 	}

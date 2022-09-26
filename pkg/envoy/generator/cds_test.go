@@ -24,6 +24,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/models"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -45,7 +46,7 @@ func TestGenerateCDS(t *testing.T) {
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 
 	proxyUUID := uuid.New()
-	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
+	proxy := models.NewProxy(models.KindSidecar, proxyUUID, identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
 
 	testMeshSvc := service.MeshService{
 		Namespace:  tests.BookbuyerService.Namespace,
@@ -403,7 +404,7 @@ func TestGenerateCDS(t *testing.T) {
 }
 
 func TestNewResponseListServicesError(t *testing.T) {
-	proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
+	proxy := models.NewProxy(models.KindSidecar, uuid.New(), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
@@ -421,7 +422,7 @@ func TestNewResponseListServicesError(t *testing.T) {
 func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
 	proxyUUID := uuid.New()
-	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
+	proxy := models.NewProxy(models.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
@@ -443,7 +444,7 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
 	proxyUUID := uuid.New()
-	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
+	proxy := models.NewProxy(models.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)

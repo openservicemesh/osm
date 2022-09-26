@@ -12,11 +12,11 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -43,7 +43,7 @@ func (cp *ControlPlane[T]) ProxyConnected(ctx context.Context, connectionID int6
 		return fmt.Errorf("error parsing certificate common name %s: %w", certCommonName, err)
 	}
 
-	proxy := envoy.NewProxy(kind, uuid, si, utils.GetIPFromContext(ctx), connectionID)
+	proxy := models.NewProxy(kind, uuid, si, utils.GetIPFromContext(ctx), connectionID)
 
 	if err := cp.catalog.VerifyProxy(proxy); err != nil {
 		return err
@@ -77,7 +77,7 @@ func (cp *ControlPlane[T]) ProxyConnected(ctx context.Context, connectionID int6
 	return nil
 }
 
-func (cp *ControlPlane[T]) scheduleUpdate(ctx context.Context, proxy *envoy.Proxy) {
+func (cp *ControlPlane[T]) scheduleUpdate(ctx context.Context, proxy *models.Proxy) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	cp.workqueues.AddJob(
@@ -94,7 +94,7 @@ func (cp *ControlPlane[T]) scheduleUpdate(ctx context.Context, proxy *envoy.Prox
 	wg.Wait()
 }
 
-func (cp *ControlPlane[T]) update(ctx context.Context, proxy *envoy.Proxy) error {
+func (cp *ControlPlane[T]) update(ctx context.Context, proxy *models.Proxy) error {
 	resources, err := cp.configGenerator.GenerateConfig(ctx, proxy)
 	if err != nil {
 		return err
@@ -114,7 +114,7 @@ func (cp *ControlPlane[T]) ProxyDisconnected(connectionID int64) {
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 }
 
-func getCertificateCommonNameMeta(cn certificate.CommonName) (envoy.ProxyKind, uuid.UUID, identity.ServiceIdentity, error) {
+func getCertificateCommonNameMeta(cn certificate.CommonName) (models.ProxyKind, uuid.UUID, identity.ServiceIdentity, error) {
 	// XDS cert CN is of the form <proxy-UUID>.<kind>.<proxy-identity>.<trust-domain>
 	chunks := strings.SplitN(cn.String(), constants.DomainDelimiter, 5)
 	if len(chunks) < 4 {
@@ -136,5 +136,5 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (envoy.ProxyKind, u
 		return "", uuid.UUID{}, "", errInvalidCertificateCN
 	}
 
-	return envoy.ProxyKind(chunks[1]), proxyUUID, identity.New(chunks[2], chunks[3]), nil
+	return models.ProxyKind(chunks[1]), proxyUUID, identity.New(chunks[2], chunks[3]), nil
 }
