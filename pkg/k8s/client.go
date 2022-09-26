@@ -20,7 +20,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/models"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -335,7 +334,7 @@ func (c *Client) GetMeshConfig() configv1alpha2.MeshConfig {
 
 // GetPodForProxy returns the pod that the given proxy is attached to, based on the UUID and service identity.
 // TODO(4863): move this to kube/client.go
-func (c *Client) GetPodForProxy(proxy *envoy.Proxy) (*v1.Pod, error) {
+func (c *Client) GetPodForProxy(proxy *models.Proxy) (*v1.Pod, error) {
 	proxyUUID, svcAccount := proxy.UUID.String(), proxy.Identity.ToK8sServiceAccount()
 	log.Trace().Msgf("Looking for pod with label %q=%q", constants.EnvoyUniqueIDLabelName, proxyUUID)
 	podList := c.ListPods()

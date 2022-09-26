@@ -11,8 +11,8 @@ import (
 	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 const (
@@ -60,7 +60,7 @@ func (s *Server) Start(ctx context.Context, certManager *certificate.Manager, ca
 // UpdateProxy stores a group of resources as a new Snapshot with a new version in the cache.
 // It also runs a consistency check on the snapshot (will warn if there are missing resources referenced in
 // the snapshot)
-func (s *Server) UpdateProxy(ctx context.Context, proxy *envoy.Proxy, snapshotResources map[string][]types.Resource) error {
+func (s *Server) UpdateProxy(ctx context.Context, proxy *models.Proxy, snapshotResources map[string][]types.Resource) error {
 	uuid := proxy.UUID.String()
 
 	s.configVerMutex.Lock()

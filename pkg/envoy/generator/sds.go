@@ -6,14 +6,14 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/generator/sds"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewResponse creates a new Secrets Discovery Response.
-func (g *EnvoyConfigGenerator) generateSDS(ctx context.Context, proxy *envoy.Proxy) ([]types.Resource, error) {
+func (g *EnvoyConfigGenerator) generateSDS(ctx context.Context, proxy *models.Proxy) ([]types.Resource, error) {
 	log.Info().Str("proxy", proxy.String()).Msg("Composing SDS Discovery Response")
 
 	// sdsBuilder: builds the Secret Discovery Response

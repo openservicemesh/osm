@@ -12,7 +12,6 @@ import (
 	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
-	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	models "github.com/openservicemesh/osm/pkg/models"
 	service "github.com/openservicemesh/osm/pkg/service"
@@ -145,7 +144,7 @@ func (mr *MockInterfaceMockRecorder) GetOSMNamespace() *gomock.Call {
 }
 
 // GetProxyStatsHeaders mocks base method.
-func (m *MockInterface) GetProxyStatsHeaders(arg0 *envoy.Proxy) (map[string]string, error) {
+func (m *MockInterface) GetProxyStatsHeaders(arg0 *models.Proxy) (map[string]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProxyStatsHeaders", arg0)
 	ret0, _ := ret[0].(map[string]string)
@@ -272,7 +271,7 @@ func (mr *MockInterfaceMockRecorder) GetUpstreamTrafficSettingByService(arg0 int
 }
 
 // IsMetricsEnabled mocks base method.
-func (m *MockInterface) IsMetricsEnabled(arg0 *envoy.Proxy) (bool, error) {
+func (m *MockInterface) IsMetricsEnabled(arg0 *models.Proxy) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsMetricsEnabled", arg0)
 	ret0, _ := ret[0].(bool)
@@ -486,7 +485,7 @@ func (mr *MockInterfaceMockRecorder) ListServices() *gomock.Call {
 }
 
 // ListServicesForProxy mocks base method.
-func (m *MockInterface) ListServicesForProxy(arg0 *envoy.Proxy) ([]service.MeshService, error) {
+func (m *MockInterface) ListServicesForProxy(arg0 *models.Proxy) ([]service.MeshService, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListServicesForProxy", arg0)
 	ret0, _ := ret[0].([]service.MeshService)
@@ -631,7 +630,7 @@ func (mr *MockInterfaceMockRecorder) UpdateUpstreamTrafficSettingStatus(arg0 int
 }
 
 // VerifyProxy mocks base method.
-func (m *MockInterface) VerifyProxy(arg0 *envoy.Proxy) error {
+func (m *MockInterface) VerifyProxy(arg0 *models.Proxy) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "VerifyProxy", arg0)
 	ret0, _ := ret[0].(error)

@@ -16,7 +16,6 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	configv1alpha2Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
@@ -136,7 +135,7 @@ type Controller interface {
 	GetEndpoints(name, namespace string) (*corev1.Endpoints, error)
 
 	// GetPodForProxy returns the pod that the given proxy is attached to, based on the UUID and service identity.
-	GetPodForProxy(proxy *envoy.Proxy) (*corev1.Pod, error)
+	GetPodForProxy(proxy *models.Proxy) (*corev1.Pod, error)
 }
 
 // PassthroughInterface is the interface for methods that are implemented by the k8s.Client, but are not considered

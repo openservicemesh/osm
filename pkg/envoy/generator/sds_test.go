@@ -13,9 +13,9 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -74,7 +74,7 @@ func TestGenerateSDS(t *testing.T) {
 			assert := tassert.New(t)
 			// The Common Name of the xDS Certificate (issued to the Envoy on the Pod by the Injector) will
 			// have be prefixed with the ID of the pod. It is the first chunk of a dot-separated string.
-			proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), proxySvcID, nil, 1)
+			proxy := models.NewProxy(models.KindSidecar, uuid.New(), proxySvcID, nil, 1)
 			meshCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 
 			var services []service.MeshService

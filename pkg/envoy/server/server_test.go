@@ -17,6 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/generator"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -27,7 +28,7 @@ func TestADSResponse(t *testing.T) {
 	proxyUUID := uuid.New()
 	proxySvcID := tests.BookstoreServiceIdentity
 
-	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, proxySvcID, nil, 1)
+	proxy := models.NewProxy(models.KindSidecar, proxyUUID, proxySvcID, nil, 1)
 	a.NotNil(proxy)
 
 	provider := compute.NewMockInterface(mockCtrl)

@@ -5,14 +5,14 @@ import (
 
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/generator/rds"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 // generateRDS creates a new Route Discovery Response.
-func (g *EnvoyConfigGenerator) generateRDS(ctx context.Context, proxy *envoy.Proxy) ([]types.Resource, error) {
+func (g *EnvoyConfigGenerator) generateRDS(ctx context.Context, proxy *models.Proxy) ([]types.Resource, error) {
 	proxyServices, err := g.catalog.ListServicesForProxy(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).

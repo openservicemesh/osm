@@ -11,7 +11,6 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	envoy "github.com/openservicemesh/osm/pkg/envoy"
 	models "github.com/openservicemesh/osm/pkg/models"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
@@ -129,7 +128,7 @@ func (mr *MockControllerMockRecorder) GetOSMNamespace() *gomock.Call {
 }
 
 // GetPodForProxy mocks base method.
-func (m *MockController) GetPodForProxy(arg0 *envoy.Proxy) (*v1.Pod, error) {
+func (m *MockController) GetPodForProxy(arg0 *models.Proxy) (*v1.Pod, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPodForProxy", arg0)
 	ret0, _ := ret[0].(*v1.Pod)

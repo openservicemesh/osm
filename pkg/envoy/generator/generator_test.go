@@ -17,9 +17,9 @@ import (
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -27,7 +27,7 @@ import (
 func TestGenerateConfig(t *testing.T) {
 	tassert := assert.New(t)
 	proxyUUID := uuid.New()
-	proxy := envoy.NewProxy(envoy.KindSidecar, proxyUUID, tests.BookbuyerServiceIdentity, nil, 1)
+	proxy := models.NewProxy(models.KindSidecar, proxyUUID, tests.BookbuyerServiceIdentity, nil, 1)
 
 	mockCtrl := gomock.NewController(t)
 

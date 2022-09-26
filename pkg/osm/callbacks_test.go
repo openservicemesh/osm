@@ -8,8 +8,8 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 func TestGetCertificateCommonNameMeta(t *testing.T) {
@@ -44,14 +44,14 @@ func TestGetCertificateCommonNameMeta(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tc.uuid, envoy.KindSidecar, tc.identity))
+			cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tc.uuid, models.KindSidecar, tc.identity))
 
 			kind, uuid, si, err := getCertificateCommonNameMeta(cn)
 
 			assert.Equal(tc.err, err)
 
 			if err == nil {
-				assert.Equal(envoy.KindSidecar, kind)
+				assert.Equal(models.KindSidecar, kind)
 				assert.Equal(tc.uuid, uuid)
 				assert.Equal(tc.identity, si)
 			}

@@ -26,9 +26,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -818,7 +818,7 @@ func TestRDSRespose(t *testing.T) {
 	}
 }
 
-func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
+func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*models.Proxy, error) {
 	// Create pod for bookbuyer
 	bookbuyerPodLabels := map[string]string{
 		constants.AppLabel:               tests.BookbuyerService.Name,
@@ -866,10 +866,10 @@ func getBookstoreV1Proxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) 
 		}
 	}
 
-	return envoy.NewProxy(envoy.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookstoreServiceIdentity, nil, 1), nil
+	return models.NewProxy(models.KindSidecar, uuid.MustParse(tests.ProxyUUID), tests.BookstoreServiceIdentity, nil, 1), nil
 }
 
-func getSidecarProxy(kubeClient kubernetes.Interface, proxyUUID uuid.UUID, svcIdentity identity.ServiceIdentity) (*envoy.Proxy, error) {
+func getSidecarProxy(kubeClient kubernetes.Interface, proxyUUID uuid.UUID, svcIdentity identity.ServiceIdentity) (*models.Proxy, error) {
 	bookbuyerPodLabels := map[string]string{
 		constants.AppLabel:               tests.BookbuyerService.Name,
 		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
@@ -902,5 +902,5 @@ func getSidecarProxy(kubeClient kubernetes.Interface, proxyUUID uuid.UUID, svcId
 		}
 	}
 
-	return envoy.NewProxy(envoy.KindSidecar, proxyUUID, svcIdentity, nil, 1), nil
+	return models.NewProxy(models.KindSidecar, proxyUUID, svcIdentity, nil, 1), nil
 }

@@ -5,7 +5,7 @@ import (
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
-	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -28,7 +28,7 @@ type routesBuilder struct {
 	outboundPortSpecificRouteConfigs map[int][]*trafficpolicy.OutboundTrafficPolicy
 	ingressTrafficPolicies           []*trafficpolicy.InboundTrafficPolicy
 	egressPortSpecificRouteConfigs   map[int][]*trafficpolicy.EgressHTTPRouteConfig
-	proxy                            *envoy.Proxy
+	proxy                            *models.Proxy
 	statsHeaders                     map[string]string
 	trustDomain                      string
 }
@@ -57,7 +57,7 @@ func (b *routesBuilder) EgressPortSpecificRouteConfigs(egressPortSpecificRouteCo
 	return b
 }
 
-func (b *routesBuilder) Proxy(proxy *envoy.Proxy) *routesBuilder {
+func (b *routesBuilder) Proxy(proxy *models.Proxy) *routesBuilder {
 	b.proxy = proxy
 	return b
 }

@@ -11,8 +11,8 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
+	"github.com/openservicemesh/osm/pkg/models"
 
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -74,7 +74,7 @@ func TestSecretsBuilder(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			builder := NewBuilder()
-			proxy := envoy.NewProxy(envoy.KindSidecar, uuid.New(), identity.New("sa-1", "ns-1"), nil, 1)
+			proxy := models.NewProxy(models.KindSidecar, uuid.New(), identity.New("sa-1", "ns-1"), nil, 1)
 			builder.SetProxy(proxy).SetProxyCert(cert).SetTrustDomain("cluster.local")
 
 			builder.SetServiceIdentitiesForService(tc.serviceIdentitiesForService)
