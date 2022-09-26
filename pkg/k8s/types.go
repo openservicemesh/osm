@@ -3,10 +3,12 @@
 package k8s
 
 import (
+	"context"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
@@ -21,6 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 var (
@@ -92,6 +95,7 @@ const (
 type Client struct {
 	policyClient   policyv1alpha1Client.Interface
 	configClient   configv1alpha2Client.Interface
+	kubeClient     kubernetes.Interface
 	informers      *informers.InformerCollection
 	msgBroker      *messaging.Broker
 	osmNamespace   string
@@ -101,6 +105,14 @@ type Client struct {
 // Controller is the controller interface for K8s services
 type Controller interface {
 	PassthroughInterface
+	// GetSecret returns the secret for a given namespace and secret name
+	GetSecret(string, string) *models.Secret
+
+	// ListSecrets returns a list of secrets
+	ListSecrets() []*models.Secret
+
+	// UpdateSecret updates the given secret
+	UpdateSecret(context.Context, *models.Secret) error
 
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service
@@ -123,6 +135,7 @@ type Controller interface {
 	// GetEndpoints returns the endpoints for a given service, if found
 	GetEndpoints(name, namespace string) (*corev1.Endpoints, error)
 
+	// GetPodForProxy returns the pod that the given proxy is attached to, based on the UUID and service identity.
 	GetPodForProxy(proxy *envoy.Proxy) (*corev1.Pod, error)
 }
 

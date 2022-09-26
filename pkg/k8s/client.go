@@ -7,6 +7,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
@@ -16,6 +17,7 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	configv1alpha2Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
+	"github.com/openservicemesh/osm/pkg/models"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -25,13 +27,14 @@ import (
 )
 
 // NewClient returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewClient(osmNamespace, meshConfigName string, informerCollection *informers.InformerCollection, policyClient policyv1alpha1Client.Interface, configClient configv1alpha2Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *Client {
+func NewClient(osmNamespace, meshConfigName string, informerCollection *informers.InformerCollection, kubeClient kubernetes.Interface, policyClient policyv1alpha1Client.Interface, configClient configv1alpha2Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *Client {
 	// Initialize client object
 	c := &Client{
 		informers:      informerCollection,
 		msgBroker:      msgBroker,
 		policyClient:   policyClient,
 		configClient:   configClient,
+		kubeClient:     kubeClient,
 		osmNamespace:   osmNamespace,
 		meshConfigName: meshConfigName,
 	}
@@ -177,6 +180,57 @@ func (c *Client) GetService(name, namespace string) *corev1.Service {
 		return svc
 	}
 	return nil
+}
+
+// GetSecret returns the secret for a given secret name and namespace
+func (c *Client) GetSecret(name, namespace string) *models.Secret {
+	secretIf, exists, err := c.informers.GetByKey(informers.InformerKeySecret, key(name, namespace))
+	if exists && err == nil {
+		corev1Secret, ok := secretIf.(*corev1.Secret)
+		if !ok {
+			return nil
+		}
+		return &models.Secret{
+			Name:      corev1Secret.Name,
+			Namespace: corev1Secret.Namespace,
+			Data:      corev1Secret.Data,
+		}
+	}
+	return nil
+}
+
+// ListSecrets returns a list of secrets
+func (c *Client) ListSecrets() []*models.Secret {
+	var secrets []*models.Secret
+
+	for _, secretPtr := range c.informers.List(informers.InformerKeySecret) {
+		if secretPtr == nil {
+			continue
+		}
+		secret, ok := secretPtr.(*corev1.Secret)
+		if !ok {
+			continue
+		}
+
+		secrets = append(secrets, &models.Secret{
+			Name:      secret.Name,
+			Namespace: secret.Namespace,
+			Data:      secret.Data,
+		})
+	}
+
+	return secrets
+}
+
+// UpdateSecret updates the given secret
+func (c *Client) UpdateSecret(ctx context.Context, secret *models.Secret) error {
+	corev1Secret, err := c.kubeClient.CoreV1().Secrets(secret.Namespace).Get(ctx, secret.Name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	corev1Secret.Data = secret.Data
+	_, err = c.kubeClient.CoreV1().Secrets(secret.Namespace).Update(ctx, corev1Secret, metav1.UpdateOptions{})
+	return err
 }
 
 // ListServices returns a list of services that are part of monitored namespaces

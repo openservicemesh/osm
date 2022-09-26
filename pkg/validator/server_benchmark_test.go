@@ -51,7 +51,7 @@ func BenchmarkDoValidation(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
-	k8sClient := k8s.NewClient("osm-ns", tests.OsmMeshConfigName, informerCollection, policyClient, configClient, msgBroker)
+	k8sClient := k8s.NewClient("osm-ns", tests.OsmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, msgBroker)
 	compute := kube.NewClient(k8sClient)
 	kv := &validator{
 		computeClient: compute,

@@ -165,7 +165,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 		policyClient := policyFake.NewSimpleClientset()
 		configClient := configFake.NewSimpleClientset()
-		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, policyClient, configClient, broker)
+		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, kube, policyClient, configClient, broker)
 		compute := computekube.NewClient(k8sClient)
 		ctx, cancel := context.WithCancel(context.Background())
 		err = NewValidatingWebhook(ctx, webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, compute)
@@ -185,7 +185,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 		policyClient := policyFake.NewSimpleClientset()
 		configClient := configFake.NewSimpleClientset()
-		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, policyClient, configClient, broker)
+		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, kube, policyClient, configClient, broker)
 
 		compute := computekube.NewClient(k8sClient)
 		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, compute)
@@ -206,7 +206,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 		policyClient := policyFake.NewSimpleClientset()
 		configClient := configFake.NewSimpleClientset()
-		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, policyClient, configClient, broker)
+		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, kube, policyClient, configClient, broker)
 		compute := computekube.NewClient(k8sClient)
 
 		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, compute)

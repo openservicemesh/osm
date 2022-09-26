@@ -71,8 +71,21 @@ func (c *Certificate) GetTrustedCAs() pem.RootCertificate {
 	return c.TrustedCAs
 }
 
-// NewFromPEM is a helper returning a *certificate.Certificate from the PEM components given.
-func NewFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey) (*Certificate, error) {
+// GetSigningIssuerID returns the signing Issuer ID
+// for this certificates holder
+func (c *Certificate) GetSigningIssuerID() string {
+	return c.signingIssuerID
+}
+
+// GetValidatingIssuerID returns the validating Issuer ID
+// for this certificates holder
+func (c *Certificate) GetValidatingIssuerID() string {
+	return c.validatingIssuerID
+}
+
+// NewCertificateFromPEM is a helper returning a *certificate.Certificate from the PEM components, signingIssuerID, and validatingIssuerID given
+func NewCertificateFromPEM(pemCert, pemKey, caCert []byte,
+	signingIssuerID, validatingIssuerID string) (*Certificate, error) {
 	x509Cert, err := DecodePEMCertificate(pemCert)
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
@@ -82,12 +95,14 @@ func NewFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey) (*Certificate, e
 	}
 
 	return &Certificate{
-		CommonName:   CommonName(x509Cert.Subject.CommonName),
-		SerialNumber: SerialNumber(x509Cert.SerialNumber.String()),
-		CertChain:    pemCert,
-		IssuingCA:    pem.RootCertificate(pemCert),
-		TrustedCAs:   pem.RootCertificate(pemCert),
-		PrivateKey:   pemKey,
-		Expiration:   x509Cert.NotAfter,
+		CommonName:         CommonName(x509Cert.Subject.CommonName),
+		SerialNumber:       SerialNumber(x509Cert.SerialNumber.String()),
+		CertChain:          pemCert,
+		TrustedCAs:         caCert,
+		PrivateKey:         pemKey,
+		Expiration:         x509Cert.NotAfter,
+		validatingIssuerID: validatingIssuerID,
+		signingIssuerID:    signingIssuerID,
+		certType:           internal,
 	}, nil
 }

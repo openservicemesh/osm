@@ -3,19 +3,28 @@ package injector
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	xds_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/openservicemesh/osm/pkg/version"
+)
+
+const (
+	signingIssuerIDKey    = "signing_issuer_id"
+	validatingIssuerIDKey = "validating_issuer_id"
 )
 
 // This will read an existing envoy bootstrap config, and create a new copy by changing the NodeID, and certificates.
@@ -95,9 +104,126 @@ func (wh *mutatingWebhook) marshalAndSaveBootstrap(name, namespace string, confi
 			bootstrap.EnvoyXDSCACertFile:                  cert.GetTrustedCAs(),
 			bootstrap.EnvoyXDSCertFile:                    cert.GetCertificateChain(),
 			bootstrap.EnvoyXDSKeyFile:                     cert.GetPrivateKey(),
+			signingIssuerIDKey:                            []byte(cert.GetSigningIssuerID()),
+			validatingIssuerIDKey:                         []byte(cert.GetValidatingIssuerID()),
 		},
 	}
 
 	log.Debug().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
+}
+
+// NewBootstrapSecretRotator returns a new bootstrap secret rotator.
+func NewBootstrapSecretRotator(compIf compute.Interface, certManager *certificate.Manager, checkInterval time.Duration) *BootstrapSecretRotator {
+	return &BootstrapSecretRotator{
+		computeInterface: compIf,
+		certManager:      certManager,
+		checkInterval:    checkInterval,
+	}
+}
+
+// getBootstrapSecrets returns the bootstrap secrets stored in the informerCollection's store.
+func (b *BootstrapSecretRotator) getBootstrapSecrets() []*models.Secret {
+	secrets := b.computeInterface.ListSecrets()
+	var bootstrapSecrets []*models.Secret
+
+	for _, secret := range secrets {
+		// finds bootstrap secrets
+		if strings.Contains(secret.Name, bootstrapSecretPrefix) {
+			bootstrapSecrets = append(bootstrapSecrets, secret)
+		}
+	}
+	return bootstrapSecrets
+}
+
+// rotateBootstrapSecrets updates the bootstrap secret by getting the current or issuing a new certificate.
+func (b *BootstrapSecretRotator) rotateBootstrapSecrets(ctx context.Context) {
+	bootstrapSecrets := b.getBootstrapSecrets()
+	for _, s := range bootstrapSecrets {
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			// gets the most up-to-date secret
+			secret := b.computeInterface.GetSecret(s.Name, s.Namespace)
+
+			cert, err := getCertFromSecret(secret)
+			if err != nil {
+				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingCertFromSecret)).
+					Msgf("Error getting cert from bootstrap secret %s/%s", secret.Namespace, secret.Name)
+				return err
+			}
+			if !b.certManager.ShouldRotate(cert) {
+				return nil
+			}
+
+			issuedCert, err := b.certManager.IssueCertificate(certificate.ForCommonName(cert.CommonName.String()))
+			if err != nil {
+				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).Msgf("Error rotating cert for bootstrap secret %s/%s", secret.Namespace, secret.Name)
+				return err
+			}
+
+			secret.Data[bootstrap.EnvoyXDSCACertFile] = issuedCert.GetTrustedCAs()
+			secret.Data[bootstrap.EnvoyXDSCertFile] = issuedCert.GetCertificateChain()
+			secret.Data[bootstrap.EnvoyXDSKeyFile] = issuedCert.GetPrivateKey()
+			secret.Data[signingIssuerIDKey] = []byte(issuedCert.GetSigningIssuerID())
+			secret.Data[validatingIssuerIDKey] = []byte(issuedCert.GetValidatingIssuerID())
+
+			err = b.computeInterface.UpdateSecret(ctx, secret)
+			return err
+		})
+		if err != nil {
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrUpdatingBootstrapSecret)).
+				Msgf("Error updating bootstrap secret %s/%s", s.Namespace, s.Name)
+		}
+	}
+}
+
+func getCertFromSecret(secret *models.Secret) (*certificate.Certificate, error) {
+	pemCert, ok := secret.Data[bootstrap.EnvoyXDSCertFile]
+	if !ok {
+		log.Error().Err(certificate.ErrInvalidCertSecret).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingCertFromSecret)).
+			Msgf("Opaque k8s secret %s/%s does not have required field %q", secret.Namespace, secret.Name, bootstrap.EnvoyXDSCertFile)
+		return nil, certificate.ErrInvalidCertSecret
+	}
+
+	pemKey, ok := secret.Data[bootstrap.EnvoyXDSKeyFile]
+	if !ok {
+		log.Error().Err(certificate.ErrInvalidCertSecret).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingPrivateKeyFromSecret)).
+			Msgf("Opaque k8s secret %s/%s does not have required field %q", secret.Namespace, secret.Name, bootstrap.EnvoyXDSKeyFile)
+		return nil, certificate.ErrInvalidCertSecret
+	}
+
+	caCert, ok := secret.Data[bootstrap.EnvoyXDSCACertFile]
+	if !ok {
+		log.Error().Err(certificate.ErrInvalidCertSecret).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingCACertFromSecret)).
+			Msgf("Opaque k8s secret %s/%s does not have required field %q", secret.Namespace, secret.Name, bootstrap.EnvoyXDSCACertFile)
+		return nil, certificate.ErrInvalidCertSecret
+	}
+
+	signingIssuerID, ok := secret.Data[signingIssuerIDKey]
+	if !ok {
+		log.Warn().Msgf("Opaque k8s secret %s/%s does not have field %q", secret.Namespace, secret.Name, signingIssuerID)
+	}
+
+	validatingIssuerID, ok := secret.Data[validatingIssuerIDKey]
+	if !ok {
+		log.Warn().Msgf("Opaque k8s secret %s/%s does not have field %q", secret.Namespace, secret.Name, validatingIssuerID)
+	}
+
+	return certificate.NewCertificateFromPEM(pemCert, pemKey, caCert, string(signingIssuerID), string(validatingIssuerID))
+}
+
+// StartBootstrapSecretRotationTicker will start a ticker to check if the bootstrap secrets should be
+// updated every BootstrapSecretRotator check interval
+func (b *BootstrapSecretRotator) StartBootstrapSecretRotationTicker(ctx context.Context) {
+	ticker := time.NewTicker(b.checkInterval)
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				b.rotateBootstrapSecrets(ctx)
+			}
+		}
+	}()
 }

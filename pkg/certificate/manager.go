@@ -166,8 +166,8 @@ func (m *Manager) GetTrustDomain() string {
 	return m.signingIssuer.TrustDomain
 }
 
-// shouldRotate determines whether a certificate should be rotated.
-func (m *Manager) shouldRotate(c *Certificate) bool {
+// ShouldRotate determines whether a certificate should be rotated.
+func (m *Manager) ShouldRotate(c *Certificate) bool {
 	// The certificate is going to expire at a timestamp T
 	// We want to renew earlier. How much earlier is defined in renewBeforeCertExpires.
 	// We add a few seconds noise to the early renew period so that certificates that may have been
@@ -288,7 +288,7 @@ func (m *Manager) issueCertificate(options IssueOptions) (*Certificate, error) {
 	cert := m.getFromCache(options.cacheKey()) // Don't call this while holding the lock
 	if cert != nil {
 		// check if cert needs to be rotated
-		rotate = m.shouldRotate(cert)
+		rotate = m.ShouldRotate(cert)
 		if !rotate {
 			return cert, nil
 		}

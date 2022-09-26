@@ -58,13 +58,20 @@ func WithKubeClient(kubeClient kubernetes.Interface) InformerCollectionOption {
 	return func(ic *InformerCollection) {
 		// initialize informers
 		monitorNamespaceLabel := map[string]string{constants.OSMKubeResourceMonitorAnnotation: ic.meshName}
+		monitorSecretLabel := map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue}
 
-		labelSelector := fields.SelectorFromSet(monitorNamespaceLabel).String()
-		option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
-			opt.LabelSelector = labelSelector
+		nsLabelSelector := fields.SelectorFromSet(monitorNamespaceLabel).String()
+		nsOption := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
+			opt.LabelSelector = nsLabelSelector
 		})
 
-		nsInformerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, DefaultKubeEventResyncInterval, option)
+		secretLabelSelector := fields.SelectorFromSet(monitorSecretLabel).String()
+		secretOption := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
+			opt.LabelSelector = secretLabelSelector
+		})
+
+		nsInformerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, DefaultKubeEventResyncInterval, nsOption)
+		secretInformerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, DefaultKubeEventResyncInterval, secretOption)
 		informerFactory := informers.NewSharedInformerFactory(kubeClient, DefaultKubeEventResyncInterval)
 		v1api := informerFactory.Core().V1()
 		ic.informers[InformerKeyNamespace] = nsInformerFactory.Core().V1().Namespaces().Informer()
@@ -72,6 +79,7 @@ func WithKubeClient(kubeClient kubernetes.Interface) InformerCollectionOption {
 		ic.informers[InformerKeyServiceAccount] = v1api.ServiceAccounts().Informer()
 		ic.informers[InformerKeyPod] = v1api.Pods().Informer()
 		ic.informers[InformerKeyEndpoints] = v1api.Endpoints().Informer()
+		ic.informers[InformerKeySecret] = secretInformerFactory.Core().V1().Secrets().Informer()
 	}
 }
 

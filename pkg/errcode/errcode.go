@@ -97,7 +97,7 @@ const (
 	// ErrFetchingCertSecret indicates a secret containing a certificate could not be fetched
 	ErrFetchingCertSecret ErrCode = iota + 4000
 
-	// ErrObtainingCertFrom indicates a certificate could not be obtained from a secret
+	// ErrObtainingCertFromSecret indicates a certificate could not be obtained from a secret
 	ErrObtainingCertFromSecret
 
 	// ErrObtainingPrivateKeyFromSecret indicates the certificate's private key could not be obtained from a secret
@@ -105,6 +105,9 @@ const (
 
 	// ErrObtainingCertExpirationFromSecret indicates the certificate's expiration could not be obtained from a secret
 	ErrObtainingCertExpirationFromSecret
+
+	// ErrObtainingCACertFromSecret indicates the certificate's CA could not be obtained from a secret
+	ErrObtainingCACertFromSecret
 
 	// ErrParsingCertExpiration indicates the certificate's expiration could not be parsed
 	ErrParsingCertExpiration
@@ -144,6 +147,9 @@ const (
 
 	// ErrRotatingCert indicates a certificate could not be rotated
 	ErrRotatingCert
+
+	// ErrUpdatingBootstrapSecret indicates a bootstrap secret could not be updated
+	ErrUpdatingBootstrapSecret
 )
 
 // Range 4100-4150 reserved for PubSub system

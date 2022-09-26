@@ -1,6 +1,8 @@
 package compute
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/types"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -9,13 +11,24 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // Interface is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
 type Interface interface {
 	k8s.PassthroughInterface
+	// GetSecret returns the secret for a given namespace and secret name
+	GetSecret(string, string) *models.Secret
 
+	// ListSecrets returns a list of secrets
+	ListSecrets() []*models.Secret
+
+	// UpdateSecret updates the given secret
+	UpdateSecret(context.Context, *models.Secret) error
+
+	// GetMeshService returns the service.MeshService corresponding to the Port used by clients
+	// to communicate with it
 	GetMeshService(name, namespace string, port uint16) (service.MeshService, error)
 
 	// GetServicesForServiceIdentity retrieves the namespaced services for a given service identity

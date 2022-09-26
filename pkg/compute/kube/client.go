@@ -1,6 +1,7 @@
 package kube
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strconv"
@@ -21,6 +22,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -215,6 +217,25 @@ func (c *client) GetResolvableEndpointsForService(svc service.MeshService) []end
 	}
 
 	return endpoints
+}
+
+// GetSecret returns the secret for a given secret name and namespace
+func (c *client) GetSecret(name, namespace string) *models.Secret {
+	return c.kubeController.GetSecret(name, namespace)
+}
+
+// ListSecrets returns a list of secrets
+func (c *client) ListSecrets() []*models.Secret {
+	var secrets []*models.Secret
+	secrets = append(secrets, c.kubeController.ListSecrets()...)
+
+	return secrets
+}
+
+// UpdateSecret updates the given secret
+func (c *client) UpdateSecret(ctx context.Context, secret *models.Secret) error {
+	err := c.kubeController.UpdateSecret(ctx, secret)
+	return err
 }
 
 // ListServices returns a list of services that are part of monitored namespaces

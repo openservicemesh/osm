@@ -7,9 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/sync/singleflight"
-
 	"github.com/cskr/pubsub"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
@@ -103,7 +102,7 @@ type issuer struct {
 
 // Manager represents all necessary information for the certificate managers.
 type Manager struct {
-	// Cache for all the certificates issued
+	// cache for all the certificates issued
 	// Types: map[certificate.CommonName]*certificate.Certificate
 	cache sync.Map
 
@@ -111,7 +110,7 @@ type Manager struct {
 	// TODO(#4711): define serviceCertValidityDuration in the MRC
 	serviceCertValidityDuration func() time.Duration
 
-	mu            sync.Mutex // mu syncrhonizes acces to the below resources.
+	mu            sync.Mutex // mu syncrhonizes access to the below resources.
 	signingIssuer *issuer
 	// equal to signingIssuer if there is no additional public cert issuer.
 	validatingIssuer *issuer

@@ -21,6 +21,8 @@ const (
 	InformerKeyEndpoints InformerKey = "Endpoints"
 	// InformerKeyServiceAccount is the InformerKey for a ServiceAccount informer
 	InformerKeyServiceAccount InformerKey = "ServiceAccount"
+	// InformerKeySecret is the InformerKey for a Secret informer
+	InformerKeySecret InformerKey = "Secret"
 
 	// InformerKeyTrafficSplit is the InformerKey for a TrafficSplit informer
 	InformerKeyTrafficSplit InformerKey = "TrafficSplit"
