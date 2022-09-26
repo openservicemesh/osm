@@ -24,4 +24,11 @@ type ExtAuthConfig struct {
 
 	// FailureModeAllow allows specifying if traffic should succeed or fail if the external authorization endpoint fails to respond.
 	FailureModeAllow bool
+
+	// IsHTTP defines a boolean indicating whether the request format for the ExtAuth config is HTTP or gRPC.
+	// If false, this means that only gRPC requests are enabled
+	IsHTTP bool
+
+	// HTTPPath defines the HTTP path for the ExtAuth configuration if the request type is set to "HTTP"
+	HTTPPath string
 }

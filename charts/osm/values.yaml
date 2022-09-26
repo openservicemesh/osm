@@ -265,6 +265,14 @@ osm:
   # -- Enable reconciler for OSM's CRDs and mutating webhook
   enableReconciler: false
 
+  # -- ExtAuth request format. 
+  extAuth:
+    # -- Allow forwarding requests via HTTP for the ExtAuth configuration. 
+    # -- Default is false, which means that only gRPC requests are enabled
+    isHTTP: false
+    # -- HTTPPath if request format for ExtAuth config is HTTP.
+    httpPath: ""
+
   # -- Deploy Prometheus with OSM installation
   deployPrometheus: false
 

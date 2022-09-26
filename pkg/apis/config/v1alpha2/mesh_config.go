@@ -171,6 +171,13 @@ type ExternalAuthzSpec struct {
 	// FailureModeAllow defines a boolean indicating if traffic should be allowed on a failure to get a
 	// response against the external authorization endpoint.
 	FailureModeAllow bool `json:"failureModeAllow"`
+
+	// IsHTTP defines a boolean indicating whether the request format for the ExtAuth config is HTTP or gRPC.
+	// If false, this means that only gRPC requests are enabled
+	IsHTTP bool `json:"isHTTP"`
+
+	// HTTPPath defines the HTTP path for the ExtAuth configuration if the request type is set to "HTTP"
+	HTTPPath string `json:"httpPath,omitempty"`
 }
 
 // CertificateSpec is the type to reperesent OSM's certificate management configuration.

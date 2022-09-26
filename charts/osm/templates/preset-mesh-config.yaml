@@ -20,7 +20,11 @@ data:
         "inboundPortExclusionList": {{.Values.osm.inboundPortExclusionList | mustToJson}},
         "outboundIPRangeExclusionList": {{.Values.osm.outboundIPRangeExclusionList | mustToJson}},
         "outboundIPRangeInclusionList": {{.Values.osm.outboundIPRangeInclusionList | mustToJson}},
-        "networkInterfaceExclusionList": {{.Values.osm.networkInterfaceExclusionList | mustToJson}}
+        "networkInterfaceExclusionList": {{.Values.osm.networkInterfaceExclusionList | mustToJson}},
+        "inboundExternalAuthorization": {
+          "isHTTP": {{.Values.osm.extAuth.isHTTP | mustToJson}},
+          "httpPath": {{.Values.osm.extAuth.httpPath | mustToJson}}
+        }
       },
       "observability": {
         "enableDebugServer": {{.Values.osm.enableDebugServer | mustToJson}},

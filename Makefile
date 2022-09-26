@@ -177,6 +177,10 @@ $(DOCKER_DEMO_TARGETS):
 .PHONY: docker-build-demo
 docker-build-demo: $(DOCKER_DEMO_TARGETS)
 
+.PHONY: docker-build-extauthz
+docker-build-extauthz:
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/ext-authz:$(CTR_TAG) -f dockerfiles/Dockerfile.ext-authz --build-arg GO_VERSION=$(DOCKER_GO_VERSION) .
+
 .PHONY: docker-build-init
 docker-build-init:
 	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/init:$(CTR_TAG) - < dockerfiles/Dockerfile.init

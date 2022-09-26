@@ -174,6 +174,7 @@
         "enablePermissiveTrafficPolicy",
         "enableEgress",
         "enableReconciler",
+        "extAuth",
         "deployPrometheus",
         "deployGrafana",
         "enableFluentbit",
@@ -534,6 +535,42 @@
           "examples": [
             false
           ]
+        },
+        "extAuth": {
+          "$id": "#/properties/osm/properties/extAuth",
+          "type": "object",
+          "title": "The extAuth schema",
+          "description": "Request format for external authorization config.",
+          "examples": [
+              {
+                "isHTTP": false,
+                "httpPath": ""
+              }
+          ],
+          "required": [
+            "isHTTP",
+            "httpPath"
+          ],
+          "properties": {
+            "isHTTP": {
+              "$id": "#/properties/osm/properties/extAuth/properties/isHTTP",
+              "type": "boolean",
+              "title": "The isHTTP schema",
+              "description": "Whether http requests are enabled for extauth config",
+              "examples": [
+                false
+              ]
+            },
+            "httpPath": {
+              "$id": "#/properties/osm/properties/extAuth/properties/httpPath",
+              "type": "string",
+              "title": "HTTP request path for extauth config",
+              "description": "HTTP request path if http reqeusts are enabled for extauth config",
+              "examples": [
+                ""
+              ]
+            }
+          }
         },
         "deployPrometheus": {
           "$id": "#/properties/osm/properties/deployPrometheus",

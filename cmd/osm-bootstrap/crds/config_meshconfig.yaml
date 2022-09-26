@@ -192,6 +192,12 @@ spec:
                         failureModeAllow:
                           description: Allows specifying if traffic should succeed or fail if the external authorization endpoint fails to respond.
                           type: boolean
+                        isHTTP:
+                          description: Whether http requests are enabled for external authorization
+                          type: boolean
+                        httpPath:
+                          description: Path for HTTP requests for external authorization, if http is enabled
+                          type: string
                 observability:
                   description: Configuration for observing the service mesh, including metrics, logs, tracing etc,.
                   type: object

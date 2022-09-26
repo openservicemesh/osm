@@ -93,6 +93,9 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.enableReconciler | bool | `false` | Enable reconciler for OSM's CRDs and mutating webhook |
 | osm.enforceSingleMesh | bool | `true` | Enforce only deploying one mesh in the cluster |
 | osm.envoyLogLevel | string | `"error"` | Log level for the Envoy proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error` |
+| osm.extAuth | object | `{"httpPath":"","isHTTP":false}` | ExtAuth request format.  |
+| osm.extAuth.httpPath | string | `""` | HTTPPath if request format for ExtAuth config is HTTP. |
+| osm.extAuth.isHTTP | bool | `false` | Allow forwarding requests via HTTP for the ExtAuth configuration.  -- Default is false, which means that only gRPC requests are enabled |
 | osm.featureFlags.enableAsyncProxyServiceMapping | bool | `false` | Enable async proxy-service mapping |
 | osm.featureFlags.enableEgressPolicy | bool | `true` | Enable OSM's Egress policy API. When enabled, fine grained control over Egress (external) traffic is enforced DEPRECATED, do not use. To use EgressPolicy API, disable global mesh-wide egress using '--set osm.enableEgress=false'. |
 | osm.featureFlags.enableEnvoyActiveHealthChecks | bool | `false` | Enable Envoy active health checks |
