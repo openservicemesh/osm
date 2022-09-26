@@ -91,6 +91,7 @@ type OsmTestData struct {
 	DeployOnWindowsWorkers bool // Determines whether to configure tests to run on Windows workers
 
 	RetryAppPodCreation bool // Whether to retry app pod creation due to issue #3973
+	EnableSPIFFE        bool
 }
 
 // InstallOSMOpts describes install options for OSM
@@ -132,6 +133,7 @@ type InstallOSMOpts struct {
 	EnablePrivilegedInitContainer bool
 	EnableIngressBackendPolicy    bool
 	EnableRetryPolicy             bool
+	EnableSPIFFE                  bool
 }
 
 // InstallOsmOpt is a function type for setting install options

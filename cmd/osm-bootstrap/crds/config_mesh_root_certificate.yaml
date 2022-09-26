@@ -61,6 +61,10 @@ spec:
                     - passive
                     - active
                   default: passive
+                spiffeEnabled:
+                  description: Adds a SPIFFE ID to the certificates, creating a SPIFFE compatible x509 SVID document
+                  type: boolean
+                  default: false
                 provider:
                   description: Certificate provider used by the mesh control plane
                   type: object

@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -73,6 +74,11 @@ func (cm *CertManager) IssueCertificate(opts certificate.IssueOptions) (*certifi
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
+	}
+
+	if opts.URISAN().String() != "" {
+		log.Trace().Str("cn", opts.CommonName().String()).Msg("Generating Certificate with Uri SAN")
+		template.URIs = []*url.URL{opts.URISAN()}
 	}
 
 	x509Root, err := certificate.DecodePEMCertificate(cm.ca.GetCertificateChain())

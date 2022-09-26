@@ -487,6 +487,8 @@ osm:
     enableRetryPolicy: false
     # -- Enable the MeshRootCertificate to configure the OSM certificate provider
     enableMeshRootCertificate: false
+    # -- Enable adding a SPIFFE ID to certificatess
+    enableSPIFFE: false
 
   # -- Node tolerations applied to control plane pods.
   # The specified tolerations allow pods to schedule onto nodes with matching taints.

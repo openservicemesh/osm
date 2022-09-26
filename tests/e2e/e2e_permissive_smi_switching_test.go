@@ -22,11 +22,15 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 	},
 	func() {
 		Context("PermissiveToSmiSwitching", func() {
-			testPermissiveToSmiSwitching()
+			testPermissiveModeSwitching()
+		})
+
+		Context("with SPIFFE Enabled", func() {
+			testPermissiveModeSwitching(WithSpiffeEnabled())
 		})
 	})
 
-func testPermissiveToSmiSwitching(installOptions ...InstallOsmOpt) {
+func testPermissiveModeSwitching(installOptions ...InstallOsmOpt) {
 	var (
 		destApp           = framework.RandomNameWithPrefix("server")
 		sourceAppBaseName = framework.RandomNameWithPrefix("client")
@@ -47,7 +51,8 @@ func testPermissiveToSmiSwitching(installOptions ...InstallOsmOpt) {
 
 	It("Tests HTTP traffic from multiple client deployments to a server deployment", func() {
 		// Install OSM
-		Expect(Td.InstallOSM(Td.GetOSMInstallOpts(installOptions...))).To(Succeed())
+		installOptions := Td.GetOSMInstallOpts(installOptions...)
+		Expect(Td.InstallOSM(installOptions)).To(Succeed())
 
 		// Server NS
 		Expect(Td.CreateNs(destApp, nil)).To(Succeed())
@@ -183,6 +188,10 @@ func testPermissiveToSmiSwitching(installOptions ...InstallOsmOpt) {
 		By("Succeeds when disabling Permissive now that SMI rules are in place")
 		Expect(setPermissiveMode(false)).To(BeNil())
 		Expect(trafficTest(true, requests)).To(BeTrue())
+
+		if installOptions.EnableSPIFFE {
+			verifySpiffeIDForDeployment(deploymentDef)
+		}
 	})
 }
 

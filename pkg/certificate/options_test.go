@@ -2,6 +2,9 @@ package certificate
 
 import (
 	"testing"
+
+	"github.com/spiffe/go-spiffe/v2/spiffeid"
+	tassert "github.com/stretchr/testify/assert"
 )
 
 func TestIssueOptions_CommonName(t *testing.T) {
@@ -83,6 +86,70 @@ func TestIssueOptions_CommonName(t *testing.T) {
 
 			if got := o.certType; got != tt.wantCertType {
 				t.Errorf("IssueOptions.certType = %v, want %v", got, tt.wantCertType)
+			}
+		})
+	}
+}
+
+func TestIssueOptions_SpiffeUrl(t *testing.T) {
+	tests := []struct {
+		name          string
+		trustDomain   string
+		issueOption   []IssueOption
+		spiffeEnabled bool
+		want          string
+	}{
+		{
+			name:          "should return spiffe id composed with spiffe id",
+			trustDomain:   "cluster.local",
+			issueOption:   []IssueOption{ForServiceIdentity("sa.ns")},
+			spiffeEnabled: true,
+			want:          "spiffe://cluster.local/sa/ns",
+		},
+		{
+			name:          "should return spiffe id composed with spiffe id for simple commonname",
+			trustDomain:   "cluster.local",
+			issueOption:   []IssueOption{ForCommonNamePrefix("ads")},
+			spiffeEnabled: true,
+			want:          "spiffe://cluster.local/ads",
+		},
+		{
+			name:          "should return spiffe id composed with spiffe id for ingress gateway",
+			trustDomain:   "cluster.local",
+			issueOption:   []IssueOption{ForIngressGateway("ingress.svc.cluster.local")},
+			spiffeEnabled: true,
+			want:          "spiffe://cluster.local/ingress/svc",
+		},
+		{
+			name:          "should return empty if spiffe id not enabled",
+			trustDomain:   "cluster.local",
+			issueOption:   []IssueOption{ForCommonNamePrefix("test.test")},
+			spiffeEnabled: false,
+			want:          "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			if tt.spiffeEnabled {
+				tt.issueOption = append(tt.issueOption, withSpiffeEnabled())
+			}
+
+			o := NewCertOptions(tt.issueOption...)
+
+			o.trustDomain = tt.trustDomain
+			o.spiffeEnabled = tt.spiffeEnabled
+
+			assert.Equal(tt.want, o.URISAN().String())
+
+			// validate it is a valid SPIFFE ID using spiffe package which runs validation checks
+			id, err := spiffeid.FromURI(o.URISAN())
+			if tt.spiffeEnabled {
+				assert.Nil(err)
+				assert.Equal(tt.want, id.String())
+			} else {
+				assert.ErrorContains(err, "cannot be empty")
 			}
 		})
 	}

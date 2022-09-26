@@ -325,6 +325,10 @@ func (kc *validator) validateMRCOnUpdate(oldMRC *configv1alpha2.MeshRootCertific
 		return fmt.Errorf("cannot update trust domain for MRC %s. Create a new MRC and initiate root certificate rotation to update the trust domain", getNamespacedMRC(oldMRC))
 	}
 
+	if oldMRC.Spec.SpiffeEnabled != newMRC.Spec.SpiffeEnabled {
+		return fmt.Errorf("cannot update SpiffeEnabled for MRC %s. Create a new MRC and initiate root certificate rotation to enable SPIFFE certificates", getNamespacedMRC(oldMRC))
+	}
+
 	if oldMRC.Spec.Intent != newMRC.Spec.Intent && newMRC.Spec.Intent == constants.MRCIntentActive {
 		foundActive, err := kc.checkForExistingActiveMRC(newMRC)
 		if err != nil {

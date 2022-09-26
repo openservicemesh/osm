@@ -1,6 +1,7 @@
 {
   "osm-values":[
-    "osm.featureFlags.enableMeshRootCertificate=false",
+    "osm.featureFlags.enableMeshRootCertificate=true",
+    "osm.featureFlags.enableSPIFFE=true",
     "osm.enableDebugServer=true",
     "osm.enablePermissiveTrafficPolicy=false"
   ]

@@ -18,11 +18,15 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using Vault",
 	},
 	func() {
 		Context("HashivaultSimpleClientServer", func() {
-			testHashiCorpVault()
+			testHashCorpVault()
+		})
+
+		Context("with SPIFFE Enabled", func() {
+			testHashCorpVault(WithSpiffeEnabled())
 		})
 	})
 
-func testHashiCorpVault(installOptions ...InstallOsmOpt) {
+func testHashCorpVault(installOptions ...InstallOsmOpt) {
 	var (
 		clientNamespace = framework.RandomNameWithPrefix("client")
 		serverNamespace = framework.RandomNameWithPrefix("server")
@@ -61,7 +65,7 @@ func testHashiCorpVault(installOptions ...InstallOsmOpt) {
 
 		serverServiceAccount, err := Td.CreateServiceAccount(serverNamespace, &serverSvcAccDef)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = Td.CreatePod(serverNamespace, serverPodDef)
+		serverPod, err := Td.CreatePod(serverNamespace, serverPodDef)
 		Expect(err).NotTo(HaveOccurred())
 		serverService, err := Td.CreateService(serverNamespace, serverSvcDef)
 		Expect(err).NotTo(HaveOccurred())
@@ -132,5 +136,10 @@ func testHashiCorpVault(installOptions ...InstallOsmOpt) {
 			return true
 		}, 5 /*consecutive success threshold*/, 60*time.Second /*timeout*/)
 		Expect(cond).To(BeTrue())
+
+		if installOpts.EnableSPIFFE {
+			verifySpiffeIDInPodCert(srcPod)
+			verifySpiffeIDInPodCert(serverPod)
+		}
 	})
 }

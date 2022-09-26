@@ -8,6 +8,7 @@ import (
 	"crypto/x509/pkix"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -108,6 +109,11 @@ func (cm *CertManager) IssueCertificate(options certificate.IssueOptions) (*cert
 			CommonName: options.CommonName().String(),
 		},
 		DNSNames: []string{options.CommonName().String()},
+	}
+
+	if options.URISAN().String() != "" {
+		log.Trace().Str("cn", options.CommonName().String()).Msg("Generating Certificate with Uri SAN")
+		csr.URIs = []*url.URL{options.URISAN()}
 	}
 
 	csrDER, err := x509.CreateCertificateRequest(rand.Reader, csr, certPrivKey)

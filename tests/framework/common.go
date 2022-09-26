@@ -153,6 +153,7 @@ func registerFlags(td *OsmTestData) {
 	flag.BoolVar(&td.DeployOnOpenShift, "deployOnOpenShift", false, "Configure tests to run on OpenShift")
 	flag.BoolVar(&td.DeployOnWindowsWorkers, "deployOnWindowsWorkers", false, "Configure tests to run on Windows workers")
 	flag.BoolVar(&td.RetryAppPodCreation, "retryAppPodCreation", true, "Retry app pod creation on error")
+	flag.BoolVar(&td.EnableSPIFFE, "enableSPIFFE", false, "Globally Enables SPIFFE IDs when running tests")
 }
 
 // ValidateStringParams validates input string parameters are valid
@@ -353,6 +354,13 @@ func WithLocalProxyMode(mode configv1alpha2.LocalProxyMode) InstallOsmOpt {
 	}
 }
 
+// WithSpiffeEnabled turns on SPIFFE feature flag for OSM
+func WithSpiffeEnabled() InstallOsmOpt {
+	return func(opts *InstallOSMOpts) {
+		opts.EnableSPIFFE = true
+	}
+}
+
 // GetOSMInstallOpts initializes install options for OSM
 func (td *OsmTestData) GetOSMInstallOpts(options ...InstallOsmOpt) InstallOSMOpts {
 	enablePrivilegedInitContainer := false
@@ -392,6 +400,7 @@ func (td *OsmTestData) GetOSMInstallOpts(options ...InstallOsmOpt) InstallOSMOpt
 
 		EnablePrivilegedInitContainer: enablePrivilegedInitContainer,
 		EnableIngressBackendPolicy:    true,
+		EnableSPIFFE:                  td.EnableSPIFFE,
 	}
 
 	for _, opt := range options {
@@ -528,6 +537,13 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("osm.featureFlags.enableRetryPolicy=%v", instOpts.EnableRetryPolicy),
 		fmt.Sprintf("osm.enableReconciler=%v", instOpts.EnableReconciler),
 	)
+
+	if instOpts.EnableSPIFFE {
+		instOpts.SetOverrides = append(instOpts.SetOverrides,
+			fmt.Sprintf("osm.featureFlags.enableSPIFFE=%v", instOpts.EnableSPIFFE),
+			"osm.featureFlags.enableMeshRootCertificate=true",
+		)
+	}
 
 	if instOpts.LocalProxyMode != "" {
 		instOpts.SetOverrides = append(instOpts.SetOverrides, fmt.Sprintf("osm.localProxyMode=%s", instOpts.LocalProxyMode))
@@ -740,7 +756,7 @@ vault secrets tune -max-lease-ttl=87700h pki;
 vault write pki/config/urls issuing_certificates='http://127.0.0.1:8200/v1/pki/ca' crl_distribution_points='http://127.0.0.1:8200/v1/pki/crl';
 
 # Configure a role for OSM (See: https://www.vaultproject.io/docs/secrets/pki#configure-a-role)
-vault write pki/roles/%s allow_any_name=true allow_subdomains=true max_ttl=87700h;
+vault write pki/roles/%s allow_any_name=true allow_subdomains=true max_ttl=87700h allowed_uri_sans=spiffe://*;
 
 # Create the root certificate (See: https://www.vaultproject.io/docs/secrets/pki#setup)
 vault write pki/root/generate/internal common_name='osm.root' ttl='87700h';
