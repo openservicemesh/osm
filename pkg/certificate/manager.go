@@ -223,11 +223,16 @@ func (m *Manager) checkAndRotate() {
 			log.Warn().Msg(err.Error()) // don't log as a full error message
 		}
 		opts := []IssueOption{}
-		if key == cert.CommonName.String() {
-			opts = append(opts, FullCNProvided())
+		opts = append(opts, withCommonNamePrefix(key))
+		opts = append(opts, withCertType(cert.certType))
+
+		// There are a few certificates (webhook and Ingress)  that have entire CN passed
+		// In that case the key will be the common name on the cert
+		if key == cert.GetCommonName().String() {
+			opts = append(opts, withFullCommonName())
 		}
 
-		_, err := m.IssueCertificate(key, cert.certType, opts...)
+		_, err := m.IssueCertificate(opts...)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).
 				Msgf("Error rotating cert SerialNumber=%s", cert.GetSerialNumber())
@@ -235,13 +240,13 @@ func (m *Manager) checkAndRotate() {
 	}
 }
 
-func (m *Manager) getValidityDurationForCertType(ct CertType) time.Duration {
+func (m *Manager) getValidityDurationForCertType(ct certType) time.Duration {
 	switch ct {
-	case Internal:
+	case internal:
 		return constants.OSMCertificateValidityPeriod
-	case IngressGateway:
+	case ingressGateway:
 		return m.ingressCertValidityDuration()
-	case Service:
+	case service:
 		return m.serviceCertValidityDuration()
 	default:
 		log.Debug().Msgf("Unknown certificate type %s provided when getting validity duration", ct)
@@ -263,12 +268,14 @@ func (m *Manager) getFromCache(key string) *Certificate {
 
 // IssueCertificate returns a newly issued certificate from the given client
 // or an existing valid certificate from the local cache.
-func (m *Manager) IssueCertificate(prefix string, ct CertType, opts ...IssueOption) (*Certificate, error) {
+func (m *Manager) IssueCertificate(opts ...IssueOption) (*Certificate, error) {
+	options := NewCertOptions(opts...)
+
 	// a singleflight group is used here to ensure that only one issueCertificate is in
 	// flight at a time for a given certificate prefix. Helps avoid a race condition if
 	// issueCertificate is called multiple times in a row for the same certificate prefix.
-	cert, err, _ := m.group.Do(prefix, func() (interface{}, error) {
-		return m.issueCertificate(prefix, ct, opts...)
+	cert, err, _ := m.group.Do(options.cacheKey(), func() (interface{}, error) {
+		return m.issueCertificate(options)
 	})
 	if err != nil {
 		return nil, err
@@ -276,20 +283,15 @@ func (m *Manager) IssueCertificate(prefix string, ct CertType, opts ...IssueOpti
 	return cert.(*Certificate), nil
 }
 
-func (m *Manager) issueCertificate(prefix string, ct CertType, opts ...IssueOption) (*Certificate, error) {
+func (m *Manager) issueCertificate(options IssueOptions) (*Certificate, error) {
 	var rotate bool
-	cert := m.getFromCache(prefix) // Don't call this while holding the lock
+	cert := m.getFromCache(options.cacheKey()) // Don't call this while holding the lock
 	if cert != nil {
 		// check if cert needs to be rotated
 		rotate = m.shouldRotate(cert)
 		if !rotate {
 			return cert, nil
 		}
-	}
-
-	options := &issueOptions{}
-	for _, o := range opts {
-		o(options)
 	}
 
 	m.mu.Lock()
@@ -299,8 +301,9 @@ func (m *Manager) issueCertificate(prefix string, ct CertType, opts ...IssueOpti
 
 	start := time.Now()
 
-	validityDuration := m.getValidityDurationForCertType(ct)
-	newCert, err := signingIssuer.IssueCertificate(options.formatCN(prefix, signingIssuer.TrustDomain), validityDuration)
+	options.ValidityDuration = m.getValidityDurationForCertType(options.certType)
+	options.trustDomain = signingIssuer.TrustDomain
+	newCert, err := signingIssuer.IssueCertificate(options)
 	if err != nil {
 		return nil, err
 	}
@@ -311,18 +314,19 @@ func (m *Manager) issueCertificate(prefix string, ct CertType, opts ...IssueOpti
 		newCert = newCert.newMergedWithRoot(validatingIssuer.CertificateAuthority)
 	}
 
+	// Add some additional meta data for internal usage
 	newCert.signingIssuerID = signingIssuer.ID
 	newCert.validatingIssuerID = validatingIssuer.ID
+	newCert.certType = options.certType
+	newCert.cacheKey = options.cacheKey()
 
-	newCert.certType = ct
-
-	m.cache.Store(prefix, newCert)
+	m.cache.Store(newCert.cacheKey, newCert)
 
 	log.Trace().Msgf("It took %s to issue certificate with SerialNumber=%s", time.Since(start), newCert.GetSerialNumber())
 
 	if rotate {
 		// Certificate was rotated
-		m.pubsub.Pub(newCert, prefix)
+		m.pubsub.Pub(newCert, cert.cacheKey)
 
 		log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s", cert.SerialNumber, newCert.SerialNumber)
 	}
@@ -369,7 +373,7 @@ func (m *Manager) CheckCacheMatch(cert *Certificate) error {
 	}
 
 	// Currently, these don't get rotated, so we assume the cache is correct.
-	if cert.certType != Service {
+	if cert.certType != service {
 		return nil
 	}
 	key := strings.TrimSuffix(cert.CommonName.String(), "."+m.GetTrustDomain())

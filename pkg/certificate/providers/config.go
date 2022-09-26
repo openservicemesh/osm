@@ -34,7 +34,7 @@ const (
 )
 
 var getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
-	cert, err := i.IssueCertificate("init-cert", 1*time.Second)
+	cert, err := i.IssueCertificate(certificate.NewCertOptionsWithFullName("init-cert", 1*time.Second))
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +65,8 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 			Spec: v1alpha2.MeshRootCertificateSpec{
 				Provider:    option.AsProviderSpec(),
 				TrustDomain: trustDomain,
+				Intent:      constants.MRCIntentPassive,
 			},
-			Intent: constants.MRCIntentPassive,
 			Status: v1alpha2.MeshRootCertificateStatus{
 				State: constants.MRCStateActive,
 				ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{

@@ -25,13 +25,14 @@ import (
 )
 
 func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.AdmissionRequest, proxyUUID uuid.UUID) ([]byte, error) {
+	// pod.Namespace is unset in the API request to the webhook so namespace is derived from req.Namespace
 	namespace := req.Namespace
 
 	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)
 	cnPrefix := envoy.NewXDSCertCNPrefix(proxyUUID, envoy.KindSidecar, identity.New(pod.Spec.ServiceAccountName, namespace))
 	log.Debug().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
 	startTime := time.Now()
-	bootstrapCertificate, err := wh.certManager.IssueCertificate(cnPrefix, certificate.Internal)
+	bootstrapCertificate, err := wh.certManager.IssueCertificate(certificate.ForCommonNamePrefix(cnPrefix))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN prefix=%s", cnPrefix)
 		return nil, err
@@ -121,7 +122,15 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		return nil, err
 	}
 
-	if originalHealthProbes.UsesTCP() {
+	var usesTCP bool
+	for _, probes := range originalHealthProbes {
+		if probes.UsesTCP() {
+			usesTCP = true
+			break
+		}
+	}
+
+	if usesTCP {
 		healthcheckContainer := corev1.Container{
 			Name:            "osm-healthcheck",
 			Image:           os.Getenv("OSM_DEFAULT_HEALTHCHECK_CONTAINER_IMAGE"),
@@ -142,7 +151,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	}
 
 	// Add the Envoy sidecar
-	sidecar := getEnvoySidecarContainerSpec(pod, wh.kubeController.GetMeshConfig(), originalHealthProbes, podOS)
+	sidecar := getEnvoySidecarContainerSpec(pod, namespace, wh.kubeController.GetMeshConfig(), originalHealthProbes, podOS)
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
 	return json.Marshal(makePatches(req, pod))

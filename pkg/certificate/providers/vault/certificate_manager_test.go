@@ -114,7 +114,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestIssueCertificate(t *testing.T) {
-	var commonName certificate.CommonName = "localhost"
+	var commonName = "localhost"
 	var validityPeriod = time.Hour
 
 	token, addr := mockVault(t)
@@ -127,7 +127,7 @@ func TestIssueCertificate(t *testing.T) {
 
 	testCases := []struct {
 		description string
-		cn          certificate.CommonName
+		cn          string
 		vP          time.Duration
 		wantErr     bool
 	}{
@@ -139,7 +139,7 @@ func TestIssueCertificate(t *testing.T) {
 		},
 		{
 			description: "error with invalid common name",
-			cn:          certificate.CommonName(" "),
+			cn:          " ",
 			vP:          time.Duration(-1),
 			wantErr:     true,
 		},
@@ -147,7 +147,7 @@ func TestIssueCertificate(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			tassert := assert.New(t)
-			_, err = cm.IssueCertificate(tc.cn, tc.vP)
+			_, err = cm.IssueCertificate(certificate.NewCertOptionsWithFullName(tc.cn, tc.vP))
 			if tc.wantErr {
 				tassert.Error(err, "expected error, got nil")
 			} else {

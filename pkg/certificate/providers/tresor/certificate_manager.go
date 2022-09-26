@@ -36,11 +36,11 @@ func New(
 }
 
 // IssueCertificate requests a new signed certificate from the configured cert-manager issuer.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
+func (cm *CertManager) IssueCertificate(opts certificate.IssueOptions) (*certificate.Certificate, error) {
 	if cm.ca == nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidCA)).
-			Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
+			Msgf("Invalid CA provided for issuance of certificate with CN=%s", opts.CommonName())
 		return nil, errNoIssuingCA
 	}
 
@@ -48,7 +48,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGeneratingPrivateKey)).
-			Msgf("Error generating private key for certificate with CN=%s", cn)
+			Msgf("Error generating private key for certificate with CN=%s", opts.CommonName())
 		return nil, fmt.Errorf("%s: %w", errGeneratingPrivateKey.Error(), err)
 	}
 
@@ -61,14 +61,14 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
 
-		DNSNames: []string{string(cn)},
+		DNSNames: []string{string(opts.CommonName())},
 
 		Subject: pkix.Name{
-			CommonName:   string(cn),
+			CommonName:   string(opts.CommonName()),
 			Organization: []string{cm.certificatesOrganization},
 		},
 		NotBefore: now,
-		NotAfter:  now.Add(validityPeriod),
+		NotAfter:  now.Add(opts.ValidityDuration),
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
@@ -116,7 +116,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	}
 
 	cert := &certificate.Certificate{
-		CommonName:   cn,
+		CommonName:   opts.CommonName(),
 		SerialNumber: certificate.SerialNumber(serialNumber.String()),
 		CertChain:    certPEM,
 		PrivateKey:   privKeyPEM,
@@ -125,7 +125,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		Expiration:   template.NotAfter,
 	}
 
-	log.Trace().Msgf("Created new certificate for SerialNumber=%s; validity=%+v; expires on %+v; serial: %x", serialNumber, validityPeriod, template.NotAfter, template.SerialNumber)
+	log.Trace().Msgf("Created new certificate for SerialNumber=%s; validity=%+v; expires on %+v; serial: %x", serialNumber, opts.ValidityDuration, template.NotAfter, template.SerialNumber)
 
 	return cert, nil
 }

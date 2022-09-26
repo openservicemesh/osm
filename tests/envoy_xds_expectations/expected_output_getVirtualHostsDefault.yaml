@@ -3,8 +3,8 @@ domains:
 name: local_service
 routes:
 - match:
-    prefix: /some/path
+    prefix: /some/path2
   route:
-    cluster: -cluster-name-
+    cluster: -cluster-name-2-
     prefix_rewrite: /original/probe/path
     timeout: 1s

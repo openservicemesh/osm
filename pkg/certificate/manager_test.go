@@ -14,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 )
 
 func TestShouldRotate(t *testing.T) {
@@ -88,14 +89,14 @@ func TestRotor(t *testing.T) {
 	certManager, err := NewManager(context.Background(), &fakeMRCClient{}, getServiceCertValidityPeriod, getIngressGatewayCertValidityPeriod, 5*time.Second)
 	require.NoError(err)
 
-	certA, err := certManager.IssueCertificate(cnPrefix, Service)
+	certA, err := certManager.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 	require.NoError(err)
 	certRotateChan, unsub := certManager.SubscribeRotations(cnPrefix)
 	defer unsub()
 
 	// Wait for two certificate rotations to be announced and terminate
 	<-certRotateChan
-	newCert, err := certManager.IssueCertificate(cnPrefix, Service)
+	newCert, err := certManager.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 	assert.NoError(err)
 	assert.NotEqual(certA.GetExpiration(), newCert.GetExpiration())
 	assert.NotEqual(certA, newCert)
@@ -192,7 +193,7 @@ func TestIssueCertificate(t *testing.T) {
 			pubsub:           pubsub.New(0),
 		}
 		// single signingIssuer, not cached
-		cert1, err := cm.IssueCertificate(cnPrefix, Service)
+		cert1, err := cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.NoError(err)
 		assert.NotNil(cert1)
 		assert.Equal(cert1.signingIssuerID, "id1")
@@ -201,7 +202,7 @@ func TestIssueCertificate(t *testing.T) {
 		assert.Equal(CommonName("fake-cert-cn.fake1.domain.com"), cert1.GetCommonName())
 
 		// single signingIssuer cached
-		cert2, err := cm.IssueCertificate(cnPrefix, Service)
+		cert2, err := cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.NoError(err)
 		assert.Equal(cert1, cert2)
 		assert.Equal(CommonName("fake-cert-cn.fake1.domain.com"), cert1.GetCommonName())
@@ -211,7 +212,7 @@ func TestIssueCertificate(t *testing.T) {
 		cm.signingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2"), TrustDomain: "fake2.domain.com"}
 		cm.validatingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2")}
 
-		cert3, err := cm.IssueCertificate(cnPrefix, Service)
+		cert3, err := cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.Equal(CommonName("fake-cert-cn.fake2.domain.com"), cert3.GetCommonName())
 		assert.NoError(err)
 		assert.NotNil(cert3)
@@ -231,7 +232,7 @@ func TestIssueCertificate(t *testing.T) {
 		}
 
 		// Not cached
-		cert1, err := cm.IssueCertificate(cnPrefix, Service)
+		cert1, err := cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.NoError(err)
 		assert.NotNil(cert1)
 		assert.Equal(cert1.signingIssuerID, "id1")
@@ -241,14 +242,14 @@ func TestIssueCertificate(t *testing.T) {
 		assert.Equal(CommonName("fake-cert-cn.fake1.domain.com"), cert1.GetCommonName())
 
 		// cached
-		cert2, err := cm.IssueCertificate(cnPrefix, Service)
+		cert2, err := cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.NoError(err)
 		assert.Equal(cert1, cert2)
 		assert.Equal(CommonName("fake-cert-cn.fake1.domain.com"), cert2.GetCommonName())
 
 		// cached, but validatingIssuer is removed
 		cm.validatingIssuer = cm.signingIssuer
-		cert3, err := cm.IssueCertificate(cnPrefix, Service)
+		cert3, err := cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.NoError(err)
 		assert.NotEqual(cert1, cert3)
 		assert.Equal(cert3.signingIssuerID, "id1")
@@ -258,7 +259,7 @@ func TestIssueCertificate(t *testing.T) {
 
 		// cached, but signingIssuer is old
 		cm.signingIssuer = &issuer{ID: "id2", Issuer: &fakeIssuer{id: "id2"}, CertificateAuthority: pem.RootCertificate("id2"), TrustDomain: "fake2.domain.com"}
-		cert4, err := cm.IssueCertificate(cnPrefix, Service)
+		cert4, err := cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.NoError(err)
 		assert.NotEqual(cert3, cert4)
 		assert.Equal(cert4.signingIssuerID, "id2")
@@ -269,7 +270,7 @@ func TestIssueCertificate(t *testing.T) {
 
 		// cached, but validatingIssuer is old
 		cm.validatingIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}, CertificateAuthority: pem.RootCertificate("id3"), TrustDomain: "fake3.domain.com"}
-		cert5, err := cm.IssueCertificate(cnPrefix, Service)
+		cert5, err := cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.NoError(err)
 		assert.NotEqual(cert4, cert5)
 		assert.Equal(cert5.signingIssuerID, "id2")
@@ -289,13 +290,13 @@ func TestIssueCertificate(t *testing.T) {
 		}
 
 		// bad signingIssuer
-		cert, err := cm.IssueCertificate(cnPrefix, Service)
+		cert, err := cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.Nil(cert)
 		assert.EqualError(err, "id1 failed")
 
 		// bad validatingIssuer (should still succeed)
 		cm.signingIssuer = &issuer{ID: "id3", Issuer: &fakeIssuer{id: "id3"}, CertificateAuthority: pem.RootCertificate("id3")}
-		cert, err = cm.IssueCertificate(cnPrefix, Service)
+		cert, err = cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.NoError(err)
 		assert.Equal(cert.signingIssuerID, "id3")
 		assert.Equal(cert.validatingIssuerID, "id2")
@@ -304,13 +305,13 @@ func TestIssueCertificate(t *testing.T) {
 
 		// insert a cached cert
 		cm.validatingIssuer = cm.signingIssuer
-		cert, err = cm.IssueCertificate(cnPrefix, Service)
+		cert, err = cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.NoError(err)
 		assert.NotNil(cert)
 
 		// bad signing cert on an existing cached cert, because the signingIssuer is new
 		cm.signingIssuer = &issuer{ID: "id1", Issuer: &fakeIssuer{id: "id1", err: true}, CertificateAuthority: pem.RootCertificate("id1")}
-		cert, err = cm.IssueCertificate(cnPrefix, Service)
+		cert, err = cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
 		assert.EqualError(err, "id1 failed")
 		assert.Nil(cert)
 	})
@@ -416,11 +417,11 @@ func TestSubscribeRotations(t *testing.T) {
 	defer unsub1()
 	defer unsub2()
 
-	cert, err := cm.IssueCertificate(cnPrefix1, Service)
+	cert, err := cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix1)))
 	assert.NoError(err)
 	assert.Equal("fake-cert-cn1.fake1.domain.com", cert.GetCommonName().String())
 
-	cert, err = cm.IssueCertificate(cnPrefix2, Service)
+	cert, err = cm.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix2)))
 	assert.NoError(err)
 	assert.Equal("fake-cert-cn2.fake1.domain.com", cert.GetCommonName().String())
 

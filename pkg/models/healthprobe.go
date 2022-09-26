@@ -10,7 +10,8 @@ type HealthProbe struct {
 	Timeout time.Duration
 
 	// isHTTP corresponds to an httpGet probe with a scheme of HTTP or undefined.
-	// This helps inform what kind of Envoy config to add to the pod.
+	// This helps inform what kind of Envoy config to add to the pod. A HealthProbe
+	// that is neither HTTP nor TCPSocket is assumed to be HTTPS
 	IsHTTP bool
 
 	// isTCPSocket indicates if the probe defines a TCPSocketAction.

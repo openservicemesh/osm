@@ -128,7 +128,7 @@ func (c *client) handleCertChanges(cn string, secret corev1.SecretReference) fun
 	// must subscribe prior to issuing the cert to guarantee we get all rotations.
 	certRotateChan, unsub := c.certProvider.SubscribeRotations(cn)
 
-	cert, err := c.certProvider.IssueCertificate(cn, certificate.IngressGateway, certificate.FullCNProvided())
+	cert, err := c.certProvider.IssueCertificate(certificate.ForIngressGateway(cn))
 	if err != nil {
 		log.Err(err).Msg("error issuing a certificate for ingress gateway")
 	}

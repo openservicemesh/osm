@@ -11,6 +11,9 @@ import (
 	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	envoy "github.com/openservicemesh/osm/pkg/envoy"
+	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	types "k8s.io/apimachinery/pkg/types"
 )
@@ -53,6 +56,20 @@ func (mr *MockControllerMockRecorder) GetEndpoints(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEndpoints", reflect.TypeOf((*MockController)(nil).GetEndpoints), arg0, arg1)
 }
 
+// GetHTTPRouteGroup mocks base method.
+func (m *MockController) GetHTTPRouteGroup(arg0 string) *v1alpha4.HTTPRouteGroup {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHTTPRouteGroup", arg0)
+	ret0, _ := ret[0].(*v1alpha4.HTTPRouteGroup)
+	return ret0
+}
+
+// GetHTTPRouteGroup indicates an expected call of GetHTTPRouteGroup.
+func (mr *MockControllerMockRecorder) GetHTTPRouteGroup(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHTTPRouteGroup", reflect.TypeOf((*MockController)(nil).GetHTTPRouteGroup), arg0)
+}
+
 // GetMeshConfig mocks base method.
 func (m *MockController) GetMeshConfig() v1alpha2.MeshConfig {
 	m.ctrl.T.Helper()
@@ -65,6 +82,20 @@ func (m *MockController) GetMeshConfig() v1alpha2.MeshConfig {
 func (mr *MockControllerMockRecorder) GetMeshConfig() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshConfig", reflect.TypeOf((*MockController)(nil).GetMeshConfig))
+}
+
+// GetMeshRootCertificate mocks base method.
+func (m *MockController) GetMeshRootCertificate(arg0 string) *v1alpha2.MeshRootCertificate {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMeshRootCertificate", arg0)
+	ret0, _ := ret[0].(*v1alpha2.MeshRootCertificate)
+	return ret0
+}
+
+// GetMeshRootCertificate indicates an expected call of GetMeshRootCertificate.
+func (mr *MockControllerMockRecorder) GetMeshRootCertificate(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshRootCertificate", reflect.TypeOf((*MockController)(nil).GetMeshRootCertificate), arg0)
 }
 
 // GetNamespace mocks base method.
@@ -124,6 +155,20 @@ func (mr *MockControllerMockRecorder) GetService(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetService", reflect.TypeOf((*MockController)(nil).GetService), arg0, arg1)
 }
 
+// GetTCPRoute mocks base method.
+func (m *MockController) GetTCPRoute(arg0 string) *v1alpha4.TCPRoute {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTCPRoute", arg0)
+	ret0, _ := ret[0].(*v1alpha4.TCPRoute)
+	return ret0
+}
+
+// GetTCPRoute indicates an expected call of GetTCPRoute.
+func (mr *MockControllerMockRecorder) GetTCPRoute(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTCPRoute", reflect.TypeOf((*MockController)(nil).GetTCPRoute), arg0)
+}
+
 // GetUpstreamTrafficSetting mocks base method.
 func (m *MockController) GetUpstreamTrafficSetting(arg0 *types.NamespacedName) *v1alpha1.UpstreamTrafficSetting {
 	m.ctrl.T.Helper()
@@ -166,6 +211,20 @@ func (mr *MockControllerMockRecorder) ListEgressPolicies() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEgressPolicies", reflect.TypeOf((*MockController)(nil).ListEgressPolicies))
 }
 
+// ListHTTPTrafficSpecs mocks base method.
+func (m *MockController) ListHTTPTrafficSpecs() []*v1alpha4.HTTPRouteGroup {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListHTTPTrafficSpecs")
+	ret0, _ := ret[0].([]*v1alpha4.HTTPRouteGroup)
+	return ret0
+}
+
+// ListHTTPTrafficSpecs indicates an expected call of ListHTTPTrafficSpecs.
+func (mr *MockControllerMockRecorder) ListHTTPTrafficSpecs() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListHTTPTrafficSpecs", reflect.TypeOf((*MockController)(nil).ListHTTPTrafficSpecs))
+}
+
 // ListIngressBackendPolicies mocks base method.
 func (m *MockController) ListIngressBackendPolicies() []*v1alpha1.IngressBackend {
 	m.ctrl.T.Helper()
@@ -178,6 +237,21 @@ func (m *MockController) ListIngressBackendPolicies() []*v1alpha1.IngressBackend
 func (mr *MockControllerMockRecorder) ListIngressBackendPolicies() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIngressBackendPolicies", reflect.TypeOf((*MockController)(nil).ListIngressBackendPolicies))
+}
+
+// ListMeshRootCertificates mocks base method.
+func (m *MockController) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertificate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListMeshRootCertificates")
+	ret0, _ := ret[0].([]*v1alpha2.MeshRootCertificate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListMeshRootCertificates indicates an expected call of ListMeshRootCertificates.
+func (mr *MockControllerMockRecorder) ListMeshRootCertificates() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMeshRootCertificates", reflect.TypeOf((*MockController)(nil).ListMeshRootCertificates))
 }
 
 // ListNamespaces mocks base method.
@@ -251,6 +325,48 @@ func (mr *MockControllerMockRecorder) ListServices() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*MockController)(nil).ListServices))
 }
 
+// ListTCPTrafficSpecs mocks base method.
+func (m *MockController) ListTCPTrafficSpecs() []*v1alpha4.TCPRoute {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListTCPTrafficSpecs")
+	ret0, _ := ret[0].([]*v1alpha4.TCPRoute)
+	return ret0
+}
+
+// ListTCPTrafficSpecs indicates an expected call of ListTCPTrafficSpecs.
+func (mr *MockControllerMockRecorder) ListTCPTrafficSpecs() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTCPTrafficSpecs", reflect.TypeOf((*MockController)(nil).ListTCPTrafficSpecs))
+}
+
+// ListTrafficSplits mocks base method.
+func (m *MockController) ListTrafficSplits() []*v1alpha20.TrafficSplit {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListTrafficSplits")
+	ret0, _ := ret[0].([]*v1alpha20.TrafficSplit)
+	return ret0
+}
+
+// ListTrafficSplits indicates an expected call of ListTrafficSplits.
+func (mr *MockControllerMockRecorder) ListTrafficSplits() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficSplits", reflect.TypeOf((*MockController)(nil).ListTrafficSplits))
+}
+
+// ListTrafficTargets mocks base method.
+func (m *MockController) ListTrafficTargets() []*v1alpha3.TrafficTarget {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListTrafficTargets")
+	ret0, _ := ret[0].([]*v1alpha3.TrafficTarget)
+	return ret0
+}
+
+// ListTrafficTargets indicates an expected call of ListTrafficTargets.
+func (mr *MockControllerMockRecorder) ListTrafficTargets() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficTargets", reflect.TypeOf((*MockController)(nil).ListTrafficTargets))
+}
+
 // ListUpstreamTrafficSettings mocks base method.
 func (m *MockController) ListUpstreamTrafficSettings() []*v1alpha1.UpstreamTrafficSetting {
 	m.ctrl.T.Helper()
@@ -278,6 +394,36 @@ func (m *MockController) UpdateIngressBackendStatus(arg0 *v1alpha1.IngressBacken
 func (mr *MockControllerMockRecorder) UpdateIngressBackendStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateIngressBackendStatus", reflect.TypeOf((*MockController)(nil).UpdateIngressBackendStatus), arg0)
+}
+
+// UpdateMeshRootCertificate mocks base method.
+func (m *MockController) UpdateMeshRootCertificate(arg0 *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMeshRootCertificate", arg0)
+	ret0, _ := ret[0].(*v1alpha2.MeshRootCertificate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateMeshRootCertificate indicates an expected call of UpdateMeshRootCertificate.
+func (mr *MockControllerMockRecorder) UpdateMeshRootCertificate(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeshRootCertificate", reflect.TypeOf((*MockController)(nil).UpdateMeshRootCertificate), arg0)
+}
+
+// UpdateMeshRootCertificateStatus mocks base method.
+func (m *MockController) UpdateMeshRootCertificateStatus(arg0 *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMeshRootCertificateStatus", arg0)
+	ret0, _ := ret[0].(*v1alpha2.MeshRootCertificate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateMeshRootCertificateStatus indicates an expected call of UpdateMeshRootCertificateStatus.
+func (mr *MockControllerMockRecorder) UpdateMeshRootCertificateStatus(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeshRootCertificateStatus", reflect.TypeOf((*MockController)(nil).UpdateMeshRootCertificateStatus), arg0)
 }
 
 // UpdateUpstreamTrafficSettingStatus mocks base method.

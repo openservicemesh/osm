@@ -177,6 +177,8 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
+					Intent:      constants.MRCIntentPassive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -188,7 +190,6 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 						},
 					},
 				},
-				Intent: constants.MRCIntentPassive,
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
 					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{

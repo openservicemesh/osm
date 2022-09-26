@@ -28,6 +28,7 @@ type PolicyV1alpha1Interface interface {
 	EgressesGetter
 	IngressBackendsGetter
 	RetriesGetter
+	TelemetriesGetter
 	UpstreamTrafficSettingsGetter
 }
 
@@ -46,6 +47,10 @@ func (c *PolicyV1alpha1Client) IngressBackends(namespace string) IngressBackendI
 
 func (c *PolicyV1alpha1Client) Retries(namespace string) RetryInterface {
 	return newRetries(c, namespace)
+}
+
+func (c *PolicyV1alpha1Client) Telemetries(namespace string) TelemetryInterface {
+	return newTelemetries(c, namespace)
 }
 
 func (c *PolicyV1alpha1Client) UpstreamTrafficSettings(namespace string) UpstreamTrafficSettingInterface {

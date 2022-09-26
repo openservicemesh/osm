@@ -48,6 +48,8 @@ func TestNewHTTPServer(t *testing.T) {
 	testServer := &httptest.Server{
 		Config: httpServ.server,
 	}
+
+	//InvalidPath Check
 	respL := recordCall(testServer, fmt.Sprintf("%s%s", url, invalidRoutePath))
 	respHealth := recordCall(testServer, fmt.Sprintf("%s%s", url, "/alive"))
 

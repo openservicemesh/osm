@@ -28,5 +28,6 @@ type Builder struct {
 	// ECDHCurves is the list of ECDH curves it supports
 	ECDHCurves []string
 
-	OriginalHealthProbes models.HealthProbes
+	// A map of container -> health probe structs
+	OriginalHealthProbes map[string]models.HealthProbes
 }

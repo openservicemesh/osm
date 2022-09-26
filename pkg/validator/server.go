@@ -11,6 +11,7 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/client-go/kubernetes"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -32,9 +33,9 @@ type validatingWebhookServer struct {
 }
 
 // NewValidatingWebhook returns a validatingWebhookServer with the defaultValidators that were previously registered.
-func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler, validateTrafficTarget bool, certManager *certificate.Manager, kubeClient kubernetes.Interface, policyClient compute.Interface) error {
-	kv := &policyValidator{
-		policyClient: policyClient,
+func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler, validateTrafficTarget bool, certManager *certificate.Manager, kubeClient kubernetes.Interface, computeClient compute.Interface) error {
+	kv := &validator{
+		computeClient: computeClient,
 	}
 
 	v := &validatingWebhookServer{
@@ -43,6 +44,7 @@ func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, 
 			policyv1alpha1.SchemeGroupVersion.WithKind("Egress").String():                 egressValidator,
 			policyv1alpha1.SchemeGroupVersion.WithKind("UpstreamTrafficSetting").String(): kv.upstreamTrafficSettingValidator,
 			smiAccess.SchemeGroupVersion.WithKind("TrafficTarget").String():               trafficTargetValidator,
+			configv1alpha2.SchemeGroupVersion.WithKind("MeshRootCertificate").String():    kv.meshRootCertificateValidator,
 		},
 	}
 

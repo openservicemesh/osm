@@ -107,7 +107,15 @@ func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (
 		return nil, nil, err
 	}
 	issuer, err := tresor.New(ca, rootCertOrganization, 2048)
-	return issuer, pem.RootCertificate("rootCA"), err
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cert, err := issuer.IssueCertificate(certificate.NewCertOptionsWithFullName("rootCA", 24*time.Hour))
+	if err != nil {
+		return nil, nil, err
+	}
+	return issuer, cert.GetTrustedCAs(), nil
 }
 
 // List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.

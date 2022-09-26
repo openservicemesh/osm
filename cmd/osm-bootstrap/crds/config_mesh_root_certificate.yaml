@@ -54,6 +54,13 @@ spec:
                   description: Trust Domain to use in common name for certificates, e.g. "example.com"
                   type: string
                   default: cluster.local
+                intent:
+                  description: Intent specifies the role of the MeshRootCertificate, can be active or passive
+                  type: string
+                  enum:
+                    - passive
+                    - active
+                  default: passive
                 provider:
                   description: Certificate provider used by the mesh control plane
                   type: object
@@ -102,6 +109,9 @@ spec:
                         protocol:
                           description: Protocol for the Vault connection
                           type: string
+                          enum:
+                            - http
+                            - https
                         token:
                           description: Token used by the mesh control plane
                           type: object
@@ -154,9 +164,6 @@ spec:
                     - required: ["certManager"]
                     - required: ["vault"]
                     - required: ["tresor"]
-            intent:
-              description: Intent specifies the role of the MeshRootCertificate, can be active or passive
-              type: string
             status:
               type: object
               x-kubernetes-preserve-unknown-fields: true

@@ -489,7 +489,7 @@ func TestGetServicesForServiceIdentity(t *testing.T) {
 			ic, err := informers.NewInformerCollection("test-mesh", stop, informers.WithKubeClient(testClient))
 			assert.NoError(err)
 			c := &client{
-				kubeController: k8s.NewClient("osm-ns", tests.OsmMeshConfigName, ic, nil, messaging.NewBroker(stop)),
+				kubeController: k8s.NewClient("osm-ns", tests.OsmMeshConfigName, ic, nil, nil, messaging.NewBroker(stop)),
 			}
 			actual := c.GetServicesForServiceIdentity(tc.svcIdentity)
 			assert.ElementsMatch(tc.expected, actual)
@@ -823,7 +823,7 @@ func TestListServicesForProxy(t *testing.T) {
 			ic, err := informers.NewInformerCollection("test-mesh", stop, informers.WithKubeClient(testClient))
 			assert.NoError(err)
 			c := &client{
-				kubeController: k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, messaging.NewBroker(stop)),
+				kubeController: k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, messaging.NewBroker(stop)),
 			}
 			actual, err := c.ListServicesForProxy(tc.proxy)
 			assert.ElementsMatch(tc.expected, actual)
@@ -1694,7 +1694,7 @@ func TestGetProxyStatsHeaders(t *testing.T) {
 				informers.WithKubeClient(fakeClient),
 			)
 			assert.NoError(err)
-			controller := k8s.NewClient("ns", "", informer, nil, messaging.NewBroker(stop))
+			controller := k8s.NewClient("ns", "", informer, nil, nil, messaging.NewBroker(stop))
 			c := NewClient(controller)
 			actual, err := c.GetProxyStatsHeaders(test.proxy)
 			if test.expectErr {
@@ -2287,7 +2287,7 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(fakeClient))
 			assert.Nil(err)
 
-			kubecontroller := k8s.NewClient("", "", ic, nil, messaging.NewBroker(make(<-chan struct{})))
+			kubecontroller := k8s.NewClient("", "", ic, nil, nil, messaging.NewBroker(make(<-chan struct{})))
 
 			c := NewClient(kubecontroller)
 
@@ -2424,7 +2424,7 @@ func TestGetMeshService(t *testing.T) {
 			_ = ic.Add(informers.InformerKeyService, tc.svc, t)
 			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
 
-			controller := k8s.NewClient(osmNamespace, "", ic, nil, messaging.NewBroker(make(chan struct{})))
+			controller := k8s.NewClient(osmNamespace, "", ic, nil, nil, messaging.NewBroker(make(chan struct{})))
 
 			c := NewClient(controller)
 

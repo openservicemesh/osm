@@ -15,6 +15,14 @@ limitations under the License.
 
 package v1alpha2
 
+// ExtensionServiceListerExpansion allows custom methods to be added to
+// ExtensionServiceLister.
+type ExtensionServiceListerExpansion interface{}
+
+// ExtensionServiceNamespaceListerExpansion allows custom methods to be added to
+// ExtensionServiceNamespaceLister.
+type ExtensionServiceNamespaceListerExpansion interface{}
+
 // MeshConfigListerExpansion allows custom methods to be added to
 // MeshConfigLister.
 type MeshConfigListerExpansion interface{}

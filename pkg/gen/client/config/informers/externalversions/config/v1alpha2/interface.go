@@ -21,6 +21,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// ExtensionServices returns a ExtensionServiceInformer.
+	ExtensionServices() ExtensionServiceInformer
 	// MeshConfigs returns a MeshConfigInformer.
 	MeshConfigs() MeshConfigInformer
 	// MeshRootCertificates returns a MeshRootCertificateInformer.
@@ -36,6 +38,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// ExtensionServices returns a ExtensionServiceInformer.
+func (v *version) ExtensionServices() ExtensionServiceInformer {
+	return &extensionServiceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // MeshConfigs returns a MeshConfigInformer.

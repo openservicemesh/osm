@@ -20,6 +20,7 @@ import (
 
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	computekube "github.com/openservicemesh/osm/pkg/compute/kube"
+	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	policyFake "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
@@ -163,7 +164,8 @@ func TestNewValidatingWebhook(t *testing.T) {
 		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
 		tassert.NoError(t, err)
 		policyClient := policyFake.NewSimpleClientset()
-		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, policyClient, broker)
+		configClient := configFake.NewSimpleClientset()
+		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, policyClient, configClient, broker)
 		compute := computekube.NewClient(k8sClient)
 		ctx, cancel := context.WithCancel(context.Background())
 		err = NewValidatingWebhook(ctx, webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, compute)
@@ -171,7 +173,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 		cancel()
 	})
 
-	t.Run("successful startup with reconciler enabled and traffic target validation enabled", func(t *testing.T) {
+	t.Run("successful startup with reconciler enabled, traffic target validation enabled, and mrc validation enabled", func(t *testing.T) {
 		certManager := tresorFake.NewFake(1 * time.Hour)
 		enableReconciler = true
 
@@ -182,14 +184,15 @@ func TestNewValidatingWebhook(t *testing.T) {
 		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
 		tassert.NoError(t, err)
 		policyClient := policyFake.NewSimpleClientset()
-		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, policyClient, broker)
+		configClient := configFake.NewSimpleClientset()
+		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, policyClient, configClient, broker)
 
 		compute := computekube.NewClient(k8sClient)
 		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, compute)
 		tassert.NoError(t, err)
 	})
 
-	t.Run("successful startup with reconciler enabled and validation for traffic target disabled", func(t *testing.T) {
+	t.Run("successful startup with reconciler enabled and validation for traffic target disabled, and mrc validation enabled", func(t *testing.T) {
 		certManager := tresorFake.NewFake(1 * time.Hour)
 		enableReconciler = true
 		validateTrafficTarget = false
@@ -202,7 +205,8 @@ func TestNewValidatingWebhook(t *testing.T) {
 		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
 		tassert.NoError(t, err)
 		policyClient := policyFake.NewSimpleClientset()
-		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, policyClient, broker)
+		configClient := configFake.NewSimpleClientset()
+		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, policyClient, configClient, broker)
 		compute := computekube.NewClient(k8sClient)
 
 		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, compute)

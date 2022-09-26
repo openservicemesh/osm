@@ -41,25 +41,27 @@ func (cn CommonName) String() string {
 	return string(cn)
 }
 
-// CertType is the type of certificate. This is only used by OSM.
-type CertType string
+// certTypeInternal is the type of certificate. This is only used by OSM.
+type certType string
 
 const (
-	// Internal is the CertType representing all certs issued for use by the OSM
+	// internal is the CertType representing all certs issued for use by the OSM
 	// control plane.
-	Internal CertType = "internal"
+	internal certType = "internal"
 
-	// IngressGateway is the CertType for certs issued for use by ingress gateways.
-	IngressGateway CertType = "ingressGateway"
+	// ingressGateway is the CertType for certs issued for use by ingress gateways.
+	ingressGateway certType = "ingressGateway"
 
-	// Service is the CertType for certs issued for use by the data plane.
-	Service CertType = "service"
+	// service is the CertType for certs issued for use by the data plane.
+	service certType = "service"
 )
 
 // Certificate represents an x509 certificate.
 type Certificate struct {
 	// The CommonName of the certificate
 	CommonName CommonName
+
+	cacheKey string
 
 	// The serial number of the certificate
 	SerialNumber SerialNumber
@@ -82,13 +84,13 @@ type Certificate struct {
 	signingIssuerID    string
 	validatingIssuerID string
 
-	certType CertType
+	certType certType
 }
 
 // Issuer is the interface for a certificate authority that can issue certificates from a given root certificate.
 type Issuer interface {
 	// IssueCertificate issues a new certificate.
-	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
+	IssueCertificate(IssueOptions) (*Certificate, error)
 }
 
 type issuer struct {

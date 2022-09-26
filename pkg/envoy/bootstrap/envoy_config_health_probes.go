@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"fmt"
 	"time"
 
 	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
@@ -33,28 +34,11 @@ const (
 	startupListener   = "startup_listener"
 )
 
-func getLivenessCluster(originalProbe *models.HealthProbe) *xds_cluster.Cluster {
-	if originalProbe == nil {
+func buildProbeCluster(clusterName string, originalProbe *models.HealthProbe) *xds_cluster.Cluster {
+	if originalProbe == nil || originalProbe.IsTCPSocket {
 		return nil
 	}
-	return getProbeCluster(livenessCluster, originalProbe.Port)
-}
 
-func getReadinessCluster(originalProbe *models.HealthProbe) *xds_cluster.Cluster {
-	if originalProbe == nil {
-		return nil
-	}
-	return getProbeCluster(readinessCluster, originalProbe.Port)
-}
-
-func getStartupCluster(originalProbe *models.HealthProbe) *xds_cluster.Cluster {
-	if originalProbe == nil {
-		return nil
-	}
-	return getProbeCluster(startupCluster, originalProbe.Port)
-}
-
-func getProbeCluster(clusterName string, port int32) *xds_cluster.Cluster {
 	return &xds_cluster.Cluster{
 		Name: clusterName,
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
@@ -74,7 +58,7 @@ func getProbeCluster(clusterName string, port int32) *xds_cluster.Cluster {
 											SocketAddress: &xds_core.SocketAddress{
 												Address: constants.LocalhostIPAddress,
 												PortSpecifier: &xds_core.SocketAddress_PortValue{
-													PortValue: uint32(port),
+													PortValue: uint32(originalProbe.Port),
 												},
 											},
 										},
@@ -89,34 +73,92 @@ func getProbeCluster(clusterName string, port int32) *xds_cluster.Cluster {
 	}
 }
 
-func getLivenessListener(originalProbe *models.HealthProbe) (*xds_listener.Listener, error) {
-	if originalProbe == nil {
-		return nil, nil
-	}
-	return getProbeListener(livenessListener, livenessCluster, constants.LivenessProbePath, constants.LivenessProbePort, originalProbe)
+type probeListenerRoute struct {
+	pathPrefixMatch   string
+	clusterName       string
+	pathPrefixRewrite string
+	timeout           time.Duration
 }
 
-func getReadinessListener(originalProbe *models.HealthProbe) (*xds_listener.Listener, error) {
-	if originalProbe == nil {
-		return nil, nil
-	}
-	return getProbeListener(readinessListener, readinessCluster, constants.ReadinessProbePath, constants.ReadinessProbePort, originalProbe)
+type probeListenerBuilder struct {
+	listenerName      string
+	inboundPort       int32
+	virtualHostRoutes []probeListenerRoute
+	httpsClusterName  string
 }
 
-func getStartupListener(originalProbe *models.HealthProbe) (*xds_listener.Listener, error) {
-	if originalProbe == nil {
-		return nil, nil
+func (plb *probeListenerBuilder) AddProbe(containerName, clusterName, newProbePath string, probe *models.HealthProbe) {
+	if probe == nil || probe.IsTCPSocket {
+		return
 	}
-	return getProbeListener(startupListener, startupCluster, constants.StartupProbePath, constants.StartupProbePort, originalProbe)
+
+	if probe.IsHTTP {
+		plb.virtualHostRoutes = append(plb.virtualHostRoutes, probeListenerRoute{
+			pathPrefixMatch:   fmt.Sprintf("%s/%s", newProbePath, containerName),
+			clusterName:       clusterName,
+			pathPrefixRewrite: probe.Path,
+		})
+	} else {
+		// NOTE: Only 1 HTTPS probe is supported per type (liveness, readiness, startup) across all containers
+		// This is due to the fact that we passthrough HTTPS and cannot do any kind of filtering on path
+		// Therefore, the last declared HTTPS probe will be the only one receiving traffic
+		plb.httpsClusterName = clusterName
+	}
 }
 
-func getProbeListener(listenerName, clusterName, newPath string, port int32, originalProbe *models.HealthProbe) (*xds_listener.Listener, error) {
-	var filterChain *xds_listener.FilterChain
-	if originalProbe.IsHTTP {
-		httpAccessLog, err := getHTTPAccessLog()
+func (plb *probeListenerBuilder) Build() (*xds_listener.Listener, error) {
+	// listenerName should be populated and one of (httpsClusterName, []virtualHostRoutes) should be set
+	if plb.listenerName == "" || (plb.httpsClusterName == "" && len(plb.virtualHostRoutes) == 0) {
+		return nil, nil
+	}
+
+	var filterChains []*xds_listener.FilterChain
+	httpAccessLog, err := getHTTPAccessLog()
+	if err != nil {
+		return nil, err
+	}
+
+	// Add the TCPProxy filter first because it has a filter chain match
+	if plb.httpsClusterName != "" {
+		// NOTE: Only 1 HTTPS probe is supported per type (liveness, readiness, startup)
+		// This is due to the fact that we passthrough HTTPS and cannot do any kind of filtering on path
+		// Therefore, the last declared HTTPS probe will be the only one receiving traffic
+		tcpAccessLog, err := getTCPAccessLog()
 		if err != nil {
 			return nil, err
 		}
+		tcpProxy := &xds_tcp_proxy.TcpProxy{
+			StatPrefix: "health_probes_https",
+			AccessLog: []*xds_accesslog_filter.AccessLog{
+				tcpAccessLog,
+			},
+			ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{
+				Cluster: plb.httpsClusterName,
+			},
+		}
+		pbTCPProxy, err := anypb.New(tcpProxy)
+		if err != nil {
+			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
+				Msgf("Error marshaling TcpProxy struct into an anypb.Any message")
+			return nil, err
+		}
+		filterChains = append(filterChains, &xds_listener.FilterChain{
+			Filters: []*xds_listener.Filter{
+				{
+					Name: envoy.TCPProxyFilterName,
+					ConfigType: &xds_listener.Filter_TypedConfig{
+						TypedConfig: pbTCPProxy,
+					},
+				},
+			},
+			// this filter chain match allows for TCPProxy and HTTPConnManager to be used on the same listener
+			FilterChainMatch: &xds_listener.FilterChainMatch{
+				TransportProtocol: envoy.TransportProtocolTLS,
+			},
+		})
+	}
+
+	if len(plb.virtualHostRoutes) > 0 {
 		httpConnectionManager := &xds_http_connection_manager.HttpConnectionManager{
 			CodecType:  xds_http_connection_manager.HttpConnectionManager_AUTO,
 			StatPrefix: "health_probes_http",
@@ -127,7 +169,7 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 				RouteConfig: &xds_route.RouteConfiguration{
 					Name: "local_route",
 					VirtualHosts: []*xds_route.VirtualHost{
-						getVirtualHost(newPath, clusterName, originalProbe.Path, originalProbe.Timeout),
+						getVirtualHost(plb.virtualHostRoutes),
 					},
 				},
 			},
@@ -148,7 +190,7 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 				Msgf("Error marshaling HttpConnectionManager struct into an anypb.Any message")
 			return nil, err
 		}
-		filterChain = &xds_listener.FilterChain{
+		filterChains = append(filterChains, &xds_listener.FilterChain{
 			Filters: []*xds_listener.Filter{
 				{
 					Name: envoy.HTTPConnectionManagerFilterName,
@@ -157,87 +199,69 @@ func getProbeListener(listenerName, clusterName, newPath string, port int32, ori
 					},
 				},
 			},
-		}
-	} else {
-		tcpAccessLog, err := getTCPAccessLog()
-		if err != nil {
-			return nil, err
-		}
-		tcpProxy := &xds_tcp_proxy.TcpProxy{
-			StatPrefix: "health_probes",
-			AccessLog: []*xds_accesslog_filter.AccessLog{
-				tcpAccessLog,
-			},
-			ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{
-				Cluster: clusterName,
-			},
-		}
-		pbTCPProxy, err := anypb.New(tcpProxy)
-		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
-				Msgf("Error marshaling TcpProxy struct into an anypb.Any message")
-			return nil, err
-		}
-		filterChain = &xds_listener.FilterChain{
-			Filters: []*xds_listener.Filter{
-				{
-					Name: envoy.TCPProxyFilterName,
-					ConfigType: &xds_listener.Filter_TypedConfig{
-						TypedConfig: pbTCPProxy,
-					},
-				},
-			},
-		}
+		})
 	}
 
 	return &xds_listener.Listener{
-		Name: listenerName,
+		Name: plb.listenerName,
 		Address: &xds_core.Address{
 			Address: &xds_core.Address_SocketAddress{
 				SocketAddress: &xds_core.SocketAddress{
 					Address: "0.0.0.0",
 					PortSpecifier: &xds_core.SocketAddress_PortValue{
-						PortValue: uint32(port),
+						PortValue: uint32(plb.inboundPort),
 					},
 				},
 			},
 		},
-		FilterChains: []*xds_listener.FilterChain{
-			filterChain,
+		ListenerFilters: []*xds_listener.ListenerFilter{
+			{
+				Name: envoy.TLSInspectorFilterName,
+				ConfigType: &xds_listener.ListenerFilter_TypedConfig{
+					TypedConfig: &anypb.Any{
+						TypeUrl: envoy.TLSInspectorFilterTypeURL, // Use TLSInspector to look for HTTPS traffic
+					},
+				},
+			},
 		},
+		FilterChains: filterChains,
 	}, nil
 }
 
-func getVirtualHost(newPath, clusterName, originalProbePath string, routeTimeout time.Duration) *xds_route.VirtualHost {
-	if routeTimeout < 1*time.Second {
-		// This should never happen in practice because the minimum value in Kubernetes
-		// is set to 1. However it is easy to check and setting the timeout to 0 will lead
-		// to leaks.
-		routeTimeout = 1 * time.Second
+func getVirtualHost(routes []probeListenerRoute) *xds_route.VirtualHost {
+	var xdsRoutes []*xds_route.Route
+	for _, route := range routes {
+		routeTimeout := route.timeout
+		if routeTimeout < 1*time.Second {
+			// This should never happen in practice because the minimum value in Kubernetes
+			// is set to 1. However it is easy to check and setting the timeout to 0 will lead
+			// to leaks.
+			routeTimeout = 1 * time.Second
+		}
+		xdsRoutes = append(xdsRoutes, &xds_route.Route{
+			Match: &xds_route.RouteMatch{
+				PathSpecifier: &xds_route.RouteMatch_Prefix{
+					Prefix: route.pathPrefixMatch,
+				},
+			},
+			Action: &xds_route.Route_Route{
+				Route: &xds_route.RouteAction{
+					ClusterSpecifier: &xds_route.RouteAction_Cluster{
+						Cluster: route.clusterName,
+					},
+					PrefixRewrite: route.pathPrefixRewrite,
+					Timeout:       durationpb.New(routeTimeout),
+				},
+			},
+		})
 	}
+
 	return &xds_route.VirtualHost{
 		Name: "local_service",
 		Domains: []string{
 			"*",
 		},
-		Routes: []*xds_route.Route{
-			{
-				Match: &xds_route.RouteMatch{
-					PathSpecifier: &xds_route.RouteMatch_Prefix{
-						Prefix: newPath,
-					},
-				},
-				Action: &xds_route.Route_Route{
-					Route: &xds_route.RouteAction{
-						ClusterSpecifier: &xds_route.RouteAction_Cluster{
-							Cluster: clusterName,
-						},
-						PrefixRewrite: originalProbePath,
-						Timeout:       durationpb.New(routeTimeout),
-					},
-				},
-			},
-		},
+		Routes: xdsRoutes,
 	}
 }
 

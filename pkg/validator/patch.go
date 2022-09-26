@@ -18,6 +18,9 @@ const (
 	// ValidatingWebhookName is the name of the validating webhook.
 	ValidatingWebhookName = "osm-validator.k8s.io"
 
+	// ControlPlaneValidatingWebhookName is the name of the validating webhook for control plane resource.
+	ControlPlaneValidatingWebhookName = "osm-control-plane-validator.k8s.io"
+
 	// ValidatorWebhookSvc is the name of the validator service.
 	ValidatorWebhookSvc = "osm-validator"
 )
@@ -48,6 +51,17 @@ func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert *certi
 				Resources:   []string{"traffictargets"},
 			},
 		})
+	}
+
+	controlPlaneRules := []admissionregv1.RuleWithOperations{
+		{
+			Operations: []admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+			Rule: admissionregv1.Rule{
+				APIGroups:   []string{"config.openservicemesh.io"},
+				APIVersions: []string{"v1alpha2"},
+				Resources:   []string{"meshrootcertificates"},
+			},
+		},
 	}
 
 	vwhcLabels := map[string]string{
@@ -104,7 +118,37 @@ func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert *certi
 					sideEffect := admissionregv1.SideEffectClassNoneOnDryRun
 					return &sideEffect
 				}(),
-				AdmissionReviewVersions: []string{"v1"}}},
+				AdmissionReviewVersions: []string{"v1"},
+			},
+			{
+				Name: ControlPlaneValidatingWebhookName,
+				ClientConfig: admissionregv1.WebhookClientConfig{
+					Service: &admissionregv1.ServiceReference{
+						Namespace: osmNamespace,
+						Name:      ValidatorWebhookSvc,
+						Path:      &webhookPath,
+						Port:      &webhookPort,
+					},
+					CABundle: cert.GetTrustedCAs()},
+				FailurePolicy: &failurePolicy,
+				MatchPolicy:   &matchPolicy,
+				NamespaceSelector: &metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{
+						{
+							Key:      "name",
+							Operator: metav1.LabelSelectorOpIn,
+							Values:   []string{osmNamespace},
+						},
+					},
+				},
+				Rules: controlPlaneRules,
+				SideEffects: func() *admissionregv1.SideEffectClass {
+					sideEffect := admissionregv1.SideEffectClassNoneOnDryRun
+					return &sideEffect
+				}(),
+				AdmissionReviewVersions: []string{"v1"},
+			},
+		},
 	}
 
 	if _, err := clientSet.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.Background(), &vwhc, metav1.CreateOptions{}); err != nil {

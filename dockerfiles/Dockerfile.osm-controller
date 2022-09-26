@@ -15,11 +15,11 @@ ARG GO_BUILD_FLAGS
 
 WORKDIR /osm
 COPY . .
-COPY --from=wasm /wasm/stats.wasm pkg/envoy/lds
+COPY --from=wasm /wasm/stats.wasm pkg/envoy/generator/lds
 
 RUN if [ $(command -v yum) ]; then \
-      yum update -y && \
-      yum install -y ca-certificates; \
+    yum update -y && \
+    yum install -y ca-certificates; \
     fi
 
 RUN --mount=type=cache,target=/root/.cache/go-build \

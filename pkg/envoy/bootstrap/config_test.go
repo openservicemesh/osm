@@ -21,10 +21,17 @@ func TestBuild(t *testing.T) {
 		TLSMaxProtocolVersion: "TLSv1_2",
 		CipherSuites:          []string{"abc", "xyz"},
 		ECDHCurves:            []string{"ABC", "XYZ"},
-		OriginalHealthProbes: models.HealthProbes{
-			Liveness:  &models.HealthProbe{Path: "/liveness", Port: 81, IsHTTP: true},
-			Readiness: &models.HealthProbe{Path: "/readiness", Port: 82, IsHTTP: true},
-			Startup:   &models.HealthProbe{Path: "/startup", Port: 83, IsHTTP: true},
+		OriginalHealthProbes: map[string]models.HealthProbes{
+			"my-container": {
+				Liveness:  &models.HealthProbe{Path: "/liveness", Port: 81, IsHTTP: true},
+				Readiness: &models.HealthProbe{Path: "/readiness", Port: 82, IsHTTP: true},
+				Startup:   &models.HealthProbe{Path: "/startup", Port: 83, IsHTTP: true},
+			},
+			"my-container-2": {
+				Liveness:  &models.HealthProbe{Path: "/liveness", Port: 84, IsHTTP: true},
+				Readiness: &models.HealthProbe{Path: "/readiness", Port: 85}, // HTTPS (should overwrite my-containers probe)
+				Startup:   &models.HealthProbe{Path: "/startup", Port: 86, IsHTTP: true},
+			},
 		},
 	}
 
@@ -103,7 +110,7 @@ static_resources:
         explicit_http_config:
           http2_protocol_options: {}
   - load_assignment:
-      cluster_name: liveness_cluster
+      cluster_name: my-container_liveness_cluster
       endpoints:
       - lb_endpoints:
         - endpoint:
@@ -111,10 +118,10 @@ static_resources:
               socket_address:
                 address: 127.0.0.1
                 port_value: 81
-    name: liveness_cluster
+    name: my-container_liveness_cluster
     type: STATIC
   - load_assignment:
-      cluster_name: readiness_cluster
+      cluster_name: my-container_readiness_cluster
       endpoints:
       - lb_endpoints:
         - endpoint:
@@ -122,10 +129,10 @@ static_resources:
               socket_address:
                 address: 127.0.0.1
                 port_value: 82
-    name: readiness_cluster
+    name: my-container_readiness_cluster
     type: STATIC
   - load_assignment:
-      cluster_name: startup_cluster
+      cluster_name: my-container_startup_cluster
       endpoints:
       - lb_endpoints:
         - endpoint:
@@ -133,7 +140,40 @@ static_resources:
               socket_address:
                 address: 127.0.0.1
                 port_value: 83
-    name: startup_cluster
+    name: my-container_startup_cluster
+    type: STATIC
+  - load_assignment:
+      cluster_name: my-container-2_liveness_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 127.0.0.1
+                port_value: 84
+    name: my-container-2_liveness_cluster
+    type: STATIC
+  - load_assignment:
+      cluster_name: my-container-2_readiness_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 127.0.0.1
+                port_value: 85
+    name: my-container-2_readiness_cluster
+    type: STATIC
+  - load_assignment:
+      cluster_name: my-container-2_startup_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 127.0.0.1
+                port_value: 86
+    name: my-container-2_startup_cluster
     type: STATIC
   listeners:
   - address:
@@ -182,18 +222,50 @@ static_resources:
               name: local_service
               routes:
               - match:
-                  prefix: /osm-liveness-probe
+                  prefix: /osm-liveness-probe/my-container
                 route:
-                  cluster: liveness_cluster
+                  cluster: my-container_liveness_cluster
+                  prefix_rewrite: /liveness
+                  timeout: 1s
+              - match:
+                  prefix: /osm-liveness-probe/my-container-2
+                route:
+                  cluster: my-container-2_liveness_cluster
                   prefix_rewrite: /liveness
                   timeout: 1s
           stat_prefix: health_probes_http
+    listener_filters:
+    - name: tls_inspector
+      typed_config:
+        '@type': type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector
     name: liveness_listener
   - address:
       socket_address:
         address: 0.0.0.0
         port_value: 15902
     filter_chains:
+    - filter_chain_match:
+        transport_protocol: tls
+      filters:
+      - name: tcp_proxy
+        typed_config:
+          '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+          access_log:
+          - name: envoy.access_loggers.stream
+            typed_config:
+              '@type': type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+              log_format:
+                json_format:
+                  bytes_received: '%BYTES_RECEIVED%'
+                  bytes_sent: '%BYTES_SENT%'
+                  duration: '%DURATION%'
+                  requested_server_name: '%REQUESTED_SERVER_NAME%'
+                  response_flags: '%RESPONSE_FLAGS%'
+                  start_time: '%START_TIME%'
+                  upstream_cluster: '%UPSTREAM_CLUSTER%'
+                  upstream_host: '%UPSTREAM_HOST%'
+          cluster: my-container-2_readiness_cluster
+          stat_prefix: health_probes_https
     - filters:
       - name: envoy.filters.network.http_connection_manager
         typed_config:
@@ -235,12 +307,16 @@ static_resources:
               name: local_service
               routes:
               - match:
-                  prefix: /osm-readiness-probe
+                  prefix: /osm-readiness-probe/my-container
                 route:
-                  cluster: readiness_cluster
+                  cluster: my-container_readiness_cluster
                   prefix_rewrite: /readiness
                   timeout: 1s
           stat_prefix: health_probes_http
+    listener_filters:
+    - name: tls_inspector
+      typed_config:
+        '@type': type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector
     name: readiness_listener
   - address:
       socket_address:
@@ -288,12 +364,22 @@ static_resources:
               name: local_service
               routes:
               - match:
-                  prefix: /osm-startup-probe
+                  prefix: /osm-startup-probe/my-container
                 route:
-                  cluster: startup_cluster
+                  cluster: my-container_startup_cluster
+                  prefix_rewrite: /startup
+                  timeout: 1s
+              - match:
+                  prefix: /osm-startup-probe/my-container-2
+                route:
+                  cluster: my-container-2_startup_cluster
                   prefix_rewrite: /startup
                   timeout: 1s
           stat_prefix: health_probes_http
+    listener_filters:
+    - name: tls_inspector
+      typed_config:
+        '@type': type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector
     name: startup_listener
 `
 	assert.Equal(expectedYAML, string(actualYAML))

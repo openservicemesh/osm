@@ -43,6 +43,8 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		},
 	}
 
+	namespace := "namespace"
+
 	meshConfig := v1alpha2.MeshConfig{
 		Spec: v1alpha2.MeshConfigSpec{
 			Sidecar: v1alpha2.SidecarSpec{
@@ -63,10 +65,17 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		},
 	}
 
-	originalHealthProbes := models.HealthProbes{
-		Liveness:  &models.HealthProbe{Path: "/liveness", Port: 81},
-		Readiness: &models.HealthProbe{Path: "/readiness", Port: 82},
-		Startup:   &models.HealthProbe{Path: "/startup", Port: 83},
+	originalHealthProbes := map[string]models.HealthProbes{
+		"my-container": {
+			Liveness:  &models.HealthProbe{Path: "/liveness", Port: 81},
+			Readiness: &models.HealthProbe{Path: "/readiness", Port: 82},
+			Startup:   &models.HealthProbe{Path: "/startup", Port: 83},
+		},
+		"my-sidecar": {
+			Liveness:  &models.HealthProbe{Path: "/liveness", Port: 84},
+			Readiness: &models.HealthProbe{Path: "/readiness", Port: 85},
+			Startup:   &models.HealthProbe{Path: "/startup", Port: 86},
+		},
 	}
 
 	expectedRewrittenContainerPorts := []corev1.ContainerPort{
@@ -87,7 +96,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 
 	Context("test unix getEnvoySidecarContainerSpec()", func() {
 		It("creates Envoy sidecar spec", func() {
-			actual := getEnvoySidecarContainerSpec(pod, meshConfig, originalHealthProbes, constants.OSLinux)
+			actual := getEnvoySidecarContainerSpec(pod, namespace, meshConfig, originalHealthProbes, constants.OSLinux)
 
 			expected := corev1.Container{
 				Name:            constants.EnvoyContainerName,
@@ -200,7 +209,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 
 	Context("test Windows getEnvoySidecarContainerSpec()", func() {
 		It("creates Envoy sidecar spec", func() {
-			actual := getEnvoySidecarContainerSpec(pod, meshConfig, originalHealthProbes, constants.OSWindows)
+			actual := getEnvoySidecarContainerSpec(pod, namespace, meshConfig, originalHealthProbes, constants.OSWindows)
 
 			expected := corev1.Container{
 				Name:            constants.EnvoyContainerName,
