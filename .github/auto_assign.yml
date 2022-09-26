@@ -17,6 +17,7 @@ numberOfReviewers: 2
 useReviewGroups: true
 
 # A list of reviewers, split into different groups, to be added to pull requests (GitHub user name)
+# Make sure to keep this in sync with the OWNERS file
 reviewGroups:
   maintainers:
     - shashankram
@@ -25,8 +26,6 @@ reviewGroups:
     - trstringer
     - keithmattix
     - steeling
-    - snehachhabria
-    - draychev
   contributors:
     - allenlsy
     - jsturtevant
