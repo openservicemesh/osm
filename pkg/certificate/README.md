@@ -2,7 +2,7 @@
 
 This package contains tools for issuing and renewing certificates for the service mesh.
 
-For design and details on mTLS and certificate issuance please see [docs/patterns/certificates.md](../../docs/patterns/certificates.md).
+For design and details on mTLS and certificate issuance please see [docs/patterns/certificates.md](../../docs/certificate_management.md).
 
 
 ## Interfaces
