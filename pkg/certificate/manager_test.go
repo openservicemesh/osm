@@ -371,21 +371,87 @@ func TestManager_GetTrustDomain(t *testing.T) {
 		name                 string
 		signingIssuer        *issuer
 		validatingIssuer     *issuer
-		expectedTrustDomains TrustDomain
+		expectedIssuers      IssuerInfo
 		expectedAreDifferent bool
 	}{
 		{
-			name:                 "should return both trustdomains",
-			signingIssuer:        &issuer{TrustDomain: "cluster.local"},
-			validatingIssuer:     &issuer{TrustDomain: "old.local"},
-			expectedTrustDomains: TrustDomain{Signing: "cluster.local", Validating: "old.local"},
+			name:             "should return both trustdomains",
+			signingIssuer:    &issuer{TrustDomain: "cluster.local", SpiffeEnabled: false},
+			validatingIssuer: &issuer{TrustDomain: "old.local", SpiffeEnabled: false},
+			expectedIssuers: IssuerInfo{
+				Signing: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: PrincipalInfo{
+					TrustDomain:   "old.local",
+					SpiffeEnabled: false,
+				},
+			},
 			expectedAreDifferent: true,
 		},
 		{
-			name:                 "should return both trustdomains when the same",
-			signingIssuer:        &issuer{TrustDomain: "cluster.local"},
-			validatingIssuer:     &issuer{TrustDomain: "cluster.local"},
-			expectedTrustDomains: TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
+			name:             "should return both trustdomains",
+			signingIssuer:    &issuer{TrustDomain: "cluster.local", SpiffeEnabled: true},
+			validatingIssuer: &issuer{TrustDomain: "old.local", SpiffeEnabled: false},
+			expectedIssuers: IssuerInfo{
+				Signing: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: true,
+				},
+				Validating: PrincipalInfo{
+					TrustDomain:   "old.local",
+					SpiffeEnabled: false,
+				},
+			},
+			expectedAreDifferent: true,
+		},
+		{
+			name:             "should return both trustdomains when the same",
+			signingIssuer:    &issuer{TrustDomain: "cluster.local", SpiffeEnabled: false},
+			validatingIssuer: &issuer{TrustDomain: "cluster.local", SpiffeEnabled: false},
+			expectedIssuers: IssuerInfo{
+				Signing: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+			},
+			expectedAreDifferent: false,
+		},
+		{
+			name:             "should return both trustdomains when the same but spiffe is enabled for one",
+			signingIssuer:    &issuer{TrustDomain: "cluster.local", SpiffeEnabled: false},
+			validatingIssuer: &issuer{TrustDomain: "cluster.local", SpiffeEnabled: true},
+			expectedIssuers: IssuerInfo{
+				Signing: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: true,
+				},
+			},
+			expectedAreDifferent: true,
+		},
+		{
+			name:             "should return both trustdomains and spiffe are same",
+			signingIssuer:    &issuer{TrustDomain: "cluster.local", SpiffeEnabled: true},
+			validatingIssuer: &issuer{TrustDomain: "cluster.local", SpiffeEnabled: true},
+			expectedIssuers: IssuerInfo{
+				Signing: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: true,
+				},
+				Validating: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: true,
+				},
+			},
 			expectedAreDifferent: false,
 		},
 	}
@@ -396,9 +462,9 @@ func TestManager_GetTrustDomain(t *testing.T) {
 				signingIssuer:    tt.signingIssuer,
 				validatingIssuer: tt.validatingIssuer,
 			}
-			got := m.GetTrustDomains()
-			assert.Equal(tt.expectedTrustDomains.Signing, got.Signing)
-			assert.Equal(tt.expectedTrustDomains.Validating, got.Validating)
+			got := m.GetIssuers()
+			assert.Equal(tt.expectedIssuers.Signing, got.Signing)
+			assert.Equal(tt.expectedIssuers.Validating, got.Validating)
 			assert.Equal(tt.expectedAreDifferent, got.AreDifferent())
 		})
 	}

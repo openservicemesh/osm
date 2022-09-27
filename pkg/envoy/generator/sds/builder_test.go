@@ -29,7 +29,7 @@ func TestSecretsBuilder(t *testing.T) {
 	// This is used to dynamically set expectations for each test in the list of table driven tests
 	type testCase struct {
 		name                        string
-		configuredTrustDomains      certificate.TrustDomain
+		configuredTrustDomains      certificate.IssuerInfo
 		serviceIdentity             identity.ServiceIdentity
 		serviceIdentitiesForService map[service.MeshService][]identity.ServiceIdentity
 		expectedSANs                map[string][]string // only set for service-cert
@@ -37,9 +37,18 @@ func TestSecretsBuilder(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:                   "test multiple outbound secrets: root-cert-for-mtls-outbound requested",
-			configuredTrustDomains: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
-			serviceIdentity:        identity.New("sa-1", "ns-1"),
+			name: "test multiple outbound secrets: root-cert-for-mtls-outbound requested",
+			configuredTrustDomains: certificate.IssuerInfo{
+				Signing: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+			},
+			serviceIdentity: identity.New("sa-1", "ns-1"),
 			serviceIdentitiesForService: map[service.MeshService][]identity.ServiceIdentity{
 				{
 					Name:      "service-2",
@@ -52,23 +61,41 @@ func TestSecretsBuilder(t *testing.T) {
 					Name:      "service-3",
 					Namespace: "ns-4",
 				}: {
-					identity.New("sa-3", "ns-3"),
+					identity.New("sa-3", "ns-4"),
 				},
 			},
 			expectedSANs: map[string][]string{
 				secrets.NameForUpstreamService("service-2", "ns-2"): {"sa-2.ns-2.cluster.local", "sa-3.ns-2.cluster.local"},
-				secrets.NameForUpstreamService("service-3", "ns-4"): {"sa-3.ns-3.cluster.local"},
+				secrets.NameForUpstreamService("service-3", "ns-4"): {"sa-3.ns-4.cluster.local"},
 			},
 		},
 		{
-			name:                   "test no outbound secrets",
-			configuredTrustDomains: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
-			serviceIdentity:        identity.New("sa-1", "ns-1"),
+			name: "test no outbound secrets",
+			configuredTrustDomains: certificate.IssuerInfo{
+				Signing: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+			},
+			serviceIdentity: identity.New("sa-1", "ns-1"),
 		},
 		{
-			name:                   "test multiple outbound secrets with multiple trust domains",
-			serviceIdentity:        identity.New("sa-1", "ns-1"),
-			configuredTrustDomains: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.new"},
+			name:            "test multiple outbound secrets with multiple trust domains",
+			serviceIdentity: identity.New("sa-1", "ns-1"),
+			configuredTrustDomains: certificate.IssuerInfo{
+				Signing: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.new",
+					SpiffeEnabled: false,
+				},
+			},
 			serviceIdentitiesForService: map[service.MeshService][]identity.ServiceIdentity{
 				{
 					Name:      "service-2",
@@ -81,12 +108,45 @@ func TestSecretsBuilder(t *testing.T) {
 					Name:      "service-3",
 					Namespace: "ns-4",
 				}: {
-					identity.New("sa-3", "ns-3"),
+					identity.New("sa-3", "ns-4"),
 				},
 			},
 			expectedSANs: map[string][]string{
 				secrets.NameForUpstreamService("service-2", "ns-2"): {"sa-2.ns-2.cluster.local", "sa-3.ns-2.cluster.local", "sa-2.ns-2.cluster.new", "sa-3.ns-2.cluster.new"},
-				secrets.NameForUpstreamService("service-3", "ns-4"): {"sa-3.ns-3.cluster.local", "sa-3.ns-3.cluster.new"},
+				secrets.NameForUpstreamService("service-3", "ns-4"): {"sa-3.ns-4.cluster.local", "sa-3.ns-4.cluster.new"},
+			},
+		},
+		{
+			name:            "test multiple outbound secrets with spiffe enabled",
+			serviceIdentity: identity.New("sa-1", "ns-1"),
+			configuredTrustDomains: certificate.IssuerInfo{
+				Signing: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.new",
+					SpiffeEnabled: true,
+				},
+			},
+			serviceIdentitiesForService: map[service.MeshService][]identity.ServiceIdentity{
+				{
+					Name:      "service-2",
+					Namespace: "ns-2",
+				}: {
+					identity.New("sa-2", "ns-2"),
+					identity.New("sa-3", "ns-2"),
+				},
+				{
+					Name:      "service-3",
+					Namespace: "ns-4",
+				}: {
+					identity.New("sa-3", "ns-4"),
+				},
+			},
+			expectedSANs: map[string][]string{
+				secrets.NameForUpstreamService("service-2", "ns-2"): {"sa-2.ns-2.cluster.local", "sa-3.ns-2.cluster.local", "spiffe://cluster.new/sa-2/ns-2", "spiffe://cluster.new/sa-3/ns-2"},
+				secrets.NameForUpstreamService("service-3", "ns-4"): {"sa-3.ns-4.cluster.local", "spiffe://cluster.new/sa-3/ns-4"},
 			},
 		},
 	}
@@ -95,7 +155,7 @@ func TestSecretsBuilder(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			builder := NewBuilder()
 			proxy := models.NewProxy(models.KindSidecar, uuid.New(), identity.New("sa-1", "ns-1"), nil, 1)
-			builder.SetProxy(proxy).SetProxyCert(cert).SetTrustDomain(tc.configuredTrustDomains)
+			builder.SetProxy(proxy).SetProxyCert(cert).SetIssuers(tc.configuredTrustDomains)
 
 			builder.SetServiceIdentitiesForService(tc.serviceIdentitiesForService)
 
@@ -156,7 +216,20 @@ func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual := getSubjectAltNamesFromSvcIdentities(tc.serviceIdentities, certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"})
+			sb := SecretsBuilder{
+				issuers: certificate.IssuerInfo{
+					Signing: certificate.PrincipalInfo{
+						TrustDomain:   "cluster.local",
+						SpiffeEnabled: false,
+					},
+					Validating: certificate.PrincipalInfo{
+						TrustDomain:   "cluster.local",
+						SpiffeEnabled: false,
+					},
+				},
+			}
+
+			actual := sb.getSubjectAltNamesFromSvcIdentities(tc.serviceIdentities)
 			assert.ElementsMatch(actual, tc.expectedSANMatchers)
 		})
 	}

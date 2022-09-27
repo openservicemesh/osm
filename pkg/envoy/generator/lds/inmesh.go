@@ -58,7 +58,7 @@ func (lb *listenerBuilder) buildInboundHTTPFilterChain(trafficMatch *trafficpoli
 
 	// Network RBAC
 	if !lb.permissiveMesh {
-		fb.WithRBAC(lb.trafficTargets, lb.trustDomain)
+		fb.WithRBAC(lb.trafficTargets, lb.issuers)
 	}
 
 	// TCP local rate limit
@@ -170,7 +170,7 @@ func (lb *listenerBuilder) buildInboundTCPFilterChain(trafficMatch *trafficpolic
 
 	// Network RBAC
 	if !lb.permissiveMesh && len(lb.trafficTargets) > 0 {
-		fb.WithRBAC(lb.trafficTargets, lb.trustDomain)
+		fb.WithRBAC(lb.trafficTargets, lb.issuers)
 	}
 
 	// TCP local rate limit

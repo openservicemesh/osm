@@ -6,7 +6,6 @@ import (
 	xds_network_rbac "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -14,8 +13,8 @@ import (
 
 // buildRBACFilter builds an RBAC filter based on SMI TrafficTarget policies.
 // The returned RBAC filter has policies that gives downstream principals full access to the local service.
-func buildRBACFilter(trafficTargets []trafficpolicy.TrafficTargetWithRoutes, trustDomain certificate.TrustDomain) (*xds_listener.Filter, error) {
-	networkRBACPolicy, err := buildInboundRBACPolicies(trafficTargets, trustDomain)
+func (fb *filterBuilder) buildRBACFilter() (*xds_listener.Filter, error) {
+	networkRBACPolicy, err := fb.buildInboundRBACPolicies()
 	if err != nil {
 		return nil, err
 	}
@@ -34,11 +33,11 @@ func buildRBACFilter(trafficTargets []trafficpolicy.TrafficTargetWithRoutes, tru
 }
 
 // buildInboundRBACPolicies builds the RBAC policies based on allowed principals
-func buildInboundRBACPolicies(trafficTargets []trafficpolicy.TrafficTargetWithRoutes, trustDomain certificate.TrustDomain) (*xds_network_rbac.RBAC, error) {
+func (fb *filterBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, error) {
 	rbacPolicies := make(map[string]*xds_rbac.Policy)
 	// Build an RBAC policies based on SMI TrafficTarget policies
-	for _, targetPolicy := range trafficTargets {
-		rbacPolicies[targetPolicy.Name] = buildRBACPolicyFromTrafficTarget(targetPolicy, trustDomain)
+	for _, targetPolicy := range fb.trafficTargets {
+		rbacPolicies[targetPolicy.Name] = fb.buildRBACPolicyFromTrafficTarget(targetPolicy)
 	}
 
 	// Create an inbound RBAC policy that denies a request by default, unless a policy explicitly allows it
@@ -54,14 +53,14 @@ func buildInboundRBACPolicies(trafficTargets []trafficpolicy.TrafficTargetWithRo
 }
 
 // buildRBACPolicyFromTrafficTarget creates an XDS RBAC policy from the given traffic target policy
-func buildRBACPolicyFromTrafficTarget(trafficTarget trafficpolicy.TrafficTargetWithRoutes, trustDomains certificate.TrustDomain) *xds_rbac.Policy {
+func (fb *filterBuilder) buildRBACPolicyFromTrafficTarget(trafficTarget trafficpolicy.TrafficTargetWithRoutes) *xds_rbac.Policy {
 	pb := &rbac.PolicyBuilder{}
 
 	// Create the list of identities for this policy
 	for _, downstreamIdentity := range trafficTarget.Sources {
-		pb.AddPrincipal(downstreamIdentity.AsPrincipal(trustDomains.Signing))
-		if trustDomains.AreDifferent() {
-			pb.AddPrincipal(downstreamIdentity.AsPrincipal(trustDomains.Validating))
+		pb.AddPrincipal(downstreamIdentity.AsPrincipal(fb.issuers.Signing.TrustDomain, fb.issuers.Signing.SpiffeEnabled))
+		if fb.issuers.AreDifferent() {
+			pb.AddPrincipal(downstreamIdentity.AsPrincipal(fb.issuers.Validating.TrustDomain, fb.issuers.Validating.SpiffeEnabled))
 		}
 	}
 	// Create the list of permissions for this policy

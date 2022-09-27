@@ -1,4 +1,4 @@
-package utils
+package osm
 
 import (
 	"context"
@@ -17,6 +17,8 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -28,8 +30,9 @@ func TestValidateClient(t *testing.T) {
 		expectedError error
 	}
 
+	testid := uuid.New()
 	certManager := tresorFake.NewFake(1 * time.Hour)
-	cnPrefix := fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace)
+	cnPrefix := fmt.Sprintf("%s.%s.%s.%s", testid, models.KindSidecar, tests.BookstoreServiceAccountName, tests.Namespace)
 	certPEM, _ := certManager.IssueCertificate(certificate.ForCommonNamePrefix(cnPrefix))
 	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 
@@ -41,13 +44,17 @@ func TestValidateClient(t *testing.T) {
 	}
 
 	for _, vct := range validateClientTests {
-		certCN, certSerialNumber, err := ValidateClient(vct.ctx)
+		kind, certuuid, si, certSerialNumber, err := ValidateClient(vct.ctx, certificate.IssuerInfo{Signing: certificate.PrincipalInfo{SpiffeEnabled: false}, Validating: certificate.PrincipalInfo{SpiffeEnabled: false}})
 		if err != nil {
-			assert.Equal(certCN, certificate.CommonName(""))
-			assert.Equal(certSerialNumber, certificate.SerialNumber(""))
+			assert.Equal(models.ProxyKind(""), kind)
+			assert.Equal(certuuid, uuid.UUID{})
+			assert.Equal(identity.ServiceIdentity(""), si)
+			assert.Equal(certificate.SerialNumber(""), certSerialNumber)
 			assert.True(errors.Is(err, vct.expectedError))
 		} else {
-			assert.NotNil(certCN)
+			assert.Equal(models.KindSidecar, kind)
+			assert.Equal(testid, certuuid)
+			assert.Equal(identity.ServiceIdentity(fmt.Sprintf("%s.%s", tests.BookstoreServiceAccountName, tests.Namespace)), si)
 			assert.NotNil(certSerialNumber)
 			assert.Empty(vct.expectedError)
 		}

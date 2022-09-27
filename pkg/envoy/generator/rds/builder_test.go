@@ -376,14 +376,14 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 							HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
 							WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 						},
-						AllowedPrincipals: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity().AsPrincipal("cluster.local")),
+						AllowedPrincipals: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity().AsPrincipal("cluster.local", false)),
 					},
 					{
 						Route: trafficpolicy.RouteWeightedClusters{
 							HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
 							WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 						},
-						AllowedPrincipals: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity().AsPrincipal("cluster.local")),
+						AllowedPrincipals: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity().AsPrincipal("cluster.local", false)),
 					},
 				},
 			},

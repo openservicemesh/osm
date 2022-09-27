@@ -38,7 +38,7 @@ type MeshRootCertificateSpec struct {
 	Intent MeshRootCertificateIntent `json:"intent"`
 
 	// SpiffeEnabled will add a SPIFFE ID to the certificates, creating a SPIFFE compatible x509 SVID document
-	// To use SPIFFE ID for validation and routing, 'enableSPIFFE' must be true in the MeshConfig after the MeshRootCertificate is made 'active'
+	// SPIFFE ID will be used for validation and routing after this MeshRootCertificate is made 'active' (i.e. it is issuing and validating certificates)
 	SpiffeEnabled bool `json:"spiffeEnabled"`
 }
 

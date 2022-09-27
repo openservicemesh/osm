@@ -116,24 +116,36 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 	return nil
 }
 
-// TrustDomain is used to hold the current certificate information about the trust domain
-type TrustDomain struct {
-	Signing    string
-	Validating string
+// IssuerInfo is used to hold the current certificate information about the issuers
+type IssuerInfo struct {
+	Signing    PrincipalInfo
+	Validating PrincipalInfo
+}
+
+// PrincipalInfo holds TrustDomain and SPIFFE ID used to create the Principal Identities when passing off the the proxy
+type PrincipalInfo struct {
+	TrustDomain   string
+	SpiffeEnabled bool
 }
 
 // AreDifferent returns true if the signing and validating trust domains are different
-func (td TrustDomain) AreDifferent() bool {
+func (td IssuerInfo) AreDifferent() bool {
 	return td.Signing != td.Validating
 }
 
-// GetTrustDomains returns the trust domains from the configured issuers.
+// GetIssuers returns the trust domains from the configured issuers.
 // Note that the CRD uses a default, so this value will always be set.
 // It is up to the caller to determine if the signing and validating trust domains are different
-func (m *Manager) GetTrustDomains() TrustDomain {
+func (m *Manager) GetIssuers() IssuerInfo {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return TrustDomain{Signing: m.signingIssuer.TrustDomain, Validating: m.validatingIssuer.TrustDomain}
+	return IssuerInfo{Signing: PrincipalInfo{
+		TrustDomain:   m.signingIssuer.TrustDomain,
+		SpiffeEnabled: m.signingIssuer.SpiffeEnabled,
+	}, Validating: PrincipalInfo{
+		TrustDomain:   m.validatingIssuer.TrustDomain,
+		SpiffeEnabled: m.validatingIssuer.SpiffeEnabled},
+	}
 }
 
 // ShouldRotate determines whether a certificate should be rotated.

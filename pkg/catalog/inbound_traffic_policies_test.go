@@ -164,6 +164,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				mockK8s.EXPECT().ListUpstreamTrafficSettings().Return(upstreamTrafficSettings).AnyTimes()
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 				mockK8s.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
+				mockK8s.EXPECT().ListMeshRootCertificates().Return(nil, nil).AnyTimes()
 			},
 			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
 				8080: {
@@ -200,7 +201,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local")),
+								}.AsPrincipal("cluster.local", false)),
 							},
 						},
 					},
@@ -239,7 +240,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local")),
+								}.AsPrincipal("cluster.local", false)),
 							},
 						},
 					},
@@ -328,6 +329,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			trafficSplits: nil,
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
+				mockK8s.EXPECT().ListMeshRootCertificates().Return(nil, nil).AnyTimes()
 			},
 			expectedInboundMeshTrafficMatches: []*trafficpolicy.TrafficMatch{
 				{
@@ -465,6 +467,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			trafficSplits: nil,
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
+				mockK8s.EXPECT().ListMeshRootCertificates().Return(nil, nil).AnyTimes()
 			},
 			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
 				80: {
@@ -501,7 +504,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local")),
+								}.AsPrincipal("cluster.local", false)),
 							},
 							{
 								Route: trafficpolicy.RouteWeightedClusters{
@@ -521,7 +524,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local")),
+								}.AsPrincipal("cluster.local", false)),
 							},
 						},
 					},
@@ -560,7 +563,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local")),
+								}.AsPrincipal("cluster.local", false)),
 							},
 							{
 								Route: trafficpolicy.RouteWeightedClusters{
@@ -580,7 +583,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local")),
+								}.AsPrincipal("cluster.local", false)),
 							},
 						},
 					},
@@ -697,6 +700,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			},
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
+				mockK8s.EXPECT().ListMeshRootCertificates().Return(nil, nil).AnyTimes()
 			},
 			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
 				80: {
@@ -733,7 +737,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local")),
+								}.AsPrincipal("cluster.local", false)),
 							},
 						},
 					},
@@ -770,7 +774,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local")),
+								}.AsPrincipal("cluster.local", false)),
 							},
 						},
 					},
@@ -809,7 +813,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local")),
+								}.AsPrincipal("cluster.local", false)),
 							},
 						},
 					},
@@ -881,6 +885,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			},
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
+				mockK8s.EXPECT().ListMeshRootCertificates().Return(nil, nil).AnyTimes()
 			},
 			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
 				80: {
@@ -1074,6 +1079,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			trafficSplits: nil,
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
+				mockK8s.EXPECT().ListMeshRootCertificates().Return(nil, nil).AnyTimes()
 			},
 			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
 				80: {
@@ -1240,6 +1246,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			trafficSplits: nil,
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
+				mockK8s.EXPECT().ListMeshRootCertificates().Return(nil, nil).AnyTimes()
 			},
 			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
 				80: {
@@ -1277,11 +1284,11 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.AsPrincipal("cluster.local"),
+									}.AsPrincipal("cluster.local", false),
 									identity.K8sServiceAccount{
 										Name:      "sa3",
 										Namespace: "ns3",
-									}.AsPrincipal("cluster.local")),
+									}.AsPrincipal("cluster.local", false)),
 							},
 						},
 					},
@@ -1321,11 +1328,11 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 									identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.AsPrincipal("cluster.local"),
+									}.AsPrincipal("cluster.local", false),
 									identity.K8sServiceAccount{
 										Name:      "sa3",
 										Namespace: "ns3",
-									}.AsPrincipal("cluster.local")),
+									}.AsPrincipal("cluster.local", false)),
 							},
 						},
 					},
@@ -1440,6 +1447,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			},
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
+				mockK8s.EXPECT().ListMeshRootCertificates().Return(nil, nil).AnyTimes()
 			},
 			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
 				80: {
@@ -1476,7 +1484,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local")),
+								}.AsPrincipal("cluster.local", false)),
 							},
 						},
 					},
@@ -1515,7 +1523,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local")),
+								}.AsPrincipal("cluster.local", false)),
 							},
 						},
 					},
@@ -1581,6 +1589,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			},
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
+				mockK8s.EXPECT().ListMeshRootCertificates().Return(nil, nil).AnyTimes()
 			},
 			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
 				80: {
@@ -1763,6 +1772,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			},
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
+				mockK8s.EXPECT().ListMeshRootCertificates().Return(nil, nil).AnyTimes()
 			},
 			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
 				8080: {
@@ -1801,7 +1811,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local")),
+								}.AsPrincipal("cluster.local", false)),
 							},
 						},
 					},
@@ -1842,7 +1852,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local")),
+								}.AsPrincipal("cluster.local", false)),
 							},
 						},
 					},
@@ -1917,6 +1927,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			},
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
+				mockK8s.EXPECT().ListMeshRootCertificates().Return(nil, nil).AnyTimes()
 			},
 			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
 				80: {
@@ -2051,6 +2062,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			},
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
+				mockK8s.EXPECT().ListMeshRootCertificates().Return(nil, nil).AnyTimes()
 			},
 			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
 				80: {
@@ -2270,10 +2282,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local"), identity.K8sServiceAccount{
+								}.AsPrincipal("cluster.local", false), identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.new")),
+								}.AsPrincipal("cluster.new", false)),
 							},
 						},
 					},
@@ -2310,10 +2322,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local"), identity.K8sServiceAccount{
+								}.AsPrincipal("cluster.local", false), identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.new")),
+								}.AsPrincipal("cluster.new", false)),
 							},
 						},
 					},
@@ -2352,10 +2364,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.local"), identity.K8sServiceAccount{
+								}.AsPrincipal("cluster.local", false), identity.K8sServiceAccount{
 									Name:      "sa2",
 									Namespace: "ns2",
-								}.AsPrincipal("cluster.new")),
+								}.AsPrincipal("cluster.new", false)),
 							},
 						},
 					},
@@ -2445,7 +2457,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				// generate an MRCEvent for the new MRC to update the issuers and trigger a rotation
 				mrcClient.NewCertEvent(mrc2.Name)
 				assert.Eventually(func() bool {
-					return fakeCertManager.GetTrustDomains().AreDifferent()
+					return fakeCertManager.GetIssuers().AreDifferent()
 				}, 2*time.Second, 100*time.Millisecond)
 			}
 

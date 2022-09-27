@@ -219,11 +219,11 @@ func TestAddRoute(t *testing.T) {
 func TestMergeInboundPoliciesWithPartialHostnames(t *testing.T) {
 	testRule1 := Rule{
 		Route:             testRoute,
-		AllowedPrincipals: mapset.NewSet(testServiceAccount1.AsPrincipal("cluster.local")),
+		AllowedPrincipals: mapset.NewSet(testServiceAccount1.AsPrincipal("cluster.local", false)),
 	}
 	testRule2 := Rule{
 		Route:             testRoute2,
-		AllowedPrincipals: mapset.NewSet(testServiceAccount2.AsPrincipal("cluster.local")),
+		AllowedPrincipals: mapset.NewSet(testServiceAccount2.AsPrincipal("cluster.local", false)),
 	}
 	testRule1Modified := Rule{
 		Route: RouteWeightedClusters{
@@ -307,19 +307,19 @@ func TestMergeRules(t *testing.T) {
 			originalRules: []*Rule{
 				{
 					Route:             testRoute,
-					AllowedPrincipals: mapset.NewSet(testServiceAccount1.AsPrincipal("cluster.local")),
+					AllowedPrincipals: mapset.NewSet(testServiceAccount1.AsPrincipal("cluster.local", false)),
 				},
 			},
 			newRules: []*Rule{
 				{
 					Route:             testRoute,
-					AllowedPrincipals: mapset.NewSet(testServiceAccount2.AsPrincipal("cluster.local")),
+					AllowedPrincipals: mapset.NewSet(testServiceAccount2.AsPrincipal("cluster.local", false)),
 				},
 			},
 			expectedRules: []*Rule{
 				{
 					Route:             testRoute,
-					AllowedPrincipals: mapset.NewSetWith(testServiceAccount1.AsPrincipal("cluster.local"), testServiceAccount2.AsPrincipal("cluster.local")),
+					AllowedPrincipals: mapset.NewSetWith(testServiceAccount1.AsPrincipal("cluster.local", false), testServiceAccount2.AsPrincipal("cluster.local", false)),
 				},
 			},
 		},
@@ -328,19 +328,19 @@ func TestMergeRules(t *testing.T) {
 			originalRules: []*Rule{
 				{
 					Route:             testRoute,
-					AllowedPrincipals: mapset.NewSet(testServiceAccount1.AsPrincipal("cluster.local")),
+					AllowedPrincipals: mapset.NewSet(testServiceAccount1.AsPrincipal("cluster.local", false)),
 				},
 			},
 			newRules: []*Rule{
 				{
 					Route:             testRoute,
-					AllowedPrincipals: mapset.NewSet(testServiceAccount1.AsPrincipal("cluster.local")),
+					AllowedPrincipals: mapset.NewSet(testServiceAccount1.AsPrincipal("cluster.local", false)),
 				},
 			},
 			expectedRules: []*Rule{
 				{
 					Route:             testRoute,
-					AllowedPrincipals: mapset.NewSetWith(testServiceAccount1.AsPrincipal("cluster.local")),
+					AllowedPrincipals: mapset.NewSetWith(testServiceAccount1.AsPrincipal("cluster.local", false)),
 				},
 			},
 		},
@@ -349,23 +349,23 @@ func TestMergeRules(t *testing.T) {
 			originalRules: []*Rule{
 				{
 					Route:             testRoute,
-					AllowedPrincipals: mapset.NewSet(testServiceAccount1.AsPrincipal("cluster.local")),
+					AllowedPrincipals: mapset.NewSet(testServiceAccount1.AsPrincipal("cluster.local", false)),
 				},
 			},
 			newRules: []*Rule{
 				{
 					Route:             testRoute2,
-					AllowedPrincipals: mapset.NewSet(testServiceAccount1.AsPrincipal("cluster.local")),
+					AllowedPrincipals: mapset.NewSet(testServiceAccount1.AsPrincipal("cluster.local", false)),
 				},
 			},
 			expectedRules: []*Rule{
 				{
 					Route:             testRoute,
-					AllowedPrincipals: mapset.NewSetWith(testServiceAccount1.AsPrincipal("cluster.local")),
+					AllowedPrincipals: mapset.NewSetWith(testServiceAccount1.AsPrincipal("cluster.local", false)),
 				},
 				{
 					Route:             testRoute2,
-					AllowedPrincipals: mapset.NewSetWith(testServiceAccount1.AsPrincipal("cluster.local")),
+					AllowedPrincipals: mapset.NewSetWith(testServiceAccount1.AsPrincipal("cluster.local", false)),
 				},
 			},
 		},

@@ -19,7 +19,7 @@ type SecretsBuilder struct {
 	// Service certificate for this proxy
 	serviceCert *certificate.Certificate
 
-	trustDomain certificate.TrustDomain
+	issuers certificate.IssuerInfo
 
 	// identities, used for SAN matches, mapped to the name of the secret. Currently only used for outbound secrets.
 	identitiesForSecrets map[string][]identity.ServiceIdentity
@@ -42,9 +42,9 @@ func (b *SecretsBuilder) SetProxyCert(cert *certificate.Certificate) *SecretsBui
 	return b
 }
 
-// SetTrustDomain sets the trust domain on the builder.
-func (b *SecretsBuilder) SetTrustDomain(trustDomain certificate.TrustDomain) *SecretsBuilder {
-	b.trustDomain = trustDomain
+// SetIssuers sets the trust domain on the builder.
+func (b *SecretsBuilder) SetIssuers(issuers certificate.IssuerInfo) *SecretsBuilder {
+	b.issuers = issuers
 	return b
 }
 
@@ -71,8 +71,8 @@ func (b *SecretsBuilder) Build() []*xds_auth.Secret {
 	// validation).
 	sdsResources = append(sdsResources, b.buildSecret(secrets.NameForMTLSInbound, nil))
 
-	for name, identites := range b.identitiesForSecrets {
-		sdsResources = append(sdsResources, b.buildSecret(name, identites))
+	for name, identities := range b.identitiesForSecrets {
+		sdsResources = append(sdsResources, b.buildSecret(name, identities))
 	}
 	return sdsResources
 }
@@ -114,37 +114,37 @@ func (b *SecretsBuilder) buildSecret(name string, allowedIdentities []identity.S
 			},
 		},
 	}
-	secret.GetValidationContext().MatchTypedSubjectAltNames = getSubjectAltNamesFromSvcIdentities(allowedIdentities, b.trustDomain)
+	secret.GetValidationContext().MatchTypedSubjectAltNames = b.getSubjectAltNamesFromSvcIdentities(allowedIdentities)
 	return secret
 }
 
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func getSubjectAltNamesFromSvcIdentities(serviceIdentities []identity.ServiceIdentity, trustDomains certificate.TrustDomain) []*xds_auth.SubjectAltNameMatcher {
+func (b *SecretsBuilder) getSubjectAltNamesFromSvcIdentities(serviceIdentities []identity.ServiceIdentity) []*xds_auth.SubjectAltNameMatcher {
 	var matchSANs []*xds_auth.SubjectAltNameMatcher
 
 	for _, si := range serviceIdentities {
-		match := xds_auth.SubjectAltNameMatcher{
-			SanType: xds_auth.SubjectAltNameMatcher_DNS,
-			Matcher: &xds_matcher.StringMatcher{
-				MatchPattern: &xds_matcher.StringMatcher_Exact{
-					Exact: si.AsPrincipal(trustDomains.Signing),
-				},
-			},
-		}
-		matchSANs = append(matchSANs, &match)
+		matchSANs = append(matchSANs, createMatcher(si, b.issuers.Signing.TrustDomain, b.issuers.Signing.SpiffeEnabled))
 
-		if trustDomains.AreDifferent() {
-			validatorMatch := xds_auth.SubjectAltNameMatcher{
-				SanType: xds_auth.SubjectAltNameMatcher_DNS,
-				Matcher: &xds_matcher.StringMatcher{
-					MatchPattern: &xds_matcher.StringMatcher_Exact{
-						Exact: si.AsPrincipal(trustDomains.Validating),
-					},
-				},
-			}
-			matchSANs = append(matchSANs, &validatorMatch)
+		if b.issuers.AreDifferent() {
+			matchSANs = append(matchSANs, createMatcher(si, b.issuers.Validating.TrustDomain, b.issuers.Validating.SpiffeEnabled))
 		}
 	}
 
 	return matchSANs
+}
+
+func createMatcher(si identity.ServiceIdentity, trustDomain string, spiffeEnabled bool) *xds_auth.SubjectAltNameMatcher {
+	sanType := xds_auth.SubjectAltNameMatcher_DNS
+	if spiffeEnabled {
+		sanType = xds_auth.SubjectAltNameMatcher_URI
+	}
+
+	return &xds_auth.SubjectAltNameMatcher{
+		SanType: sanType,
+		Matcher: &xds_matcher.StringMatcher{
+			MatchPattern: &xds_matcher.StringMatcher_Exact{
+				Exact: si.AsPrincipal(trustDomain, spiffeEnabled),
+			},
+		},
+	}
 }
