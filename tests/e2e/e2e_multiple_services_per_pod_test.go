@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/openservicemesh/osm/pkg/tests"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
@@ -17,7 +18,8 @@ var _ = OSMDescribe("Test access via multiple services matching the same pod",
 	},
 	func() {
 		Context("Multiple services matching same pod", func() {
-			testMultipleServicePerPod()
+			testMultipleServicePerPod(false) // test with regular services
+			testMultipleServicePerPod(true)  // test with headless services
 		})
 	})
 
@@ -28,7 +30,7 @@ var _ = OSMDescribe("Test access via multiple services matching the same pod",
 // It tests HTTP traffic as follows:
 // 1. 'client' pod -> service 'server' -> 'server' pod
 // 2. 'client' pod -> service 'server-second' -> 'server' pod
-func testMultipleServicePerPod() {
+func testMultipleServicePerPod(headless bool) {
 	const sourceName = "client"
 	const destName = "server"
 	var ns = []string{sourceName, destName}
@@ -53,6 +55,10 @@ func testMultipleServicePerPod() {
 				OS:        Td.ClusterOS,
 			})
 		Expect(err).NotTo(HaveOccurred())
+
+		if headless {
+			tests.HeadlessSvc(&svcDef)
+		}
 
 		_, err = Td.CreateServiceAccount(destName, &svcAccDef)
 		Expect(err).NotTo(HaveOccurred())
