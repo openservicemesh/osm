@@ -487,7 +487,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.
 // installType and instOpts
 func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	if td.InstType == NoInstall {
-		if instOpts.CertManager != defaultCertManager || instOpts.DeployPrometheus || instOpts.DeployGrafana || instOpts.DeployJaeger || instOpts.DeployFluentbit || instOpts.EnableReconciler {
+		if instOpts.CertManager != defaultCertManager || instOpts.DeployPrometheus || instOpts.DeployGrafana || instOpts.DeployJaeger || instOpts.DeployFluentbit || instOpts.EnableReconciler || instOpts.EnableSPIFFE {
 			Skip("Skipping test: NoInstall marked on a test that requires modified install")
 		}
 
