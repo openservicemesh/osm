@@ -23,6 +23,7 @@ const (
 	// 2. Service Cert rotation and xDS push for each connected proxy
 	// 3. xDS server cert rotation on the controller
 	// 4. Mutating and Validating Webhook rotation for the servers and for the webhook configuration objects.
+	// 5. Ingress Gateway Certificate.
 	mrcDurationPerStage = 5 * time.Minute
 )
 
@@ -94,7 +95,6 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 					log.Info().Msg("stopping MRC watch...")
 					return
 				}
-
 				err = m.handleMRCEvent(event)
 				if err != nil {
 					log.Error().Err(err).Msgf("error encountered processing MRCEvent")

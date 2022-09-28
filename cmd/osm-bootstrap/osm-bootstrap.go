@@ -412,6 +412,7 @@ func (b *bootstrap) ensureMeshRootCertificate() error {
 }
 
 func (b *bootstrap) createMeshRootCertificate() error {
+	// TODO(5046): create the mrc per https://gist.github.com/keithmattix/9ac73abbcb5721b0ce58102ac3ebff29
 	// find preset config map to build the MeshRootCertificate from
 	presetMeshRootCertificate, err := b.kubeClient.CoreV1().ConfigMaps(b.namespace).Get(context.TODO(), presetMeshRootCertificateName, metav1.GetOptions{})
 	if err != nil {

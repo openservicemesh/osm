@@ -33,17 +33,32 @@ const (
 	UseCaseGateway UseCase = "gateway"
 )
 
+var (
+	allUseCases = []UseCase{
+		UseCaseValidatingWebhook,
+		UseCaseMutatingWebhook,
+		UseCaseXDSControlPlane,
+		UseCaseSidecar,
+		UseCaseBootstrap,
+		UseCaseGateway,
+	}
+)
+
 func (uc UseCase) String() string {
 	return string(uc)
 }
 func (m *Manager) handleMRCEvent(event MRCEvent) error {
 	mrc := event.MRC
+	// TODO(5046): remove this first call to setIssuers.
+	if err := m.setIssuers(event.MRC); err != nil {
+		return err
+	}
 	// TODO(5046): improve logging in this method.
-	if m.shouldUpdateMRCComponentStatus(mrc) {
+	if shouldUpdateMRCComponentStatus(mrc) {
 		if err := m.updateMRCComponentStatus(mrc); err != nil {
 			return err
 		}
-	} else if shouldUpdateMRCState(mrc) {
+	} else if shouldUpdateState(mrc) {
 		if err := m.updateMRCState(mrc); err != nil {
 			return err
 		}
@@ -56,7 +71,7 @@ func (m *Manager) handleMRCEvent(event MRCEvent) error {
 
 // Component statuses determine if we're ready to transition the mrc to the next state.
 // TODO(5046): add unit tests for this, and other methods in here.
-func (m *Manager) shouldUpdateMRCComponentStatus(mrc *v1alpha2.MeshRootCertificate) bool {
+func shouldUpdateMRCComponentStatus(mrc *v1alpha2.MeshRootCertificate) bool {
 	if isTerminal(mrc) {
 		return false
 	}
@@ -74,65 +89,88 @@ func (m *Manager) shouldUpdateMRCComponentStatus(mrc *v1alpha2.MeshRootCertifica
 	return transitionAfter.Truncate(0).After(time.Now())
 }
 
+// shouldUpdateState (and conditions).
+func shouldUpdateState(mrc *v1alpha2.MeshRootCertificate) bool {
+	// TODO(5046): determine the status to we need to be at to be able to move forward.
+	var status v1alpha2.MeshRootCertificateComponentStatus
+
+	for _, useCase := range allUseCases {
+		switch useCase {
+		case UseCaseValidatingWebhook:
+			if mrc.Status.ComponentStatuses.ValidatingWebhook != status {
+				return false
+			}
+		case UseCaseMutatingWebhook:
+			if mrc.Status.ComponentStatuses.MutatingWebhook != status {
+				return false
+			}
+		case UseCaseXDSControlPlane:
+			if mrc.Status.ComponentStatuses.XDSControlPlane != status {
+				return false
+			}
+		case UseCaseSidecar:
+			if mrc.Status.ComponentStatuses.Sidecar != status {
+				return false
+			}
+		case UseCaseBootstrap:
+			if mrc.Status.ComponentStatuses.Bootstrap != status {
+				return false
+			}
+		case UseCaseGateway:
+			if mrc.Status.ComponentStatuses.Gateway != status {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // update the MRCComponentStatus
 func (m *Manager) updateMRCComponentStatus(mrc *v1alpha2.MeshRootCertificate) error {
-	var state v1alpha2.MeshRootCertificateComponentStatus
-	switch mrc.Status.State {
-	case constants.MRCConditionTypeValidatingRollout, constants.MRCConditionTypeIssuingRollback:
-		state = v1alpha2.Validating
-	case constants.MRCConditionTypeIssuingRollout:
-		state = v1alpha2.Issuing
-	case constants.MRCConditionTypeValidatingRollback:
-		state = v1alpha2.Unused
-	}
+	// TODO(5046): determine the status to set the owned components to.
+	var status v1alpha2.MeshRootCertificateComponentStatus
 
 	for _, useCase := range m.ownedUseCases {
 		switch useCase {
 		case UseCaseValidatingWebhook:
 			// validating, issuing unknown.
-			mrc.Status.ComponentStatuses.ValidatingWebhook = state
+			mrc.Status.ComponentStatuses.ValidatingWebhook = status
 		case UseCaseMutatingWebhook:
-			mrc.Status.ComponentStatuses.MutatingWebhook = state
+			mrc.Status.ComponentStatuses.MutatingWebhook = status
 		case UseCaseXDSControlPlane:
-			mrc.Status.ComponentStatuses.XDSControlPlane = state
+			mrc.Status.ComponentStatuses.XDSControlPlane = status
 		case UseCaseSidecar:
-			mrc.Status.ComponentStatuses.Sidecar = state
+			mrc.Status.ComponentStatuses.Sidecar = status
 		case UseCaseBootstrap:
-			mrc.Status.ComponentStatuses.Bootstrap = state
+			mrc.Status.ComponentStatuses.Bootstrap = status
 		case UseCaseGateway:
-			mrc.Status.ComponentStatuses.Gateway = state
+			mrc.Status.ComponentStatuses.Gateway = status
 		}
 	}
-	return m.mrcClient.UpdateMeshRootCertificate(mrc)
-}
 
-// The state determines how the root cert is used for validating/issuing certs, if at all.
-func shouldUpdateMRCState(mrc *v1alpha2.MeshRootCertificate) bool {
-	// TODO(5046): add a check to determine if the MRC is in a terminal state.
-	return mrc.Status.ComponentStatuses.ValidatingWebhook != "" &&
-		mrc.Status.ComponentStatuses.MutatingWebhook != "" &&
-		mrc.Status.ComponentStatuses.XDSControlPlane != "" &&
-		mrc.Status.ComponentStatuses.Sidecar != "" &&
-		mrc.Status.ComponentStatuses.Bootstrap != "" &&
-		mrc.Status.ComponentStatuses.Gateway != ""
+	return m.mrcClient.UpdateMeshRootCertificate(mrc)
 }
 
 // isTerminal checks if the MRC is in a terminal state.
 func isTerminal(mrc *v1alpha2.MeshRootCertificate) bool {
-	return false
+	// TODO(5046): check if the mrc is in a terminal state.
+	return true
 }
 
+// state and condition get updated together.
 func (m *Manager) updateMRCState(mrc *v1alpha2.MeshRootCertificate) error {
 	// TODO(5046): update the MRC state & conditions, and issue the update via the MRCClient.
-	// add the retry loop as well.
 
 	// If it's not in a terminal state, set the next transition time.
+	// NOTE: consider that this isTerminal check will need to apply against the updated mrc state which should happen
+	// above in this method.
 	if isTerminal(mrc) {
 		mrc.Status.TransitionAfter = nil
 	} else {
 		mrc.Status.TransitionAfter = &metav1.Time{Time: time.Now().Add(mrcDurationPerStage)}
 	}
 
+	// TODO(5046): add the retry loop.
 	return m.mrcClient.UpdateMeshRootCertificate(mrc)
 }
 
@@ -148,7 +186,7 @@ func (m *Manager) setIssuers(mrc *v1alpha2.MeshRootCertificate) error {
 		return err
 	}
 
-	c := &issuer{Issuer: client, ID: mrc.Name, CertificateAuthority: ca, TrustDomain: mrc.Spec.TrustDomain}
+	c := &issuer{Issuer: client, ID: mrc.Name, CertificateAuthority: ca, TrustDomain: mrc.Spec.TrustDomain, SpiffeEnabled: mrc.Spec.SpiffeEnabled}
 	switch {
 	case mrc.Status.State == constants.MRCStateActive:
 		m.mu.Lock()
