@@ -50,9 +50,11 @@ func (uc UseCase) String() string {
 func (m *Manager) handleMRCEvent(event MRCEvent) error {
 	mrc := event.MRC
 	// TODO(5046): remove this first call to setIssuers.
-	if err := m.setIssuers(event.MRC); err != nil {
-		return err
+	err := m.setIssuers(event.MRC)
+	if err == nil {
+		return nil
 	}
+	log.Err(err).Msg("error setting issuers on mrc")
 	// TODO(5046): improve logging in this method.
 	if shouldUpdateMRCComponentStatus(mrc) {
 		if err := m.updateMRCComponentStatus(mrc); err != nil {
