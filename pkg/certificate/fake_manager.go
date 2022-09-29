@@ -36,6 +36,12 @@ func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 	}}, nil
 }
 
+// UpdateMeshRootCertificate updates the given mesh root certificate.
+func (c *fakeMRCClient) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) error {
+	// TODO(5046): implement this.
+	return nil
+}
+
 // Watch returns a channel that has one MRCEventAdded. It is intended to implement the certificate.MRCClient interface.
 func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 	ch := make(chan MRCEvent)
@@ -62,13 +68,6 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					State: constants.MRCStateActive,
-					ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-						Webhooks:        constants.MRCComponentStatusUnknown,
-						XDSControlPlane: constants.MRCComponentStatusUnknown,
-						Sidecar:         constants.MRCComponentStatusUnknown,
-						Bootstrap:       constants.MRCComponentStatusUnknown,
-						Gateway:         constants.MRCComponentStatusUnknown,
-					},
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
 							Type:   constants.MRCConditionTypeReady,

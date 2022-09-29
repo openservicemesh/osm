@@ -58,13 +58,6 @@ func (c *fakeMRCClient) NewCertEvent(name, state string) {
 			},
 			Status: v1alpha2.MeshRootCertificateStatus{
 				State: state,
-				ComponentStatuses: v1alpha2.MeshRootCertificateComponentStatuses{
-					Webhooks:        constants.MRCComponentStatusUnknown,
-					XDSControlPlane: constants.MRCComponentStatusUnknown,
-					Sidecar:         constants.MRCComponentStatusUnknown,
-					Bootstrap:       constants.MRCComponentStatusUnknown,
-					Gateway:         constants.MRCComponentStatusUnknown,
-				},
 				Conditions: []v1alpha2.MeshRootCertificateCondition{
 					{
 						Type:   constants.MRCConditionTypeReady,
@@ -94,6 +87,11 @@ func (c *fakeMRCClient) NewCertEvent(name, state string) {
 			},
 		},
 	}
+}
+
+// UpdateMeshRootCertificate is not implemented on the compat client and always returns an error
+func (c *fakeMRCClient) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) error {
+	return nil
 }
 
 // GetCertIssuerForMRC will return a root cert for testing.

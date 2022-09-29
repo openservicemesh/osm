@@ -16,13 +16,26 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
+const (
+	// mrcDurationPerStage is the amount of time we leave each MRC in a stage before moving to the next stage. This is
+	// intended to accommodate the rotation of *all* rotations across all injector and controller pods for:
+	// 1. Bootstrap Cert rotation for each live proxy
+	// 2. Service Cert rotation and xDS push for each connected proxy
+	// 3. xDS server cert rotation on the controller
+	// 4. Mutating and Validating Webhook rotation for the servers and for the webhook configuration objects.
+	// 5. Ingress Gateway Certificate.
+	mrcDurationPerStage = 5 * time.Minute
+)
+
 var (
 	log = logger.New("certificate")
 )
 
 // NewManager creates a new CertificateManager with the passed MRCClient and options
+// TODO(5046): plumb ownedUseCases through.
 func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, checkInterval time.Duration) (*Manager, error) {
 	m := &Manager{
+		mrcClient:                   mrcClient,
 		serviceCertValidityDuration: getServiceCertValidityPeriod,
 		ingressCertValidityDuration: getIngressCertValidityDuration,
 		pubsub:                      pubsub.New(1),
@@ -82,8 +95,7 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 					log.Info().Msg("stopping MRC watch...")
 					return
 				}
-
-				err = m.handleMRCEvent(mrcClient, event)
+				err = m.handleMRCEvent(event)
 				if err != nil {
 					log.Error().Err(err).Msgf("error encountered processing MRCEvent")
 					continue
@@ -111,48 +123,6 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 		// We timed out
 		return errors.New("manager initialization timed out. Make sure your MeshRootCertificate(s) are valid")
 	case <-done:
-	}
-
-	return nil
-}
-
-func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
-	switch event.Type {
-	case MRCEventAdded:
-		mrc := event.MRC
-		if mrc.Status.State == constants.MRCStateError {
-			log.Debug().Msgf("skipping MRC with error state %s", mrc.GetName())
-			return nil
-		}
-
-		client, ca, err := mrcClient.GetCertIssuerForMRC(mrc)
-		if err != nil {
-			return err
-		}
-
-		c := &issuer{Issuer: client, ID: mrc.Name, CertificateAuthority: ca, TrustDomain: mrc.Spec.TrustDomain, SpiffeEnabled: mrc.Spec.SpiffeEnabled}
-		switch {
-		case mrc.Status.State == constants.MRCStateActive:
-			m.mu.Lock()
-			m.signingIssuer = c
-			m.validatingIssuer = c
-			m.mu.Unlock()
-		case mrc.Status.State == constants.MRCStateIssuingRollback || mrc.Status.State == constants.MRCStateIssuingRollout:
-			m.mu.Lock()
-			m.signingIssuer = c
-			m.mu.Unlock()
-		case mrc.Status.State == constants.MRCStateValidatingRollback || mrc.Status.State == constants.MRCStateValidatingRollout:
-			m.mu.Lock()
-			m.validatingIssuer = c
-			m.mu.Unlock()
-		default:
-			m.mu.Lock()
-			m.signingIssuer = c
-			m.validatingIssuer = c
-			m.mu.Unlock()
-		}
-	case MRCEventUpdated:
-		// TODO
 	}
 
 	return nil

@@ -105,7 +105,10 @@ type issuer struct {
 type Manager struct {
 	// cache for all the certificates issued
 	// Types: map[certificate.CommonName]*certificate.Certificate
-	cache sync.Map
+	cache         sync.Map
+	ownedUseCases []UseCase
+
+	mrcClient MRCClient
 
 	ingressCertValidityDuration func() time.Duration
 	// TODO(#4711): define serviceCertValidityDuration in the MRC
@@ -123,7 +126,7 @@ type Manager struct {
 
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
 type MRCClient interface {
-	List() ([]*v1alpha2.MeshRootCertificate, error)
+	UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) error
 	MRCEventBroker
 
 	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.
