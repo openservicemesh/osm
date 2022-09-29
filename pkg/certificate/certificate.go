@@ -9,9 +9,6 @@ import (
 )
 
 const (
-	// RenewBeforeCertExpires signifies how much earlier (before expiration) should a certificate be renewed
-	RenewBeforeCertExpires = 30 * time.Second
-
 	// So that we do not renew all certs at the same time - add noise.
 	// These define the min and max of the seconds of noise to be added
 	// to the early certificate renewal.

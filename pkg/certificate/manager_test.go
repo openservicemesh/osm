@@ -52,7 +52,7 @@ func TestShouldRotate(t *testing.T) {
 		{
 			name: "Valid certificate",
 			cert: &Certificate{
-				Expiration:         time.Now().Add(1 * time.Hour),
+				Expiration:         time.Now().Add(constants.OSMCertificateValidityPeriod),
 				signingIssuerID:    "1",
 				validatingIssuerID: "1",
 			},

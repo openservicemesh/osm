@@ -139,12 +139,12 @@ func (m *Manager) GetTrustDomain() string {
 // ShouldRotate determines whether a certificate should be rotated.
 func (m *Manager) ShouldRotate(c *Certificate) bool {
 	// The certificate is going to expire at a timestamp T
-	// We want to renew earlier. How much earlier is defined in renewBeforeCertExpires.
+	// We want to renew earlier. How much earlier is defined as a third of the certificate's validity duration.
 	// We add a few seconds noise to the early renew period so that certificates that may have been
 	// created at the same time are not renewed at the exact same time.
 	intNoise := rand.Intn(noiseSeconds) // #nosec G404
 	secondsNoise := time.Duration(intNoise) * time.Second
-	renewBefore := RenewBeforeCertExpires + secondsNoise
+	renewBefore := m.getValidityDurationForCertType(c.certType)/3 + secondsNoise
 	// Round is called to truncate monotonic clock to the nearest second. This is done to avoid environments where the
 	// CPU clock may stop, resulting in a time measurement that differs significantly from the x509 timestamp.
 	// See https://github.com/openservicemesh/osm/issues/5000#issuecomment-1218539412 for more details.
