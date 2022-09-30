@@ -209,8 +209,10 @@ func main() {
 	// Intitialize certificate manager/provider
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
+		// the osm-controller is responsible for updating the condition and state of the MRC resources
+		leaderMode := true
 		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, computeClient, 5*time.Second)
+			certOpts, computeClient, 5*time.Second, leaderMode)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error fetching certificate manager of kind %s from MRC", certProviderKind)

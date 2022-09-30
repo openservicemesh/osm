@@ -37,7 +37,13 @@ func (c *fakeMRCClient) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertific
 }
 
 // UpdateMeshRootCertificate updates the given mesh root certificate.
-func (c *fakeMRCClient) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) error {
+func (c *fakeMRCClient) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	// TODO(5046): implement this.
+	return nil, nil
+}
+
+// GetMeshRootCertificate gets the specified mesh root certificate.
+func (c *fakeMRCClient) GetMeshRootCertificate(mrcName string) *v1alpha2.MeshRootCertificate {
 	// TODO(5046): implement this.
 	return nil
 }
@@ -132,6 +138,7 @@ func FakeCertManager() (*Manager, error) {
 		getCertValidityDuration,
 		getCertValidityDuration,
 		1*time.Hour,
+		false,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error creating fakeCertManager, err: %w", err)

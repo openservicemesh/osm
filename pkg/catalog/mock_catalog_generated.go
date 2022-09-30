@@ -47,6 +47,18 @@ func (m *MockMeshCataloger) EXPECT() *MockMeshCatalogerMockRecorder {
 	return m.recorder
 }
 
+// AddMRCEventsHandler mocks base method.
+func (m *MockMeshCataloger) AddMRCEventsHandler(arg0 cache.ResourceEventHandlerFuncs) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AddMRCEventsHandler", arg0)
+}
+
+// AddMRCEventsHandler indicates an expected call of AddMRCEventsHandler.
+func (mr *MockMeshCatalogerMockRecorder) AddMRCEventsHandler(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMRCEventsHandler", reflect.TypeOf((*MockMeshCataloger)(nil).AddMRCEventsHandler), arg0)
+}
+
 // AddMeshRootCertificateEventHandler mocks base method.
 func (m *MockMeshCataloger) AddMeshRootCertificateEventHandler(arg0 cache.ResourceEventHandler) {
 	m.ctrl.T.Helper()

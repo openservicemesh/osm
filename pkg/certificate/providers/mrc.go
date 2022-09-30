@@ -11,7 +11,7 @@ import (
 )
 
 // MRCComposer is a composer object that allows consumers
-// to observe MRCs (via List() and Watch()) as well as generate
+// to observe MRCs (via Watch()) as well as generate
 // `certificate.Provider`s from those MRCs
 type MRCComposer struct {
 	compute.Interface
@@ -50,10 +50,4 @@ func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, e
 	})
 
 	return eventChan, nil
-}
-
-// UpdateMeshRootCertificate updates the given mesh root certificate.
-func (m *MRCComposer) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) error {
-	// TODO(5046): implement this.
-	return nil
 }

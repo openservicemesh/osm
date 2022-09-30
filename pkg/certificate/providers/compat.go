@@ -30,6 +30,11 @@ func (c *MRCCompatClient) Watch(ctx context.Context) (<-chan certificate.MRCEven
 }
 
 // UpdateMeshRootCertificate is not implemented on the compat client and always returns an error
-func (c *MRCCompatClient) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) error {
-	return fmt.Errorf("cannot call UpdateMeshRootCertificate for %s mrc on the compat client", mrc.Name)
+func (c *MRCCompatClient) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	return nil, fmt.Errorf("cannot call UpdateMeshRootCertificate for %s mrc on the compat client", mrc.Name)
+}
+
+// GetMeshRootCertificate is not implemented on the compat client and always returns nil
+func (c *MRCCompatClient) GetMeshRootCertificate(mrcName string) *v1alpha2.MeshRootCertificate {
+	return nil
 }

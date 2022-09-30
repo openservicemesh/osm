@@ -646,7 +646,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 
 			computeClient := kube.NewClient(client)
 
-			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, computeClient, 1*time.Hour)
+			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, computeClient, 1*time.Hour, false)
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)

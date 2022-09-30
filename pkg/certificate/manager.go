@@ -33,9 +33,11 @@ var (
 
 // NewManager creates a new CertificateManager with the passed MRCClient and options
 // TODO(5046): plumb ownedUseCases through.
-func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, checkInterval time.Duration) (*Manager, error) {
+func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration,
+	checkInterval time.Duration, leaderMode bool) (*Manager, error) {
 	m := &Manager{
 		mrcClient:                   mrcClient,
+		leaderMode:                  leaderMode,
 		serviceCertValidityDuration: getServiceCertValidityPeriod,
 		ingressCertValidityDuration: getIngressCertValidityDuration,
 		pubsub:                      pubsub.New(1),

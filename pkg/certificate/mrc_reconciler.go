@@ -1,9 +1,11 @@
 package certificate
 
 import (
+	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -57,16 +59,19 @@ func (m *Manager) handleMRCEvent(event MRCEvent) error {
 	log.Err(err).Msg("error setting issuers on mrc")
 	// TODO(5046): improve logging in this method.
 	if shouldUpdateMRCComponentStatus(mrc) {
-		if err := m.updateMRCComponentStatus(mrc); err != nil {
+		if err := m.retryMRCUpdateOnConflict(mrc, m.updateMRCComponentStatus); err != nil {
 			return err
 		}
 	} else if shouldUpdateState(mrc) {
-		if err := m.updateMRCState(mrc); err != nil {
+		log.Info().Str("mrc", namespacedMRCName(mrc)).Msgf("updating MRC state")
+		if err := m.retryMRCUpdateOnConflict(mrc, m.updateMRCState); err != nil {
 			return err
 		}
 	} else if m.shouldSetIssuers(mrc) {
-		log.Info().Msgf("setting new certificate issuers on the Certificate Manager for MRC %s in stage %s", mrc.GetName(), mrc.Status.State)
-		return m.setIssuers(mrc)
+		log.Info().Str("mrc", namespacedMRCName(mrc)).Msgf("setting new certificate issuers on the Certificate Manager for MRC in stage %s", mrc.Status.State)
+		if err := m.setIssuers(mrc); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -93,6 +98,10 @@ func shouldUpdateMRCComponentStatus(mrc *v1alpha2.MeshRootCertificate) bool {
 
 // shouldUpdateState (and conditions).
 func shouldUpdateState(mrc *v1alpha2.MeshRootCertificate) bool {
+	if shouldRetrieveCA(mrc) {
+		return true
+	}
+
 	// TODO(5046): determine the status to we need to be at to be able to move forward.
 	var status v1alpha2.MeshRootCertificateComponentStatus
 
@@ -150,7 +159,8 @@ func (m *Manager) updateMRCComponentStatus(mrc *v1alpha2.MeshRootCertificate) er
 		}
 	}
 
-	return m.mrcClient.UpdateMeshRootCertificate(mrc)
+	_, err := m.mrcClient.UpdateMeshRootCertificate(mrc)
+	return err
 }
 
 // isTerminal checks if the MRC is in a terminal state.
@@ -170,16 +180,52 @@ func (m *Manager) updateMRCState(mrc *v1alpha2.MeshRootCertificate) error {
 		mrc.Status.TransitionAfter = nil
 	} else {
 		mrc.Status.TransitionAfter = &metav1.Time{Time: time.Now().Add(mrcDurationPerStage)}
+		log.Debug().Str("mrc", namespacedMRCName(mrc)).Msgf("updated MRC TransitionAfter to %s", mrc.Status.TransitionAfter)
 	}
 
-	// TODO(5046): add the retry loop.
-	return m.mrcClient.UpdateMeshRootCertificate(mrc)
+	if shouldRetrieveCA(mrc) {
+		_, _, err := m.mrcClient.GetCertIssuerForMRC(mrc)
+		if err != nil {
+			log.Error().Err(err).Str("mrc", namespacedMRCName(mrc)).Msg("failed to retrieve CA on passive MRC creation")
+			if !m.leaderMode {
+				return err
+			}
+
+			// CA not accepted
+			setMRCCondition(mrc, constants.MRCConditionTypeAccepted, falseStatus, errorRetrievingCAReason, "")
+			setMRCCondition(mrc, constants.MRCConditionTypeIssuingRollout, falseStatus, notAcceptedIssuingReason, "")
+			setMRCCondition(mrc, constants.MRCConditionTypeValidatingRollout, falseStatus, notAcceptedValidatingReason, "")
+			mrc.Status.State = constants.MRCStateError
+			_, err := m.mrcClient.UpdateMeshRootCertificate(mrc)
+			return err
+		}
+
+		log.Debug().Str("mrc", namespacedMRCName(mrc)).Msg("successfully retrieved CA on passive MRC creation")
+		if !m.leaderMode {
+			return nil
+		}
+
+		// CA accepted
+		setMRCCondition(mrc, constants.MRCConditionTypeAccepted, trueStatus, certificateAcceptedReason, "")
+		setMRCCondition(mrc, constants.MRCConditionTypeIssuingRollout, falseStatus, passiveStateIssuingReason, "")
+		setMRCCondition(mrc, constants.MRCConditionTypeValidatingRollout, falseStatus, passiveStateValidatingReason, "")
+		mrc.Status.State = constants.MRCStatePending
+		_, err = m.mrcClient.UpdateMeshRootCertificate(mrc)
+		return err
+	}
+
+	_, err := m.mrcClient.UpdateMeshRootCertificate(mrc)
+	return err
 }
 
 func (m *Manager) shouldSetIssuers(mrc *v1alpha2.MeshRootCertificate) bool {
 	// TODO(5046): check the states, and if in some form of an active state, AND if the MRC is not already the existing
 	// then we should set MRC, so return true
 	return true
+}
+
+func shouldRetrieveCA(mrc *v1alpha2.MeshRootCertificate) bool {
+	return mrc.Spec.Intent == constants.MRCIntentPassive && len(mrc.Status.Conditions) == 0
 }
 
 func (m *Manager) setIssuers(mrc *v1alpha2.MeshRootCertificate) error {
@@ -211,4 +257,20 @@ func (m *Manager) setIssuers(mrc *v1alpha2.MeshRootCertificate) error {
 		m.mu.Unlock()
 	}
 	return nil
+}
+
+// retryMRCUpdateOnConflict updates an MRC using the specified function with RetryOnConflict
+func (m *Manager) retryMRCUpdateOnConflict(mrc *v1alpha2.MeshRootCertificate, updateMRCFunc func(*v1alpha2.MeshRootCertificate) error) error {
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		curMRC := m.mrcClient.GetMeshRootCertificate(mrc.Name)
+		if curMRC == nil {
+			return fmt.Errorf("failed to get MRC")
+		}
+
+		return updateMRCFunc(curMRC)
+	})
+}
+
+func namespacedMRCName(mrc *v1alpha2.MeshRootCertificate) string {
+	return fmt.Sprintf("%s/%s", mrc.Namespace, mrc.Name)
 }

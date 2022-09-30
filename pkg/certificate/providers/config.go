@@ -109,12 +109,14 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 		func() time.Duration { return utils.GetServiceCertValidityPeriod(computeClient.GetMeshConfig()) },
 		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(computeClient.GetMeshConfig()) },
 		checkInterval,
+		false,
 	)
 }
 
 // NewCertificateManagerFromMRC returns a new certificate manager.
 func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config,
-	providerNamespace string, option Options, computeClient compute.Interface, checkInterval time.Duration) (*certificate.Manager, error) {
+	providerNamespace string, option Options, computeClient compute.Interface, checkInterval time.Duration,
+	leaderMode bool) (*certificate.Manager, error) {
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}
@@ -139,6 +141,7 @@ func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Int
 		func() time.Duration { return utils.GetServiceCertValidityPeriod(computeClient.GetMeshConfig()) },
 		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(computeClient.GetMeshConfig()) },
 		checkInterval,
+		leaderMode,
 	)
 }
 

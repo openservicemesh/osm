@@ -59,7 +59,7 @@ func TestCertRotation(t *testing.T) {
 			assert := tassert.New(t)
 
 			mrc := tresorFake.NewFakeMRC()
-			cm := tresorFake.NewFakeWithMRC(mrc, tc.checkInterval)
+			cm := tresorFake.NewFakeWithMRC(mrc, tc.checkInterval, false)
 
 			count := 0
 			wait := make(chan struct{})
