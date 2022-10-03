@@ -192,7 +192,7 @@ func (b *Builder) Build() (*xds_bootstrap.Bootstrap, error) {
 		Admin: &xds_bootstrap.Admin{
 			AccessLog: []*xds_accesslog_config.AccessLog{
 				{
-					Name: envoy.AccessLoggerName,
+					Name: envoy.StreamAccessLoggerName,
 					ConfigType: &xds_accesslog_config.AccessLog_TypedConfig{
 						TypedConfig: pbAccessLog,
 					},

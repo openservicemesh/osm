@@ -228,18 +228,18 @@ func (mr *MockInterfaceMockRecorder) GetTCPRoute(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTCPRoute", reflect.TypeOf((*MockInterface)(nil).GetTCPRoute), arg0)
 }
 
-// GetTelemetryPolicy mocks base method.
-func (m *MockInterface) GetTelemetryPolicy(arg0 *models.Proxy) *v1alpha1.Telemetry {
+// GetTelemetryConfig mocks base method.
+func (m *MockInterface) GetTelemetryConfig(arg0 *models.Proxy) models.TelemetryConfig {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTelemetryPolicy", arg0)
-	ret0, _ := ret[0].(*v1alpha1.Telemetry)
+	ret := m.ctrl.Call(m, "GetTelemetryConfig", arg0)
+	ret0, _ := ret[0].(models.TelemetryConfig)
 	return ret0
 }
 
-// GetTelemetryPolicy indicates an expected call of GetTelemetryPolicy.
-func (mr *MockInterfaceMockRecorder) GetTelemetryPolicy(arg0 interface{}) *gomock.Call {
+// GetTelemetryConfig indicates an expected call of GetTelemetryConfig.
+func (mr *MockInterfaceMockRecorder) GetTelemetryConfig(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTelemetryPolicy", reflect.TypeOf((*MockInterface)(nil).GetTelemetryPolicy), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTelemetryConfig", reflect.TypeOf((*MockInterface)(nil).GetTelemetryConfig), arg0)
 }
 
 // GetUpstreamTrafficSetting mocks base method.

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	mapset "github.com/deckarep/golang-set"
+	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
@@ -34,8 +35,8 @@ const (
 )
 
 // BuildPrometheusListener builds the envoy configuration for the Prometheus listener.
-func BuildPrometheusListener() (*xds_listener.Listener, error) {
-	marshalledConnManager, err := anypb.New(getPrometheusConnectionManager())
+func BuildPrometheusListener(accessLogs []*xds_accesslog.AccessLog) (*xds_listener.Listener, error) {
+	marshalledConnManager, err := anypb.New(getPrometheusConnectionManager(accessLogs))
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
 			Msgf("Error marshalling HttpConnectionManager object")

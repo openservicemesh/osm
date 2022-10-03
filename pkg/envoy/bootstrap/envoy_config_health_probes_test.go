@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -70,26 +69,12 @@ var _ = ginkgo.Describe("Test functions creating Envoy config and rewriting the 
 		"getStartupCluster":   func() protoreflect.ProtoMessage { return buildProbeCluster("my-container", startup) },
 	}
 
-	listenerFunctionsToTest := map[string]func() (protoreflect.ProtoMessage, error){
-		"getHTTPAccessLog": func() (protoreflect.ProtoMessage, error) { return getHTTPAccessLog() },
-		"getTCPAccessLog":  func() (protoreflect.ProtoMessage, error) { return getTCPAccessLog() },
-	}
-
 	for fnName, fn := range clusterFunctionsToTest {
 		// A call to test.ThisFunction will:
 		//     a) marshal return xDS struct of each function to yaml (and save it to "actual_output_<functionName>.yaml")
 		//     b) load expectation from "expected_output_<functionName>.yaml"
 		//     c) compare actual and expected in a ginkgo.Context() + ginkgo.It()
 		test.ThisXdsClusterFunction(fnName, fn)
-	}
-
-	for fnName, fn := range listenerFunctionsToTest {
-		// A call to test.ThisFunction will:
-		//     a) check for error
-		//     b) marshal return xDS struct of each function to yaml (and save it to "actual_output_<functionName>.yaml")
-		//     c) load expectation from "expected_output_<functionName>.yaml"
-		//     d) compare actual and expected in a ginkgo.Context() + ginkgo.It()
-		test.ThisXdsListenerFunction(fnName, fn)
 	}
 })
 
@@ -145,12 +130,12 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 	timeout := 42 * time.Second
 	liveness := &models.HealthProbe{Path: "/liveness", Port: 81, IsHTTP: true, IsTCPSocket: false, Timeout: timeout}
 	readiness := &models.HealthProbe{Path: "/readiness", Port: 82, IsHTTP: true, IsTCPSocket: false, Timeout: timeout}
-	httpAccessLog, err := getHTTPAccessLog()
+	httpAccessLogs, err := getHTTPAccessLogs()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	tcpAccessLog, err := getTCPAccessLog()
+	tcpAccessLogs, err := getTCPAccessLogs()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,9 +143,7 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 	testLivenessListenerHTTPConnManager := &xds_http_connection_manager.HttpConnectionManager{
 		CodecType:  xds_http_connection_manager.HttpConnectionManager_AUTO,
 		StatPrefix: "health_probes_http",
-		AccessLog: []*xds_accesslog_filter.AccessLog{
-			httpAccessLog,
-		},
+		AccessLog:  httpAccessLogs,
 		RouteSpecifier: &xds_http_connection_manager.HttpConnectionManager_RouteConfig{
 			RouteConfig: &xds_route.RouteConfiguration{
 				Name: "local_route",
@@ -247,9 +230,7 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 	testReadinessListenerHTTPConnManager := &xds_http_connection_manager.HttpConnectionManager{
 		CodecType:  xds_http_connection_manager.HttpConnectionManager_AUTO,
 		StatPrefix: "health_probes_http",
-		AccessLog: []*xds_accesslog_filter.AccessLog{
-			httpAccessLog,
-		},
+		AccessLog:  httpAccessLogs,
 		RouteSpecifier: &xds_http_connection_manager.HttpConnectionManager_RouteConfig{
 			RouteConfig: &xds_route.RouteConfiguration{
 				Name: "local_route",
@@ -351,9 +332,7 @@ func Test_probeListenerBuilder_Build(t *testing.T) {
 
 	httpsProbeTCPProxy := &xds_tcp_proxy.TcpProxy{
 		StatPrefix: "health_probes_https",
-		AccessLog: []*xds_accesslog_filter.AccessLog{
-			tcpAccessLog,
-		},
+		AccessLog:  tcpAccessLogs,
 		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{
 			Cluster: "my-sidecar_startup_cluster",
 		},

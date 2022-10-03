@@ -38,6 +38,7 @@ func TestADSResponse(t *testing.T) {
 	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().ListTrafficTargets().Return(nil).AnyTimes()
+	provider.EXPECT().GetTelemetryConfig(gomock.Any()).Return(models.TelemetryConfig{}).AnyTimes()
 
 	mc := catalogFake.NewFakeMeshCatalog(provider)
 

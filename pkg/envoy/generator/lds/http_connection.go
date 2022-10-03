@@ -1,6 +1,7 @@
 package lds
 
 import (
+	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/golang/protobuf/ptypes/any"
@@ -14,7 +15,7 @@ const (
 	prometheusInboundVirtualHostName    = "prometheus-inbound-virtual-host"
 )
 
-func getPrometheusConnectionManager() *xds_hcm.HttpConnectionManager {
+func getPrometheusConnectionManager(accessLogs []*xds_accesslog.AccessLog) *xds_hcm.HttpConnectionManager {
 	return &xds_hcm.HttpConnectionManager{
 		StatPrefix: prometheusHTTPConnManagerStatPrefix,
 		CodecType:  xds_hcm.HttpConnectionManager_AUTO,
@@ -51,6 +52,6 @@ func getPrometheusConnectionManager() *xds_hcm.HttpConnectionManager {
 				}},
 			},
 		},
-		AccessLog: envoy.GetAccessLog(),
+		AccessLog: accessLogs,
 	}
 }

@@ -73,7 +73,8 @@ func (lb *listenerBuilder) buildInboundHTTPFilterChain(trafficMatch *trafficpoli
 
 	routeCfgName := rds.GetInboundMeshRouteConfigNameForPort(trafficMatch.DestinationPort)
 	fb.httpConnManager().StatsPrefix(routeCfgName).
-		RouteConfigName(routeCfgName)
+		RouteConfigName(routeCfgName).
+		AccessLogs(lb.accessLogs)
 
 	if lb.httpTracingEndpoint != "" {
 		tracing, err := getHTTPTracingConfig(lb.httpTracingEndpoint)

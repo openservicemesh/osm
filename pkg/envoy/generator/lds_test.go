@@ -51,6 +51,7 @@ func TestGenerateLDS(t *testing.T) {
 	provider.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(nil).AnyTimes()
+	provider.EXPECT().GetTelemetryConfig(gomock.Any()).Return(models.TelemetryConfig{}).AnyTimes()
 	provider.EXPECT().GetMeshService(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(
 			func(name, ns string, port uint16) (service.MeshService, error) {

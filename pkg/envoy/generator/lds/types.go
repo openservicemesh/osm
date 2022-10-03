@@ -2,17 +2,18 @@
 package lds
 
 import (
+	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/service"
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -41,6 +42,7 @@ type listenerBuilder struct {
 	filBuilder                 *filterBuilder
 
 	listenerFilters []*xds_listener.ListenerFilter
+	accessLogs      []*xds_accesslog.AccessLog
 }
 
 type httpConnManagerBuilder struct {
@@ -51,6 +53,7 @@ type httpConnManagerBuilder struct {
 	localReplyConfig    *xds_hcm.LocalReplyConfig
 	routerFilter        *xds_hcm.HttpFilter
 	httpGlobalRateLimit *policyv1alpha1.HTTPGlobalRateLimitSpec
+	accessLogs          []*xds_accesslog.AccessLog
 }
 
 type tcpProxyBuilder struct {

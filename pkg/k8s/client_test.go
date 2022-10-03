@@ -1571,7 +1571,7 @@ func TestGetTCPRoute(t *testing.T) {
 	a.Nil(invalid)
 }
 
-func TestGetTelemetryPolicy(t *testing.T) {
+func TestGetTelemetryConfig(t *testing.T) {
 	proxyUUID := uuid.New()
 	appNamespace := "test"
 	osmNamespace := "global"
@@ -1600,12 +1600,38 @@ func TestGetTelemetryPolicy(t *testing.T) {
 		},
 	}
 
+	otelPolicy := &policyv1alpha1.Telemetry{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: appNamespace,
+			Name:      "t2",
+		},
+		Spec: policyv1alpha1.TelemetrySpec{
+			Selector: map[string]string{"app": "foo"},
+			AccessLog: &policyv1alpha1.EnvoyAccessLogConfig{
+				OpenTelemetry: &policyv1alpha1.EnvoyAccessLogOpenTelemetryConfig{
+					ExtensionService: policyv1alpha1.ExtensionServiceRef{
+						Namespace: "otel-ns",
+						Name:      "otel-collector",
+					},
+				},
+			},
+		},
+	}
+
+	otelExtSvc := &configv1alpha2.ExtensionService{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "otel-ns",
+			Name:      "otel-collector",
+		},
+	}
+
 	testCases := []struct {
 		name              string
 		proxy             *models.Proxy
 		pod               *corev1.Pod
 		telemetryPolicies []runtime.Object
-		expected          *policyv1alpha1.Telemetry
+		extensionServices []runtime.Object
+		expected          models.TelemetryConfig
 	}{
 		{
 			name:  "matches global scope policy",
@@ -1618,7 +1644,9 @@ func TestGetTelemetryPolicy(t *testing.T) {
 			telemetryPolicies: []runtime.Object{
 				globalPolicy,
 			},
-			expected: globalPolicy,
+			expected: models.TelemetryConfig{
+				Policy: globalPolicy,
+			},
 		},
 		{
 			name:  "matches namespace scope policy",
@@ -1632,7 +1660,9 @@ func TestGetTelemetryPolicy(t *testing.T) {
 				globalPolicy,
 				namespacePolicy,
 			},
-			expected: namespacePolicy,
+			expected: models.TelemetryConfig{
+				Policy: namespacePolicy,
+			},
 		},
 		{
 			name:  "matches selector scope policy",
@@ -1647,7 +1677,28 @@ func TestGetTelemetryPolicy(t *testing.T) {
 				namespacePolicy,
 				selectorPolicy,
 			},
-			expected: selectorPolicy,
+			expected: models.TelemetryConfig{
+				Policy: selectorPolicy,
+			},
+		},
+		{
+			name:  "matches policy with OpenTelemetry config",
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, "sa-1.test", nil, 1),
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []runtime.Object{
+				otelPolicy,
+			},
+			extensionServices: []runtime.Object{
+				otelExtSvc,
+			},
+			expected: models.TelemetryConfig{
+				Policy:               otelPolicy,
+				OpenTelemetryService: otelExtSvc,
+			},
 		},
 		{
 			name:  "no policy when proxy does not match pod",
@@ -1662,7 +1713,7 @@ func TestGetTelemetryPolicy(t *testing.T) {
 				namespacePolicy,
 				selectorPolicy,
 			},
-			expected: nil,
+			expected: models.TelemetryConfig{},
 		},
 	}
 
@@ -1676,10 +1727,10 @@ func TestGetTelemetryPolicy(t *testing.T) {
 			c, err := NewClient(osmNamespace, testMeshName, broker,
 				WithKubeClient(fake.NewSimpleClientset(monitoredNS(appNamespace), tc.pod), testMeshName),
 				WithPolicyClient(fakePolicyClient.NewSimpleClientset(tc.telemetryPolicies...)),
-			)
+				WithConfigClient(fakeConfigClient.NewSimpleClientset(tc.extensionServices...)))
 			a.NoError(err)
 
-			actual := c.GetTelemetryPolicy(tc.proxy)
+			actual := c.GetTelemetryConfig(tc.proxy)
 			a.Equal(tc.expected, actual)
 		})
 	}

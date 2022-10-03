@@ -75,6 +75,7 @@ func TestGenerateConfig(t *testing.T) {
 		},
 	}).AnyTimes()
 	provider.EXPECT().ListTrafficSplits().Return(nil).AnyTimes()
+	provider.EXPECT().GetTelemetryConfig(gomock.Any()).Return(models.TelemetryConfig{}).AnyTimes()
 
 	certManager := tresorFake.NewFake(time.Hour)
 	stop := make(chan struct{})
