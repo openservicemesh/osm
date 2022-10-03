@@ -41,7 +41,7 @@ rules:
     resources: ["customresourcedefinitions"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
   - apiGroups: ["config.openservicemesh.io"]
-    resources: ["meshconfigs", "meshrootcertificates"]
+    resources: ["meshconfigs", "meshrootcertificates", "extensionservices"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["config.openservicemesh.io"]
     resources: ["meshrootcertificates/status"]
@@ -58,10 +58,10 @@ rules:
 
   # OSM's custom policy API
   - apiGroups: ["policy.openservicemesh.io"]
-    resources: ["egresses", "ingressbackends", "retries", "upstreamtrafficsettings"]
+    resources: ["egresses", "ingressbackends", "retries", "upstreamtrafficsettings", "telemetries"]
     verbs: ["list", "get", "watch"]
   - apiGroups: ["policy.openservicemesh.io"]
-    resources: ["ingressbackends/status", "upstreamtrafficsettings/status"]
+    resources: ["ingressbackends/status", "upstreamtrafficsettings/status", "telemetry/status"]
     verbs: ["update"]
 
   # Used for interacting with cert-manager CertificateRequest resources.

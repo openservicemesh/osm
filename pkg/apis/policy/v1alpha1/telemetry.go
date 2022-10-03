@@ -45,7 +45,8 @@ type EnvoyAccessLogConfig struct {
 	// The format can either be unstructured or structured (e.g. JSON).
 	// Refer to https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#format-strings
 	// regarding how a format string can be specified.
-	Format string `json:"format"`
+	// +optional
+	Format string `json:"format,omitempty"`
 
 	// OpenTelemetry defines the OpenTelemetry configuration used to export the
 	// Envoy access logs to an OpenTelemetry collector.
@@ -56,8 +57,8 @@ type EnvoyAccessLogConfig struct {
 // EnvoyAccessLogOpenTelemetryConfig defines the Envoy access log OpenTelemetry
 // configuration.
 type EnvoyAccessLogOpenTelemetryConfig struct {
-	// ExtensionService defines the references to ExtensionService resource
-	// corresponding to the OpenTelemetry collector.
+	// ExtensionService defines the referenence to ExtensionService resource
+	// corresponding to the OpenTelemetry collector the access log should be exported to.
 	ExtensionService ExtensionServiceRef `json:"extensionService"`
 
 	// Attributes defines key-value pairs as additional metadata corresponding access log record.

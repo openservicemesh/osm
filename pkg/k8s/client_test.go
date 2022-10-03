@@ -8,6 +8,10 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	smiAccessClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
+	smiSpecClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned/fake"
+	smiSplitClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -18,16 +22,12 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
 
-	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	smiAccessClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
-	smiSpecClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned/fake"
-	smiSplitClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned/fake"
-
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/constants"
 	fakeConfigClient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -1594,4 +1594,125 @@ func TestGetTCPRoute(t *testing.T) {
 
 	invalid := c.GetTCPRoute("invalid")
 	a.Nil(invalid)
+}
+
+func TestGetTelemetryPolicy(t *testing.T) {
+	proxyUUID := uuid.New()
+	appNamespace := "test"
+	osmNamespace := "global"
+
+	globalPolicy := &policyv1alpha1.Telemetry{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: osmNamespace,
+			Name:      "t1",
+		},
+	}
+
+	namespacePolicy := &policyv1alpha1.Telemetry{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: appNamespace,
+			Name:      "t2",
+		},
+	}
+
+	selectorPolicy := &policyv1alpha1.Telemetry{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: appNamespace,
+			Name:      "t2",
+		},
+		Spec: policyv1alpha1.TelemetrySpec{
+			Selector: map[string]string{"app": "foo"},
+		},
+	}
+
+	testCases := []struct {
+		name              string
+		proxy             *models.Proxy
+		pod               *corev1.Pod
+		telemetryPolicies []*policyv1alpha1.Telemetry
+		expected          *policyv1alpha1.Telemetry
+	}{
+		{
+			name:  "matches global scope policy",
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, "sa-1.test", nil, 1),
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []*policyv1alpha1.Telemetry{
+				globalPolicy,
+			},
+			expected: globalPolicy,
+		},
+		{
+			name:  "matches namespace scope policy",
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, "sa-1.test", nil, 1),
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []*policyv1alpha1.Telemetry{
+				globalPolicy,
+				namespacePolicy,
+			},
+			expected: namespacePolicy,
+		},
+		{
+			name:  "matches selector scope policy",
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, "sa-1.test", nil, 1),
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []*policyv1alpha1.Telemetry{
+				globalPolicy,
+				namespacePolicy,
+				selectorPolicy,
+			},
+			expected: selectorPolicy,
+		},
+		{
+			name:  "no policy when proxy does not match pod",
+			proxy: models.NewProxy(models.KindSidecar, uuid.New(), "sa-1.test", nil, 1), // new UUID to avoid matching proxyUUID
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []*policyv1alpha1.Telemetry{
+				globalPolicy,
+				namespacePolicy,
+				selectorPolicy,
+			},
+			expected: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fake.NewSimpleClientset()
+			fakePolicyClient := fakePolicyClient.NewSimpleClientset()
+			ic, err := informers.NewInformerCollection(testMeshName, nil,
+				informers.WithKubeClient(fakeClient), informers.WithPolicyClient(fakePolicyClient))
+			a.Nil(err)
+
+			c := NewClient(osmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
+			a.NotNil(c)
+
+			_ = ic.Add(informers.InformerKeyNamespace, monitoredNS(appNamespace), t)
+			_ = ic.Add(informers.InformerKeyPod, tc.pod, t)
+
+			for _, policy := range tc.telemetryPolicies {
+				_ = ic.Add(informers.InformerKeyTelemetry, policy, t)
+			}
+
+			actual := c.GetTelemetryPolicy(tc.proxy)
+			a.Equal(tc.expected, actual)
+		})
+	}
 }
