@@ -11,167 +11,40 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 	mcs "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
-	mcsv1alpha1Client "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	configv1alpha2Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
-	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/models"
 )
 
 // NewClient returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewClient(osmNamespace, meshConfigName string, informerCollection *informers.InformerCollection, kubeClient kubernetes.Interface, policyClient policyv1alpha1Client.Interface, configClient configv1alpha2Client.Interface, mcsClient mcsv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...informers.InformerKey) *Client {
+func NewClient(osmNamespace, meshConfigName string, broker *messaging.Broker, opts ...ClientOption) (*Client, error) {
 	// Initialize client object
 	c := &Client{
-		informers:      informerCollection,
-		msgBroker:      msgBroker,
-		policyClient:   policyClient,
-		configClient:   configClient,
-		mcsClient:      mcsClient,
-		kubeClient:     kubeClient,
+		informers:      map[informerKey]cache.SharedIndexInformer{},
+		msgBroker:      broker,
 		osmNamespace:   osmNamespace,
 		meshConfigName: meshConfigName,
 	}
-
-	// Initialize informers
-	informerInitHandlerMap := map[informers.InformerKey]func(){
-		informers.InformerKeyNamespace:              c.initNamespaceMonitor,
-		informers.InformerKeyService:                c.initServicesMonitor,
-		informers.InformerKeyServiceAccount:         c.initServiceAccountsMonitor,
-		informers.InformerKeyPod:                    c.initPodMonitor,
-		informers.InformerKeyEndpoint:               c.initEndpointMonitor,
-		informers.InformerKeyMeshConfig:             c.initMeshConfigMonitor,
-		informers.InformerKeyMeshRootCertificate:    c.initMRCMonitor,
-		informers.InformerKeyExtensionService:       c.initExtensionServiceMonitor,
-		informers.InformerKeyEgress:                 c.initEgressMonitor,
-		informers.InformerKeyIngressBackend:         c.initIngressBackendMonitor,
-		informers.InformerKeyRetry:                  c.initRetryMonitor,
-		informers.InformerKeyUpstreamTrafficSetting: c.initUpstreamTrafficSettingMonitor,
-		informers.InformerKeyTelemetry:              c.initTelemetryMonitor,
-		informers.InformerKeyTrafficSplit:           c.initTrafficSplitMonitor,
-		informers.InformerKeyHTTPRouteGroup:         c.initHTTPRouteGroupMonitor,
-		informers.InformerKeyTCPRoute:               c.initTCPRouteMonitor,
-		informers.InformerKeyTrafficTarget:          c.initTrafficTargetMonitor,
-		informers.InformerKeyServiceImport:          c.initServiceImportMonitor,
-		informers.InformerKeyServiceExport:          c.initServiceExportMonitor,
+	// Execute all of the given options (e.g. set clients, set custom stores, etc.)
+	for _, opt := range opts {
+		if opt != nil {
+			opt(c)
+		}
 	}
 
-	// If specific informers are not selected to be initialized, initialize all informers
-	if len(selectInformers) == 0 {
-		selectInformers = []informers.InformerKey{
-			informers.InformerKeyNamespace, informers.InformerKeyService, informers.InformerKeyServiceAccount, informers.InformerKeyPod, informers.InformerKeyEndpoint, informers.InformerKeyMeshConfig, informers.InformerKeyMeshRootCertificate, informers.InformerKeyExtensionService,
-			informers.InformerKeyEgress, informers.InformerKeyIngressBackend, informers.InformerKeyRetry, informers.InformerKeyUpstreamTrafficSetting, informers.InformerKeyTelemetry, informers.InformerKeyTrafficSplit, informers.InformerKeyHTTPRouteGroup, informers.InformerKeyTCPRoute,
-			informers.InformerKeyTrafficTarget, informers.InformerKeyServiceImport, informers.InformerKeyServiceExport}
+	if err := c.run(broker.Done()); err != nil {
+		log.Error().Err(err).Msg("Could not start informer collection")
+		return nil, err
 	}
 
-	for _, informer := range selectInformers {
-		informerInitHandlerMap[informer]()
-	}
-
-	return c
-}
-
-// Initializes Namespace monitoring
-func (c *Client) initNamespaceMonitor() {
-	// Add event handler to informer
-	c.informers.AddEventHandler(informers.InformerKeyNamespace, GetEventHandlerFuncs(nil, c.msgBroker))
-}
-
-func (c *Client) initMeshConfigMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyMeshConfig, GetEventHandlerFuncs(nil, c.msgBroker))
-	c.informers.AddEventHandler(informers.InformerKeyMeshConfig, c.metricsHandler())
-}
-
-func (c *Client) initMRCMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyMeshRootCertificate, GetEventHandlerFuncs(nil, c.msgBroker))
-}
-
-func (c *Client) initExtensionServiceMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyExtensionService, GetEventHandlerFuncs(nil, c.msgBroker))
-}
-
-func (c *Client) initEgressMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyEgress, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-func (c *Client) initIngressBackendMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyIngressBackend, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-func (c *Client) initRetryMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyRetry, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-func (c *Client) initUpstreamTrafficSettingMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyUpstreamTrafficSetting, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-func (c *Client) initTelemetryMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyTelemetry, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-// Function to filter K8s meta Objects by OSM's isMonitoredNamespace
-func (c *Client) shouldObserve(obj interface{}) bool {
-	object, ok := obj.(metav1.Object)
-	if !ok {
-		return false
-	}
-	return c.IsMonitoredNamespace(object.GetNamespace())
-}
-
-// Initializes Service monitoring
-func (c *Client) initServicesMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyService, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-// Initializes Service Account monitoring
-func (c *Client) initServiceAccountsMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyServiceAccount, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-func (c *Client) initPodMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyPod, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-func (c *Client) initEndpointMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyEndpoint, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-func (c *Client) initTrafficSplitMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyTrafficSplit, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-func (c *Client) initHTTPRouteGroupMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyHTTPRouteGroup, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-func (c *Client) initTCPRouteMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyTCPRoute, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-func (c *Client) initTrafficTargetMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyTrafficTarget, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-func (c *Client) initServiceImportMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyServiceImport, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-func (c *Client) initServiceExportMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyServiceExport, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
-}
-
-// IsMonitoredNamespace returns a boolean indicating if the namespace is among the list of monitored namespaces
-func (c *Client) IsMonitoredNamespace(namespace string) bool {
-	return c.informers.IsMonitoredNamespace(namespace)
+	return c, nil
 }
 
 func key(name, namespace string) string {
@@ -182,7 +55,7 @@ func key(name, namespace string) string {
 func (c *Client) ListNamespaces() ([]*corev1.Namespace, error) {
 	var namespaces []*corev1.Namespace
 
-	for _, ns := range c.informers.List(informers.InformerKeyNamespace) {
+	for _, ns := range c.list(informerKeyNamespace) {
 		namespace, ok := ns.(*corev1.Namespace)
 		if !ok {
 			log.Error().Err(errListingNamespaces).Msg("Failed to list monitored namespaces")
@@ -196,7 +69,7 @@ func (c *Client) ListNamespaces() ([]*corev1.Namespace, error) {
 // GetService retrieves the Kubernetes Services resource for the given MeshService
 func (c *Client) GetService(name, namespace string) *corev1.Service {
 	// client-go cache uses <namespace>/<name> as key
-	svcIf, exists, err := c.informers.GetByKey(informers.InformerKeyService, key(name, namespace))
+	svcIf, exists, err := c.getByKey(informerKeyService, key(name, namespace))
 	if exists && err == nil {
 		svc := svcIf.(*corev1.Service)
 		return svc
@@ -206,7 +79,7 @@ func (c *Client) GetService(name, namespace string) *corev1.Service {
 
 // GetSecret returns the secret for a given secret name and namespace
 func (c *Client) GetSecret(name, namespace string) *models.Secret {
-	secretIf, exists, err := c.informers.GetByKey(informers.InformerKeySecret, key(name, namespace))
+	secretIf, exists, err := c.getByKey(informerKeySecret, key(name, namespace))
 	if exists && err == nil {
 		corev1Secret, ok := secretIf.(*corev1.Secret)
 		if !ok {
@@ -225,7 +98,7 @@ func (c *Client) GetSecret(name, namespace string) *models.Secret {
 func (c *Client) ListSecrets() []*models.Secret {
 	var secrets []*models.Secret
 
-	for _, secretPtr := range c.informers.List(informers.InformerKeySecret) {
+	for _, secretPtr := range c.list(informerKeySecret) {
 		if secretPtr == nil {
 			continue
 		}
@@ -259,7 +132,7 @@ func (c *Client) UpdateSecret(ctx context.Context, secret *models.Secret) error 
 func (c *Client) ListServices() []*corev1.Service {
 	var services []*corev1.Service
 
-	for _, serviceInterface := range c.informers.List(informers.InformerKeyService) {
+	for _, serviceInterface := range c.list(informerKeyService) {
 		svc := serviceInterface.(*corev1.Service)
 
 		if !c.IsMonitoredNamespace(svc.Namespace) {
@@ -274,7 +147,7 @@ func (c *Client) ListServices() []*corev1.Service {
 func (c *Client) ListServiceAccounts() []*corev1.ServiceAccount {
 	var serviceAccounts []*corev1.ServiceAccount
 
-	for _, serviceInterface := range c.informers.List(informers.InformerKeyServiceAccount) {
+	for _, serviceInterface := range c.list(informerKeyServiceAccount) {
 		sa := serviceInterface.(*corev1.ServiceAccount)
 
 		if !c.IsMonitoredNamespace(sa.Namespace) {
@@ -287,7 +160,7 @@ func (c *Client) ListServiceAccounts() []*corev1.ServiceAccount {
 
 // GetNamespace returns a Namespace resource if found, nil otherwise.
 func (c *Client) GetNamespace(ns string) *corev1.Namespace {
-	nsIf, exists, err := c.informers.GetByKey(informers.InformerKeyNamespace, ns)
+	nsIf, exists, err := c.getByKey(informerKeyNamespace, ns)
 	if exists && err == nil {
 		ns := nsIf.(*corev1.Namespace)
 		return ns
@@ -301,7 +174,7 @@ func (c *Client) GetNamespace(ns string) *corev1.Namespace {
 func (c *Client) ListPods() []*corev1.Pod {
 	var pods []*corev1.Pod
 
-	for _, podInterface := range c.informers.List(informers.InformerKeyPod) {
+	for _, podInterface := range c.list(informerKeyPod) {
 		pod := podInterface.(*corev1.Pod)
 		if !c.IsMonitoredNamespace(pod.Namespace) {
 			continue
@@ -314,7 +187,7 @@ func (c *Client) ListPods() []*corev1.Pod {
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
 // or error if the API errored out.
 func (c *Client) GetEndpoints(name, namespace string) (*corev1.Endpoints, error) {
-	ep, exists, err := c.informers.GetByKey(informers.InformerKeyEndpoint, key(name, namespace))
+	ep, exists, err := c.getByKey(informerKeyEndpoints, key(name, namespace))
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +215,7 @@ func IsHeadlessService(svc corev1.Service) bool {
 // GetMeshConfig returns the current MeshConfig
 func (c *Client) GetMeshConfig() configv1alpha2.MeshConfig {
 	key := types.NamespacedName{Namespace: c.osmNamespace, Name: c.meshConfigName}.String()
-	item, _, err := c.informers.GetByKey(informers.InformerKeyMeshConfig, key)
+	item, _, err := c.getByKey(informerKeyMeshConfig, key)
 	if item != nil {
 		return *item.(*configv1alpha2.MeshConfig)
 	}
@@ -420,7 +293,7 @@ func (c *Client) GetOSMNamespace() string {
 func (c *Client) ListEgressPolicies() []*policyv1alpha1.Egress {
 	var policies []*policyv1alpha1.Egress
 
-	for _, egressIface := range c.informers.List(informers.InformerKeyEgress) {
+	for _, egressIface := range c.list(informerKeyEgress) {
 		egressPolicy := egressIface.(*policyv1alpha1.Egress)
 
 		if !c.IsMonitoredNamespace(egressPolicy.Namespace) {
@@ -436,7 +309,7 @@ func (c *Client) ListEgressPolicies() []*policyv1alpha1.Egress {
 func (c *Client) ListIngressBackendPolicies() []*policyv1alpha1.IngressBackend {
 	var backends []*policyv1alpha1.IngressBackend
 
-	for _, ingressBackendIface := range c.informers.List(informers.InformerKeyIngressBackend) {
+	for _, ingressBackendIface := range c.list(informerKeyIngressBackend) {
 		backend := ingressBackendIface.(*policyv1alpha1.IngressBackend)
 		if !c.IsMonitoredNamespace(backend.Namespace) {
 			continue
@@ -452,7 +325,7 @@ func (c *Client) ListIngressBackendPolicies() []*policyv1alpha1.IngressBackend {
 func (c *Client) ListRetryPolicies() []*policyv1alpha1.Retry {
 	var retries []*policyv1alpha1.Retry
 
-	for _, retryInterface := range c.informers.List(informers.InformerKeyRetry) {
+	for _, retryInterface := range c.list(informerKeyRetry) {
 		policy := retryInterface.(*policyv1alpha1.Retry)
 		if !c.IsMonitoredNamespace(policy.Namespace) {
 			continue
@@ -469,7 +342,7 @@ func (c *Client) ListUpstreamTrafficSettings() []*policyv1alpha1.UpstreamTraffic
 	var settings []*policyv1alpha1.UpstreamTrafficSetting
 
 	// Filter by MeshService
-	for _, resource := range c.informers.List(informers.InformerKeyUpstreamTrafficSetting) {
+	for _, resource := range c.list(informerKeyUpstreamTrafficSetting) {
 		setting := resource.(*policyv1alpha1.UpstreamTrafficSetting)
 
 		if !c.IsMonitoredNamespace(setting.Namespace) {
@@ -484,7 +357,7 @@ func (c *Client) ListUpstreamTrafficSettings() []*policyv1alpha1.UpstreamTraffic
 
 // GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resources with namespaced name
 func (c *Client) GetUpstreamTrafficSetting(namespace *types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting {
-	resource, exists, err := c.informers.GetByKey(informers.InformerKeyUpstreamTrafficSetting, namespace.String())
+	resource, exists, err := c.getByKey(informerKeyUpstreamTrafficSetting, namespace.String())
 	if exists && err == nil {
 		return resource.(*policyv1alpha1.UpstreamTrafficSetting)
 	}
@@ -494,7 +367,7 @@ func (c *Client) GetUpstreamTrafficSetting(namespace *types.NamespacedName) *pol
 // GetMeshRootCertificate returns a MeshRootCertificate resource with namespaced name
 func (c *Client) GetMeshRootCertificate(mrcName string) *configv1alpha2.MeshRootCertificate {
 	key := types.NamespacedName{Namespace: c.osmNamespace, Name: mrcName}.String()
-	resource, exists, err := c.informers.GetByKey(informers.InformerKeyMeshRootCertificate, key)
+	resource, exists, err := c.getByKey(informerKeyMeshRootCertificate, key)
 	if exists && err == nil {
 		return resource.(*configv1alpha2.MeshRootCertificate)
 	}
@@ -505,7 +378,7 @@ func (c *Client) GetMeshRootCertificate(mrcName string) *configv1alpha2.MeshRoot
 func (c *Client) ListTrafficSplits() []*smiSplit.TrafficSplit {
 	var trafficSplits []*smiSplit.TrafficSplit
 
-	for _, splitIface := range c.informers.List(informers.InformerKeyTrafficSplit) {
+	for _, splitIface := range c.list(informerKeyTrafficSplit) {
 		trafficSplit := splitIface.(*smiSplit.TrafficSplit)
 
 		if !c.IsMonitoredNamespace(trafficSplit.Namespace) {
@@ -519,7 +392,7 @@ func (c *Client) ListTrafficSplits() []*smiSplit.TrafficSplit {
 // ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 func (c *Client) ListHTTPTrafficSpecs() []*smiSpecs.HTTPRouteGroup {
 	var httpTrafficSpec []*smiSpecs.HTTPRouteGroup
-	for _, specIface := range c.informers.List(informers.InformerKeyHTTPRouteGroup) {
+	for _, specIface := range c.list(informerKeyHTTPRouteGroup) {
 		routeGroup := specIface.(*smiSpecs.HTTPRouteGroup)
 
 		if !c.IsMonitoredNamespace(routeGroup.Namespace) {
@@ -533,7 +406,7 @@ func (c *Client) ListHTTPTrafficSpecs() []*smiSpecs.HTTPRouteGroup {
 // GetHTTPRouteGroup returns an SMI HTTPRouteGroup resource given its name of the form <namespace>/<name>
 func (c *Client) GetHTTPRouteGroup(namespacedName string) *smiSpecs.HTTPRouteGroup {
 	// client-go cache uses <namespace>/<name> as key
-	routeIf, exists, err := c.informers.GetByKey(informers.InformerKeyHTTPRouteGroup, namespacedName)
+	routeIf, exists, err := c.getByKey(informerKeyHTTPRouteGroup, namespacedName)
 	if exists && err == nil {
 		route := routeIf.(*smiSpecs.HTTPRouteGroup)
 		if !c.IsMonitoredNamespace(route.Namespace) {
@@ -557,7 +430,7 @@ func (c *Client) UpdateMeshRootCertificateStatus(obj *configv1alpha2.MeshRootCer
 // ListMeshRootCertificates returns the MRCs stored in the informerCollection's store
 func (c *Client) ListMeshRootCertificates() ([]*configv1alpha2.MeshRootCertificate, error) {
 	// informers return slice of generic, essentially untyped so we'll convert them to value types before returning
-	mrcPtrs := c.informers.List(informers.InformerKeyMeshRootCertificate)
+	mrcPtrs := c.list(informerKeyMeshRootCertificate)
 	var mrcs []*configv1alpha2.MeshRootCertificate
 	for _, mrcPtr := range mrcPtrs {
 		if mrcPtr == nil {
@@ -576,7 +449,7 @@ func (c *Client) ListMeshRootCertificates() ([]*configv1alpha2.MeshRootCertifica
 // ListTCPTrafficSpecs lists SMI TCPRoute resources
 func (c *Client) ListTCPTrafficSpecs() []*smiSpecs.TCPRoute {
 	var tcpRouteSpec []*smiSpecs.TCPRoute
-	for _, specIface := range c.informers.List(informers.InformerKeyTCPRoute) {
+	for _, specIface := range c.list(informerKeyTCPRoute) {
 		tcpRoute := specIface.(*smiSpecs.TCPRoute)
 
 		if !c.IsMonitoredNamespace(tcpRoute.Namespace) {
@@ -590,7 +463,7 @@ func (c *Client) ListTCPTrafficSpecs() []*smiSpecs.TCPRoute {
 // GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>
 func (c *Client) GetTCPRoute(namespacedName string) *smiSpecs.TCPRoute {
 	// client-go cache uses <namespace>/<name> as key
-	routeIf, exists, err := c.informers.GetByKey(informers.InformerKeyTCPRoute, namespacedName)
+	routeIf, exists, err := c.getByKey(informerKeyTCPRoute, namespacedName)
 	if exists && err == nil {
 		route := routeIf.(*smiSpecs.TCPRoute)
 		if !c.IsMonitoredNamespace(route.Namespace) {
@@ -606,7 +479,7 @@ func (c *Client) GetTCPRoute(namespacedName string) *smiSpecs.TCPRoute {
 func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
 	var trafficTargets []*smiAccess.TrafficTarget
 
-	for _, targetIface := range c.informers.List(informers.InformerKeyTrafficTarget) {
+	for _, targetIface := range c.list(informerKeyTrafficTarget) {
 		trafficTarget := targetIface.(*smiAccess.TrafficTarget)
 
 		if !c.IsMonitoredNamespace(trafficTarget.Namespace) {
@@ -628,7 +501,7 @@ func (c *Client) GetTelemetryPolicy(proxy *models.Proxy) *policyv1alpha1.Telemet
 
 	var policy *policyv1alpha1.Telemetry
 
-	for _, resource := range c.informers.List(informers.InformerKeyTelemetry) {
+	for _, resource := range c.list(informerKeyTelemetry) {
 		t := resource.(*policyv1alpha1.Telemetry)
 
 		// If there is a global policy and a more specific policy hasn't been
@@ -670,7 +543,7 @@ func (c *Client) GetTelemetryPolicy(proxy *models.Proxy) *policyv1alpha1.Telemet
 func (c *Client) ListServiceImports() []*mcs.ServiceImport {
 	var serviceImports []*mcs.ServiceImport
 
-	for _, resource := range c.informers.List(informers.InformerKeyServiceImport) {
+	for _, resource := range c.list(informerKeyServiceImport) {
 		serviceImport := resource.(*mcs.ServiceImport)
 		if !c.IsMonitoredNamespace(serviceImport.Namespace) {
 			continue
@@ -685,7 +558,7 @@ func (c *Client) ListServiceImports() []*mcs.ServiceImport {
 func (c *Client) ListServiceExports() []*mcs.ServiceExport {
 	var serviceExports []*mcs.ServiceExport
 
-	for _, resource := range c.informers.List(informers.InformerKeyServiceImport) {
+	for _, resource := range c.list(informerKeyServiceExport) {
 		serviceExport := resource.(*mcs.ServiceExport)
 		if !c.IsMonitoredNamespace(serviceExport.Namespace) {
 			continue
@@ -694,4 +567,9 @@ func (c *Client) ListServiceExports() []*mcs.ServiceExport {
 	}
 
 	return serviceExports
+}
+
+// AddMeshRootCertificateEventHandler adds an event handler specific to mesh root certificiates.
+func (c *Client) AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler) {
+	c.informers[informerKeyMeshRootCertificate].AddEventHandler(handler)
 }

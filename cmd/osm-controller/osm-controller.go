@@ -46,7 +46,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -188,18 +187,19 @@ func main() {
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(kubeConfig)
 
-	informerCollection, err := informers.NewInformerCollection(meshName, stop,
-		informers.WithKubeClient(kubeClient),
-		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
-		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
-		informers.WithPolicyClient(policyClient),
-		informers.WithMCSClient(mcsClient),
+	k8sClient, err := k8s.NewClient(osmNamespace, osmMeshConfigName, msgBroker,
+		k8s.WithKubeClient(kubeClient, meshName),
+		k8s.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		k8s.WithConfigClient(configClient),
+		k8s.WithPolicyClient(policyClient),
+		k8s.WithMCSClient(mcsClient),
 	)
+
 	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating kubernetes client")
 	}
 
-	k8sClient := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, mcsClient, msgBroker)
+	computeClient := kube.NewClient(k8sClient)
 
 	certOpts, err := getCertOptions()
 	if err != nil {
@@ -210,21 +210,19 @@ func main() {
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
 		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, k8sClient, informerCollection, 5*time.Second)
+			certOpts, computeClient, 5*time.Second)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error fetching certificate manager of kind %s from MRC", certProviderKind)
 		}
 	} else {
 		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, k8sClient, 5*time.Second, trustDomain)
+			certOpts, computeClient, 5*time.Second, trustDomain)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error fetching certificate manager of kind %s", certProviderKind)
 		}
 	}
-
-	computeClient := kube.NewClient(k8sClient)
 
 	ingress.Initialize(kubeClient, k8sClient, stop, certManager, msgBroker)
 

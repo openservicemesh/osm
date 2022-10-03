@@ -24,6 +24,8 @@ type Broker struct {
 	totalQEventCount               uint64
 	totalQProxyEventCount          uint64
 	totalDispatchedProxyEventCount uint64
+
+	stop <-chan struct{}
 }
 
 const (

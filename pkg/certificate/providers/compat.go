@@ -8,8 +8,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
-// List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
-func (c *MRCCompatClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
+// ListMeshRootCertificates returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
+func (c *MRCCompatClient) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertificate, error) {
 	return []*v1alpha2.MeshRootCertificate{
 		c.mrc,
 	}, nil

@@ -17,6 +17,7 @@ import (
 	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	types "k8s.io/apimachinery/pkg/types"
+	cache "k8s.io/client-go/tools/cache"
 	v1alpha10 "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
 )
 
@@ -41,6 +42,18 @@ func NewMockController(ctrl *gomock.Controller) *MockController {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockController) EXPECT() *MockControllerMockRecorder {
 	return m.recorder
+}
+
+// AddMeshRootCertificateEventHandler mocks base method.
+func (m *MockController) AddMeshRootCertificateEventHandler(arg0 cache.ResourceEventHandler) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AddMeshRootCertificateEventHandler", arg0)
+}
+
+// AddMeshRootCertificateEventHandler indicates an expected call of AddMeshRootCertificateEventHandler.
+func (mr *MockControllerMockRecorder) AddMeshRootCertificateEventHandler(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMeshRootCertificateEventHandler", reflect.TypeOf((*MockController)(nil).AddMeshRootCertificateEventHandler), arg0)
 }
 
 // GetEndpoints mocks base method.

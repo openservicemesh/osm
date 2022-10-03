@@ -26,8 +26,8 @@ func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (
 	return &fakeIssuer{}, pem.RootCertificate("rootCA"), nil
 }
 
-// List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
-func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
+// ListMeshRootCertificates returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
+func (c *fakeMRCClient) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertificate, error) {
 	// return single empty object in the list.
 	return []*v1alpha2.MeshRootCertificate{{
 		Spec: v1alpha2.MeshRootCertificateSpec{

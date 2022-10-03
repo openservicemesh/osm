@@ -14,14 +14,12 @@ import (
 	smiAccessClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
 	smiSpecClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned/fake"
 	smiSplitClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned/fake"
-	mcsFake "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned/fake"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	policyFake "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/signals"
@@ -37,23 +35,22 @@ func BenchmarkDoValidation(b *testing.B) {
 	kubeClient := k8sClientFake.NewSimpleClientset()
 	_, cancel := context.WithCancel(context.Background())
 	stop := signals.RegisterExitHandlers(cancel)
-	msgBroker := messaging.NewBroker(stop)
 	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
 	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
 	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
 	policyClient := policyFake.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
-	mcsClient := mcsFake.NewSimpleClientset()
-	informerCollection, err := informers.NewInformerCollection(tests.MeshName, stop,
-		informers.WithKubeClient(kubeClient),
-		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
-		informers.WithConfigClient(configClient, tests.OsmMeshConfigName, tests.OsmNamespace),
-		informers.WithPolicyClient(policyClient),
+
+	broker := messaging.NewBroker(stop)
+	k8sClient, err := k8s.NewClient("osm-ns", tests.OsmMeshConfigName, broker,
+		k8s.WithKubeClient(kubeClient, "osm"),
+		k8s.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		k8s.WithConfigClient(configClient),
+		k8s.WithPolicyClient(policyClient),
 	)
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
-	k8sClient := k8s.NewClient("osm-ns", tests.OsmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, mcsClient, msgBroker)
 	compute := kube.NewClient(k8sClient)
 	kv := &validator{
 		computeClient: compute,
