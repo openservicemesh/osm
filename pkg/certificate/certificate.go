@@ -9,8 +9,12 @@ import (
 )
 
 const (
-	// RenewBeforeCertExpires signifies how much earlier (before expiration) should a certificate be renewed
-	RenewBeforeCertExpires = 30 * time.Second
+	// MinRotateBeforeExpireMinutes specifies the minimum number of minutes of how much earlier we can do a certificate renewal.
+	// This prevents us from rotating too frequently.
+	MinRotateBeforeExpireMinutes = 5
+
+	// Specifies what fraction of validity duration we want to renew before the certificate expires.
+	fractionValidityDuration = 3
 
 	// So that we do not renew all certs at the same time - add noise.
 	// These define the min and max of the seconds of noise to be added

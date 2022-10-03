@@ -8,6 +8,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/auth"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -100,7 +101,7 @@ func GetServiceCertValidityPeriod(mc v1alpha2.MeshConfig) time.Duration {
 		return defaultServiceCertValidityDuration
 	}
 
-	return validityDuration
+	return checkValidityDuration(validityDuration)
 }
 
 // GetIngressGatewayCertValidityPeriod returns the validity duration for ingress gateway certificates, and a default in case of unspecified or invalid duration
@@ -113,9 +114,18 @@ func GetIngressGatewayCertValidityPeriod(mc v1alpha2.MeshConfig) time.Duration {
 	validityDuration, err := time.ParseDuration(ingressGatewayCertSpec.ValidityDuration)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error parsing ingress gateway certificate validity duration %s", ingressGatewayCertSpec.ValidityDuration)
-		return defaultServiceCertValidityDuration
+		return defaultIngressGatewayCertValidityDuration
 	}
 
+	return checkValidityDuration(validityDuration)
+}
+
+func checkValidityDuration(validityDuration time.Duration) time.Duration {
+	renewalPeriod := time.Duration(2*certificate.MinRotateBeforeExpireMinutes) * time.Minute
+	if validityDuration < renewalPeriod {
+		validityDuration = renewalPeriod
+		log.Warn().Msgf("Minimum accepted validity duration must be 2x the renewal period - setting validity duration to %v", validityDuration)
+	}
 	return validityDuration
 }
 

@@ -401,7 +401,7 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 	commonName2 := certificate.CommonName(proxyUUID2.String() + ".test.cert")
 
 	notBefore := time.Now()
-	notAfter := notBefore.Add(1 * time.Hour)
+	notAfter := notBefore.Add(constants.OSMCertificateValidityPeriod)
 	pemCert, pemKey, err := certificate.CreateValidCertAndKey(commonName1, notBefore, notAfter)
 	assert.Nil(err)
 

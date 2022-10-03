@@ -52,7 +52,7 @@ func TestShouldRotate(t *testing.T) {
 		{
 			name: "Valid certificate",
 			cert: &Certificate{
-				Expiration:         time.Now().Add(1 * time.Hour),
+				Expiration:         time.Now().Add(constants.OSMCertificateValidityPeriod),
 				signingIssuerID:    "1",
 				validatingIssuerID: "1",
 			},
@@ -179,7 +179,7 @@ func TestListIssuedCertificate(t *testing.T) {
 func TestIssueCertificate(t *testing.T) {
 	assert := tassert.New(t)
 	cnPrefix := "fake-cert-cn"
-	getServiceValidityDuration := func() time.Duration { return time.Minute }
+	getServiceValidityDuration := func() time.Duration { return time.Hour }
 
 	stop := make(chan struct{})
 	defer close(stop)
