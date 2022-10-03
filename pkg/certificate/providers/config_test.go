@@ -16,6 +16,8 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -23,9 +25,6 @@ import (
 	fakeConfigClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
-
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/pem"
 )
 
 func TestGetCertificateManager(t *testing.T) {
@@ -645,6 +644,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 			assert.Nil(err)
 
 			computeClient := kube.NewClient(client)
+			assert.NotNil(computeClient)
 
 			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, computeClient, 1*time.Hour, false)
 			if tc.expectError {

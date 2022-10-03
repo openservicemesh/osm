@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// MRC condition types
 const (
 	ready              v1alpha2.MeshRootCertificateConditionType = "Ready"
 	accepted           v1alpha2.MeshRootCertificateConditionType = "Accepted"
@@ -17,12 +18,14 @@ const (
 	validatingRollback v1alpha2.MeshRootCertificateConditionType = "ValidatingRollback"
 )
 
+// MRC condition statuses
 const (
 	trueStatus    v1alpha2.MeshRootCertificateConditionStatus = "True"
 	falseStatus   v1alpha2.MeshRootCertificateConditionStatus = "False"
 	unknownStatus v1alpha2.MeshRootCertificateConditionStatus = "Unknown"
 )
 
+// MRC condition reasons
 const (
 	pendingReason = "Pending"
 
@@ -40,18 +43,10 @@ const (
 	passivelyInUseForIssuingReason = "CertificatePassivelyInUseForIssuing"
 	notAcceptedIssuingReason       = "NotAccepted"
 
-	// IssuingRollback type
-	isNotReadyIssuingReason      = "IsNotReady"
-	passiveStateCertIssuedReason = "PassiveStateAndCertIsBeingIssued"
-	noLongerIssuingReason        = "NoLongerIssuing"
-
 	// ValidatingRollback type
 	isNotReadyValidatingReason    = "IsNotReady"
 	passiveStateCertTrustedReason = "PassiveStateAndCertIsTrusted"
 	noLongerValidatingReason      = "NoLongerValidating"
-
-	// Ready type
-	rotationCompleteReason = "RotationComplete"
 )
 
 func setMRCCondition(mrc *v1alpha2.MeshRootCertificate, conditionType v1alpha2.MeshRootCertificateConditionType, conditionStatus v1alpha2.MeshRootCertificateConditionStatus, conditionReason string, message string) {

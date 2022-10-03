@@ -150,6 +150,9 @@ const (
 
 	// ErrUpdatingBootstrapSecret indicates a bootstrap secret could not be updated
 	ErrUpdatingBootstrapSecret
+
+	// ErrRetrievingCA indicate the certificate authority could not be accessed
+	ErrRetrievingCA
 )
 
 // Range 4100-4150 reserved for PubSub system
@@ -570,6 +573,14 @@ The certificate authority privided when issuing a certificate was invalid.
 
 	ErrRotatingCert: `
 The specified certificate could not be rotated.
+`,
+
+	ErrUpdatingBootstrapSecret: `
+The specified bootstrap secret could not be updated.
+`,
+
+	ErrRetrievingCA: `
+The CA specified in the MeshRootCertificate could not be accessed.
 `,
 
 	//

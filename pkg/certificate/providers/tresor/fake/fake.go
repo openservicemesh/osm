@@ -13,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -23,6 +24,7 @@ const (
 
 type fakeMRCClient struct {
 	mrcChannel chan certificate.MRCEvent
+	compute.Interface
 }
 
 // NewFakeMRC allows for publishing events on to the watch channel to generate MRC events
@@ -89,16 +91,6 @@ func (c *fakeMRCClient) NewCertEvent(name, state string) {
 	}
 }
 
-// UpdateMeshRootCertificate is not implemented on the fake client and always returns an error
-func (c *fakeMRCClient) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
-	return nil, nil
-}
-
-// GetMeshRootCertificate is not implemented on the fake client and always return nil
-func (c *fakeMRCClient) GetMeshRootCertificate(mrcName string) *v1alpha2.MeshRootCertificate {
-	return nil
-}
-
 // GetCertIssuerForMRC will return a root cert for testing.
 func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, pem.RootCertificate, error) {
 	rootCertCountry := "US"
@@ -119,12 +111,6 @@ func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (
 		return nil, nil, err
 	}
 	return issuer, cert.GetTrustedCAs(), nil
-}
-
-// List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
-func (c *fakeMRCClient) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertificate, error) {
-	// return single empty object in the list.
-	return []*v1alpha2.MeshRootCertificate{{Spec: v1alpha2.MeshRootCertificateSpec{TrustDomain: "fake.example.com"}}}, nil
 }
 
 func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {

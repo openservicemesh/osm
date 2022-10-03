@@ -116,8 +116,7 @@ type PassthroughInterface interface {
 
 	ListMeshRootCertificates() ([]*configv1alpha2.MeshRootCertificate, error)
 	UpdateMeshRootCertificate(obj *configv1alpha2.MeshRootCertificate) (*configv1alpha2.MeshRootCertificate, error)
-	UpdateMeshRootCertificateStatus(obj *configv1alpha2.MeshRootCertificate) (*configv1alpha2.MeshRootCertificate, error) // AddMRCEventsHandler adds event handlers to create MRCEvents
-	AddMRCEventsHandler(cache.ResourceEventHandlerFuncs)
+	UpdateMeshRootCertificateStatus(obj *configv1alpha2.MeshRootCertificate) (*configv1alpha2.MeshRootCertificate, error)
 	GetOSMNamespace() string
 	UpdateIngressBackendStatus(obj *policyv1alpha1.IngressBackend) (*policyv1alpha1.IngressBackend, error)
 	UpdateUpstreamTrafficSettingStatus(obj *policyv1alpha1.UpstreamTrafficSetting) (*policyv1alpha1.UpstreamTrafficSetting, error)
