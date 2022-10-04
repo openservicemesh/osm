@@ -57,16 +57,10 @@ func (mc *MeshCatalog) GetInboundMeshClusterConfigs(upstreamServices []service.M
 
 // GetInboundMeshTrafficMatches returns the traffic matches for the inbound mesh traffic policy for the given upstream services
 func (mc *MeshCatalog) GetInboundMeshTrafficMatches(upstreamServices []service.MeshService) []*trafficpolicy.TrafficMatch {
-	allUpstreamServices := mc.getUpstreamServicesIncludeApex(upstreamServices)
-	upstreamSvcSet := mapset.NewSet()
-	for _, svc := range upstreamServices {
-		upstreamSvcSet.Add(svc)
-	}
-
 	var trafficMatches []*trafficpolicy.TrafficMatch
 
 	// Build configurations per upstream service
-	for _, upstreamSvc := range allUpstreamServices {
+	for _, upstreamSvc := range upstreamServices {
 		upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop
 
 		upstreamTrafficSetting := mc.GetUpstreamTrafficSettingByService(&upstreamSvc)
@@ -84,19 +78,17 @@ func (mc *MeshCatalog) GetInboundMeshTrafficMatches(upstreamServices []service.M
 		// HTTP routing rules, but should not result in a TrafficMatch rule
 		// as TrafficMatch rules are meant to map to actual services backed
 		// by a proxy, defined by the 'upstreamServices' list.
-		if upstreamSvcSet.Contains(upstreamSvc) {
-			trafficMatchForUpstreamSvc := &trafficpolicy.TrafficMatch{
-				Name:                upstreamSvc.InboundTrafficMatchName(),
-				DestinationPort:     int(upstreamSvc.TargetPort),
-				DestinationProtocol: upstreamSvc.Protocol,
-				ServerNames:         []string{upstreamSvc.ServerName()},
-				Cluster:             upstreamSvc.EnvoyLocalClusterName(),
-			}
-			if upstreamTrafficSetting != nil {
-				trafficMatchForUpstreamSvc.RateLimit = upstreamTrafficSetting.Spec.RateLimit
-			}
-			trafficMatches = append(trafficMatches, trafficMatchForUpstreamSvc)
+		trafficMatchForUpstreamSvc := &trafficpolicy.TrafficMatch{
+			Name:                upstreamSvc.InboundTrafficMatchName(),
+			DestinationPort:     int(upstreamSvc.TargetPort),
+			DestinationProtocol: upstreamSvc.Protocol,
+			ServerNames:         []string{upstreamSvc.ServerName()},
+			Cluster:             upstreamSvc.EnvoyLocalClusterName(),
 		}
+		if upstreamTrafficSetting != nil {
+			trafficMatchForUpstreamSvc.RateLimit = upstreamTrafficSetting.Spec.RateLimit
+		}
+		trafficMatches = append(trafficMatches, trafficMatchForUpstreamSvc)
 	}
 
 	return trafficMatches
