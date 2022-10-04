@@ -16,6 +16,7 @@ import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -276,6 +277,13 @@ func (b *Builder) Build() (*xds_bootstrap.Bootstrap, error) {
 									},
 								},
 							},
+						},
+					},
+					UpstreamConnectionOptions: &xds_cluster.UpstreamConnectionOptions{
+						TcpKeepalive: &xds_core.TcpKeepalive{
+							KeepaliveProbes:   wrapperspb.UInt32(5),
+							KeepaliveTime:     wrapperspb.UInt32(60),
+							KeepaliveInterval: wrapperspb.UInt32(5),
 						},
 					},
 				},
