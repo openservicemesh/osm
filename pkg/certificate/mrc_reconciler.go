@@ -1,6 +1,7 @@
 package certificate
 
 import (
+	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -130,7 +131,12 @@ func shouldUpdateState(mrc *v1alpha2.MeshRootCertificate) bool {
 // update the MRCComponentStatus
 func (m *Manager) updateMRCComponentStatus(mrc *v1alpha2.MeshRootCertificate) error {
 	// TODO(5046): determine the status to set the owned components to.
-	var status v1alpha2.MeshRootCertificateComponentStatus
+	// default component status is Unknown
+	var status v1alpha2.MeshRootCertificateComponentStatus = constants.MRCComponentStatusUnknown
+
+	if shouldChangeStatusToValidating(mrc) {
+		status = constants.MRCComponentStatusValidating
+	}
 
 	for _, useCase := range m.ownedUseCases {
 		switch useCase {
@@ -151,6 +157,33 @@ func (m *Manager) updateMRCComponentStatus(mrc *v1alpha2.MeshRootCertificate) er
 	}
 
 	return m.mrcClient.UpdateMeshRootCertificate(mrc)
+}
+
+// checks if the given MRC meets the attributes to move the componentStatuses to Validating
+func shouldChangeStatusToValidating(mrc *v1alpha2.MeshRootCertificate) bool {
+	// case-insensitive check for if strings are equal
+	if strings.EqualFold(string(mrc.Spec.Intent), constants.MRCIntentPassive) {
+		acceptedCond := getCondition(mrc, constants.MRCConditionTypeAccepted)
+
+		if strings.EqualFold(string(acceptedCond.Status), constants.MRCConditionStatusTrue) {
+			validRolloutCond := getCondition(mrc, constants.MRCConditionTypeValidatingRollout)
+
+			if strings.EqualFold(string(validRolloutCond.Status), constants.MRCConditionStatusFalse) && strings.EqualFold(validRolloutCond.Reason, constants.MRCConditionReasonPending) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// returns the MeshRootCertificateCondition that matches the condtion type specified
+func getCondition(mrc *v1alpha2.MeshRootCertificate, condType v1alpha2.MeshRootCertificateConditionType) *v1alpha2.MeshRootCertificateCondition {
+	for _, condition := range mrc.Status.Conditions {
+		if condition.Type == condType {
+			return &condition
+		}
+	}
+	return nil
 }
 
 // isTerminal checks if the MRC is in a terminal state.

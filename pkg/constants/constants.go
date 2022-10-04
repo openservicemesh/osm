@@ -223,8 +223,8 @@ const (
 	// MRCComponentStatusUnknown is the unknown status option for the component status of the MeshRootCertificate
 	MRCComponentStatusUnknown = "Unknown"
 
-	// MRCConditionStatusUnknown is the unknown status option for the condition status of the MeshRootCertificate
-	MRCConditionStatusUnknown = "Unknown"
+	// MRCComponentStatusValidating is the validating status option for the component status of the MeshRootCertificate
+	MRCComponentStatusValidating = "Validating"
 
 	// MRCConditionTypeReady is the ready condition type for certificate condition of the MeshRootCertificate
 	MRCConditionTypeReady = "Ready"
@@ -243,6 +243,18 @@ const (
 
 	// MRCConditionTypeValidatingRollback is the validating rollback condition type for certificate condition of the MeshRootCertificate
 	MRCConditionTypeValidatingRollback = "ValidatingRollback"
+
+	// MRCConditionStatusTrue is the true status option for the condition status of the MeshRootCertificate
+	MRCConditionStatusTrue = "True"
+
+	// MRCConditionStatusFalse is the false status option for the condition status of the MeshRootCertificate
+	MRCConditionStatusFalse = "False"
+
+	// MRCConditionStatusUnknown is the unknown status option for the condition status of the MeshRootCertificate
+	MRCConditionStatusUnknown = "Unknown"
+
+	// MRCConditionReasonPending is the Pending reason option for the condition reason of the MeshRootCertificate
+	MRCConditionReasonPending = "Pending"
 )
 
 // Labels used by the control plane
