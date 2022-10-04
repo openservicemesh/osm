@@ -26,7 +26,7 @@ import (
 )
 
 // NewClient returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewClient(osmNamespace, meshConfigName string, informerCollection *informers.InformerCollection, kubeClient kubernetes.Interface, policyClient policyv1alpha1Client.Interface, configClient configv1alpha2Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *Client {
+func NewClient(osmNamespace, meshConfigName string, informerCollection *informers.InformerCollection, kubeClient kubernetes.Interface, policyClient policyv1alpha1Client.Interface, configClient configv1alpha2Client.Interface, msgBroker *messaging.Broker, selectInformers ...informers.InformerKey) *Client {
 	// Initialize client object
 	c := &Client{
 		informers:      informerCollection,
@@ -39,32 +39,32 @@ func NewClient(osmNamespace, meshConfigName string, informerCollection *informer
 	}
 
 	// Initialize informers
-	informerInitHandlerMap := map[InformerKey]func(){
-		Namespaces:             c.initNamespaceMonitor,
-		Services:               c.initServicesMonitor,
-		ServiceAccounts:        c.initServiceAccountsMonitor,
-		Pods:                   c.initPodMonitor,
-		Endpoints:              c.initEndpointMonitor,
-		MeshConfig:             c.initMeshConfigMonitor,
-		MeshRootCertificate:    c.initMRCMonitor,
-		ExtensionService:       c.initExtensionServiceMonitor,
-		Egress:                 c.initEgressMonitor,
-		IngressBackend:         c.initIngressBackendMonitor,
-		Retry:                  c.initRetryMonitor,
-		UpstreamTrafficSetting: c.initUpstreamTrafficSettingMonitor,
-		Telemetry:              c.initTelemetryMonitor,
-		TrafficSplit:           c.initTrafficSplitMonitor,
-		HTTPRouteGroup:         c.initHTTPRouteGroupMonitor,
-		TCPRoute:               c.initTCPRouteMonitor,
-		TrafficTarget:          c.initTrafficTargetMonitor,
+	informerInitHandlerMap := map[informers.InformerKey]func(){
+		informers.InformerKeyNamespace:              c.initNamespaceMonitor,
+		informers.InformerKeyService:                c.initServicesMonitor,
+		informers.InformerKeyServiceAccount:         c.initServiceAccountsMonitor,
+		informers.InformerKeyPod:                    c.initPodMonitor,
+		informers.InformerKeyEndpoint:               c.initEndpointMonitor,
+		informers.InformerKeyMeshConfig:             c.initMeshConfigMonitor,
+		informers.InformerKeyMeshRootCertificate:    c.initMRCMonitor,
+		informers.InformerKeyExtensionService:       c.initExtensionServiceMonitor,
+		informers.InformerKeyEgress:                 c.initEgressMonitor,
+		informers.InformerKeyIngressBackend:         c.initIngressBackendMonitor,
+		informers.InformerKeyRetry:                  c.initRetryMonitor,
+		informers.InformerKeyUpstreamTrafficSetting: c.initUpstreamTrafficSettingMonitor,
+		informers.InformerKeyTelemetry:              c.initTelemetryMonitor,
+		informers.InformerKeyTrafficSplit:           c.initTrafficSplitMonitor,
+		informers.InformerKeyHTTPRouteGroup:         c.initHTTPRouteGroupMonitor,
+		informers.InformerKeyTCPRoute:               c.initTCPRouteMonitor,
+		informers.InformerKeyTrafficTarget:          c.initTrafficTargetMonitor,
 	}
 
 	// If specific informers are not selected to be initialized, initialize all informers
 	if len(selectInformers) == 0 {
-		selectInformers = []InformerKey{
-			Namespaces, Services, ServiceAccounts, Pods, Endpoints, MeshConfig, MeshRootCertificate, ExtensionService,
-			Egress, IngressBackend, Retry, UpstreamTrafficSetting, Telemetry, TrafficSplit, HTTPRouteGroup, TCPRoute,
-			TrafficTarget}
+		selectInformers = []informers.InformerKey{
+			informers.InformerKeyNamespace, informers.InformerKeyService, informers.InformerKeyServiceAccount, informers.InformerKeyPod, informers.InformerKeyEndpoint, informers.InformerKeyMeshConfig, informers.InformerKeyMeshRootCertificate, informers.InformerKeyExtensionService,
+			informers.InformerKeyEgress, informers.InformerKeyIngressBackend, informers.InformerKeyRetry, informers.InformerKeyUpstreamTrafficSetting, informers.InformerKeyTelemetry, informers.InformerKeyTrafficSplit, informers.InformerKeyHTTPRouteGroup, informers.InformerKeyTCPRoute,
+			informers.InformerKeyTrafficTarget}
 	}
 
 	for _, informer := range selectInformers {
@@ -137,7 +137,7 @@ func (c *Client) initPodMonitor() {
 }
 
 func (c *Client) initEndpointMonitor() {
-	c.informers.AddEventHandler(informers.InformerKeyEndpoints, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
+	c.informers.AddEventHandler(informers.InformerKeyEndpoint, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
 
 func (c *Client) initTrafficSplitMonitor() {
@@ -301,7 +301,7 @@ func (c *Client) ListPods() []*corev1.Pod {
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
 // or error if the API errored out.
 func (c *Client) GetEndpoints(name, namespace string) (*corev1.Endpoints, error) {
-	ep, exists, err := c.informers.GetByKey(informers.InformerKeyEndpoints, key(name, namespace))
+	ep, exists, err := c.informers.GetByKey(informers.InformerKeyEndpoint, key(name, namespace))
 	if err != nil {
 		return nil, err
 	}

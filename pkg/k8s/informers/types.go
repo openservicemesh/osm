@@ -17,8 +17,8 @@ const (
 	InformerKeyService InformerKey = "Service"
 	// InformerKeyPod is the InformerKey for a Pod informer
 	InformerKeyPod InformerKey = "Pod"
-	// InformerKeyEndpoints is the InformerKey for a Endpoints informer
-	InformerKeyEndpoints InformerKey = "Endpoints"
+	// InformerKeyEndpoint is the InformerKey for a Endpoint informer
+	InformerKeyEndpoint InformerKey = "Endpoint"
 	// InformerKeyServiceAccount is the InformerKey for a ServiceAccount informer
 	InformerKeyServiceAccount InformerKey = "ServiceAccount"
 	// InformerKeySecret is the InformerKey for a Secret informer

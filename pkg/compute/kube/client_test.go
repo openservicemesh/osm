@@ -2422,7 +2422,7 @@ func TestGetMeshService(t *testing.T) {
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
 			_ = ic.Add(informers.InformerKeyService, tc.svc, t)
-			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
+			_ = ic.Add(informers.InformerKeyEndpoint, tc.endpoints, t)
 
 			controller := k8s.NewClient(osmNamespace, "", ic, nil, nil, nil, messaging.NewBroker(make(chan struct{})))
 

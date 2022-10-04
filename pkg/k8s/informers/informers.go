@@ -78,7 +78,7 @@ func WithKubeClient(kubeClient kubernetes.Interface) InformerCollectionOption {
 		ic.informers[InformerKeyService] = v1api.Services().Informer()
 		ic.informers[InformerKeyServiceAccount] = v1api.ServiceAccounts().Informer()
 		ic.informers[InformerKeyPod] = v1api.Pods().Informer()
-		ic.informers[InformerKeyEndpoints] = v1api.Endpoints().Informer()
+		ic.informers[InformerKeyEndpoint] = v1api.Endpoints().Informer()
 		ic.informers[InformerKeySecret] = secretInformerFactory.Core().V1().Secrets().Informer()
 	}
 }
