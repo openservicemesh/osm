@@ -19,7 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func TestShouldRetrieveCA(t *testing.T) {
+func TestShouldEnsureIssuerForMRC(t *testing.T) {
 	type testCase struct {
 		name           string
 		mrc            *v1alpha2.MeshRootCertificate
@@ -137,19 +137,19 @@ func TestShouldRetrieveCA(t *testing.T) {
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
 							Type:    accepted,
-							Status:  trueStatus,
+							Status:  v1.ConditionTrue,
 							Reason:  certificateAcceptedReason,
 							Message: "certificate accepted",
 						},
 						{
 							Type:    validatingRollout,
-							Status:  falseStatus,
+							Status:  v1.ConditionFalse,
 							Reason:  passiveStateValidatingReason,
 							Message: "passive intent",
 						},
 						{
 							Type:    issuingRollout,
-							Status:  falseStatus,
+							Status:  v1.ConditionFalse,
 							Reason:  passiveStateIssuingReason,
 							Message: "passive intent",
 						},
@@ -169,7 +169,7 @@ func TestShouldRetrieveCA(t *testing.T) {
 				leaderMode: tc.leaderMode,
 			}
 
-			ret := m.shouldRetrieveCA(tc.mrc)
+			ret := m.shouldEnsureIssuerForMRC(tc.mrc)
 			assert.Equal(tc.expectedReturn, ret)
 		})
 	}
@@ -257,19 +257,19 @@ func TestUpdateMRCState(t *testing.T) {
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
 							Type:    accepted,
-							Status:  trueStatus,
+							Status:  v1.ConditionTrue,
 							Reason:  certificateAcceptedReason,
 							Message: "certificate accepted",
 						},
 						{
 							Type:    validatingRollout,
-							Status:  falseStatus,
+							Status:  v1.ConditionFalse,
 							Reason:  passiveStateValidatingReason,
 							Message: "passive intent",
 						},
 						{
 							Type:    issuingRollout,
-							Status:  falseStatus,
+							Status:  v1.ConditionFalse,
 							Reason:  passiveStateIssuingReason,
 							Message: "passive intent",
 						},

@@ -142,10 +142,6 @@ const (
 	UnknownComponentStatus MeshRootCertificateComponentStatus = "unknown"
 )
 
-// MeshRootCertificateConditionStatus specifies the status of the MeshRootCertificate condition,
-// one of (`True`, `False`, `Unknown`).
-type MeshRootCertificateConditionStatus string
-
 // MeshRootCertificateConditionType specifies the type of the condition,
 // one of (`Ready`, `Accepted`, `IssuingRollout`, `ValidatingRollout`, `IssuingRollback`, `ValidatingRollback`).
 type MeshRootCertificateConditionType string
@@ -167,7 +163,7 @@ type MeshRootCertificateCondition struct {
 	Type MeshRootCertificateConditionType `json:"type"`
 
 	// Status of the condition, one of (`True`, `False`, `Unknown`).
-	Status MeshRootCertificateConditionStatus `json:"status"`
+	Status corev1.ConditionStatus `json:"status"`
 
 	// LastTransitionTime is the timestamp corresponding to the last status
 	// change of this condition.

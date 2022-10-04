@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 
@@ -50,6 +51,7 @@ var (
 func (uc UseCase) String() string {
 	return string(uc)
 }
+
 func (m *Manager) handleMRCEvent(event MRCEvent) error {
 	mrc := event.MRC
 	// TODO(5046): remove this first call to setIssuers.
@@ -99,7 +101,7 @@ func shouldUpdateMRCComponentStatus(mrc *v1alpha2.MeshRootCertificate) bool {
 
 // shouldUpdateState (and conditions).
 func (m *Manager) shouldUpdateState(mrc *v1alpha2.MeshRootCertificate) bool {
-	if m.shouldRetrieveCA(mrc) {
+	if m.shouldEnsureIssuerForMRC(mrc) {
 		return true
 	}
 
@@ -184,15 +186,15 @@ func (m *Manager) updateMRCState(mrc *v1alpha2.MeshRootCertificate) error {
 		log.Debug().Str("mrc", namespacedMRCName(mrc)).Msgf("updated MRC TransitionAfter to %s", mrc.Status.TransitionAfter)
 	}
 
-	if m.shouldRetrieveCA(mrc) {
+	if m.shouldEnsureIssuerForMRC(mrc) {
 		_, _, err := m.mrcClient.GetCertIssuerForMRC(mrc)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRetrievingCA)).Str("mrc", namespacedMRCName(mrc)).Msg("failed to retrieve CA on passive MRC creation")
 
 			// CA not accepted
-			setMRCCondition(mrc, constants.MRCConditionTypeAccepted, falseStatus, errorRetrievingCAReason, err.Error())
-			setMRCCondition(mrc, constants.MRCConditionTypeIssuingRollout, falseStatus, notAcceptedIssuingReason, err.Error())
-			setMRCCondition(mrc, constants.MRCConditionTypeValidatingRollout, falseStatus, notAcceptedValidatingReason, err.Error())
+			setMRCCondition(mrc, constants.MRCConditionTypeAccepted, corev1.ConditionFalse, errorRetrievingCAReason, err.Error())
+			setMRCCondition(mrc, constants.MRCConditionTypeIssuingRollout, corev1.ConditionFalse, notAcceptedIssuingReason, err.Error())
+			setMRCCondition(mrc, constants.MRCConditionTypeValidatingRollout, corev1.ConditionFalse, notAcceptedValidatingReason, err.Error())
 			mrc.Status.State = constants.MRCStateError
 			_, err := m.mrcClient.UpdateMeshRootCertificate(mrc)
 			return err
@@ -201,9 +203,9 @@ func (m *Manager) updateMRCState(mrc *v1alpha2.MeshRootCertificate) error {
 		log.Debug().Str("mrc", namespacedMRCName(mrc)).Msg("successfully retrieved CA on passive MRC creation")
 
 		// CA accepted
-		setMRCCondition(mrc, constants.MRCConditionTypeAccepted, trueStatus, certificateAcceptedReason, "certificate accepted")
-		setMRCCondition(mrc, constants.MRCConditionTypeIssuingRollout, falseStatus, passiveStateIssuingReason, "passive intent")
-		setMRCCondition(mrc, constants.MRCConditionTypeValidatingRollout, falseStatus, passiveStateValidatingReason, "passive intent")
+		setMRCCondition(mrc, constants.MRCConditionTypeAccepted, corev1.ConditionTrue, certificateAcceptedReason, "certificate accepted")
+		setMRCCondition(mrc, constants.MRCConditionTypeIssuingRollout, corev1.ConditionFalse, passiveStateIssuingReason, "passive intent")
+		setMRCCondition(mrc, constants.MRCConditionTypeValidatingRollout, corev1.ConditionFalse, passiveStateValidatingReason, "passive intent")
 		mrc.Status.State = constants.MRCStatePending
 		_, err = m.mrcClient.UpdateMeshRootCertificate(mrc)
 		return err
@@ -219,7 +221,7 @@ func (m *Manager) shouldSetIssuers(mrc *v1alpha2.MeshRootCertificate) bool {
 	return true
 }
 
-func (m *Manager) shouldRetrieveCA(mrc *v1alpha2.MeshRootCertificate) bool {
+func (m *Manager) shouldEnsureIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) bool {
 	return m.leaderMode && mrc.Spec.Intent == constants.MRCIntentPassive && len(mrc.Status.Conditions) == 0
 }
 

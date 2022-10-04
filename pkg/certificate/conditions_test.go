@@ -47,7 +47,7 @@ func TestSetMRCCondition(t *testing.T) {
 			expectedConditionsLen: 1,
 			newCondition: v1alpha2.MeshRootCertificateCondition{
 				Type:    accepted,
-				Status:  trueStatus,
+				Status:  v1.ConditionTrue,
 				Reason:  certificateAcceptedReason,
 				Message: "test",
 			},
@@ -77,7 +77,7 @@ func TestSetMRCCondition(t *testing.T) {
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
 							Type:               validatingRollback,
-							Status:             falseStatus,
+							Status:             v1.ConditionFalse,
 							Reason:             isNotReadyValidatingReason,
 							Message:            "test",
 							LastTransitionTime: &now,
@@ -89,7 +89,7 @@ func TestSetMRCCondition(t *testing.T) {
 			expectedLastTransitionTime: &now,
 			newCondition: v1alpha2.MeshRootCertificateCondition{
 				Type:    validatingRollback,
-				Status:  falseStatus,
+				Status:  v1.ConditionFalse,
 				Reason:  noLongerValidatingReason,
 				Message: "test",
 			},
@@ -119,7 +119,7 @@ func TestSetMRCCondition(t *testing.T) {
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
 							Type:    validatingRollout,
-							Status:  falseStatus,
+							Status:  v1.ConditionFalse,
 							Reason:  passiveStateValidatingReason,
 							Message: "test",
 						},
@@ -129,7 +129,7 @@ func TestSetMRCCondition(t *testing.T) {
 			expectedConditionsLen: 1,
 			newCondition: v1alpha2.MeshRootCertificateCondition{
 				Type:    validatingRollout,
-				Status:  trueStatus,
+				Status:  v1.ConditionTrue,
 				Reason:  passivelyInUseForValidatingReason,
 				Message: "test",
 			},
@@ -155,237 +155,6 @@ func TestSetMRCCondition(t *testing.T) {
 					a.Equal(tc.expectedLastTransitionTime, cond.LastTransitionTime)
 				}
 			}
-		})
-	}
-}
-
-func TestGetMRCCondition(t *testing.T) {
-	testCases := []struct {
-		name                 string
-		mrc                  *v1alpha2.MeshRootCertificate
-		desiredConditionType v1alpha2.MeshRootCertificateConditionType
-		expectedCondition    *v1alpha2.MeshRootCertificateCondition
-	}{
-		{
-			name: "condition not found",
-			mrc: &v1alpha2.MeshRootCertificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
-					Namespace: "osm-system",
-				},
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Provider: v1alpha2.ProviderSpec{
-						Tresor: &v1alpha2.TresorProviderSpec{
-							CA: v1alpha2.TresorCASpec{
-								SecretRef: v1.SecretReference{
-									Name:      "osm-ca-bundle",
-									Namespace: "osm-system",
-								},
-							},
-						},
-					},
-					TrustDomain: "testDomain",
-					Intent:      constants.MRCIntentPassive,
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:    validatingRollout,
-							Status:  falseStatus,
-							Reason:  pendingReason,
-							Message: "test2",
-						},
-					},
-				},
-			},
-			desiredConditionType: accepted,
-			expectedCondition:    nil,
-		},
-		{
-			name: "condition found",
-			mrc: &v1alpha2.MeshRootCertificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
-					Namespace: "osm-system",
-				},
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Provider: v1alpha2.ProviderSpec{
-						Tresor: &v1alpha2.TresorProviderSpec{
-							CA: v1alpha2.TresorCASpec{
-								SecretRef: v1.SecretReference{
-									Name:      "osm-ca-bundle",
-									Namespace: "osm-system",
-								},
-							},
-						},
-					},
-					TrustDomain: "testDomain",
-					Intent:      constants.MRCIntentPassive,
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:    validatingRollout,
-							Status:  falseStatus,
-							Reason:  pendingReason,
-							Message: "test2",
-						},
-					},
-				},
-			},
-			desiredConditionType: validatingRollout,
-			expectedCondition: &v1alpha2.MeshRootCertificateCondition{
-				Type:    validatingRollout,
-				Status:  falseStatus,
-				Reason:  pendingReason,
-				Message: "test2",
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			a := tassert.New(t)
-			cond := getMRCCondition(tc.mrc, tc.desiredConditionType)
-			a.Equal(tc.expectedCondition, cond)
-		})
-	}
-}
-
-func TestMRCHasCondition(t *testing.T) {
-	testCases := []struct {
-		name             string
-		mrc              *v1alpha2.MeshRootCertificate
-		desiredCondition v1alpha2.MeshRootCertificateCondition
-		expectedReturn   bool
-	}{
-		{
-			name: "has condition",
-			mrc: &v1alpha2.MeshRootCertificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
-					Namespace: "osm-system",
-				},
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Provider: v1alpha2.ProviderSpec{
-						Tresor: &v1alpha2.TresorProviderSpec{
-							CA: v1alpha2.TresorCASpec{
-								SecretRef: v1.SecretReference{
-									Name:      "osm-ca-bundle",
-									Namespace: "osm-system",
-								},
-							},
-						},
-					},
-					TrustDomain: "testDomain",
-					Intent:      constants.MRCIntentPassive,
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:    validatingRollout,
-							Status:  falseStatus,
-							Reason:  pendingReason,
-							Message: "test",
-						},
-					},
-				},
-			},
-			desiredCondition: v1alpha2.MeshRootCertificateCondition{
-				Type:    validatingRollout,
-				Status:  falseStatus,
-				Reason:  pendingReason,
-				Message: "test2",
-			},
-			expectedReturn: true,
-		},
-		{
-			name: "has condition type, but not desired status",
-			mrc: &v1alpha2.MeshRootCertificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
-					Namespace: "osm-system",
-				},
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Provider: v1alpha2.ProviderSpec{
-						Tresor: &v1alpha2.TresorProviderSpec{
-							CA: v1alpha2.TresorCASpec{
-								SecretRef: v1.SecretReference{
-									Name:      "osm-ca-bundle",
-									Namespace: "osm-system",
-								},
-							},
-						},
-					},
-					TrustDomain: "testDomain",
-					Intent:      constants.MRCIntentPassive,
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:    validatingRollout,
-							Status:  falseStatus,
-							Reason:  pendingReason,
-							Message: "test",
-						},
-					},
-				},
-			},
-			desiredCondition: v1alpha2.MeshRootCertificateCondition{
-				Type:    validatingRollout,
-				Status:  trueStatus,
-				Reason:  passivelyInUseForValidatingReason,
-				Message: "test",
-			},
-			expectedReturn: false,
-		},
-		{
-			name: "does not have desired condition",
-			mrc: &v1alpha2.MeshRootCertificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
-					Namespace: "osm-system",
-				},
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Provider: v1alpha2.ProviderSpec{
-						Tresor: &v1alpha2.TresorProviderSpec{
-							CA: v1alpha2.TresorCASpec{
-								SecretRef: v1.SecretReference{
-									Name:      "osm-ca-bundle",
-									Namespace: "osm-system",
-								},
-							},
-						},
-					},
-					TrustDomain: "testDomain",
-					Intent:      constants.MRCIntentPassive,
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:    validatingRollout,
-							Status:  falseStatus,
-							Reason:  pendingReason,
-							Message: "test",
-						},
-					},
-				},
-			},
-			desiredCondition: v1alpha2.MeshRootCertificateCondition{
-				Type:    accepted,
-				Status:  trueStatus,
-				Reason:  certificateAcceptedReason,
-				Message: "test",
-			},
-			expectedReturn: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			a := tassert.New(t)
-			hasCond := mrcHasCondition(tc.mrc, tc.desiredCondition)
-			a.Equal(tc.expectedReturn, hasCond)
 		})
 	}
 }
