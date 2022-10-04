@@ -123,24 +123,8 @@ type TresorCASpec struct {
 type MeshRootCertificateIntent string
 
 // MeshRootCertificateComponentStatus specifies the status of the certificate component,
-// can be (`Issuing`, `Validating`, `Unknown`).
+// can be (`issuing`, `validating`, `unknown`, `unused`).
 type MeshRootCertificateComponentStatus string
-
-const (
-	// Issuing means that the root cert described by this MRC is now issuing certs for this component of OSM.
-	Issuing MeshRootCertificateComponentStatus = "issuing"
-
-	// Validating means that the root cert's cert chain, described by this MRC is now part of the CABundle used to
-	// validate requests for this component..
-	Validating MeshRootCertificateComponentStatus = "validating"
-
-	// Unused means that the root cert described by this MRC is unused.
-	Unused MeshRootCertificateComponentStatus = "unused"
-
-	// UnknownComponentStatus means that the use of the root cert described by this MRC is in an unknown state for this
-	// component.
-	UnknownComponentStatus MeshRootCertificateComponentStatus = "unknown"
-)
 
 // MeshRootCertificateConditionStatus specifies the status of the MeshRootCertificate condition,
 // one of (`True`, `False`, `Unknown`).

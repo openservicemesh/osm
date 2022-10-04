@@ -1,7 +1,11 @@
 // Package constants defines the constants that are used by multiple other packages within OSM.
 package constants
 
-import "time"
+import (
+	"time"
+
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+)
 
 const (
 	// WildcardIPAddr is a string constant.
@@ -221,37 +225,43 @@ const (
 	MRCIntentActive = "active"
 
 	// MRCComponentStatusUnknown is the unknown status option for the component status of the MeshRootCertificate
-	MRCComponentStatusUnknown = "Unknown"
+	MRCComponentStatusUnknown v1alpha2.MeshRootCertificateComponentStatus = "unknown"
 
 	// MRCComponentStatusValidating is the validating status option for the component status of the MeshRootCertificate
-	MRCComponentStatusValidating = "Validating"
+	MRCComponentStatusValidating v1alpha2.MeshRootCertificateComponentStatus = "validating"
+
+	// MRCComponentStatusIssuing means that the root cert described by this MRC is now issuing certs for this component of OSM.
+	MRCComponentStatusIssuing v1alpha2.MeshRootCertificateComponentStatus = "issuing"
+
+	// MRCComponentStatusUnused means that the root cert described by this MRC is unused.
+	MRCComponentStatusUnused v1alpha2.MeshRootCertificateComponentStatus = "unused"
 
 	// MRCConditionTypeReady is the ready condition type for certificate condition of the MeshRootCertificate
-	MRCConditionTypeReady = "Ready"
+	MRCConditionTypeReady v1alpha2.MeshRootCertificateConditionType = "Ready"
 
 	// MRCConditionTypeAccepted is the accepted condition type for certificate condition of the MeshRootCertificate
-	MRCConditionTypeAccepted = "Accepted"
+	MRCConditionTypeAccepted v1alpha2.MeshRootCertificateConditionType = "Accepted"
 
 	// MRCConditionTypeIssuingRollout is the issuing rollout condition type for certificate condition of the MeshRootCertificate
-	MRCConditionTypeIssuingRollout = "IssuingRollout"
+	MRCConditionTypeIssuingRollout v1alpha2.MeshRootCertificateConditionType = "IssuingRollout"
 
 	// MRCConditionTypeIssuingRollback is the issuing rollback condition type for certificate condition of the MeshRootCertificate
-	MRCConditionTypeIssuingRollback = "IssuingRollback"
+	MRCConditionTypeIssuingRollback v1alpha2.MeshRootCertificateConditionType = "IssuingRollback"
 
 	// MRCConditionTypeValidatingRollout is the validating rollout condition type for certificate condition of the MeshRootCertificate
-	MRCConditionTypeValidatingRollout = "ValidatingRollout"
+	MRCConditionTypeValidatingRollout v1alpha2.MeshRootCertificateConditionType = "ValidatingRollout"
 
 	// MRCConditionTypeValidatingRollback is the validating rollback condition type for certificate condition of the MeshRootCertificate
-	MRCConditionTypeValidatingRollback = "ValidatingRollback"
+	MRCConditionTypeValidatingRollback v1alpha2.MeshRootCertificateConditionType = "ValidatingRollback"
 
 	// MRCConditionStatusTrue is the true status option for the condition status of the MeshRootCertificate
-	MRCConditionStatusTrue = "True"
+	MRCConditionStatusTrue v1alpha2.MeshRootCertificateConditionStatus = "True"
 
 	// MRCConditionStatusFalse is the false status option for the condition status of the MeshRootCertificate
-	MRCConditionStatusFalse = "False"
+	MRCConditionStatusFalse v1alpha2.MeshRootCertificateConditionStatus = "False"
 
 	// MRCConditionStatusUnknown is the unknown status option for the condition status of the MeshRootCertificate
-	MRCConditionStatusUnknown = "Unknown"
+	MRCConditionStatusUnknown v1alpha2.MeshRootCertificateConditionStatus = "Unknown"
 
 	// MRCConditionReasonPending is the Pending reason option for the condition reason of the MeshRootCertificate
 	MRCConditionReasonPending = "Pending"

@@ -131,12 +131,7 @@ func shouldUpdateState(mrc *v1alpha2.MeshRootCertificate) bool {
 // update the MRCComponentStatus
 func (m *Manager) updateMRCComponentStatus(mrc *v1alpha2.MeshRootCertificate) error {
 	// TODO(5046): determine the status to set the owned components to.
-	// default component status is Unknown
-	var status v1alpha2.MeshRootCertificateComponentStatus = constants.MRCComponentStatusUnknown
-
-	if shouldChangeStatusToValidating(mrc) {
-		status = constants.MRCComponentStatusValidating
-	}
+	status := getNextStatus(mrc)
 
 	for _, useCase := range m.ownedUseCases {
 		switch useCase {
@@ -158,32 +153,80 @@ func (m *Manager) updateMRCComponentStatus(mrc *v1alpha2.MeshRootCertificate) er
 
 	return m.mrcClient.UpdateMeshRootCertificate(mrc)
 }
+func getNextStatus(mrc *v1alpha2.MeshRootCertificate) v1alpha2.MeshRootCertificateComponentStatus {
+	// possible status transitions:
+	// unknown -> validating
+	// validating -> issuing
+	// validating -> unused
+	// issuing -> unused
+	switch {
+	case shouldChangeStatusToValidating(mrc):
+		return constants.MRCComponentStatusValidating
+	case shouldChangeStatusToIssuing(mrc):
+		return constants.MRCComponentStatusIssuing
+	case shouldChangeStatusToUnused(mrc):
+		return constants.MRCComponentStatusUnused
+	default:
+		return constants.MRCComponentStatusUnknown
+	}
+}
+
+func shouldChangeStatusToUnused(mrc *v1alpha2.MeshRootCertificate) bool {
+	// TODO: implement check from issuing/validating to rollback
+	return false
+}
+
+func shouldChangeStatusToIssuing(mrc *v1alpha2.MeshRootCertificate) bool {
+	// TODO: implement check from validating to issuing
+	return false
+}
 
 // checks if the given MRC meets the attributes to move the componentStatuses to Validating
 func shouldChangeStatusToValidating(mrc *v1alpha2.MeshRootCertificate) bool {
-	// case-insensitive check for if strings are equal
-	if strings.EqualFold(string(mrc.Spec.Intent), constants.MRCIntentPassive) {
-		acceptedCond := getCondition(mrc, constants.MRCConditionTypeAccepted)
+	// checks if intent is passive
+	if !strings.EqualFold(string(mrc.Spec.Intent), constants.MRCIntentPassive) {
+		return false
+	}
+	// checks if Accepted condition has status true
+	if !isConditionTrue(mrc, constants.MRCConditionTypeAccepted) {
+		return false
+	}
 
-		if strings.EqualFold(string(acceptedCond.Status), constants.MRCConditionStatusTrue) {
-			validRolloutCond := getCondition(mrc, constants.MRCConditionTypeValidatingRollout)
+	// checks if ValidatingRollout condition has status false with reason Pending
+	if isConditionFalse(mrc, constants.MRCConditionTypeValidatingRollout) && isReasonPending(mrc, constants.MRCConditionTypeValidatingRollout) {
+		return true
+	}
+	return false
+}
 
-			if strings.EqualFold(string(validRolloutCond.Status), constants.MRCConditionStatusFalse) && strings.EqualFold(validRolloutCond.Reason, constants.MRCConditionReasonPending) {
-				return true
-			}
+// returns true if the condition reason is Pending for the condtion type specified
+func isReasonPending(mrc *v1alpha2.MeshRootCertificate, condType v1alpha2.MeshRootCertificateConditionType) bool {
+	for _, condition := range mrc.Status.Conditions {
+		if condition.Type == condType && strings.EqualFold(condition.Reason, constants.MRCConditionReasonPending) {
+			return true
 		}
 	}
 	return false
 }
 
-// returns the MeshRootCertificateCondition that matches the condtion type specified
-func getCondition(mrc *v1alpha2.MeshRootCertificate, condType v1alpha2.MeshRootCertificateConditionType) *v1alpha2.MeshRootCertificateCondition {
+// returns true if the condition status is true for the condtion type specified
+func isConditionTrue(mrc *v1alpha2.MeshRootCertificate, condType v1alpha2.MeshRootCertificateConditionType) bool {
 	for _, condition := range mrc.Status.Conditions {
-		if condition.Type == condType {
-			return &condition
+		if condition.Type == condType && strings.EqualFold(string(condition.Status), string(constants.MRCConditionStatusTrue)) {
+			return true
 		}
 	}
-	return nil
+	return false
+}
+
+// returns true if the condition status is false for the condtion type specified
+func isConditionFalse(mrc *v1alpha2.MeshRootCertificate, condType v1alpha2.MeshRootCertificateConditionType) bool {
+	for _, condition := range mrc.Status.Conditions {
+		if condition.Type == condType && strings.EqualFold(string(condition.Status), string(constants.MRCConditionStatusFalse)) {
+			return true
+		}
+	}
+	return false
 }
 
 // isTerminal checks if the MRC is in a terminal state.
