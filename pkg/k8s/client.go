@@ -12,6 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	mcs "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
+	mcsv1alpha1Client "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -26,13 +28,14 @@ import (
 )
 
 // NewClient returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewClient(osmNamespace, meshConfigName string, informerCollection *informers.InformerCollection, kubeClient kubernetes.Interface, policyClient policyv1alpha1Client.Interface, configClient configv1alpha2Client.Interface, msgBroker *messaging.Broker, selectInformers ...informers.InformerKey) *Client {
+func NewClient(osmNamespace, meshConfigName string, informerCollection *informers.InformerCollection, kubeClient kubernetes.Interface, policyClient policyv1alpha1Client.Interface, configClient configv1alpha2Client.Interface, mcsClient mcsv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...informers.InformerKey) *Client {
 	// Initialize client object
 	c := &Client{
 		informers:      informerCollection,
 		msgBroker:      msgBroker,
 		policyClient:   policyClient,
 		configClient:   configClient,
+		mcsClient:      mcsClient,
 		kubeClient:     kubeClient,
 		osmNamespace:   osmNamespace,
 		meshConfigName: meshConfigName,
@@ -57,6 +60,8 @@ func NewClient(osmNamespace, meshConfigName string, informerCollection *informer
 		informers.InformerKeyHTTPRouteGroup:         c.initHTTPRouteGroupMonitor,
 		informers.InformerKeyTCPRoute:               c.initTCPRouteMonitor,
 		informers.InformerKeyTrafficTarget:          c.initTrafficTargetMonitor,
+		informers.InformerKeyServiceImport:          c.initServiceImportMonitor,
+		informers.InformerKeyServiceExport:          c.initServiceExportMonitor,
 	}
 
 	// If specific informers are not selected to be initialized, initialize all informers
@@ -64,7 +69,7 @@ func NewClient(osmNamespace, meshConfigName string, informerCollection *informer
 		selectInformers = []informers.InformerKey{
 			informers.InformerKeyNamespace, informers.InformerKeyService, informers.InformerKeyServiceAccount, informers.InformerKeyPod, informers.InformerKeyEndpoint, informers.InformerKeyMeshConfig, informers.InformerKeyMeshRootCertificate, informers.InformerKeyExtensionService,
 			informers.InformerKeyEgress, informers.InformerKeyIngressBackend, informers.InformerKeyRetry, informers.InformerKeyUpstreamTrafficSetting, informers.InformerKeyTelemetry, informers.InformerKeyTrafficSplit, informers.InformerKeyHTTPRouteGroup, informers.InformerKeyTCPRoute,
-			informers.InformerKeyTrafficTarget}
+			informers.InformerKeyTrafficTarget, informers.InformerKeyServiceImport, informers.InformerKeyServiceExport}
 	}
 
 	for _, informer := range selectInformers {
@@ -154,6 +159,14 @@ func (c *Client) initTCPRouteMonitor() {
 
 func (c *Client) initTrafficTargetMonitor() {
 	c.informers.AddEventHandler(informers.InformerKeyTrafficTarget, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
+}
+
+func (c *Client) initServiceImportMonitor() {
+	c.informers.AddEventHandler(informers.InformerKeyServiceImport, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
+}
+
+func (c *Client) initServiceExportMonitor() {
+	c.informers.AddEventHandler(informers.InformerKeyServiceExport, GetEventHandlerFuncs(c.shouldObserve, c.msgBroker))
 }
 
 // IsMonitoredNamespace returns a boolean indicating if the namespace is among the list of monitored namespaces
@@ -651,4 +664,34 @@ func (c *Client) GetTelemetryPolicy(proxy *models.Proxy) *policyv1alpha1.Telemet
 	}
 
 	return policy
+}
+
+// ListServiceImports returns all ServiceImport resources
+func (c *Client) ListServiceImports() []*mcs.ServiceImport {
+	var serviceImports []*mcs.ServiceImport
+
+	for _, resource := range c.informers.List(informers.InformerKeyServiceImport) {
+		serviceImport := resource.(*mcs.ServiceImport)
+		if !c.IsMonitoredNamespace(serviceImport.Namespace) {
+			continue
+		}
+		serviceImports = append(serviceImports, serviceImport)
+	}
+
+	return serviceImports
+}
+
+// ListServiceExports returns all ServiceExport resources
+func (c *Client) ListServiceExports() []*mcs.ServiceExport {
+	var serviceExports []*mcs.ServiceExport
+
+	for _, resource := range c.informers.List(informers.InformerKeyServiceImport) {
+		serviceExport := resource.(*mcs.ServiceExport)
+		if !c.IsMonitoredNamespace(serviceExport.Namespace) {
+			continue
+		}
+		serviceExports = append(serviceExports, serviceExport)
+	}
+
+	return serviceExports
 }

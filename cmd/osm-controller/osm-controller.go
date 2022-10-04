@@ -26,6 +26,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
+	mcsClientset "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned"
 
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
@@ -158,6 +159,7 @@ func main() {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	policyClient := policyClientset.NewForConfigOrDie(kubeConfig)
 	configClient := configClientset.NewForConfigOrDie(kubeConfig)
+	mcsClient := mcsClientset.NewForConfigOrDie(kubeConfig)
 
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-controller pod resource
 	controllerPod, err := getOSMControllerPod(kubeClient)
@@ -191,12 +193,13 @@ func main() {
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
 		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
 		informers.WithPolicyClient(policyClient),
+		informers.WithMCSClient(mcsClient),
 	)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
 	}
 
-	k8sClient := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, msgBroker)
+	k8sClient := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, mcsClient, msgBroker)
 
 	certOpts, err := getCertOptions()
 	if err != nil {

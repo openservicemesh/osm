@@ -50,6 +50,11 @@ const (
 	InformerKeyRetry InformerKey = "Retry"
 	// InformerKeyTelemetry is the InformerKey for a Telemetry informer
 	InformerKeyTelemetry InformerKey = "Telemetry"
+
+	// InformerKeyServiceImport is the InformerKey for a ServiceImport informer
+	InformerKeyServiceImport InformerKey = "ServiceImport"
+	// InformerKeyServiceExport is the InformerKey for a ServiceExport informer
+	InformerKeyServiceExport InformerKey = "ServiceExport"
 )
 
 const (

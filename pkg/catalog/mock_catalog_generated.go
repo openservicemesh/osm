@@ -20,6 +20,7 @@ import (
 	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	types "k8s.io/apimachinery/pkg/types"
+	v1alpha10 "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
 )
 
 // MockMeshCataloger is a mock of MeshCataloger interface.
@@ -627,6 +628,20 @@ func (mr *MockMeshCatalogerMockRecorder) ListServiceAccountsFromTrafficTargets()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccountsFromTrafficTargets", reflect.TypeOf((*MockMeshCataloger)(nil).ListServiceAccountsFromTrafficTargets))
 }
 
+// ListServiceExports mocks base method.
+func (m *MockMeshCataloger) ListServiceExports() []*v1alpha10.ServiceExport {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListServiceExports")
+	ret0, _ := ret[0].([]*v1alpha10.ServiceExport)
+	return ret0
+}
+
+// ListServiceExports indicates an expected call of ListServiceExports.
+func (mr *MockMeshCatalogerMockRecorder) ListServiceExports() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceExports", reflect.TypeOf((*MockMeshCataloger)(nil).ListServiceExports))
+}
+
 // ListServiceIdentitiesForService mocks base method.
 func (m *MockMeshCataloger) ListServiceIdentitiesForService(arg0, arg1 string) ([]identity.ServiceIdentity, error) {
 	m.ctrl.T.Helper()
@@ -640,6 +655,20 @@ func (m *MockMeshCataloger) ListServiceIdentitiesForService(arg0, arg1 string) (
 func (mr *MockMeshCatalogerMockRecorder) ListServiceIdentitiesForService(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceIdentitiesForService", reflect.TypeOf((*MockMeshCataloger)(nil).ListServiceIdentitiesForService), arg0, arg1)
+}
+
+// ListServiceImports mocks base method.
+func (m *MockMeshCataloger) ListServiceImports() []*v1alpha10.ServiceImport {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListServiceImports")
+	ret0, _ := ret[0].([]*v1alpha10.ServiceImport)
+	return ret0
+}
+
+// ListServiceImports indicates an expected call of ListServiceImports.
+func (mr *MockMeshCatalogerMockRecorder) ListServiceImports() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceImports", reflect.TypeOf((*MockMeshCataloger)(nil).ListServiceImports))
 }
 
 // ListServices mocks base method.

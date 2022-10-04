@@ -17,6 +17,7 @@ import (
 	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	types "k8s.io/apimachinery/pkg/types"
+	v1alpha10 "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
 )
 
 // MockController is a mock of Controller interface.
@@ -352,6 +353,34 @@ func (m *MockController) ListServiceAccounts() []*v1.ServiceAccount {
 func (mr *MockControllerMockRecorder) ListServiceAccounts() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccounts", reflect.TypeOf((*MockController)(nil).ListServiceAccounts))
+}
+
+// ListServiceExports mocks base method.
+func (m *MockController) ListServiceExports() []*v1alpha10.ServiceExport {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListServiceExports")
+	ret0, _ := ret[0].([]*v1alpha10.ServiceExport)
+	return ret0
+}
+
+// ListServiceExports indicates an expected call of ListServiceExports.
+func (mr *MockControllerMockRecorder) ListServiceExports() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceExports", reflect.TypeOf((*MockController)(nil).ListServiceExports))
+}
+
+// ListServiceImports mocks base method.
+func (m *MockController) ListServiceImports() []*v1alpha10.ServiceImport {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListServiceImports")
+	ret0, _ := ret[0].([]*v1alpha10.ServiceImport)
+	return ret0
+}
+
+// ListServiceImports indicates an expected call of ListServiceImports.
+func (mr *MockControllerMockRecorder) ListServiceImports() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceImports", reflect.TypeOf((*MockController)(nil).ListServiceImports))
 }
 
 // ListServices mocks base method.

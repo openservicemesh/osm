@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	mcsFake "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned/fake"
 
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	computekube "github.com/openservicemesh/osm/pkg/compute/kube"
@@ -165,7 +166,9 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 		policyClient := policyFake.NewSimpleClientset()
 		configClient := configFake.NewSimpleClientset()
-		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, kube, policyClient, configClient, broker)
+		mcsClient := mcsFake.NewSimpleClientset()
+
+		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, kube, policyClient, configClient, mcsClient, broker)
 		compute := computekube.NewClient(k8sClient)
 		ctx, cancel := context.WithCancel(context.Background())
 		err = NewValidatingWebhook(ctx, webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, compute)
@@ -185,7 +188,8 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 		policyClient := policyFake.NewSimpleClientset()
 		configClient := configFake.NewSimpleClientset()
-		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, kube, policyClient, configClient, broker)
+		mcsClient := mcsFake.NewSimpleClientset()
+		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, kube, policyClient, configClient, mcsClient, broker)
 
 		compute := computekube.NewClient(k8sClient)
 		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, compute)
@@ -206,7 +210,8 @@ func TestNewValidatingWebhook(t *testing.T) {
 		tassert.NoError(t, err)
 		policyClient := policyFake.NewSimpleClientset()
 		configClient := configFake.NewSimpleClientset()
-		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, kube, policyClient, configClient, broker)
+		mcsClient := mcsFake.NewSimpleClientset()
+		k8sClient := k8s.NewClient(testNamespace, testMeshConfigName, informerCollection, kube, policyClient, configClient, mcsClient, broker)
 		compute := computekube.NewClient(k8sClient)
 
 		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, compute)

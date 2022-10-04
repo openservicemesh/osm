@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
+	mcsFake "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned/fake"
 
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	policyFake "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
@@ -78,13 +79,14 @@ func BenchmarkPodCreationHandler(b *testing.B) {
 	kubeClient := testclient.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
 	policyClient := policyFake.NewSimpleClientset()
+	mcsClient := mcsFake.NewSimpleClientset()
 	stop := signals.RegisterExitHandlers()
 	msgBroker := messaging.NewBroker(stop)
 	informerCollection, err := informers.NewInformerCollection(tests.MeshName, stop,
 		informers.WithKubeClient(kubeClient),
 		informers.WithConfigClient(configClient, tests.OsmMeshConfigName, tests.OsmNamespace),
 	)
-	kubeController := k8s.NewClient("osm-system", tests.OsmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, msgBroker)
+	kubeController := k8s.NewClient("osm-system", tests.OsmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, mcsClient, msgBroker)
 	if err != nil {
 		b.Fatalf("Failed to create kubeController: %s", err.Error())
 	}

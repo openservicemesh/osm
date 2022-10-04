@@ -55,6 +55,9 @@ rules:
   - apiGroups: ["specs.smi-spec.io"]
     resources: ["httproutegroups", "tcproutes"]
     verbs: ["list", "get", "watch"]
+  - apiGroups: ["multicluster.x-k8s.io"]
+    resources: ["serviceimports", "serviceexports"]
+    verbs: ["list", "get", "watch"]
 
   # OSM's custom policy API
   - apiGroups: ["policy.openservicemesh.io"]

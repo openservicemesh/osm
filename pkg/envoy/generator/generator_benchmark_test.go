@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sClientFake "k8s.io/client-go/kubernetes/fake"
+	mcsFake "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -34,6 +35,7 @@ func setupTestGenerator(b *testing.B) (*models.Proxy, *EnvoyConfigGenerator) {
 	kubeClient := k8sClientFake.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
 	policyClient := policyFake.NewSimpleClientset()
+	mcsClient := mcsFake.NewSimpleClientset()
 	informerCollection, err := informers.NewInformerCollection(tests.MeshName, stop,
 		informers.WithKubeClient(kubeClient),
 		informers.WithConfigClient(configClient, tests.OsmMeshConfigName, tests.OsmNamespace),
@@ -41,7 +43,7 @@ func setupTestGenerator(b *testing.B) (*models.Proxy, *EnvoyConfigGenerator) {
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
-	kubeController := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, msgBroker)
+	kubeController := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, mcsClient, msgBroker)
 	kubeProvider := kube.NewClient(kubeController)
 
 	meshConfig := configv1alpha2.MeshConfig{

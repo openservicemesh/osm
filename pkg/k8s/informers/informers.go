@@ -15,6 +15,10 @@ import (
 	smiTrafficSpecInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/informers/externalversions"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	smiTrafficSplitInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
+
+	mcsClient "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned"
+	mcsInformers "sigs.k8s.io/mcs-api/pkg/client/informers/externalversions"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
@@ -123,6 +127,16 @@ func WithPolicyClient(policyClient policyClientset.Interface) InformerCollection
 		ic.informers[InformerKeyUpstreamTrafficSetting] = informerFactory.Policy().V1alpha1().UpstreamTrafficSettings().Informer()
 		ic.informers[InformerKeyRetry] = informerFactory.Policy().V1alpha1().Retries().Informer()
 		ic.informers[InformerKeyTelemetry] = informerFactory.Policy().V1alpha1().Telemetries().Informer()
+	}
+}
+
+// WithMCSClient sets the MCS clients for the InformerCollection
+func WithMCSClient(client mcsClient.Interface) InformerCollectionOption {
+	return func(ic *InformerCollection) {
+		mcsInformerFactory := mcsInformers.NewSharedInformerFactory(client, DefaultKubeEventResyncInterval)
+
+		ic.informers[InformerKeyServiceImport] = mcsInformerFactory.Multicluster().V1alpha1().ServiceExports().Informer()
+		ic.informers[InformerKeyServiceExport] = mcsInformerFactory.Multicluster().V1alpha1().ServiceExports().Informer()
 	}
 }
 
