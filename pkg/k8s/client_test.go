@@ -636,7 +636,7 @@ func TestGetEndpoints(t *testing.T) {
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
 			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil)
-			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
+			_ = ic.Add(informers.InformerKeyEndpoint, tc.endpoints, t)
 
 			actual, err := c.GetEndpoints(tc.svcName, tc.svcNamespace)
 			a.Nil(err)

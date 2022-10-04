@@ -54,46 +54,6 @@ const (
 	DefaultKubeEventResyncInterval = 0 * time.Second
 )
 
-// InformerKey stores the different Informers we keep for K8s resources
-type InformerKey string
-
-const (
-	// Namespaces lookup identifier
-	Namespaces InformerKey = "Namespaces"
-	// Services lookup identifier
-	Services InformerKey = "Services"
-	// Pods lookup identifier
-	Pods InformerKey = "Pods"
-	// Endpoints lookup identifier
-	Endpoints InformerKey = "Endpoints"
-	// ServiceAccounts lookup identifier
-	ServiceAccounts InformerKey = "ServiceAccounts"
-	// MeshConfig lookup identifier
-	MeshConfig InformerKey = "MeshConfig"
-	// MeshRootCertificate lookup identifier
-	MeshRootCertificate InformerKey = "MeshRootCertificate"
-	// ExtensionService lookup identifier
-	ExtensionService InformerKey = "ExtensionService"
-	// Egress lookup identifier
-	Egress InformerKey = "Egress"
-	// IngressBackend lookup identifier
-	IngressBackend InformerKey = "IngressBackend"
-	// Retry lookup identifier
-	Retry InformerKey = "Retry"
-	// UpstreamTrafficSetting lookup identifier
-	UpstreamTrafficSetting InformerKey = "UpstreamTrafficSetting"
-	// Telemetry lookup identifier
-	Telemetry InformerKey = "Telemetry"
-	// TrafficSplit lookup identifier
-	TrafficSplit InformerKey = "TrafficSplit"
-	// HTTPRouteGroup lookup identifier
-	HTTPRouteGroup InformerKey = "HTTPRouteGroup"
-	// TCPRoute lookup identifier
-	TCPRoute InformerKey = "TCPRoute"
-	// TrafficTarget lookup identifier
-	TrafficTarget InformerKey = "TrafficTarget"
-)
-
 // Client is the type used to represent the k8s client for the native k8s resources
 type Client struct {
 	policyClient   policyv1alpha1Client.Interface
