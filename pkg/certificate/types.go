@@ -108,7 +108,7 @@ type Manager struct {
 	cache         sync.Map
 	ownedUseCases []UseCase
 	// set when the manager is responsible for updating MRC state and condition
-	leaderMode bool
+	conditionWriter bool
 
 	mrcClient MRCClient
 

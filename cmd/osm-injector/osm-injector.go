@@ -211,9 +211,9 @@ func main() {
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
 		// the osm-injector is not responsible for updating the condition or state of MRC resources
-		leaderMode := false
+		conditionWriter := false
 		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, computeClient, constants.CertCheckInterval, leaderMode)
+			certOpts, computeClient, constants.CertCheckInterval, conditionWriter)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s from MRC", certProviderKind)

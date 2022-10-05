@@ -126,7 +126,7 @@ const (
 	// Passive is the passive option for the Intent of the MeshRootCertificate
 	Passive MeshRootCertificateIntent = "passive"
 
-	// sActive is the active option for the Intent of the MeshRootCertificate
+	// Active is the active option for the Intent of the MeshRootCertificate
 	Active MeshRootCertificateIntent = "active"
 )
 
@@ -155,22 +155,22 @@ const (
 type MeshRootCertificateConditionType string
 
 const (
-	// Ready specifies if the MRC is in a ready state
+	// Ready specifies if the MRC is in a ready state.
 	Ready MeshRootCertificateConditionType = "ready"
 
-	// Accepted specifies if the provider has been accepted
+	// Accepted specifies if the provider has been accepted.
 	Accepted MeshRootCertificateConditionType = "accepted"
 
-	// IssuingRollout specifies if the MRC is in an issuingRollout state
+	// IssuingRollout specifies if the MRC is in an issuingRollout state.
 	IssuingRollout MeshRootCertificateConditionType = "issuingRollout"
 
-	// ValidatingRollout specifies if the MRC is in a validatingRollout state
+	// ValidatingRollout specifies if the MRC is in a validatingRollout state.
 	ValidatingRollout MeshRootCertificateConditionType = "validatingRollout"
 
-	// IssuingRollback specifies if the MRC is in a issuingRollback state
+	// IssuingRollback specifies if the MRC is in a issuingRollback state.
 	IssuingRollback MeshRootCertificateConditionType = "issuingRollback"
 
-	// ValidatingRollback specifies if the MRC is in a validatingRollback state
+	// ValidatingRollback specifies if the MRC is in a validatingRollback state.
 	ValidatingRollback MeshRootCertificateConditionType = "validatingRollback"
 )
 

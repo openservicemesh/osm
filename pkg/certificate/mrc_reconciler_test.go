@@ -21,10 +21,10 @@ import (
 
 func TestShouldEnsureIssuerForMRC(t *testing.T) {
 	type testCase struct {
-		name           string
-		mrc            *v1alpha2.MeshRootCertificate
-		leaderMode     bool
-		expectedReturn bool
+		name            string
+		mrc             *v1alpha2.MeshRootCertificate
+		conditionWriter bool
+		expectedReturn  bool
 	}
 	testCases := []testCase{
 		{
@@ -52,8 +52,8 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 					State: constants.MRCStatePending,
 				},
 			},
-			leaderMode:     true,
-			expectedReturn: true,
+			conditionWriter: true,
+			expectedReturn:  true,
 		},
 		{
 			name: "should not retrieve CA, not in leader mode",
@@ -80,8 +80,8 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 					State: constants.MRCStatePending,
 				},
 			},
-			leaderMode:     false,
-			expectedReturn: false,
+			conditionWriter: false,
+			expectedReturn:  false,
 		},
 		{
 			name: "should not retrieve CA, intent is not passive",
@@ -108,8 +108,8 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 					State: constants.MRCStatePending,
 				},
 			},
-			leaderMode:     true,
-			expectedReturn: false,
+			conditionWriter: true,
+			expectedReturn:  false,
 		},
 		{
 			name: "should not retrieve CA, conditions already set",
@@ -156,8 +156,8 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 					},
 				},
 			},
-			leaderMode:     true,
-			expectedReturn: false,
+			conditionWriter: true,
+			expectedReturn:  false,
 		},
 	}
 
@@ -166,7 +166,7 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 			assert := tassert.New(t)
 
 			m := &Manager{
-				leaderMode: tc.leaderMode,
+				conditionWriter: tc.conditionWriter,
 			}
 
 			ret := m.shouldEnsureIssuerForMRC(tc.mrc)
@@ -177,16 +177,16 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 
 func TestUpdateMRCState(t *testing.T) {
 	type testCase struct {
-		name         string
-		configClient *configFake.Clientset
-		mrc          *v1alpha2.MeshRootCertificate
-		expectedMRC  *v1alpha2.MeshRootCertificate
-		leaderMode   bool
+		name            string
+		configClient    *configFake.Clientset
+		mrc             *v1alpha2.MeshRootCertificate
+		expectedMRC     *v1alpha2.MeshRootCertificate
+		conditionWriter bool
 	}
 	testCases := []testCase{
 		{
-			name:       "update MRC state in leader mode",
-			leaderMode: true,
+			name:            "update MRC state in leader mode",
+			conditionWriter: true,
 			configClient: configFake.NewSimpleClientset([]runtime.Object{&v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "osm-mesh-root-certificate",
@@ -278,8 +278,8 @@ func TestUpdateMRCState(t *testing.T) {
 			},
 		},
 		{
-			name:       "MRC state not updated when manager not in leader mode",
-			leaderMode: false,
+			name:            "MRC state not updated when manager not in leader mode",
+			conditionWriter: false,
 			configClient: configFake.NewSimpleClientset([]runtime.Object{&v1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "osm-mesh-root-certificate",
@@ -374,8 +374,8 @@ func TestUpdateMRCState(t *testing.T) {
 			computeClient := kube.NewClient(k8sClient)
 
 			m := &Manager{
-				leaderMode: tc.leaderMode,
-				mrcClient:  &fakeMRCClient{computeClient},
+				conditionWriter: tc.conditionWriter,
+				mrcClient:       &fakeMRCClient{computeClient},
 			}
 
 			err = m.updateMRCState(tc.mrc)

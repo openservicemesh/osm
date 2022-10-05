@@ -222,7 +222,7 @@ func (m *Manager) shouldSetIssuers(mrc *v1alpha2.MeshRootCertificate) bool {
 }
 
 func (m *Manager) shouldEnsureIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) bool {
-	return m.leaderMode && mrc.Spec.Intent == v1alpha2.Passive && len(mrc.Status.Conditions) == 0
+	return m.conditionWriter && mrc.Spec.Intent == v1alpha2.Passive && len(mrc.Status.Conditions) == 0
 }
 
 func (m *Manager) setIssuers(mrc *v1alpha2.MeshRootCertificate) error {
