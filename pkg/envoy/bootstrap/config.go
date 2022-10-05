@@ -11,6 +11,7 @@ import (
 	xds_upstream_http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -181,6 +182,13 @@ func BuildFromConfig(config Config) (*xds_bootstrap.Bootstrap, error) {
 									},
 								},
 							},
+						},
+					},
+					UpstreamConnectionOptions: &xds_cluster.UpstreamConnectionOptions{
+						TcpKeepalive: &xds_core.TcpKeepalive{
+							KeepaliveProbes:   wrapperspb.UInt32(5),
+							KeepaliveTime:     wrapperspb.UInt32(60),
+							KeepaliveInterval: wrapperspb.UInt32(5),
 						},
 					},
 				},
