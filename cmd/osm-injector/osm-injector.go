@@ -22,6 +22,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
+	mcsClientset "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
@@ -149,6 +150,7 @@ func main() {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	policyClient := policyClientset.NewForConfigOrDie(kubeConfig)
 	configClient := configClientset.NewForConfigOrDie(kubeConfig)
+	mcsClient := mcsClientset.NewForConfigOrDie(kubeConfig)
 
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-injector pod resource
 	injectorPod, err := getInjectorPod(kubeClient)
@@ -191,6 +193,7 @@ func main() {
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
 		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
 		informers.WithPolicyClient(policyClient),
+		informers.WithMCSClient(mcsClient),
 	)
 
 	if err != nil {
@@ -198,7 +201,7 @@ func main() {
 	}
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
-	kubeController := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, msgBroker, informers.InformerKeyNamespace)
+	kubeController := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, mcsClient, msgBroker, informers.InformerKeyNamespace)
 	computeClient := kube.NewClient(kubeController)
 
 	certOpts, err := getCertOptions()

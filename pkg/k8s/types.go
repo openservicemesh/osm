@@ -13,6 +13,8 @@ import (
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	mcs "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
+	mcsv1alpha1Client "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -58,6 +60,7 @@ const (
 type Client struct {
 	policyClient   policyv1alpha1Client.Interface
 	configClient   configv1alpha2Client.Interface
+	mcsClient      mcsv1alpha1Client.Interface
 	kubeClient     kubernetes.Interface
 	informers      *informers.InformerCollection
 	msgBroker      *messaging.Broker
@@ -162,4 +165,10 @@ type PassthroughInterface interface {
 	// It returns the most specific match if multiple matching policies exist, in the following
 	// order of preference: 1. selector match, 2. namespace match, 3. global match
 	GetTelemetryPolicy(*models.Proxy) *policyv1alpha1.Telemetry
+
+	// ListServiceImports returns all the ServiceImport resources
+	ListServiceImports() []*mcs.ServiceImport
+
+	// ListServiceExports returns all the ServiceExport resources
+	ListServiceExports() []*mcs.ServiceExport
 }

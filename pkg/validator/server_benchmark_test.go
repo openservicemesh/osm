@@ -14,6 +14,7 @@ import (
 	smiAccessClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
 	smiSpecClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned/fake"
 	smiSplitClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned/fake"
+	mcsFake "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned/fake"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
@@ -42,6 +43,7 @@ func BenchmarkDoValidation(b *testing.B) {
 	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
 	policyClient := policyFake.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
+	mcsClient := mcsFake.NewSimpleClientset()
 	informerCollection, err := informers.NewInformerCollection(tests.MeshName, stop,
 		informers.WithKubeClient(kubeClient),
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
@@ -51,7 +53,7 @@ func BenchmarkDoValidation(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
-	k8sClient := k8s.NewClient("osm-ns", tests.OsmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, msgBroker)
+	k8sClient := k8s.NewClient("osm-ns", tests.OsmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, mcsClient, msgBroker)
 	compute := kube.NewClient(k8sClient)
 	kv := &validator{
 		computeClient: compute,
