@@ -103,7 +103,7 @@ func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert *certi
 							Operator: metav1.LabelSelectorOpDoesNotExist,
 						},
 						{
-							Key:      "name",
+							Key:      "kubernetes.io/metadata.name",
 							Operator: metav1.LabelSelectorOpNotIn,
 							Values:   []string{osmNamespace},
 						},
@@ -135,7 +135,7 @@ func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert *certi
 				NamespaceSelector: &metav1.LabelSelector{
 					MatchExpressions: []metav1.LabelSelectorRequirement{
 						{
-							Key:      "name",
+							Key:      "kubernetes.io/metadata.name",
 							Operator: metav1.LabelSelectorOpIn,
 							Values:   []string{osmNamespace},
 						},
@@ -161,7 +161,12 @@ func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert *certi
 				return err
 			}
 
-			vwhc.ObjectMeta = existing.ObjectMeta // copy the object meta which includes resource version, required for updates.
+			// copy the object meta which includes resource version, required for updates.
+			// but use the OSM Version, which might be different if this is an upgrade
+			vwhc.ObjectMeta = existing.ObjectMeta
+			if vwhc.ObjectMeta.Labels != nil {
+				vwhc.ObjectMeta.Labels[constants.OSMAppVersionLabelKey] = osmVersion
+			}
 			if _, err = clientSet.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.Background(), &vwhc, metav1.UpdateOptions{}); err != nil {
 				// There might be conflicts when multiple controllers try to update the same resource
 				// One of the controllers will successfully update the resource, hence conflicts shoud be ignored and not treated as an error

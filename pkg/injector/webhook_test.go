@@ -87,7 +87,7 @@ func TestCreateMutatingWebhook(t *testing.T) {
 			Operator: metav1.LabelSelectorOpDoesNotExist,
 		},
 		{
-			Key:      "name",
+			Key:      "kubernetes.io/metadata.name",
 			Operator: metav1.LabelSelectorOpNotIn,
 			Values:   []string{osmNamespace},
 		},
@@ -108,6 +108,16 @@ func TestCreateMutatingWebhook(t *testing.T) {
 	})
 	assert.Equal(wh.Webhooks[0].TimeoutSeconds, &webhookTimeout)
 	assert.Equal(wh.Webhooks[0].AdmissionReviewVersions, []string{"v1"})
+
+	// validate that the version label gets updated
+	newVersion := "vNext"
+	err = createOrUpdateMutatingWebhook(kubeClient, cert, webhookTimeout, webhookName, meshName, osmNamespace, newVersion, enableReconciler)
+	assert.Nil(err)
+
+	webhooks, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().List(context.TODO(), metav1.ListOptions{})
+	assert.Nil(err)
+	assert.Len(webhooks.Items, 1)
+	assert.Equal(webhooks.Items[0].ObjectMeta.Labels[constants.OSMAppVersionLabelKey], newVersion)
 }
 
 func TestIsAnnotatedForInjection(t *testing.T) {
