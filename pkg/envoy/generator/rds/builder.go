@@ -30,7 +30,6 @@ type routesBuilder struct {
 	egressPortSpecificRouteConfigs   map[int][]*trafficpolicy.EgressHTTPRouteConfig
 	proxy                            *models.Proxy
 	statsHeaders                     map[string]string
-	trustDomain                      string
 }
 
 func RoutesBuilder() *routesBuilder { //nolint: revive // unexported-return
@@ -67,11 +66,6 @@ func (b *routesBuilder) StatsHeaders(statsHeaders map[string]string) *routesBuil
 	return b
 }
 
-func (b *routesBuilder) TrustDomain(trustDomain string) *routesBuilder {
-	b.trustDomain = trustDomain
-	return b
-}
-
 // buildInboundMeshRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
 func (b *routesBuilder) buildInboundMeshRouteConfiguration() []*xds_route.RouteConfiguration {
 	var routeConfigs []*xds_route.RouteConfiguration
@@ -83,7 +77,7 @@ func (b *routesBuilder) buildInboundMeshRouteConfiguration() []*xds_route.RouteC
 		routeConfig := newRouteConfigurationStub(GetInboundMeshRouteConfigNameForPort(port))
 		for _, config := range configs {
 			virtualHost := buildVirtualHostStub(inboundVirtualHost, config.Name, config.Hostnames)
-			virtualHost.Routes = buildInboundRoutes(config.Rules, b.trustDomain)
+			virtualHost.Routes = buildInboundRoutes(config.Rules)
 			applyInboundVirtualHostConfig(virtualHost, config)
 			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
 		}
@@ -110,7 +104,7 @@ func (b *routesBuilder) buildIngressConfiguration() *xds_route.RouteConfiguratio
 	ingressRouteConfig := newRouteConfigurationStub(IngressRouteConfigName)
 	for _, in := range b.ingressTrafficPolicies {
 		virtualHost := buildVirtualHostStub(ingressVirtualHost, in.Name, in.Hostnames)
-		virtualHost.Routes = buildInboundRoutes(in.Rules, b.trustDomain)
+		virtualHost.Routes = buildInboundRoutes(in.Rules)
 		ingressRouteConfig.VirtualHosts = append(ingressRouteConfig.VirtualHosts, virtualHost)
 	}
 

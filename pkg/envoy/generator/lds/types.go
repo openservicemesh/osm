@@ -11,6 +11,7 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/auth"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -26,7 +27,7 @@ type listenerBuilder struct {
 	proxyIdentity              identity.ServiceIdentity
 	address                    *xds_core.Address
 	trafficDirection           xds_core.TrafficDirection
-	trustDomain                string
+	trustDomain                certificate.TrustDomain
 	permissiveMesh             bool
 	permissiveEgress           bool
 	outboundMeshTrafficMatches []*trafficpolicy.TrafficMatch
@@ -65,7 +66,7 @@ type tcpProxyBuilder struct {
 type filterBuilder struct {
 	statsPrefix        string
 	withRBAC           bool
-	trustDomain        string
+	trustDomain        certificate.TrustDomain
 	trafficTargets     []trafficpolicy.TrafficTargetWithRoutes
 	tcpLocalRateLimit  *policyv1alpha1.TCPLocalRateLimitSpec
 	tcpGlobalRateLimit *policyv1alpha1.TCPGlobalRateLimitSpec

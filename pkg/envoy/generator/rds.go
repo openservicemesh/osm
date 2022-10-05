@@ -20,8 +20,6 @@ func (g *EnvoyConfigGenerator) generateRDS(ctx context.Context, proxy *models.Pr
 		return nil, err
 	}
 
-	trustDomain := g.certManager.GetTrustDomain()
-
 	statsHeaders := map[string]string{}
 	if g.catalog.GetMeshConfig().Spec.FeatureFlags.EnableWASMStats {
 		statsHeaders, err = g.catalog.GetProxyStatsHeaders(proxy)
@@ -32,8 +30,7 @@ func (g *EnvoyConfigGenerator) generateRDS(ctx context.Context, proxy *models.Pr
 
 	routesBuilder := rds.RoutesBuilder().
 		Proxy(proxy).
-		StatsHeaders(statsHeaders).
-		TrustDomain(trustDomain)
+		StatsHeaders(statsHeaders)
 
 	// Get HTTP route configs per port from inbound mesh traffic policy and pass to builder
 	routesBuilder.InboundPortSpecificRouteConfigs(g.catalog.GetInboundMeshHTTPRouteConfigsPerPort(proxy.Identity, proxyServices))

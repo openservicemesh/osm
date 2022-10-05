@@ -124,7 +124,7 @@ func TestBuildInboundRoutes(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			actual := buildInboundRoutes(tc.inputRules, "cluster.local")
+			actual := buildInboundRoutes(tc.inputRules)
 			tc.expectFunc(tassert.New(t), actual)
 		})
 	}

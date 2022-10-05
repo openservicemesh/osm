@@ -29,17 +29,17 @@ func TestSecretsBuilder(t *testing.T) {
 	// This is used to dynamically set expectations for each test in the list of table driven tests
 	type testCase struct {
 		name                        string
+		configuredTrustDomains      certificate.TrustDomain
 		serviceIdentity             identity.ServiceIdentity
 		serviceIdentitiesForService map[service.MeshService][]identity.ServiceIdentity
-		// expectations
-		expectedSANs map[string][]string // only set for service-cert
+		expectedSANs                map[string][]string // only set for service-cert
 	}
 
 	testCases := []testCase{
-		// Test case 2: root-cert-for-mtls-outbound requested -------------------------------
 		{
-			name:            "test multiple outbound secrets",
-			serviceIdentity: identity.New("sa-1", "ns-1"),
+			name:                   "test multiple outbound secrets: root-cert-for-mtls-outbound requested",
+			configuredTrustDomains: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
+			serviceIdentity:        identity.New("sa-1", "ns-1"),
 			serviceIdentitiesForService: map[service.MeshService][]identity.ServiceIdentity{
 				{
 					Name:      "service-2",
@@ -55,27 +55,47 @@ func TestSecretsBuilder(t *testing.T) {
 					identity.New("sa-3", "ns-3"),
 				},
 			},
-			// expectations
 			expectedSANs: map[string][]string{
 				secrets.NameForUpstreamService("service-2", "ns-2"): {"sa-2.ns-2.cluster.local", "sa-3.ns-2.cluster.local"},
 				secrets.NameForUpstreamService("service-3", "ns-4"): {"sa-3.ns-3.cluster.local"},
 			},
 		},
-		// Test case 2 end -------------------------------
-
-		// Test case 3: service-cert requested -------------------------------
 		{
-			name:            "test no outbound secrets",
-			serviceIdentity: identity.New("sa-1", "ns-1"),
+			name:                   "test no outbound secrets",
+			configuredTrustDomains: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
+			serviceIdentity:        identity.New("sa-1", "ns-1"),
 		},
-		// Test case 3 end -------------------------------
+		{
+			name:                   "test multiple outbound secrets with multiple trust domains",
+			serviceIdentity:        identity.New("sa-1", "ns-1"),
+			configuredTrustDomains: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.new"},
+			serviceIdentitiesForService: map[service.MeshService][]identity.ServiceIdentity{
+				{
+					Name:      "service-2",
+					Namespace: "ns-2",
+				}: {
+					identity.New("sa-2", "ns-2"),
+					identity.New("sa-3", "ns-2"),
+				},
+				{
+					Name:      "service-3",
+					Namespace: "ns-4",
+				}: {
+					identity.New("sa-3", "ns-3"),
+				},
+			},
+			expectedSANs: map[string][]string{
+				secrets.NameForUpstreamService("service-2", "ns-2"): {"sa-2.ns-2.cluster.local", "sa-3.ns-2.cluster.local", "sa-2.ns-2.cluster.new", "sa-3.ns-2.cluster.new"},
+				secrets.NameForUpstreamService("service-3", "ns-4"): {"sa-3.ns-3.cluster.local", "sa-3.ns-3.cluster.new"},
+			},
+		},
 	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			builder := NewBuilder()
 			proxy := models.NewProxy(models.KindSidecar, uuid.New(), identity.New("sa-1", "ns-1"), nil, 1)
-			builder.SetProxy(proxy).SetProxyCert(cert).SetTrustDomain("cluster.local")
+			builder.SetProxy(proxy).SetProxyCert(cert).SetTrustDomain(tc.configuredTrustDomains)
 
 			builder.SetServiceIdentitiesForService(tc.serviceIdentitiesForService)
 
@@ -136,7 +156,7 @@ func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			actual := getSubjectAltNamesFromSvcIdentities(tc.serviceIdentities, "cluster.local")
+			actual := getSubjectAltNamesFromSvcIdentities(tc.serviceIdentities, certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"})
 			assert.ElementsMatch(actual, tc.expectedSANMatchers)
 		})
 	}

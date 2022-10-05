@@ -8,6 +8,7 @@ import (
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/generator/rds"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -247,7 +248,7 @@ func TestFilterBuilder(t *testing.T) {
 						},
 						TCPRouteMatches: nil,
 					},
-				}, "cluster.local").
+				}, certificate.TrustDomain{Signing: "cluster.local"}).
 					httpConnManager()
 			},
 			expectedNetworkFilters: []string{envoy.L4RBACFilterName},

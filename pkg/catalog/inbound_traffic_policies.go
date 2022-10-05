@@ -195,10 +195,14 @@ func (mc *MeshCatalog) getRoutingRulesFromTrafficTarget(trafficTarget access.Tra
 	}
 
 	// Compute the allowed downstream service identities for the given TrafficTarget object
-	trustDomain := mc.GetTrustDomain()
+	trustDomains := mc.certManager.GetTrustDomains()
 	allowedDownstreamPrincipals := mapset.NewSet()
 	for _, source := range trafficTarget.Spec.Sources {
-		allowedDownstreamPrincipals.Add(trafficTargetIdentityToSvcAccount(source).AsPrincipal(trustDomain))
+		allowedDownstreamPrincipals.Add(trafficTargetIdentityToSvcAccount(source).AsPrincipal(trustDomains.Signing))
+
+		if trustDomains.AreDifferent() {
+			allowedDownstreamPrincipals.Add(trafficTargetIdentityToSvcAccount(source).AsPrincipal(trustDomains.Validating))
+		}
 	}
 
 	var routingRules []*trafficpolicy.Rule
