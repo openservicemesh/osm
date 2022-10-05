@@ -45,8 +45,8 @@ type EgressClusterConfig struct {
 	// Port defines the port number of the external cluster's endpoint
 	Port int
 
-	// UpstreamTrafficSetting is the traffic setting for the upstream cluster
-	UpstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
+	// UpstreamConnectionSettings are the connection settings for the upstream cluster
+	UpstreamConnectionSettings *policyv1alpha1.ConnectionSettingsSpec
 }
 
 // EgressHTTPRouteConfig is the type used to represent an HTTP route configuration along with associated routing rules

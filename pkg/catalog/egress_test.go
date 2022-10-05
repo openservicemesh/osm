@@ -36,16 +36,21 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			Name:      "u1",
 			Namespace: "ns1",
 		},
+		Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+			ConnectionSettings: &policyv1alpha1.ConnectionSettingsSpec{},
+		},
 	}
 
 	testCases := []struct {
-		name                   string
-		egressPolicies         []*policyv1alpha1.Egress
-		egressPort             int
-		httpRouteGroups        []*specs.HTTPRouteGroup
-		upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
-		expectedEgressPolicy   *trafficpolicy.EgressTrafficPolicy
-		expectError            bool
+		name                            string
+		egressPolicies                  []*policyv1alpha1.Egress
+		egressPort                      int
+		httpRouteGroups                 []*specs.HTTPRouteGroup
+		upstreamTrafficSetting          *policyv1alpha1.UpstreamTrafficSetting
+		expectedTrafficMatches          []*trafficpolicy.TrafficMatch
+		expectedHTTPRouteConfigsPerPort map[int][]*trafficpolicy.EgressHTTPRouteConfig
+		expectedClusterConfigs          []*trafficpolicy.EgressClusterConfig
+		expectError                     bool
 	}{
 		{
 			name: "multiple egress policies for HTTP ports",
@@ -91,95 +96,93 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 				},
 			},
 			httpRouteGroups: nil, // no SMI HTTP route matches
-			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
-				TrafficMatches: []*trafficpolicy.TrafficMatch{
-					{
-						Name:                "egress-http.80",
-						DestinationPort:     80, // Used by foo.com and bar.com
-						DestinationProtocol: "http",
-					},
-					{
-						Name:                "egress-http.90",
-						DestinationPort:     90, // Used by baz.com
-						DestinationProtocol: "http",
-					},
+			expectedTrafficMatches: []*trafficpolicy.TrafficMatch{
+				{
+					Name:                "egress-http.80",
+					DestinationPort:     80, // Used by foo.com and bar.com
+					DestinationProtocol: "http",
 				},
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{
-					80: {
-						{
-							Name: "foo.com",
-							Hostnames: []string{
-								"foo.com",
-								"foo.com:80",
-							},
-							RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-											service.WeightedCluster{ClusterName: service.ClusterName("foo.com:80"), Weight: 100},
-										}),
-									},
-									AllowedDestinationIPRanges: nil,
-								},
-							},
+				{
+					Name:                "egress-http.90",
+					DestinationPort:     90, // Used by baz.com
+					DestinationProtocol: "http",
+				},
+			},
+			expectedHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{
+				80: {
+					{
+						Name: "foo.com",
+						Hostnames: []string{
+							"foo.com",
+							"foo.com:80",
 						},
-						{
-							Name: "bar.com",
-							Hostnames: []string{
-								"bar.com",
-								"bar.com:80",
-							},
-							RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-											service.WeightedCluster{ClusterName: service.ClusterName("bar.com:80"), Weight: 100},
-										}),
-									},
-									AllowedDestinationIPRanges: nil,
+						RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+										service.WeightedCluster{ClusterName: service.ClusterName("foo.com:80"), Weight: 100},
+									}),
 								},
+								AllowedDestinationIPRanges: nil,
 							},
 						},
 					},
-					90: {
-						{
-							Name: "baz.com",
-							Hostnames: []string{
-								"baz.com",
-								"baz.com:90",
-							},
-							RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-											service.WeightedCluster{ClusterName: service.ClusterName("baz.com:90"), Weight: 100},
-										}),
-									},
-									AllowedDestinationIPRanges: nil,
+					{
+						Name: "bar.com",
+						Hostnames: []string{
+							"bar.com",
+							"bar.com:80",
+						},
+						RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+										service.WeightedCluster{ClusterName: service.ClusterName("bar.com:80"), Weight: 100},
+									}),
 								},
+								AllowedDestinationIPRanges: nil,
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.EgressClusterConfig{
+				90: {
 					{
-						Name: "foo.com:80",
-						Host: "foo.com",
-						Port: 80,
+						Name: "baz.com",
+						Hostnames: []string{
+							"baz.com",
+							"baz.com:90",
+						},
+						RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+										service.WeightedCluster{ClusterName: service.ClusterName("baz.com:90"), Weight: 100},
+									}),
+								},
+								AllowedDestinationIPRanges: nil,
+							},
+						},
 					},
-					{
-						Name: "bar.com:80",
-						Host: "bar.com",
-						Port: 80,
-					},
-					{
-						Name: "baz.com:90",
-						Host: "baz.com",
-						Port: 90,
-					},
+				},
+			},
+			expectedClusterConfigs: []*trafficpolicy.EgressClusterConfig{
+				{
+					Name: "foo.com:80",
+					Host: "foo.com",
+					Port: 80,
+				},
+				{
+					Name: "bar.com:80",
+					Host: "bar.com",
+					Port: 80,
+				},
+				{
+					Name: "baz.com:90",
+					Host: "baz.com",
+					Port: 90,
 				},
 			},
 			expectError: false,
@@ -219,75 +222,73 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 				},
 			},
 			httpRouteGroups: nil, // no SMI HTTP route matches
-			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
-				TrafficMatches: []*trafficpolicy.TrafficMatch{
-					{
-						Name:                "egress-http.80",
-						DestinationPort:     80, // Used by foo.com and bar.com
-						DestinationProtocol: "http",
-					},
-					{
-						Name:                "egress-tcp.100",
-						DestinationPort:     100, // Used by foo.com
-						DestinationProtocol: "tcp",
-						Cluster:             "100",
-					},
+			expectedTrafficMatches: []*trafficpolicy.TrafficMatch{
+				{
+					Name:                "egress-http.80",
+					DestinationPort:     80, // Used by foo.com and bar.com
+					DestinationProtocol: "http",
 				},
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{
-					80: {
-						{
-							Name: "foo.com",
-							Hostnames: []string{
-								"foo.com",
-								"foo.com:80",
-							},
-							RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-											service.WeightedCluster{ClusterName: service.ClusterName("foo.com:80"), Weight: 100},
-										}),
-									},
-									AllowedDestinationIPRanges: nil,
+				{
+					Name:                "egress-tcp.100",
+					DestinationPort:     100, // Used by foo.com
+					DestinationProtocol: "tcp",
+					Cluster:             "100",
+				},
+			},
+			expectedHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{
+				80: {
+					{
+						Name: "foo.com",
+						Hostnames: []string{
+							"foo.com",
+							"foo.com:80",
+						},
+						RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+										service.WeightedCluster{ClusterName: service.ClusterName("foo.com:80"), Weight: 100},
+									}),
 								},
+								AllowedDestinationIPRanges: nil,
 							},
 						},
-						{
-							Name: "bar.com",
-							Hostnames: []string{
-								"bar.com",
-								"bar.com:80",
-							},
-							RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSetFromSlice([]interface{}{
-											service.WeightedCluster{ClusterName: service.ClusterName("bar.com:80"), Weight: 100},
-										}),
-									},
-									AllowedDestinationIPRanges: nil,
+					},
+					{
+						Name: "bar.com",
+						Hostnames: []string{
+							"bar.com",
+							"bar.com:80",
+						},
+						RoutingRules: []*trafficpolicy.EgressHTTPRoutingRule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+										service.WeightedCluster{ClusterName: service.ClusterName("bar.com:80"), Weight: 100},
+									}),
 								},
+								AllowedDestinationIPRanges: nil,
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.EgressClusterConfig{
-					{
-						Name: "foo.com:80",
-						Host: "foo.com",
-						Port: 80,
-					},
-					{
-						Name: "100",
-						Port: 100,
-					},
-					{
-						Name: "bar.com:80",
-						Host: "bar.com",
-						Port: 80,
-					},
+			},
+			expectedClusterConfigs: []*trafficpolicy.EgressClusterConfig{
+				{
+					Name: "foo.com:80",
+					Host: "foo.com",
+					Port: 80,
+				},
+				{
+					Name: "100",
+					Port: 100,
+				},
+				{
+					Name: "bar.com:80",
+					Host: "bar.com",
+					Port: 80,
 				},
 			},
 			expectError: false,
@@ -320,29 +321,27 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 				},
 			},
 			httpRouteGroups: nil, // no SMI HTTP route matches
-			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
-				TrafficMatches: []*trafficpolicy.TrafficMatch{
-					{
-						Name:                "egress-https.100",
-						DestinationPort:     100,
-						DestinationProtocol: "https",
-						ServerNames:         []string{"foo.com"},
-						Cluster:             "100",
-					},
-					{
-						Name:                "egress-tcp.100",
-						DestinationPort:     100,
-						DestinationProtocol: "tcp",
-						Cluster:             "100",
-					},
+			expectedTrafficMatches: []*trafficpolicy.TrafficMatch{
+				{
+					Name:                "egress-https.100",
+					DestinationPort:     100,
+					DestinationProtocol: "https",
+					ServerNames:         []string{"foo.com"},
+					Cluster:             "100",
 				},
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{},
-				ClustersConfigs: []*trafficpolicy.EgressClusterConfig{
-					{
-						// Same cluster used for both HTTPS and TCP on port 100
-						Name: "100",
-						Port: 100,
-					},
+				{
+					Name:                "egress-tcp.100",
+					DestinationPort:     100,
+					DestinationProtocol: "tcp",
+					Cluster:             "100",
+				},
+			},
+			expectedHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{},
+			expectedClusterConfigs: []*trafficpolicy.EgressClusterConfig{
+				{
+					// Same cluster used for both HTTPS and TCP on port 100
+					Name: "100",
+					Port: 100,
 				},
 			},
 			expectError: false,
@@ -376,24 +375,22 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 			},
 			httpRouteGroups:        nil, // no SMI HTTP route matches
 			upstreamTrafficSetting: upstreamTrafficSetting,
-			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
-				TrafficMatches: []*trafficpolicy.TrafficMatch{
-					{
-						Name:                "egress-https.100",
-						DestinationPort:     100,
-						DestinationProtocol: "https",
-						ServerNames:         []string{"foo.com"},
-						Cluster:             "100",
-					},
+			expectedTrafficMatches: []*trafficpolicy.TrafficMatch{
+				{
+					Name:                "egress-https.100",
+					DestinationPort:     100,
+					DestinationProtocol: "https",
+					ServerNames:         []string{"foo.com"},
+					Cluster:             "100",
 				},
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{},
-				ClustersConfigs: []*trafficpolicy.EgressClusterConfig{
-					{
-						// Same cluster used for both HTTPS and TCP on port 100
-						Name:                   "100",
-						Port:                   100,
-						UpstreamTrafficSetting: upstreamTrafficSetting,
-					},
+			},
+			expectedHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{},
+			expectedClusterConfigs: []*trafficpolicy.EgressClusterConfig{
+				{
+					// Same cluster used for both HTTPS and TCP on port 100
+					Name:                       "100",
+					Port:                       100,
+					UpstreamConnectionSettings: upstreamTrafficSetting.Spec.ConnectionSettings,
 				},
 			},
 			expectError: false,
@@ -422,13 +419,11 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			httpRouteGroups: nil, // no SMI HTTP route matches
-			expectedEgressPolicy: &trafficpolicy.EgressTrafficPolicy{
-				TrafficMatches:          nil,
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{},
-				ClustersConfigs:         nil,
-			},
-			expectError: false,
+			httpRouteGroups:                 nil, // no SMI HTTP route matches
+			expectedTrafficMatches:          nil,
+			expectedHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.EgressHTTPRouteConfig{},
+			expectedClusterConfigs:          nil,
+			expectError:                     false,
 		},
 	}
 
@@ -442,20 +437,23 @@ func TestGetEgressTrafficPolicy(t *testing.T) {
 				mockCompute.EXPECT().GetHTTPRouteGroup(fmt.Sprintf("%s/%s", rg.Namespace, rg.Name)).Return(rg).AnyTimes()
 			}
 
-			mockCompute.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(tc.egressPolicies).Times(1)
+			mockCompute.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(tc.egressPolicies).Times(3)
 			mockCompute.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
 			mockCompute.EXPECT().GetUpstreamTrafficSettingByNamespace(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
 			mc := &MeshCatalog{
 				Interface: mockCompute,
 			}
 
-			mockCompute.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{Spec: configv1alpha2.MeshConfigSpec{Traffic: configv1alpha2.TrafficSpec{EnableEgress: false}}}).Times(1) // Enables EgressPolicy
+			mockCompute.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{Spec: configv1alpha2.MeshConfigSpec{Traffic: configv1alpha2.TrafficSpec{EnableEgress: false}}}).Times(3) // Enables EgressPolicy
 
-			actual, err := mc.GetEgressTrafficPolicy(testSourceIdentity)
+			actualTrafficMatches, err := mc.GetEgressTrafficMatches(testSourceIdentity)
 			assert.Equal(tc.expectError, err != nil)
-			assert.ElementsMatch(tc.expectedEgressPolicy.TrafficMatches, actual.TrafficMatches)
-			assert.ElementsMatch(tc.expectedEgressPolicy.ClustersConfigs, actual.ClustersConfigs)
-			assert.Equal(tc.expectedEgressPolicy.HTTPRouteConfigsPerPort, actual.HTTPRouteConfigsPerPort)
+			actualHTTPRouteConfigsPerPort := mc.GetEgressHTTPRouteConfigsPerPort(testSourceIdentity)
+			actualClusterConfigs, err := mc.GetEgressClusterConfigs(testSourceIdentity)
+			assert.Equal(tc.expectError, err != nil)
+			assert.ElementsMatch(tc.expectedTrafficMatches, actualTrafficMatches)
+			assert.ElementsMatch(tc.expectedClusterConfigs, actualClusterConfigs)
+			assert.Equal(tc.expectedHTTPRouteConfigsPerPort, actualHTTPRouteConfigsPerPort)
 		})
 	}
 }
@@ -810,16 +808,16 @@ func TestBuildHTTPRouteConfigs(t *testing.T) {
 			},
 			expectedClusterConfigs: []*trafficpolicy.EgressClusterConfig{
 				{
-					Name:                   "foo.com:80",
-					Host:                   "foo.com",
-					Port:                   80,
-					UpstreamTrafficSetting: upstreamTrafficSetting,
+					Name:                       "foo.com:80",
+					Host:                       "foo.com",
+					Port:                       80,
+					UpstreamConnectionSettings: upstreamTrafficSetting.Spec.ConnectionSettings,
 				},
 				{
-					Name:                   "bar.com:80",
-					Host:                   "bar.com",
-					Port:                   80,
-					UpstreamTrafficSetting: upstreamTrafficSetting,
+					Name:                       "bar.com:80",
+					Host:                       "bar.com",
+					Port:                       80,
+					UpstreamConnectionSettings: upstreamTrafficSetting.Spec.ConnectionSettings,
 				},
 			},
 		},
@@ -838,7 +836,8 @@ func TestBuildHTTPRouteConfigs(t *testing.T) {
 				Interface: provider,
 			}
 
-			routeConfigs, clusterConfigs := mc.buildHTTPRouteConfigs(tc.egressPolicy, tc.egressPort, tc.upstreamTrafficSetting)
+			routeConfigs := mc.buildHTTPRouteConfigs(tc.egressPolicy, tc.egressPort)
+			clusterConfigs := mc.buildClusterConfigs(tc.egressPolicy, tc.egressPort, tc.upstreamTrafficSetting)
 			assert.ElementsMatch(tc.expectedRouteConfigs, routeConfigs)
 			assert.ElementsMatch(tc.expectedClusterConfigs, clusterConfigs)
 		})

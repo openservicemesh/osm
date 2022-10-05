@@ -17,10 +17,8 @@ func (g *EnvoyConfigGenerator) generateCDS(ctx context.Context, proxy *models.Pr
 	meshConfig := g.catalog.GetMeshConfig()
 	cb := cds.NewClusterBuilder().SetProxyIdentity(proxy.Identity).SetSidecarSpec(meshConfig.Spec.Sidecar).SetEgressEnabled(meshConfig.Spec.Traffic.EnableEgress)
 
-	outboundMeshTrafficPolicy := g.catalog.GetOutboundMeshTrafficPolicy(proxy.Identity)
-	if outboundMeshTrafficPolicy != nil {
-		cb.SetOutboundMeshTrafficClusterConfigs(outboundMeshTrafficPolicy.ClustersConfigs)
-	}
+	outboundMeshClusterConfigs := g.catalog.GetOutboundMeshClusterConfigs(proxy.Identity)
+	cb.SetOutboundMeshTrafficClusterConfigs(outboundMeshClusterConfigs)
 
 	proxyServices, err := g.catalog.ListServicesForProxy(proxy)
 	if err != nil {
@@ -29,17 +27,13 @@ func (g *EnvoyConfigGenerator) generateCDS(ctx context.Context, proxy *models.Pr
 		return nil, err
 	}
 
-	inboundMeshTrafficPolicy := g.catalog.GetInboundMeshTrafficPolicy(proxy.Identity, proxyServices)
-	if inboundMeshTrafficPolicy != nil {
-		cb.SetInboundMeshTrafficClusterConfigs(inboundMeshTrafficPolicy.ClustersConfigs)
-	}
+	inboundMeshClusterConfigs := g.catalog.GetInboundMeshClusterConfigs(proxyServices)
+	cb.SetInboundMeshTrafficClusterConfigs(inboundMeshClusterConfigs)
 
-	if egressTrafficPolicy, err := g.catalog.GetEgressTrafficPolicy(proxy.Identity); err != nil {
-		log.Error().Err(err).Msgf("Error retrieving egress policies for proxy with identity %s, skipping egress clusters", proxy.Identity)
+	if egressClusterConfigs, err := g.catalog.GetEgressClusterConfigs(proxy.Identity); err != nil {
+		log.Error().Err(err).Msgf("Error retrieving egress cluster configs for proxy with identity %s, skipping egress clusters", proxy.Identity)
 	} else {
-		if egressTrafficPolicy != nil {
-			cb.SetEgressTrafficClusterConfigs(egressTrafficPolicy.ClustersConfigs)
-		}
+		cb.SetEgressTrafficClusterConfigs(egressClusterConfigs)
 	}
 
 	if enabled, err := g.catalog.IsMetricsEnabled(proxy); err != nil {

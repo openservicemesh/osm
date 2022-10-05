@@ -79,7 +79,9 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			trafficTargets []*access.TrafficTarget,
 			upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting,
 		)
-		expectedInboundMeshPolicy *trafficpolicy.InboundMeshTrafficPolicy
+		expectedInboundMeshHTTPRouteConfigsPerPort map[int][]*trafficpolicy.InboundTrafficPolicy
+		expectedInboundMeshClusterConfigs          []*trafficpolicy.MeshClusterConfig
+		expectedInboundMeshTrafficMatches          []*trafficpolicy.TrafficMatch
 	}{
 		{
 			name:             "multiple services, SMI mode, 1 TrafficTarget, 1 HTTPRouteGroup, 0 TrafficSplit",
@@ -160,100 +162,98 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 				mockK8s.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
 			},
-			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					8080: {
-						{
-							Name: "s1.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1",
-								"s1:80",
-								"s1.ns1",
-								"s1.ns1:80",
-								"s1.ns1.svc",
-								"s1.ns1.svc:80",
-								"s1.ns1.svc.cluster",
-								"s1.ns1.svc.cluster:80",
-								"s1.ns1.svc.cluster.local",
-								"s1.ns1.svc.cluster.local:80",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
-										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|8080|local",
-											Weight:      100,
-										}),
-									},
-									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.AsPrincipal("cluster.local")),
-								},
-							},
+			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				8080: {
+					{
+						Name: "s1.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1",
+							"s1:80",
+							"s1.ns1",
+							"s1.ns1:80",
+							"s1.ns1.svc",
+							"s1.ns1.svc:80",
+							"s1.ns1.svc.cluster",
+							"s1.ns1.svc.cluster:80",
+							"s1.ns1.svc.cluster.local",
+							"s1.ns1.svc.cluster.local:80",
 						},
-					},
-					9090: {
-						{
-							Name: "s2.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s2",
-								"s2:90",
-								"s2.ns1",
-								"s2.ns1:90",
-								"s2.ns1.svc",
-								"s2.ns1.svc:90",
-								"s2.ns1.svc.cluster",
-								"s2.ns1.svc.cluster:90",
-								"s2.ns1.svc.cluster.local",
-								"s2.ns1.svc.cluster.local:90",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
 										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s2|9090|local",
-											Weight:      100,
-										}),
 									},
-									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.AsPrincipal("cluster.local")),
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1|8080|local",
+										Weight:      100,
+									}),
 								},
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+									Name:      "sa2",
+									Namespace: "ns2",
+								}.AsPrincipal("cluster.local")),
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+				9090: {
 					{
-						Name:    "ns1/s1|8080|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 8080, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    8080,
+						Name: "s2.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s2",
+							"s2:90",
+							"s2.ns1",
+							"s2.ns1:90",
+							"s2.ns1.svc",
+							"s2.ns1.svc:90",
+							"s2.ns1.svc.cluster",
+							"s2.ns1.svc.cluster:90",
+							"s2.ns1.svc.cluster.local",
+							"s2.ns1.svc.cluster.local:90",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
+										},
+									},
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s2|9090|local",
+										Weight:      100,
+									}),
+								},
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+									Name:      "sa2",
+									Namespace: "ns2",
+								}.AsPrincipal("cluster.local")),
+							},
+						},
 					},
-					{
-						Name:    "ns1/s2|9090|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 9090, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    9090,
-					},
+				},
+			},
+			expectedInboundMeshClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:    "ns1/s1|8080|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 8080, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    8080,
+				},
+				{
+					Name:    "ns1/s2|9090|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 9090, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    9090,
 				},
 			},
 		},
@@ -326,36 +326,34 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
-			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
-				TrafficMatches: []*trafficpolicy.TrafficMatch{
-					{
-						Name:                "inbound_ns1/mysql-0.mysql_3306_tcp",
-						DestinationPort:     3306,
-						DestinationProtocol: "tcp",
-						ServerNames:         []string{"mysql-0.mysql.ns1.svc.cluster.local"},
-						Cluster:             "ns1/mysql-0.mysql|3306|local",
-					},
-					{
-						Name:                "inbound_ns1/s2_9090_http",
-						DestinationPort:     9090,
-						DestinationProtocol: "http",
-						ServerNames:         []string{"s2.ns1.svc.cluster.local"},
-						Cluster:             "ns1/s2|9090|local",
-					},
+			expectedInboundMeshTrafficMatches: []*trafficpolicy.TrafficMatch{
+				{
+					Name:                "inbound_ns1/mysql-0.mysql_3306_tcp",
+					DestinationPort:     3306,
+					DestinationProtocol: "tcp",
+					ServerNames:         []string{"mysql-0.mysql.ns1.svc.cluster.local"},
+					Cluster:             "ns1/mysql-0.mysql|3306|local",
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
-					{
-						Name:    "ns1/mysql-0.mysql|3306|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "mysql-0.mysql", Port: 3306, TargetPort: 3306, Protocol: "tcp"},
-						Address: "127.0.0.1",
-						Port:    3306,
-					},
-					{
-						Name:    "ns1/s2|9090|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 9090, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    9090,
-					},
+				{
+					Name:                "inbound_ns1/s2_9090_http",
+					DestinationPort:     9090,
+					DestinationProtocol: "http",
+					ServerNames:         []string{"s2.ns1.svc.cluster.local"},
+					Cluster:             "ns1/s2|9090|local",
+				},
+			},
+			expectedInboundMeshClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:    "ns1/mysql-0.mysql|3306|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "mysql-0.mysql", Port: 3306, TargetPort: 3306, Protocol: "tcp"},
+					Address: "127.0.0.1",
+					Port:    3306,
+				},
+				{
+					Name:    "ns1/s2|9090|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 9090, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    9090,
 				},
 			},
 		},
@@ -465,140 +463,138 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
-			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					80: {
-						{
-							Name: "s1.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1",
-								"s1:80",
-								"s1.ns1",
-								"s1.ns1:80",
-								"s1.ns1.svc",
-								"s1.ns1.svc:80",
-								"s1.ns1.svc.cluster",
-								"s1.ns1.svc.cluster:80",
-								"s1.ns1.svc.cluster.local",
-								"s1.ns1.svc.cluster.local:80",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
-										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|80|local",
-											Weight:      100,
-										}),
-									},
-									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.AsPrincipal("cluster.local")),
-								},
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/put",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"PUT"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
-										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|80|local",
-											Weight:      100,
-										}),
-									},
-									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.AsPrincipal("cluster.local")),
-								},
-							},
+			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				80: {
+					{
+						Name: "s1.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1",
+							"s1:80",
+							"s1.ns1",
+							"s1.ns1:80",
+							"s1.ns1.svc",
+							"s1.ns1.svc:80",
+							"s1.ns1.svc.cluster",
+							"s1.ns1.svc.cluster:80",
+							"s1.ns1.svc.cluster.local",
+							"s1.ns1.svc.cluster.local:80",
 						},
-					},
-					90: {
-						{
-							Name: "s2.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s2",
-								"s2:90",
-								"s2.ns1",
-								"s2.ns1:90",
-								"s2.ns1.svc",
-								"s2.ns1.svc:90",
-								"s2.ns1.svc.cluster",
-								"s2.ns1.svc.cluster:90",
-								"s2.ns1.svc.cluster.local",
-								"s2.ns1.svc.cluster.local:90",
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
+										},
+									},
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1|80|local",
+										Weight:      100,
+									}),
+								},
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+									Name:      "sa2",
+									Namespace: "ns2",
+								}.AsPrincipal("cluster.local")),
 							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/put",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"PUT"},
+										Headers: map[string]string{
+											"foo": "bar",
 										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s2|90|local",
-											Weight:      100,
-										}),
 									},
-									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.AsPrincipal("cluster.local")),
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1|80|local",
+										Weight:      100,
+									}),
 								},
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/put",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"PUT"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
-										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s2|90|local",
-											Weight:      100,
-										}),
-									},
-									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.AsPrincipal("cluster.local")),
-								},
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+									Name:      "sa2",
+									Namespace: "ns2",
+								}.AsPrincipal("cluster.local")),
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+				90: {
 					{
-						Name:    "ns1/s1|80|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    80,
+						Name: "s2.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s2",
+							"s2:90",
+							"s2.ns1",
+							"s2.ns1:90",
+							"s2.ns1.svc",
+							"s2.ns1.svc:90",
+							"s2.ns1.svc.cluster",
+							"s2.ns1.svc.cluster:90",
+							"s2.ns1.svc.cluster.local",
+							"s2.ns1.svc.cluster.local:90",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
+										},
+									},
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s2|90|local",
+										Weight:      100,
+									}),
+								},
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+									Name:      "sa2",
+									Namespace: "ns2",
+								}.AsPrincipal("cluster.local")),
+							},
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/put",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"PUT"},
+										Headers: map[string]string{
+											"foo": "bar",
+										},
+									},
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s2|90|local",
+										Weight:      100,
+									}),
+								},
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+									Name:      "sa2",
+									Namespace: "ns2",
+								}.AsPrincipal("cluster.local")),
+							},
+						},
 					},
-					{
-						Name:    "ns1/s2|90|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    90,
-					},
+				},
+			},
+			expectedInboundMeshClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:    "ns1/s1|80|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    80,
+				},
+				{
+					Name:    "ns1/s2|90|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    90,
 				},
 			},
 		},
@@ -699,143 +695,141 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
-			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					80: {
-						{
-							Name: "s1.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1",
-								"s1:80",
-								"s1.ns1",
-								"s1.ns1:80",
-								"s1.ns1.svc",
-								"s1.ns1.svc:80",
-								"s1.ns1.svc.cluster",
-								"s1.ns1.svc.cluster:80",
-								"s1.ns1.svc.cluster.local",
-								"s1.ns1.svc.cluster.local:80",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
-										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|80|local",
-											Weight:      100,
-										}),
-									},
-									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.AsPrincipal("cluster.local")),
-								},
-							},
+			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				80: {
+					{
+						Name: "s1.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1",
+							"s1:80",
+							"s1.ns1",
+							"s1.ns1:80",
+							"s1.ns1.svc",
+							"s1.ns1.svc:80",
+							"s1.ns1.svc.cluster",
+							"s1.ns1.svc.cluster:80",
+							"s1.ns1.svc.cluster.local",
+							"s1.ns1.svc.cluster.local:80",
 						},
-						{
-							Name: "s1-apex.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1-apex",
-								"s1-apex:80",
-								"s1-apex.ns1",
-								"s1-apex.ns1:80",
-								"s1-apex.ns1.svc",
-								"s1-apex.ns1.svc:80",
-								"s1-apex.ns1.svc.cluster",
-								"s1-apex.ns1.svc.cluster:80",
-								"s1-apex.ns1.svc.cluster.local",
-								"s1-apex.ns1.svc.cluster.local:80",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
 										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1-apex|80|local",
-											Weight:      100,
-										}),
 									},
-									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.AsPrincipal("cluster.local")),
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1|80|local",
+										Weight:      100,
+									}),
 								},
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+									Name:      "sa2",
+									Namespace: "ns2",
+								}.AsPrincipal("cluster.local")),
 							},
 						},
 					},
-					90: {
-						{
-							Name: "s2.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s2",
-								"s2:90",
-								"s2.ns1",
-								"s2.ns1:90",
-								"s2.ns1.svc",
-								"s2.ns1.svc:90",
-								"s2.ns1.svc.cluster",
-								"s2.ns1.svc.cluster:90",
-								"s2.ns1.svc.cluster.local",
-								"s2.ns1.svc.cluster.local:90",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
+					{
+						Name: "s1-apex.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1-apex",
+							"s1-apex:80",
+							"s1-apex.ns1",
+							"s1-apex.ns1:80",
+							"s1-apex.ns1.svc",
+							"s1-apex.ns1.svc:80",
+							"s1-apex.ns1.svc.cluster",
+							"s1-apex.ns1.svc.cluster:80",
+							"s1-apex.ns1.svc.cluster.local",
+							"s1-apex.ns1.svc.cluster.local:80",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
 										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s2|90|local",
-											Weight:      100,
-										}),
 									},
-									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.AsPrincipal("cluster.local")),
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1-apex|80|local",
+										Weight:      100,
+									}),
 								},
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+									Name:      "sa2",
+									Namespace: "ns2",
+								}.AsPrincipal("cluster.local")),
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+				90: {
 					{
-						Name:    "ns1/s1|80|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    80,
+						Name: "s2.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s2",
+							"s2:90",
+							"s2.ns1",
+							"s2.ns1:90",
+							"s2.ns1.svc",
+							"s2.ns1.svc:90",
+							"s2.ns1.svc.cluster",
+							"s2.ns1.svc.cluster:90",
+							"s2.ns1.svc.cluster.local",
+							"s2.ns1.svc.cluster.local:90",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
+										},
+									},
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s2|90|local",
+										Weight:      100,
+									}),
+								},
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+									Name:      "sa2",
+									Namespace: "ns2",
+								}.AsPrincipal("cluster.local")),
+							},
+						},
 					},
-					{
-						Name:    "ns1/s1-apex|80|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s1-apex", Port: 80, TargetPort: 80, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    80,
-					},
-					{
-						Name:    "ns1/s2|90|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    90,
-					},
+				},
+			},
+			expectedInboundMeshClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:    "ns1/s1|80|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    80,
+				},
+				{
+					Name:    "ns1/s1-apex|80|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s1-apex", Port: 80, TargetPort: 80, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    80,
+				},
+				{
+					Name:    "ns1/s2|90|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    90,
 				},
 			},
 		},
@@ -885,113 +879,111 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
-			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					80: {
-						{
-							Name: "s1.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1",
-								"s1:80",
-								"s1.ns1",
-								"s1.ns1:80",
-								"s1.ns1.svc",
-								"s1.ns1.svc:80",
-								"s1.ns1.svc.cluster",
-								"s1.ns1.svc.cluster:80",
-								"s1.ns1.svc.cluster.local",
-								"s1.ns1.svc.cluster.local:80",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|80|local",
-											Weight:      100,
-										}),
-									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
-								},
-							},
+			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				80: {
+					{
+						Name: "s1.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1",
+							"s1:80",
+							"s1.ns1",
+							"s1.ns1:80",
+							"s1.ns1.svc",
+							"s1.ns1.svc:80",
+							"s1.ns1.svc.cluster",
+							"s1.ns1.svc.cluster:80",
+							"s1.ns1.svc.cluster.local",
+							"s1.ns1.svc.cluster.local:80",
 						},
-						{
-							Name: "s1-apex.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1-apex",
-								"s1-apex:80",
-								"s1-apex.ns1",
-								"s1-apex.ns1:80",
-								"s1-apex.ns1.svc",
-								"s1-apex.ns1.svc:80",
-								"s1-apex.ns1.svc.cluster",
-								"s1-apex.ns1.svc.cluster:80",
-								"s1-apex.ns1.svc.cluster.local",
-								"s1-apex.ns1.svc.cluster.local:80",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1-apex|80|local",
-											Weight:      100,
-										}),
-									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1|80|local",
+										Weight:      100,
+									}),
 								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
 					},
-					90: {
-						{
-							Name: "s2.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s2",
-								"s2:90",
-								"s2.ns1",
-								"s2.ns1:90",
-								"s2.ns1.svc",
-								"s2.ns1.svc:90",
-								"s2.ns1.svc.cluster",
-								"s2.ns1.svc.cluster:90",
-								"s2.ns1.svc.cluster.local",
-								"s2.ns1.svc.cluster.local:90",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s2|90|local",
-											Weight:      100,
-										}),
-									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+					{
+						Name: "s1-apex.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1-apex",
+							"s1-apex:80",
+							"s1-apex.ns1",
+							"s1-apex.ns1:80",
+							"s1-apex.ns1.svc",
+							"s1-apex.ns1.svc:80",
+							"s1-apex.ns1.svc.cluster",
+							"s1-apex.ns1.svc.cluster:80",
+							"s1-apex.ns1.svc.cluster.local",
+							"s1-apex.ns1.svc.cluster.local:80",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1-apex|80|local",
+										Weight:      100,
+									}),
 								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+				90: {
 					{
-						Name:    "ns1/s1|80|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    80,
+						Name: "s2.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s2",
+							"s2:90",
+							"s2.ns1",
+							"s2.ns1:90",
+							"s2.ns1.svc",
+							"s2.ns1.svc:90",
+							"s2.ns1.svc.cluster",
+							"s2.ns1.svc.cluster:90",
+							"s2.ns1.svc.cluster.local",
+							"s2.ns1.svc.cluster.local:90",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s2|90|local",
+										Weight:      100,
+									}),
+								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+							},
+						},
 					},
-					{
-						Name:    "ns1/s1-apex|80|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s1-apex", Port: 80, TargetPort: 80, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    80,
-					},
-					{
-						Name:    "ns1/s2|90|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    90,
-					},
+				},
+			},
+			expectedInboundMeshClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:    "ns1/s1|80|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    80,
+				},
+				{
+					Name:    "ns1/s1-apex|80|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s1-apex", Port: 80, TargetPort: 80, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    80,
+				},
+				{
+					Name:    "ns1/s2|90|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    90,
 				},
 			},
 		},
@@ -1080,64 +1072,62 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
-			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					80: {
-						{
-							Name: "s1.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1",
-								"s1:80",
-								"s1.ns1",
-								"s1.ns1:80",
-								"s1.ns1.svc",
-								"s1.ns1.svc:80",
-								"s1.ns1.svc.cluster",
-								"s1.ns1.svc.cluster:80",
-								"s1.ns1.svc.cluster.local",
-								"s1.ns1.svc.cluster.local:80",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
+			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				80: {
+					{
+						Name: "s1.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1",
+							"s1:80",
+							"s1.ns1",
+							"s1.ns1:80",
+							"s1.ns1.svc",
+							"s1.ns1.svc:80",
+							"s1.ns1.svc.cluster",
+							"s1.ns1.svc.cluster:80",
+							"s1.ns1.svc.cluster.local",
+							"s1.ns1.svc.cluster.local:80",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
 										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|80|local",
-											Weight:      100,
-										}),
 									},
-									AllowedPrincipals: mapset.NewSet("sa2.ns2.cluster.local"),
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1|80|local",
+										Weight:      100,
+									}),
 								},
+								AllowedPrincipals: mapset.NewSet("sa2.ns2.cluster.local"),
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
-					{
-						Name:    "ns1/s1|80|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    80,
-					},
-					{
-						Name:    "ns1/s2|90|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "tcp"},
-						Address: "127.0.0.1",
-						Port:    90,
-					},
-					{
-						Name:    "ns1/s3|91|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s3", Port: 91, TargetPort: 91, Protocol: "tcp-server-first"},
-						Address: "127.0.0.1",
-						Port:    91,
-					},
+			},
+			expectedInboundMeshClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:    "ns1/s1|80|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    80,
+				},
+				{
+					Name:    "ns1/s2|90|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "tcp"},
+					Address: "127.0.0.1",
+					Port:    90,
+				},
+				{
+					Name:    "ns1/s3|91|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s3", Port: 91, TargetPort: 91, Protocol: "tcp-server-first"},
+					Address: "127.0.0.1",
+					Port:    91,
 				},
 			},
 		},
@@ -1248,110 +1238,108 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
-			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					80: {
-						{
-							Name: "s1.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1",
-								"s1:80",
-								"s1.ns1",
-								"s1.ns1:80",
-								"s1.ns1.svc",
-								"s1.ns1.svc:80",
-								"s1.ns1.svc.cluster",
-								"s1.ns1.svc.cluster:80",
-								"s1.ns1.svc.cluster.local",
-								"s1.ns1.svc.cluster.local:80",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
-										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|80|local",
-											Weight:      100,
-										}),
-									},
-									AllowedPrincipals: mapset.NewSet(
-										identity.K8sServiceAccount{
-											Name:      "sa2",
-											Namespace: "ns2",
-										}.AsPrincipal("cluster.local"),
-										identity.K8sServiceAccount{
-											Name:      "sa3",
-											Namespace: "ns3",
-										}.AsPrincipal("cluster.local")),
-								},
-							},
+			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				80: {
+					{
+						Name: "s1.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1",
+							"s1:80",
+							"s1.ns1",
+							"s1.ns1:80",
+							"s1.ns1.svc",
+							"s1.ns1.svc:80",
+							"s1.ns1.svc.cluster",
+							"s1.ns1.svc.cluster:80",
+							"s1.ns1.svc.cluster.local",
+							"s1.ns1.svc.cluster.local:80",
 						},
-					},
-					90: {
-						{
-							Name: "s2.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s2",
-								"s2:90",
-								"s2.ns1",
-								"s2.ns1:90",
-								"s2.ns1.svc",
-								"s2.ns1.svc:90",
-								"s2.ns1.svc.cluster",
-								"s2.ns1.svc.cluster:90",
-								"s2.ns1.svc.cluster.local",
-								"s2.ns1.svc.cluster.local:90",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
 										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s2|90|local",
-											Weight:      100,
-										}),
 									},
-									AllowedPrincipals: mapset.NewSet(
-										identity.K8sServiceAccount{
-											Name:      "sa2",
-											Namespace: "ns2",
-										}.AsPrincipal("cluster.local"),
-										identity.K8sServiceAccount{
-											Name:      "sa3",
-											Namespace: "ns3",
-										}.AsPrincipal("cluster.local")),
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1|80|local",
+										Weight:      100,
+									}),
 								},
+								AllowedPrincipals: mapset.NewSet(
+									identity.K8sServiceAccount{
+										Name:      "sa2",
+										Namespace: "ns2",
+									}.AsPrincipal("cluster.local"),
+									identity.K8sServiceAccount{
+										Name:      "sa3",
+										Namespace: "ns3",
+									}.AsPrincipal("cluster.local")),
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+				90: {
 					{
-						Name:    "ns1/s1|80|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    80,
+						Name: "s2.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s2",
+							"s2:90",
+							"s2.ns1",
+							"s2.ns1:90",
+							"s2.ns1.svc",
+							"s2.ns1.svc:90",
+							"s2.ns1.svc.cluster",
+							"s2.ns1.svc.cluster:90",
+							"s2.ns1.svc.cluster.local",
+							"s2.ns1.svc.cluster.local:90",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
+										},
+									},
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s2|90|local",
+										Weight:      100,
+									}),
+								},
+								AllowedPrincipals: mapset.NewSet(
+									identity.K8sServiceAccount{
+										Name:      "sa2",
+										Namespace: "ns2",
+									}.AsPrincipal("cluster.local"),
+									identity.K8sServiceAccount{
+										Name:      "sa3",
+										Namespace: "ns3",
+									}.AsPrincipal("cluster.local")),
+							},
+						},
 					},
-					{
-						Name:    "ns1/s2|90|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    90,
-					},
+				},
+			},
+			expectedInboundMeshClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:    "ns1/s1|80|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    80,
+				},
+				{
+					Name:    "ns1/s2|90|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    90,
 				},
 			},
 		},
@@ -1450,100 +1438,98 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
-			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					80: {
-						{
-							Name: "s1.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1",
-								"s1:80",
-								"s1.ns1",
-								"s1.ns1:80",
-								"s1.ns1.svc",
-								"s1.ns1.svc:80",
-								"s1.ns1.svc.cluster",
-								"s1.ns1.svc.cluster:80",
-								"s1.ns1.svc.cluster.local",
-								"s1.ns1.svc.cluster.local:80",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
-										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|80|local",
-											Weight:      100,
-										}),
-									},
-									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.AsPrincipal("cluster.local")),
-								},
-							},
+			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				80: {
+					{
+						Name: "s1.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1",
+							"s1:80",
+							"s1.ns1",
+							"s1.ns1:80",
+							"s1.ns1.svc",
+							"s1.ns1.svc:80",
+							"s1.ns1.svc.cluster",
+							"s1.ns1.svc.cluster:80",
+							"s1.ns1.svc.cluster.local",
+							"s1.ns1.svc.cluster.local:80",
 						},
-					},
-					90: {
-						{
-							Name: "s2.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s2",
-								"s2:90",
-								"s2.ns1",
-								"s2.ns1:90",
-								"s2.ns1.svc",
-								"s2.ns1.svc:90",
-								"s2.ns1.svc.cluster",
-								"s2.ns1.svc.cluster:90",
-								"s2.ns1.svc.cluster.local",
-								"s2.ns1.svc.cluster.local:90",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
 										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s2|90|local",
-											Weight:      100,
-										}),
 									},
-									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.AsPrincipal("cluster.local")),
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1|80|local",
+										Weight:      100,
+									}),
 								},
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+									Name:      "sa2",
+									Namespace: "ns2",
+								}.AsPrincipal("cluster.local")),
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+				90: {
 					{
-						Name:    "ns1/s1|80|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    80,
+						Name: "s2.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s2",
+							"s2:90",
+							"s2.ns1",
+							"s2.ns1:90",
+							"s2.ns1.svc",
+							"s2.ns1.svc:90",
+							"s2.ns1.svc.cluster",
+							"s2.ns1.svc.cluster:90",
+							"s2.ns1.svc.cluster.local",
+							"s2.ns1.svc.cluster.local:90",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
+										},
+									},
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s2|90|local",
+										Weight:      100,
+									}),
+								},
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+									Name:      "sa2",
+									Namespace: "ns2",
+								}.AsPrincipal("cluster.local")),
+							},
+						},
 					},
-					{
-						Name:    "ns1/s2|90|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    90,
-					},
+				},
+			},
+			expectedInboundMeshClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:    "ns1/s1|80|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    80,
+				},
+				{
+					Name:    "ns1/s2|90|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    90,
 				},
 			},
 		},
@@ -1593,78 +1579,76 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
-			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					80: {
-						{
-							Name: "s1.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1",
-								"s1:80",
-								"s1.ns1",
-								"s1.ns1:80",
-								"s1.ns1.svc",
-								"s1.ns1.svc:80",
-								"s1.ns1.svc.cluster",
-								"s1.ns1.svc.cluster:80",
-								"s1.ns1.svc.cluster.local",
-								"s1.ns1.svc.cluster.local:80",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|80|local",
-											Weight:      100,
-										}),
-									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				80: {
+					{
+						Name: "s1.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1",
+							"s1:80",
+							"s1.ns1",
+							"s1.ns1:80",
+							"s1.ns1.svc",
+							"s1.ns1.svc:80",
+							"s1.ns1.svc.cluster",
+							"s1.ns1.svc.cluster:80",
+							"s1.ns1.svc.cluster.local",
+							"s1.ns1.svc.cluster.local:80",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1|80|local",
+										Weight:      100,
+									}),
 								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
-						{
-							Name: "s2-apex.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s2-apex",
-								"s2-apex:80",
-								"s2-apex.ns1",
-								"s2-apex.ns1:80",
-								"s2-apex.ns1.svc",
-								"s2-apex.ns1.svc:80",
-								"s2-apex.ns1.svc.cluster",
-								"s2-apex.ns1.svc.cluster:80",
-								"s2-apex.ns1.svc.cluster.local",
-								"s2-apex.ns1.svc.cluster.local:80",
-							},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s2-apex|80|local",
-											Weight:      100,
-										}),
-									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+					},
+					{
+						Name: "s2-apex.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s2-apex",
+							"s2-apex:80",
+							"s2-apex.ns1",
+							"s2-apex.ns1:80",
+							"s2-apex.ns1.svc",
+							"s2-apex.ns1.svc:80",
+							"s2-apex.ns1.svc.cluster",
+							"s2-apex.ns1.svc.cluster:80",
+							"s2-apex.ns1.svc.cluster.local",
+							"s2-apex.ns1.svc.cluster.local:80",
+						},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s2-apex|80|local",
+										Weight:      100,
+									}),
 								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
-					{
-						Name:    "ns1/s1|80|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    80,
-					},
-					{
-						Name:    "ns1/s2-apex|80|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s2-apex", Port: 80, TargetPort: 80, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    80,
-					},
+			},
+			expectedInboundMeshClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:    "ns1/s1|80|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    80,
+				},
+				{
+					Name:    "ns1/s2-apex|80|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s2-apex", Port: 80, TargetPort: 80, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    80,
 				},
 			},
 		},
@@ -1777,104 +1761,102 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
-			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					8080: {
-						{
-							Name: "s1.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1",
-								"s1:80",
-								"s1.ns1",
-								"s1.ns1:80",
-								"s1.ns1.svc",
-								"s1.ns1.svc:80",
-								"s1.ns1.svc.cluster",
-								"s1.ns1.svc.cluster:80",
-								"s1.ns1.svc.cluster.local",
-								"s1.ns1.svc.cluster.local:80",
-							},
-							RateLimit: virtualHostLocalRateLimitConfig,
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
-										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|8080|local",
-											Weight:      100,
-										}),
-										RateLimit: perRouteLocalRateLimitConfig,
-									},
-									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.AsPrincipal("cluster.local")),
-								},
-							},
+			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				8080: {
+					{
+						Name: "s1.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1",
+							"s1:80",
+							"s1.ns1",
+							"s1.ns1:80",
+							"s1.ns1.svc",
+							"s1.ns1.svc:80",
+							"s1.ns1.svc.cluster",
+							"s1.ns1.svc.cluster:80",
+							"s1.ns1.svc.cluster.local",
+							"s1.ns1.svc.cluster.local:80",
 						},
-					},
-					9090: {
-						{
-							Name: "s2.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s2",
-								"s2:90",
-								"s2.ns1",
-								"s2.ns1:90",
-								"s2.ns1.svc",
-								"s2.ns1.svc:90",
-								"s2.ns1.svc.cluster",
-								"s2.ns1.svc.cluster:90",
-								"s2.ns1.svc.cluster.local",
-								"s2.ns1.svc.cluster.local:90",
-							},
-							RateLimit: virtualHostLocalRateLimitConfig,
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-											Path:          "/get",
-											PathMatchType: trafficpolicy.PathMatchRegex,
-											Methods:       []string{"GET"},
-											Headers: map[string]string{
-												"foo": "bar",
-											},
+						RateLimit: virtualHostLocalRateLimitConfig,
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
 										},
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s2|9090|local",
-											Weight:      100,
-										}),
-										RateLimit: perRouteLocalRateLimitConfig,
 									},
-									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.AsPrincipal("cluster.local")),
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1|8080|local",
+										Weight:      100,
+									}),
+									RateLimit: perRouteLocalRateLimitConfig,
 								},
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+									Name:      "sa2",
+									Namespace: "ns2",
+								}.AsPrincipal("cluster.local")),
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+				9090: {
 					{
-						Name:    "ns1/s1|8080|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 8080, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    8080,
+						Name: "s2.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s2",
+							"s2:90",
+							"s2.ns1",
+							"s2.ns1:90",
+							"s2.ns1.svc",
+							"s2.ns1.svc:90",
+							"s2.ns1.svc.cluster",
+							"s2.ns1.svc.cluster:90",
+							"s2.ns1.svc.cluster.local",
+							"s2.ns1.svc.cluster.local:90",
+						},
+						RateLimit: virtualHostLocalRateLimitConfig,
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+										Path:          "/get",
+										PathMatchType: trafficpolicy.PathMatchRegex,
+										Methods:       []string{"GET"},
+										Headers: map[string]string{
+											"foo": "bar",
+										},
+									},
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s2|9090|local",
+										Weight:      100,
+									}),
+									RateLimit: perRouteLocalRateLimitConfig,
+								},
+								AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+									Name:      "sa2",
+									Namespace: "ns2",
+								}.AsPrincipal("cluster.local")),
+							},
+						},
 					},
-					{
-						Name:    "ns1/s2|9090|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 9090, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    9090,
-					},
+				},
+			},
+			expectedInboundMeshClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:    "ns1/s1|8080|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 8080, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    8080,
+				},
+				{
+					Name:    "ns1/s2|9090|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 9090, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    9090,
 				},
 			},
 		},
@@ -1933,84 +1915,82 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
-			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					80: {
-						{
-							Name: "s1.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1",
-								"s1:80",
-								"s1.ns1",
-								"s1.ns1:80",
-								"s1.ns1.svc",
-								"s1.ns1.svc:80",
-								"s1.ns1.svc.cluster",
-								"s1.ns1.svc.cluster:80",
-								"s1.ns1.svc.cluster.local",
-								"s1.ns1.svc.cluster.local:80",
-							},
-							RateLimit: virtualHostLocalRateLimitConfig,
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|80|local",
-											Weight:      100,
-										}),
-										RateLimit: perRouteLocalRateLimitConfig,
-									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
-								},
-							},
+			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				80: {
+					{
+						Name: "s1.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1",
+							"s1:80",
+							"s1.ns1",
+							"s1.ns1:80",
+							"s1.ns1.svc",
+							"s1.ns1.svc:80",
+							"s1.ns1.svc.cluster",
+							"s1.ns1.svc.cluster:80",
+							"s1.ns1.svc.cluster.local",
+							"s1.ns1.svc.cluster.local:80",
 						},
-					},
-					90: {
-						{
-							Name: "s2.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s2",
-								"s2:90",
-								"s2.ns1",
-								"s2.ns1:90",
-								"s2.ns1.svc",
-								"s2.ns1.svc:90",
-								"s2.ns1.svc.cluster",
-								"s2.ns1.svc.cluster:90",
-								"s2.ns1.svc.cluster.local",
-								"s2.ns1.svc.cluster.local:90",
-							},
-							RateLimit: virtualHostLocalRateLimitConfig,
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s2|90|local",
-											Weight:      100,
-										}),
-										RateLimit: perRouteLocalRateLimitConfig,
-									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+						RateLimit: virtualHostLocalRateLimitConfig,
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1|80|local",
+										Weight:      100,
+									}),
+									RateLimit: perRouteLocalRateLimitConfig,
 								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+				90: {
 					{
-						Name:    "ns1/s1|80|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    80,
+						Name: "s2.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s2",
+							"s2:90",
+							"s2.ns1",
+							"s2.ns1:90",
+							"s2.ns1.svc",
+							"s2.ns1.svc:90",
+							"s2.ns1.svc.cluster",
+							"s2.ns1.svc.cluster:90",
+							"s2.ns1.svc.cluster.local",
+							"s2.ns1.svc.cluster.local:90",
+						},
+						RateLimit: virtualHostLocalRateLimitConfig,
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s2|90|local",
+										Weight:      100,
+									}),
+									RateLimit: perRouteLocalRateLimitConfig,
+								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+							},
+						},
 					},
-					{
-						Name:    "ns1/s2|90|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    90,
-					},
+				},
+			},
+			expectedInboundMeshClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:    "ns1/s1|80|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    80,
+				},
+				{
+					Name:    "ns1/s2|90|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    90,
 				},
 			},
 		},
@@ -2069,90 +2049,88 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			prepare: func(mockK8s *k8s.MockController, trafficSplits []*split.TrafficSplit, trafficTargets []*access.TrafficTarget, upstreamTrafficSettings []*policyv1alpha1.UpstreamTrafficSetting) {
 				mockK8s.EXPECT().ListTrafficSplits().Return(trafficSplits).AnyTimes()
 			},
-			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					80: {
-						{
-							Name: "s1.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1",
-								"s1:80",
-								"s1.ns1",
-								"s1.ns1:80",
-								"s1.ns1.svc",
-								"s1.ns1.svc:80",
-								"s1.ns1.svc.cluster",
-								"s1.ns1.svc.cluster:80",
-								"s1.ns1.svc.cluster.local",
-								"s1.ns1.svc.cluster.local:80",
-							},
-							RateLimit: virtualHostGlobalRateLimitConfig,
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s1|80|local",
-											Weight:      100,
-										}),
-										RateLimit: perRouteGlobalRateLimitConfig,
-									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
-								},
-							},
+			expectedInboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				80: {
+					{
+						Name: "s1.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1",
+							"s1:80",
+							"s1.ns1",
+							"s1.ns1:80",
+							"s1.ns1.svc",
+							"s1.ns1.svc:80",
+							"s1.ns1.svc.cluster",
+							"s1.ns1.svc.cluster:80",
+							"s1.ns1.svc.cluster.local",
+							"s1.ns1.svc.cluster.local:80",
 						},
-					},
-					90: {
-						{
-							Name: "s2.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s2",
-								"s2:90",
-								"s2.ns1",
-								"s2.ns1:90",
-								"s2.ns1.svc",
-								"s2.ns1.svc:90",
-								"s2.ns1.svc.cluster",
-								"s2.ns1.svc.cluster:90",
-								"s2.ns1.svc.cluster.local",
-								"s2.ns1.svc.cluster.local:90",
-							},
-							RateLimit: virtualHostGlobalRateLimitConfig,
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-										WeightedClusters: mapset.NewSet(service.WeightedCluster{
-											ClusterName: "ns1/s2|90|local",
-											Weight:      100,
-										}),
-										RateLimit: perRouteGlobalRateLimitConfig,
-									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+						RateLimit: virtualHostGlobalRateLimitConfig,
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s1|80|local",
+										Weight:      100,
+									}),
+									RateLimit: perRouteGlobalRateLimitConfig,
 								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+				90: {
 					{
-						Name:    "ns1/s1|80|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    80,
+						Name: "s2.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s2",
+							"s2:90",
+							"s2.ns1",
+							"s2.ns1:90",
+							"s2.ns1.svc",
+							"s2.ns1.svc:90",
+							"s2.ns1.svc.cluster",
+							"s2.ns1.svc.cluster:90",
+							"s2.ns1.svc.cluster.local",
+							"s2.ns1.svc.cluster.local:90",
+						},
+						RateLimit: virtualHostGlobalRateLimitConfig,
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+									WeightedClusters: mapset.NewSet(service.WeightedCluster{
+										ClusterName: "ns1/s2|90|local",
+										Weight:      100,
+									}),
+									RateLimit: perRouteGlobalRateLimitConfig,
+								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+							},
+						},
 					},
-					{
-						Name:    "ns1/s2|90|local",
-						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
-						Address: "127.0.0.1",
-						Port:    90,
-					},
-					{
-						Name:     "foo.bar|8080",
-						Address:  "foo.bar",
-						Port:     8080,
-						Protocol: constants.ProtocolH2C,
-					},
+				},
+			},
+			expectedInboundMeshClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:    "ns1/s1|80|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    80,
+				},
+				{
+					Name:    "ns1/s2|90|local",
+					Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
+					Address: "127.0.0.1",
+					Port:    90,
+				},
+				{
+					Name:     "foo.bar|8080",
+					Address:  "foo.bar",
+					Port:     8080,
+					Protocol: constants.ProtocolH2C,
 				},
 			},
 		},
@@ -2186,15 +2164,17 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			mockK8s.EXPECT().ListHTTPTrafficSpecs().Return(tc.httpRouteGroups).AnyTimes()
 			tc.prepare(mockK8s, tc.trafficSplits, tc.trafficTargets, tc.upstreamTrafficSettings)
 
-			actual := mc.GetInboundMeshTrafficPolicy(tc.upstreamIdentity, tc.upstreamServices)
+			actualClusterConfigs := mc.GetInboundMeshClusterConfigs(tc.upstreamServices)
+			actualHTTPRouteConfigsPerPort := mc.GetInboundMeshHTTPRouteConfigsPerPort(tc.upstreamIdentity, tc.upstreamServices)
+			actualTrafficMatches := mc.GetInboundMeshTrafficMatches(tc.upstreamServices)
 
 			// Verify expected fields
-			assert.ElementsMatch(tc.expectedInboundMeshPolicy.ClustersConfigs, actual.ClustersConfigs)
-			for expectedKey, expectedVal := range tc.expectedInboundMeshPolicy.HTTPRouteConfigsPerPort {
-				assert.ElementsMatch(expectedVal, actual.HTTPRouteConfigsPerPort[expectedKey])
+			assert.ElementsMatch(tc.expectedInboundMeshClusterConfigs, actualClusterConfigs)
+			for expectedKey, expectedVal := range tc.expectedInboundMeshHTTPRouteConfigsPerPort {
+				assert.ElementsMatch(expectedVal, actualHTTPRouteConfigsPerPort[expectedKey])
 			}
-			if len(tc.expectedInboundMeshPolicy.TrafficMatches) != 0 {
-				assert.ElementsMatch(tc.expectedInboundMeshPolicy.TrafficMatches, actual.TrafficMatches)
+			if len(tc.expectedInboundMeshTrafficMatches) != 0 {
+				assert.ElementsMatch(tc.expectedInboundMeshTrafficMatches, actualTrafficMatches)
 			}
 		})
 	}

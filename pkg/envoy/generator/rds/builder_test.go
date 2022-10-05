@@ -24,52 +24,50 @@ import (
 
 func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 	testCases := []struct {
-		name                      string
-		inbound                   *trafficpolicy.InboundMeshTrafficPolicy
-		expectedRouteConfigFields *xds_route.RouteConfiguration
+		name                               string
+		InboundMeshHTTPRouteConfigsPerPort map[int][]*trafficpolicy.InboundTrafficPolicy
+		expectedRouteConfigFields          *xds_route.RouteConfiguration
 	}{
 		{
-			name:                      "no inbound policy",
-			inbound:                   &trafficpolicy.InboundMeshTrafficPolicy{},
-			expectedRouteConfigFields: nil,
+			name:                               "no route configs",
+			InboundMeshHTTPRouteConfigsPerPort: nil,
+			expectedRouteConfigFields:          nil,
 		},
 		{
 			name: "basic inbound policy ",
-			inbound: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					80: {
-						{
-							Name:      "bookstore-v1-default",
-							Hostnames: []string{"bookstore-v1.default.svc.cluster.local"},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+			InboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				80: {
+					{
+						Name:      "bookstore-v1-default",
+						Hostnames: []string{"bookstore-v1.default.svc.cluster.local"},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
+									WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 								},
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
-										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+							},
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
+									WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
-						{
-							Name:      "bookstore-v2-default",
-							Hostnames: []string{"bookstore-v2.default.svc.cluster.local"},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-										RetryPolicy:      nil,
-									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+					},
+					{
+						Name:      "bookstore-v2-default",
+						Hostnames: []string{"bookstore-v2.default.svc.cluster.local"},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
+									WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+									RetryPolicy:      nil,
 								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
 					},
@@ -112,46 +110,44 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 		},
 		{
 			name: "inbound policy with VirtualHost and Route level local rate limiting",
-			inbound: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					80: {
-						{
-							Name:      "bookstore-v1-default",
-							Hostnames: []string{"bookstore-v1.default.svc.cluster.local"},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-										RateLimit: &policyv1alpha1.HTTPPerRouteRateLimitSpec{
-											Local: &policyv1alpha1.HTTPLocalRateLimitSpec{
-												Requests: 10,
-												Unit:     "second",
-											},
+			InboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				80: {
+					{
+						Name:      "bookstore-v1-default",
+						Hostnames: []string{"bookstore-v1.default.svc.cluster.local"},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
+									WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+									RateLimit: &policyv1alpha1.HTTPPerRouteRateLimitSpec{
+										Local: &policyv1alpha1.HTTPLocalRateLimitSpec{
+											Requests: 10,
+											Unit:     "second",
 										},
 									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
-										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-										RateLimit: &policyv1alpha1.HTTPPerRouteRateLimitSpec{
-											Local: &policyv1alpha1.HTTPLocalRateLimitSpec{
-												Requests: 10,
-												Unit:     "second",
-											},
-										},
-									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
-								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
-							RateLimit: &policyv1alpha1.RateLimitSpec{
-								Local: &policyv1alpha1.LocalRateLimitSpec{
-									HTTP: &policyv1alpha1.HTTPLocalRateLimitSpec{
-										Requests: 100,
-										Unit:     "minute",
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
+									WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+									RateLimit: &policyv1alpha1.HTTPPerRouteRateLimitSpec{
+										Local: &policyv1alpha1.HTTPLocalRateLimitSpec{
+											Requests: 10,
+											Unit:     "second",
+										},
 									},
+								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+							},
+						},
+						RateLimit: &policyv1alpha1.RateLimitSpec{
+							Local: &policyv1alpha1.LocalRateLimitSpec{
+								HTTP: &policyv1alpha1.HTTPLocalRateLimitSpec{
+									Requests: 100,
+									Unit:     "minute",
 								},
 							},
 						},
@@ -193,75 +189,73 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 		},
 		{
 			name: "inbound policy with VirtualHost and Route level global rate limiting",
-			inbound: &trafficpolicy.InboundMeshTrafficPolicy{
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-					80: {
-						{
-							Name:      "bookstore-v1-default",
-							Hostnames: []string{"bookstore-v1.default.svc.cluster.local"},
-							Rules: []*trafficpolicy.Rule{
-								{
-									Route: trafficpolicy.RouteWeightedClusters{
-										HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-										WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-										RateLimit: &policyv1alpha1.HTTPPerRouteRateLimitSpec{
-											Global: &policyv1alpha1.HTTPGlobalPerRouteRateLimitSpec{
-												Descriptors: []policyv1alpha1.HTTPGlobalRateLimitDescriptor{
-													{
-														Entries: []policyv1alpha1.HTTPGlobalRateLimitDescriptorEntry{
-															{
-																GenericKey: &policyv1alpha1.GenericKeyDescriptorEntry{},
-															},
-															{
-																RemoteAddress: &policyv1alpha1.RemoteAddressDescriptorEntry{},
-															},
+			InboundMeshHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+				80: {
+					{
+						Name:      "bookstore-v1-default",
+						Hostnames: []string{"bookstore-v1.default.svc.cluster.local"},
+						Rules: []*trafficpolicy.Rule{
+							{
+								Route: trafficpolicy.RouteWeightedClusters{
+									HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
+									WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+									RateLimit: &policyv1alpha1.HTTPPerRouteRateLimitSpec{
+										Global: &policyv1alpha1.HTTPGlobalPerRouteRateLimitSpec{
+											Descriptors: []policyv1alpha1.HTTPGlobalRateLimitDescriptor{
+												{
+													Entries: []policyv1alpha1.HTTPGlobalRateLimitDescriptorEntry{
+														{
+															GenericKey: &policyv1alpha1.GenericKeyDescriptorEntry{},
+														},
+														{
+															RemoteAddress: &policyv1alpha1.RemoteAddressDescriptorEntry{},
 														},
 													},
-													{
-														Entries: []policyv1alpha1.HTTPGlobalRateLimitDescriptorEntry{
-															{
-																RequestHeader: &policyv1alpha1.RequestHeaderDescriptorEntry{},
-															},
+												},
+												{
+													Entries: []policyv1alpha1.HTTPGlobalRateLimitDescriptorEntry{
+														{
+															RequestHeader: &policyv1alpha1.RequestHeaderDescriptorEntry{},
 														},
 													},
 												},
 											},
 										},
 									},
-									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
-							RateLimit: &policyv1alpha1.RateLimitSpec{
-								Global: &policyv1alpha1.GlobalRateLimitSpec{
-									HTTP: &policyv1alpha1.HTTPGlobalRateLimitSpec{
-										RateLimitService: policyv1alpha1.RateLimitServiceSpec{
-											Host: "foo.bar",
-											Port: 8080,
-										},
-										Descriptors: []policyv1alpha1.HTTPGlobalRateLimitDescriptor{
-											{
-												Entries: []policyv1alpha1.HTTPGlobalRateLimitDescriptorEntry{
-													{
-														HeaderValueMatch: &policyv1alpha1.HeaderValueMatchDescriptorEntry{
-															Headers: []policyv1alpha1.HTTPHeaderMatcher{
-																{
-																	Exact: "e",
-																},
-																{
-																	Prefix: "p",
-																},
-																{
-																	Suffix: "s",
-																},
-																{
-																	Regex: "r.*",
-																},
-																{
-																	Contains: "c",
-																},
-																{
-																	Present: pointer.BoolPtr(true),
-																},
+						},
+						RateLimit: &policyv1alpha1.RateLimitSpec{
+							Global: &policyv1alpha1.GlobalRateLimitSpec{
+								HTTP: &policyv1alpha1.HTTPGlobalRateLimitSpec{
+									RateLimitService: policyv1alpha1.RateLimitServiceSpec{
+										Host: "foo.bar",
+										Port: 8080,
+									},
+									Descriptors: []policyv1alpha1.HTTPGlobalRateLimitDescriptor{
+										{
+											Entries: []policyv1alpha1.HTTPGlobalRateLimitDescriptorEntry{
+												{
+													HeaderValueMatch: &policyv1alpha1.HeaderValueMatchDescriptorEntry{
+														Headers: []policyv1alpha1.HTTPHeaderMatcher{
+															{
+																Exact: "e",
+															},
+															{
+																Prefix: "p",
+															},
+															{
+																Suffix: "s",
+															},
+															{
+																Regex: "r.*",
+															},
+															{
+																Contains: "c",
+															},
+															{
+																Present: pointer.BoolPtr(true),
 															},
 														},
 													},
@@ -317,7 +311,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 			rb := &routesBuilder{
-				inboundPortSpecificRouteConfigs: tc.inbound.HTTPRouteConfigsPerPort,
+				inboundPortSpecificRouteConfigs: tc.InboundMeshHTTPRouteConfigsPerPort,
 				statsHeaders:                    nil,
 				trustDomain:                     "cluster.local",
 			}
@@ -372,27 +366,25 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 		},
 	}
 
-	testInbound := &trafficpolicy.InboundMeshTrafficPolicy{
-		HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
-			80: {
-				{
-					Name:      "bookstore-v1-default",
-					Hostnames: tests.BookstoreV1Hostnames,
-					Rules: []*trafficpolicy.Rule{
-						{
-							Route: trafficpolicy.RouteWeightedClusters{
-								HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-							},
-							AllowedPrincipals: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity().AsPrincipal("cluster.local")),
+	testInboundHTTPRouteConfigsPerPort := map[int][]*trafficpolicy.InboundTrafficPolicy{
+		80: {
+			{
+				Name:      "bookstore-v1-default",
+				Hostnames: tests.BookstoreV1Hostnames,
+				Rules: []*trafficpolicy.Rule{
+					{
+						Route: trafficpolicy.RouteWeightedClusters{
+							HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
+							WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 						},
-						{
-							Route: trafficpolicy.RouteWeightedClusters{
-								HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
-								WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-							},
-							AllowedPrincipals: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity().AsPrincipal("cluster.local")),
+						AllowedPrincipals: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity().AsPrincipal("cluster.local")),
+					},
+					{
+						Route: trafficpolicy.RouteWeightedClusters{
+							HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
+							WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 						},
+						AllowedPrincipals: mapset.NewSet(tests.BookbuyerServiceAccount.ToServiceIdentity().AsPrincipal("cluster.local")),
 					},
 				},
 			},
@@ -403,7 +395,7 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 			rb := &routesBuilder{
-				inboundPortSpecificRouteConfigs: testInbound.HTTPRouteConfigsPerPort,
+				inboundPortSpecificRouteConfigs: testInboundHTTPRouteConfigsPerPort,
 				proxy:                           &models.Proxy{},
 				statsHeaders:                    tc.statsHeaders,
 				trustDomain:                     "cluster.local",

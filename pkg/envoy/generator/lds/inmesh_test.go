@@ -658,74 +658,67 @@ func TestBuildOutboundFilterChainMatch(t *testing.T) {
 
 func TestBuildOutboundFilterChains(t *testing.T) {
 	testCases := []struct {
-		name                 string
-		policy               *trafficpolicy.OutboundMeshTrafficPolicy
-		expectedFilterChains int
+		name                       string
+		outboundMeshTrafficMatches []*trafficpolicy.TrafficMatch
+		expectedFilterChains       int
 	}{
 		{
 			name: "multiple HTTP and TCP traffic matches",
-			policy: &trafficpolicy.OutboundMeshTrafficPolicy{
-				TrafficMatches: []*trafficpolicy.TrafficMatch{
-					{
-						Name:                "1",
-						DestinationPort:     80,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"1.1.1.1/32"},
-					},
-					{
-						Name:                "2",
-						DestinationPort:     90,
-						DestinationProtocol: "grpc",
-						DestinationIPRanges: []string{"1.1.1.1/32"},
-					},
-					{
-						Name:                "3",
-						DestinationPort:     100,
-						DestinationProtocol: "tcp",
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "foo",
-								Weight:      100,
-							},
+			outboundMeshTrafficMatches: []*trafficpolicy.TrafficMatch{
+				{
+					Name:                "1",
+					DestinationPort:     80,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"1.1.1.1/32"},
+				},
+				{
+					Name:                "2",
+					DestinationPort:     90,
+					DestinationProtocol: "grpc",
+					DestinationIPRanges: []string{"1.1.1.1/32"},
+				},
+				{
+					Name:                "3",
+					DestinationPort:     100,
+					DestinationProtocol: "tcp",
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "foo",
+							Weight:      100,
 						},
-						DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
 					},
-					{
-						Name:                "4",
-						DestinationPort:     100,
-						DestinationProtocol: "tcp-server-first",
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "foo",
-								Weight:      40,
-							},
-							{
-								ClusterName: "bar",
-								Weight:      60,
-							},
+					DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
+				},
+				{
+					Name:                "4",
+					DestinationPort:     100,
+					DestinationProtocol: "tcp-server-first",
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "foo",
+							Weight:      40,
 						},
-						DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
+						{
+							ClusterName: "bar",
+							Weight:      60,
+						},
 					},
+					DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
 				},
 			},
 			expectedFilterChains: 4,
 		},
 		{
-			name:                 "nil OutboundMeshTrafficPolicy should result in 0 filter chains",
-			policy:               nil,
-			expectedFilterChains: 0,
-		},
-		{
-			name:                 "nil TrafficMatch should result in 0 filter chains",
-			policy:               &trafficpolicy.OutboundMeshTrafficPolicy{TrafficMatches: nil},
-			expectedFilterChains: 0,
+			name:                       "nil TrafficMatch should result in 0 filter chains",
+			outboundMeshTrafficMatches: nil,
+			expectedFilterChains:       0,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
-			lb := &listenerBuilder{outboundMeshTrafficPolicy: tc.policy}
+			lb := &listenerBuilder{outboundMeshTrafficMatches: tc.outboundMeshTrafficMatches}
 
 			actual := lb.buildOutboundFilterChains()
 			a.Len(actual, tc.expectedFilterChains)

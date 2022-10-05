@@ -20,28 +20,41 @@ const (
 	singeIPPrefixLen = "/32"
 )
 
-// GetIngressTrafficPolicies returns a list of IngressTrafficPolicy objects for the given MeshService list
-func (mc *MeshCatalog) GetIngressTrafficPolicies(meshServices []service.MeshService) []*trafficpolicy.IngressTrafficPolicy {
-	var policies []*trafficpolicy.IngressTrafficPolicy
+// GetIngressTrafficMatches returns all the ingress traffic matches for the given MeshService list
+func (mc *MeshCatalog) GetIngressTrafficMatches(meshServices []service.MeshService) [][]*trafficpolicy.IngressTrafficMatch {
+	var allTrafficMatches [][]*trafficpolicy.IngressTrafficMatch
 
 	for _, meshSvc := range meshServices {
-		policy, err := mc.GetIngressTrafficPolicy(meshSvc)
+		trafficMatches, err := mc.GetIngressTrafficMatchesForSvc(meshSvc)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error getting ingress traffic policy for service %s, skipping it", meshSvc)
+			log.Error().Err(err).Msgf("Error getting ingress traffic matches for service %s, skipping it", meshSvc)
 			continue
 		}
-		if policy != nil {
-			policies = append(policies, policy)
+		if trafficMatches != nil {
+			allTrafficMatches = append(allTrafficMatches, trafficMatches)
 		}
 	}
 
-	return policies
+	return allTrafficMatches
 }
 
-// GetIngressTrafficPolicy returns the ingress traffic policy for the given mesh service
-// Depending on if the IngressBackend API is enabled, the policies will be generated either from the IngressBackend
-// or Kubernetes Ingress API.
-func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error) {
+// GetIngressHTTPRoutePolicies returns all the HTTP route policies for the given MeshService list
+func (mc *MeshCatalog) GetIngressHTTPRoutePolicies(meshServices []service.MeshService) [][]*trafficpolicy.InboundTrafficPolicy {
+	var allHTTPRoutePolicies [][]*trafficpolicy.InboundTrafficPolicy
+
+	for _, meshSvc := range meshServices {
+		httpRoutePolicies := mc.GetIngressHTTPRoutePoliciesForSvc(meshSvc)
+
+		if httpRoutePolicies != nil {
+			allHTTPRoutePolicies = append(allHTTPRoutePolicies, httpRoutePolicies)
+		}
+	}
+
+	return allHTTPRoutePolicies
+}
+
+// GetIngressTrafficMatchesForSvc returns the ingress traffic matches for ingress backend for the given MeshService
+func (mc *MeshCatalog) GetIngressTrafficMatchesForSvc(svc service.MeshService) ([]*trafficpolicy.IngressTrafficMatch, error) {
 	ingressBackendPolicy := mc.GetIngressBackendPolicyForService(svc)
 	if ingressBackendPolicy == nil {
 		log.Trace().Msgf("Did not find IngressBackend policy for service %s", svc)
@@ -52,9 +65,6 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 	// Note: The original pointer returned by cache.Store must not be modified for thread safety.
 	ingressBackendWithStatus := *ingressBackendPolicy
 
-	var trafficRoutingRules []*trafficpolicy.Rule
-	// The ingress backend deals with principals (not identities). Principals have the trust domain included.
-	sourcePrincipals := mapset.NewSet()
 	var trafficMatches []*trafficpolicy.IngressTrafficMatch
 	for _, backend := range ingressBackendPolicy.Spec.Backends {
 		if backend.Name != svc.Name || backend.Port.Number != int(svc.TargetPort) {
@@ -107,8 +117,49 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 					continue
 				}
 				sourceIPRanges = append(sourceIPRanges, source.Name)
+			}
+		}
 
-			case policyV1alpha1.KindAuthenticatedPrincipal:
+		trafficMatch.SourceIPRanges = sourceIPRanges
+		trafficMatches = append(trafficMatches, trafficMatch)
+	}
+
+	if len(trafficMatches) == 0 {
+		// Since no trafficMatches exist for this IngressBackend config, it implies that the given
+		// MeshService does not map to this IngressBackend config.
+		log.Debug().Msgf("No ingress traffic matches exist for MeshService %s, no ingress config required", svc.EnvoyLocalClusterName())
+		return nil, nil
+	}
+
+	ingressBackendWithStatus.Status = policyV1alpha1.IngressBackendStatus{
+		CurrentStatus: "committed",
+		Reason:        "successfully committed by the system",
+	}
+	if _, err := mc.UpdateIngressBackendStatus(&ingressBackendWithStatus); err != nil {
+		log.Error().Err(err).Msg("Error updating status for IngressBackend")
+	}
+
+	return trafficMatches, nil
+}
+
+// GetIngressHTTPRoutePoliciesForSvc returns the inbound traffic policy for the ingressbackend for the given MeshService
+func (mc *MeshCatalog) GetIngressHTTPRoutePoliciesForSvc(svc service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
+	ingressBackendPolicy := mc.GetIngressBackendPolicyForService(svc)
+	if ingressBackendPolicy == nil {
+		log.Trace().Msgf("Did not find IngressBackend policy for service %s", svc)
+		return nil
+	}
+
+	var trafficRoutingRules []*trafficpolicy.Rule
+	// The ingress backend deals with principals (not identities). Principals have the trust domain included.
+	sourcePrincipals := mapset.NewSet()
+	for _, backend := range ingressBackendPolicy.Spec.Backends {
+		if backend.Name != svc.Name || backend.Port.Number != int(svc.TargetPort) {
+			continue
+		}
+
+		for _, source := range ingressBackendPolicy.Spec.Sources {
+			if source.Kind == policyV1alpha1.KindAuthenticatedPrincipal {
 				if backend.TLS.SkipClientCertValidation {
 					sourcePrincipals.Add(identity.WildcardServiceIdentity.String())
 				} else {
@@ -123,9 +174,6 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		if strings.EqualFold(backend.Port.Protocol, constants.ProtocolHTTP) {
 			sourcePrincipals.Add(identity.WildcardPrincipal)
 		}
-
-		trafficMatch.SourceIPRanges = sourceIPRanges
-		trafficMatches = append(trafficMatches, trafficMatch)
 
 		// Build the routing rule for this backend and source combination.
 		// Currently IngressBackend only supports a wildcard HTTP route. The
@@ -145,21 +193,6 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		trafficRoutingRules = append(trafficRoutingRules, routingRule)
 	}
 
-	if len(trafficMatches) == 0 {
-		// Since no trafficMatches exist for this IngressBackend config, it implies that the given
-		// MeshService does not map to this IngressBackend config.
-		log.Debug().Msgf("No ingress traffic matches exist for MeshService %s, no ingress config required", svc.EnvoyLocalClusterName())
-		return nil, nil
-	}
-
-	ingressBackendWithStatus.Status = policyV1alpha1.IngressBackendStatus{
-		CurrentStatus: "committed",
-		Reason:        "successfully committed by the system",
-	}
-	if _, err := mc.UpdateIngressBackendStatus(&ingressBackendWithStatus); err != nil {
-		log.Error().Err(err).Msg("Error updating status for IngressBackend")
-	}
-
 	// Create an inbound traffic policy from the routing rules
 	// TODO(#3779): Implement HTTP route matching from IngressBackend.Spec.Matches
 	httpRoutePolicy := &trafficpolicy.InboundTrafficPolicy{
@@ -168,8 +201,5 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		Rules:     trafficRoutingRules,
 	}
 
-	return &trafficpolicy.IngressTrafficPolicy{
-		TrafficMatches:    trafficMatches,
-		HTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{httpRoutePolicy},
-	}, nil
+	return []*trafficpolicy.InboundTrafficPolicy{httpRoutePolicy}
 }

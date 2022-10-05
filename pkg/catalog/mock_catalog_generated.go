@@ -45,19 +45,48 @@ func (m *MockMeshCataloger) EXPECT() *MockMeshCatalogerMockRecorder {
 	return m.recorder
 }
 
-// GetEgressTrafficPolicy mocks base method.
-func (m *MockMeshCataloger) GetEgressTrafficPolicy(arg0 identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error) {
+// GetEgressClusterConfigs mocks base method.
+func (m *MockMeshCataloger) GetEgressClusterConfigs(arg0 identity.ServiceIdentity) ([]*trafficpolicy.EgressClusterConfig, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEgressTrafficPolicy", arg0)
-	ret0, _ := ret[0].(*trafficpolicy.EgressTrafficPolicy)
+	ret := m.ctrl.Call(m, "GetEgressClusterConfigs", arg0)
+	ret0, _ := ret[0].([]*trafficpolicy.EgressClusterConfig)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetEgressTrafficPolicy indicates an expected call of GetEgressTrafficPolicy.
-func (mr *MockMeshCatalogerMockRecorder) GetEgressTrafficPolicy(arg0 interface{}) *gomock.Call {
+// GetEgressClusterConfigs indicates an expected call of GetEgressClusterConfigs.
+func (mr *MockMeshCatalogerMockRecorder) GetEgressClusterConfigs(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEgressTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetEgressTrafficPolicy), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEgressClusterConfigs", reflect.TypeOf((*MockMeshCataloger)(nil).GetEgressClusterConfigs), arg0)
+}
+
+// GetEgressHTTPRouteConfigsPerPort mocks base method.
+func (m *MockMeshCataloger) GetEgressHTTPRouteConfigsPerPort(arg0 identity.ServiceIdentity) map[int][]*trafficpolicy.EgressHTTPRouteConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEgressHTTPRouteConfigsPerPort", arg0)
+	ret0, _ := ret[0].(map[int][]*trafficpolicy.EgressHTTPRouteConfig)
+	return ret0
+}
+
+// GetEgressHTTPRouteConfigsPerPort indicates an expected call of GetEgressHTTPRouteConfigsPerPort.
+func (mr *MockMeshCatalogerMockRecorder) GetEgressHTTPRouteConfigsPerPort(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEgressHTTPRouteConfigsPerPort", reflect.TypeOf((*MockMeshCataloger)(nil).GetEgressHTTPRouteConfigsPerPort), arg0)
+}
+
+// GetEgressTrafficMatches mocks base method.
+func (m *MockMeshCataloger) GetEgressTrafficMatches(arg0 identity.ServiceIdentity) ([]*trafficpolicy.TrafficMatch, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEgressTrafficMatches", arg0)
+	ret0, _ := ret[0].([]*trafficpolicy.TrafficMatch)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEgressTrafficMatches indicates an expected call of GetEgressTrafficMatches.
+func (mr *MockMeshCatalogerMockRecorder) GetEgressTrafficMatches(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEgressTrafficMatches", reflect.TypeOf((*MockMeshCataloger)(nil).GetEgressTrafficMatches), arg0)
 }
 
 // GetHTTPRouteGroup mocks base method.
@@ -88,18 +117,46 @@ func (mr *MockMeshCatalogerMockRecorder) GetHostnamesForService(arg0, arg1 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostnamesForService", reflect.TypeOf((*MockMeshCataloger)(nil).GetHostnamesForService), arg0, arg1)
 }
 
-// GetInboundMeshTrafficPolicy mocks base method.
-func (m *MockMeshCataloger) GetInboundMeshTrafficPolicy(arg0 identity.ServiceIdentity, arg1 []service.MeshService) *trafficpolicy.InboundMeshTrafficPolicy {
+// GetInboundMeshClusterConfigs mocks base method.
+func (m *MockMeshCataloger) GetInboundMeshClusterConfigs(arg0 []service.MeshService) []*trafficpolicy.MeshClusterConfig {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInboundMeshTrafficPolicy", arg0, arg1)
-	ret0, _ := ret[0].(*trafficpolicy.InboundMeshTrafficPolicy)
+	ret := m.ctrl.Call(m, "GetInboundMeshClusterConfigs", arg0)
+	ret0, _ := ret[0].([]*trafficpolicy.MeshClusterConfig)
 	return ret0
 }
 
-// GetInboundMeshTrafficPolicy indicates an expected call of GetInboundMeshTrafficPolicy.
-func (mr *MockMeshCatalogerMockRecorder) GetInboundMeshTrafficPolicy(arg0, arg1 interface{}) *gomock.Call {
+// GetInboundMeshClusterConfigs indicates an expected call of GetInboundMeshClusterConfigs.
+func (mr *MockMeshCatalogerMockRecorder) GetInboundMeshClusterConfigs(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundMeshTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetInboundMeshTrafficPolicy), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundMeshClusterConfigs", reflect.TypeOf((*MockMeshCataloger)(nil).GetInboundMeshClusterConfigs), arg0)
+}
+
+// GetInboundMeshHTTPRouteConfigsPerPort mocks base method.
+func (m *MockMeshCataloger) GetInboundMeshHTTPRouteConfigsPerPort(arg0 identity.ServiceIdentity, arg1 []service.MeshService) map[int][]*trafficpolicy.InboundTrafficPolicy {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInboundMeshHTTPRouteConfigsPerPort", arg0, arg1)
+	ret0, _ := ret[0].(map[int][]*trafficpolicy.InboundTrafficPolicy)
+	return ret0
+}
+
+// GetInboundMeshHTTPRouteConfigsPerPort indicates an expected call of GetInboundMeshHTTPRouteConfigsPerPort.
+func (mr *MockMeshCatalogerMockRecorder) GetInboundMeshHTTPRouteConfigsPerPort(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundMeshHTTPRouteConfigsPerPort", reflect.TypeOf((*MockMeshCataloger)(nil).GetInboundMeshHTTPRouteConfigsPerPort), arg0, arg1)
+}
+
+// GetInboundMeshTrafficMatches mocks base method.
+func (m *MockMeshCataloger) GetInboundMeshTrafficMatches(arg0 []service.MeshService) []*trafficpolicy.TrafficMatch {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInboundMeshTrafficMatches", arg0)
+	ret0, _ := ret[0].([]*trafficpolicy.TrafficMatch)
+	return ret0
+}
+
+// GetInboundMeshTrafficMatches indicates an expected call of GetInboundMeshTrafficMatches.
+func (mr *MockMeshCatalogerMockRecorder) GetInboundMeshTrafficMatches(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInboundMeshTrafficMatches", reflect.TypeOf((*MockMeshCataloger)(nil).GetInboundMeshTrafficMatches), arg0)
 }
 
 // GetIngressBackendPolicyForService mocks base method.
@@ -116,33 +173,61 @@ func (mr *MockMeshCatalogerMockRecorder) GetIngressBackendPolicyForService(arg0 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressBackendPolicyForService", reflect.TypeOf((*MockMeshCataloger)(nil).GetIngressBackendPolicyForService), arg0)
 }
 
-// GetIngressTrafficPolicies mocks base method.
-func (m *MockMeshCataloger) GetIngressTrafficPolicies(arg0 []service.MeshService) []*trafficpolicy.IngressTrafficPolicy {
+// GetIngressHTTPRoutePolicies mocks base method.
+func (m *MockMeshCataloger) GetIngressHTTPRoutePolicies(arg0 []service.MeshService) [][]*trafficpolicy.InboundTrafficPolicy {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetIngressTrafficPolicies", arg0)
-	ret0, _ := ret[0].([]*trafficpolicy.IngressTrafficPolicy)
+	ret := m.ctrl.Call(m, "GetIngressHTTPRoutePolicies", arg0)
+	ret0, _ := ret[0].([][]*trafficpolicy.InboundTrafficPolicy)
 	return ret0
 }
 
-// GetIngressTrafficPolicies indicates an expected call of GetIngressTrafficPolicies.
-func (mr *MockMeshCatalogerMockRecorder) GetIngressTrafficPolicies(arg0 interface{}) *gomock.Call {
+// GetIngressHTTPRoutePolicies indicates an expected call of GetIngressHTTPRoutePolicies.
+func (mr *MockMeshCatalogerMockRecorder) GetIngressHTTPRoutePolicies(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressTrafficPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).GetIngressTrafficPolicies), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressHTTPRoutePolicies", reflect.TypeOf((*MockMeshCataloger)(nil).GetIngressHTTPRoutePolicies), arg0)
 }
 
-// GetIngressTrafficPolicy mocks base method.
-func (m *MockMeshCataloger) GetIngressTrafficPolicy(arg0 service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error) {
+// GetIngressHTTPRoutePoliciesForSvc mocks base method.
+func (m *MockMeshCataloger) GetIngressHTTPRoutePoliciesForSvc(arg0 service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetIngressTrafficPolicy", arg0)
-	ret0, _ := ret[0].(*trafficpolicy.IngressTrafficPolicy)
+	ret := m.ctrl.Call(m, "GetIngressHTTPRoutePoliciesForSvc", arg0)
+	ret0, _ := ret[0].([]*trafficpolicy.InboundTrafficPolicy)
+	return ret0
+}
+
+// GetIngressHTTPRoutePoliciesForSvc indicates an expected call of GetIngressHTTPRoutePoliciesForSvc.
+func (mr *MockMeshCatalogerMockRecorder) GetIngressHTTPRoutePoliciesForSvc(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressHTTPRoutePoliciesForSvc", reflect.TypeOf((*MockMeshCataloger)(nil).GetIngressHTTPRoutePoliciesForSvc), arg0)
+}
+
+// GetIngressTrafficMatches mocks base method.
+func (m *MockMeshCataloger) GetIngressTrafficMatches(arg0 []service.MeshService) [][]*trafficpolicy.IngressTrafficMatch {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIngressTrafficMatches", arg0)
+	ret0, _ := ret[0].([][]*trafficpolicy.IngressTrafficMatch)
+	return ret0
+}
+
+// GetIngressTrafficMatches indicates an expected call of GetIngressTrafficMatches.
+func (mr *MockMeshCatalogerMockRecorder) GetIngressTrafficMatches(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressTrafficMatches", reflect.TypeOf((*MockMeshCataloger)(nil).GetIngressTrafficMatches), arg0)
+}
+
+// GetIngressTrafficMatchesForSvc mocks base method.
+func (m *MockMeshCataloger) GetIngressTrafficMatchesForSvc(arg0 service.MeshService) ([]*trafficpolicy.IngressTrafficMatch, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIngressTrafficMatchesForSvc", arg0)
+	ret0, _ := ret[0].([]*trafficpolicy.IngressTrafficMatch)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetIngressTrafficPolicy indicates an expected call of GetIngressTrafficPolicy.
-func (mr *MockMeshCatalogerMockRecorder) GetIngressTrafficPolicy(arg0 interface{}) *gomock.Call {
+// GetIngressTrafficMatchesForSvc indicates an expected call of GetIngressTrafficMatchesForSvc.
+func (mr *MockMeshCatalogerMockRecorder) GetIngressTrafficMatchesForSvc(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetIngressTrafficPolicy), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressTrafficMatchesForSvc", reflect.TypeOf((*MockMeshCataloger)(nil).GetIngressTrafficMatchesForSvc), arg0)
 }
 
 // GetMeshConfig mocks base method.
@@ -202,18 +287,46 @@ func (mr *MockMeshCatalogerMockRecorder) GetOSMNamespace() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOSMNamespace", reflect.TypeOf((*MockMeshCataloger)(nil).GetOSMNamespace))
 }
 
-// GetOutboundMeshTrafficPolicy mocks base method.
-func (m *MockMeshCataloger) GetOutboundMeshTrafficPolicy(arg0 identity.ServiceIdentity) *trafficpolicy.OutboundMeshTrafficPolicy {
+// GetOutboundMeshClusterConfigs mocks base method.
+func (m *MockMeshCataloger) GetOutboundMeshClusterConfigs(arg0 identity.ServiceIdentity) []*trafficpolicy.MeshClusterConfig {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOutboundMeshTrafficPolicy", arg0)
-	ret0, _ := ret[0].(*trafficpolicy.OutboundMeshTrafficPolicy)
+	ret := m.ctrl.Call(m, "GetOutboundMeshClusterConfigs", arg0)
+	ret0, _ := ret[0].([]*trafficpolicy.MeshClusterConfig)
 	return ret0
 }
 
-// GetOutboundMeshTrafficPolicy indicates an expected call of GetOutboundMeshTrafficPolicy.
-func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshTrafficPolicy(arg0 interface{}) *gomock.Call {
+// GetOutboundMeshClusterConfigs indicates an expected call of GetOutboundMeshClusterConfigs.
+func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshClusterConfigs(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundMeshTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetOutboundMeshTrafficPolicy), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundMeshClusterConfigs", reflect.TypeOf((*MockMeshCataloger)(nil).GetOutboundMeshClusterConfigs), arg0)
+}
+
+// GetOutboundMeshHTTPRouteConfigsPerPort mocks base method.
+func (m *MockMeshCataloger) GetOutboundMeshHTTPRouteConfigsPerPort(arg0 identity.ServiceIdentity) map[int][]*trafficpolicy.OutboundTrafficPolicy {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOutboundMeshHTTPRouteConfigsPerPort", arg0)
+	ret0, _ := ret[0].(map[int][]*trafficpolicy.OutboundTrafficPolicy)
+	return ret0
+}
+
+// GetOutboundMeshHTTPRouteConfigsPerPort indicates an expected call of GetOutboundMeshHTTPRouteConfigsPerPort.
+func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshHTTPRouteConfigsPerPort(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundMeshHTTPRouteConfigsPerPort", reflect.TypeOf((*MockMeshCataloger)(nil).GetOutboundMeshHTTPRouteConfigsPerPort), arg0)
+}
+
+// GetOutboundMeshTrafficMatches mocks base method.
+func (m *MockMeshCataloger) GetOutboundMeshTrafficMatches(arg0 identity.ServiceIdentity) []*trafficpolicy.TrafficMatch {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOutboundMeshTrafficMatches", arg0)
+	ret0, _ := ret[0].([]*trafficpolicy.TrafficMatch)
+	return ret0
+}
+
+// GetOutboundMeshTrafficMatches indicates an expected call of GetOutboundMeshTrafficMatches.
+func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshTrafficMatches(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundMeshTrafficMatches", reflect.TypeOf((*MockMeshCataloger)(nil).GetOutboundMeshTrafficMatches), arg0)
 }
 
 // GetProxyStatsHeaders mocks base method.

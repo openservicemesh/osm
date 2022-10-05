@@ -21,24 +21,24 @@ var (
 )
 
 type listenerBuilder struct {
-	name                      string
-	proxyIdentity             identity.ServiceIdentity
-	address                   *xds_core.Address
-	trafficDirection          xds_core.TrafficDirection
-	trustDomain               string
-	permissiveMesh            bool
-	permissiveEgress          bool
-	outboundMeshTrafficPolicy *trafficpolicy.OutboundMeshTrafficPolicy
-	inboundMeshTrafficPolicy  *trafficpolicy.InboundMeshTrafficPolicy
-	egressTrafficPolicy       *trafficpolicy.EgressTrafficPolicy
-	ingressTrafficPolicies    []*trafficpolicy.IngressTrafficPolicy
-	trafficTargets            []trafficpolicy.TrafficTargetWithRoutes
-	wasmStatsHeaders          map[string]string
-	httpTracingEndpoint       string
-	extAuthzConfig            *auth.ExtAuthConfig
-	activeHealthCheck         bool
-	sidecarSpec               configv1alpha2.SidecarSpec
-	filBuilder                *filterBuilder
+	name                       string
+	proxyIdentity              identity.ServiceIdentity
+	address                    *xds_core.Address
+	trafficDirection           xds_core.TrafficDirection
+	trustDomain                string
+	permissiveMesh             bool
+	permissiveEgress           bool
+	outboundMeshTrafficMatches []*trafficpolicy.TrafficMatch
+	inboundMeshTrafficMatches  []*trafficpolicy.TrafficMatch
+	egressTrafficMatches       []*trafficpolicy.TrafficMatch
+	ingressTrafficMatches      [][]*trafficpolicy.IngressTrafficMatch
+	trafficTargets             []trafficpolicy.TrafficTargetWithRoutes
+	wasmStatsHeaders           map[string]string
+	httpTracingEndpoint        string
+	extAuthzConfig             *auth.ExtAuthConfig
+	activeHealthCheck          bool
+	sidecarSpec                configv1alpha2.SidecarSpec
+	filBuilder                 *filterBuilder
 
 	listenerFilters []*xds_listener.ListenerFilter
 }

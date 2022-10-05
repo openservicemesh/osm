@@ -72,32 +72,28 @@ func TestGenerateCDS(t *testing.T) {
 		},
 	}
 
-	expectedOutboundMeshPolicy := &trafficpolicy.OutboundMeshTrafficPolicy{
-		ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
-			{
-				Name:    "default/bookstore-v1|80",
-				Service: tests.BookstoreV1Service,
-			},
-			{
-				Name:    "default/bookstore-v2|80",
-				Service: tests.BookstoreV2Service,
-			},
+	expectedOutboundMeshClusterConfigs := []*trafficpolicy.MeshClusterConfig{
+		{
+			Name:    "default/bookstore-v1|80",
+			Service: tests.BookstoreV1Service,
+		},
+		{
+			Name:    "default/bookstore-v2|80",
+			Service: tests.BookstoreV2Service,
 		},
 	}
-	expectedInboundMeshPolicy := &trafficpolicy.InboundMeshTrafficPolicy{
-		ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
-			{
-				Name:    "default/bookbuyer|8080|local",
-				Service: testMeshSvc,
-				Port:    8080,
-				Address: "127.0.0.1",
-			},
+	expectedInboundMeshClusterConfigs := []*trafficpolicy.MeshClusterConfig{
+		{
+			Name:    "default/bookbuyer|8080|local",
+			Service: testMeshSvc,
+			Port:    8080,
+			Address: "127.0.0.1",
 		},
 	}
 
-	mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(expectedInboundMeshPolicy).AnyTimes()
-	mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(tests.BookbuyerServiceIdentity).Return(expectedOutboundMeshPolicy).AnyTimes()
-	mockCatalog.EXPECT().GetEgressTrafficPolicy(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
+	mockCatalog.EXPECT().GetInboundMeshClusterConfigs(gomock.Any()).Return(expectedInboundMeshClusterConfigs).AnyTimes()
+	mockCatalog.EXPECT().GetOutboundMeshClusterConfigs(tests.BookbuyerServiceIdentity).Return(expectedOutboundMeshClusterConfigs).AnyTimes()
+	mockCatalog.EXPECT().GetEgressClusterConfigs(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
 	mockCatalog.EXPECT().IsMetricsEnabled(proxy).Return(true, nil).AnyTimes()
 	mockCatalog.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
 	mockCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
@@ -408,7 +404,7 @@ func TestNewResponseListServicesError(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxy.Identity).Return(nil).AnyTimes()
+	meshCatalog.EXPECT().GetOutboundMeshClusterConfigs(proxy.Identity).Return(nil).AnyTimes()
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, errors.New("no services found")).AnyTimes()
 
@@ -419,7 +415,7 @@ func TestNewResponseListServicesError(t *testing.T) {
 	tassert.Nil(t, resources)
 }
 
-func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
+func TestNewResponseGetEgressClusterConfigsError(t *testing.T) {
 	proxyIdentity := identity.K8sServiceAccount{Name: "svcacc", Namespace: "ns"}.ToServiceIdentity()
 	proxyUUID := uuid.New()
 	proxy := models.NewProxy(models.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
@@ -427,9 +423,9 @@ func TestNewResponseGetEgressTrafficPolicyError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
 
-	meshCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxyIdentity).Return(nil).Times(1)
-	meshCatalog.EXPECT().GetEgressTrafficPolicy(proxyIdentity).Return(nil, fmt.Errorf("some error")).Times(1)
+	meshCatalog.EXPECT().GetInboundMeshClusterConfigs(gomock.Any()).Return(nil).Times(1)
+	meshCatalog.EXPECT().GetOutboundMeshClusterConfigs(proxyIdentity).Return(nil).Times(1)
+	meshCatalog.EXPECT().GetEgressClusterConfigs(proxyIdentity).Return(nil, fmt.Errorf("some error")).Times(1)
 	meshCatalog.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
@@ -448,14 +444,12 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	meshCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	meshCatalog.EXPECT().GetOutboundMeshTrafficPolicy(proxyIdentity).Return(nil).Times(1)
+	meshCatalog.EXPECT().GetInboundMeshClusterConfigs(gomock.Any()).Return(nil).Times(1)
+	meshCatalog.EXPECT().GetOutboundMeshClusterConfigs(proxyIdentity).Return(nil).Times(1)
 	meshCatalog.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
-	meshCatalog.EXPECT().GetEgressTrafficPolicy(proxyIdentity).Return(&trafficpolicy.EgressTrafficPolicy{
-		ClustersConfigs: []*trafficpolicy.EgressClusterConfig{
-			{Name: "my-cluster"},
-			{Name: "my-cluster"}, // the test ensures this duplicate is removed
-		},
+	meshCatalog.EXPECT().GetEgressClusterConfigs(proxyIdentity).Return([]*trafficpolicy.EgressClusterConfig{
+		{Name: "my-cluster"},
+		{Name: "my-cluster"}, // the test ensures this duplicate is removed
 	}, nil).Times(1)
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()

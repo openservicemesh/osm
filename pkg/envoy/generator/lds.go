@@ -46,17 +46,17 @@ func (g *EnvoyConfigGenerator) generateLDS(ctx context.Context, proxy *models.Pr
 		Address(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort).
 		TrafficDirection(xds_core.TrafficDirection_OUTBOUND).
 		PermissiveMesh(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode).
-		OutboundMeshTrafficPolicy(g.catalog.GetOutboundMeshTrafficPolicy(proxy.Identity)).
+		OutboundMeshTrafficMatches(g.catalog.GetOutboundMeshTrafficMatches(proxy.Identity)).
 		ActiveHealthCheck(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks)
 
 	if meshConfig.Spec.Traffic.EnableEgress {
 		outboundLis.PermissiveEgress(true)
 	} else {
-		egressPolicy, err := g.catalog.GetEgressTrafficPolicy(proxy.Identity)
+		egressTrafficMatches, err := g.catalog.GetEgressTrafficMatches(proxy.Identity)
 		if err != nil {
 			return nil, fmt.Errorf("error building LDS response: %w", err)
 		}
-		outboundLis.EgressTrafficPolicy(egressPolicy)
+		outboundLis.EgressTrafficMatches(egressTrafficMatches)
 	}
 	if meshConfig.Spec.Observability.Tracing.Enable {
 		outboundLis.TracingEndpoint(utils.GetTracingEndpoint(meshConfig))
@@ -86,8 +86,7 @@ func (g *EnvoyConfigGenerator) generateLDS(ctx context.Context, proxy *models.Pr
 		TrafficDirection(xds_core.TrafficDirection_INBOUND).
 		DefaultInboundListenerFilters().
 		PermissiveMesh(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode).
-		InboundMeshTrafficPolicy(g.catalog.GetInboundMeshTrafficPolicy(proxy.Identity, svcList)).
-		IngressTrafficPolicies(g.catalog.GetIngressTrafficPolicies(svcList)).
+		InboundMeshTrafficMatches(g.catalog.GetInboundMeshTrafficMatches(svcList)).
 		ActiveHealthCheck(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks).
 		SidecarSpec(meshConfig.Spec.Sidecar)
 
@@ -96,6 +95,9 @@ func (g *EnvoyConfigGenerator) generateLDS(ctx context.Context, proxy *models.Pr
 		return nil, fmt.Errorf("error building inbound listener: %w", err)
 	}
 	inboundLis.TrafficTargets(trafficTargets)
+
+	ingressTrafficMatches := g.catalog.GetIngressTrafficMatches(svcList)
+	inboundLis.IngressTrafficMatches(ingressTrafficMatches)
 
 	if meshConfig.Spec.Observability.Tracing.Enable {
 		inboundLis.TracingEndpoint(utils.GetTracingEndpoint(meshConfig))

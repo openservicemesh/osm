@@ -273,10 +273,10 @@ func TestGenerateRDS(t *testing.T) {
 			mockKubeController.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
 			mockCatalog.EXPECT().GetMeshConfig().AnyTimes()
-			mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(&trafficpolicy.InboundMeshTrafficPolicy{HTTPRouteConfigsPerPort: tc.expectedInboundPolicies}).AnyTimes()
-			mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(&trafficpolicy.OutboundMeshTrafficPolicy{HTTPRouteConfigsPerPort: tc.expectedOutboundPolicies}).AnyTimes()
-			mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(&trafficpolicy.IngressTrafficPolicy{HTTPRoutePolicies: tc.ingressInboundPolicies}, nil).AnyTimes()
-			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
+			mockCatalog.EXPECT().GetInboundMeshHTTPRouteConfigsPerPort(gomock.Any(), gomock.Any()).Return(tc.expectedInboundPolicies).AnyTimes()
+			mockCatalog.EXPECT().GetOutboundMeshHTTPRouteConfigsPerPort(gomock.Any()).Return(tc.expectedOutboundPolicies).AnyTimes()
+			mockCatalog.EXPECT().GetIngressHTTPRoutePoliciesForSvc(gomock.Any()).Return(tc.ingressInboundPolicies).AnyTimes()
+			mockCatalog.EXPECT().GetEgressHTTPRouteConfigsPerPort(gomock.Any()).Return(nil).AnyTimes()
 			mockCatalog.EXPECT().ListServicesForProxy(proxy).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
 			// Empty discovery request
 			cm := tresorFake.NewFake(1 * time.Hour)
@@ -747,12 +747,12 @@ func TestRDSRespose(t *testing.T) {
 
 			outboundTestPort := 8888 // Port used for the outbound services in this test
 			inboundTestPort := 80    // Port used for the inbound services in this test
-			expectedInboundMeshPolicy := &trafficpolicy.InboundMeshTrafficPolicy{HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{inboundTestPort: tc.expectedInboundPolicies}}
-			expectedOutboundMeshPolicy := &trafficpolicy.OutboundMeshTrafficPolicy{HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.OutboundTrafficPolicy{outboundTestPort: tc.expectedOutboundPolicies}}
-			mockCatalog.EXPECT().GetInboundMeshTrafficPolicy(gomock.Any(), gomock.Any()).Return(expectedInboundMeshPolicy).AnyTimes()
-			mockCatalog.EXPECT().GetOutboundMeshTrafficPolicy(gomock.Any()).Return(expectedOutboundMeshPolicy).AnyTimes()
-			mockCatalog.EXPECT().GetIngressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
-			mockCatalog.EXPECT().GetEgressTrafficPolicy(gomock.Any()).Return(nil, nil).AnyTimes()
+			expectedInboundMeshHTTPRouteConfigsPerPort := map[int][]*trafficpolicy.InboundTrafficPolicy{inboundTestPort: tc.expectedInboundPolicies}
+			expectedOutboundMeshHTTPRouteConfigsPerPort := map[int][]*trafficpolicy.OutboundTrafficPolicy{outboundTestPort: tc.expectedOutboundPolicies}
+			mockCatalog.EXPECT().GetInboundMeshHTTPRouteConfigsPerPort(gomock.Any(), gomock.Any()).Return(expectedInboundMeshHTTPRouteConfigsPerPort).AnyTimes()
+			mockCatalog.EXPECT().GetOutboundMeshHTTPRouteConfigsPerPort(gomock.Any()).Return(expectedOutboundMeshHTTPRouteConfigsPerPort).AnyTimes()
+			mockCatalog.EXPECT().GetIngressHTTPRoutePoliciesForSvc(gomock.Any()).Return(nil).AnyTimes()
+			mockCatalog.EXPECT().GetEgressHTTPRouteConfigsPerPort(gomock.Any()).Return(nil).AnyTimes()
 			mockCatalog.EXPECT().GetMeshConfig().AnyTimes()
 			mockCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 			mockCatalog.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()

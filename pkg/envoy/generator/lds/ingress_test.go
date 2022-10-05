@@ -18,20 +18,18 @@ import (
 func TestGetIngressFilterChains(t *testing.T) {
 	testCases := []struct {
 		name                     string
-		ingressPolicies          []*trafficpolicy.IngressTrafficPolicy
+		ingressTrafficMatches    [][]*trafficpolicy.IngressTrafficMatch
 		expectedFilterChainCount int
 	}{
 		{
 			name: "HTTP ingress",
-			ingressPolicies: []*trafficpolicy.IngressTrafficPolicy{
+			ingressTrafficMatches: [][]*trafficpolicy.IngressTrafficMatch{
 				{
-					TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
-						{
-							Name:           "http-ingress",
-							Port:           80,
-							Protocol:       "http",
-							SourceIPRanges: []string{"10.1.1.0/24"},
-						},
+					{
+						Name:           "http-ingress",
+						Port:           80,
+						Protocol:       "http",
+						SourceIPRanges: []string{"10.1.1.0/24"},
 					},
 				},
 			},
@@ -39,20 +37,18 @@ func TestGetIngressFilterChains(t *testing.T) {
 		},
 		{
 			name: "HTTPS ingress",
-			ingressPolicies: []*trafficpolicy.IngressTrafficPolicy{
+			ingressTrafficMatches: [][]*trafficpolicy.IngressTrafficMatch{
 				{
-					TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
-						{
-							Name:     "https-ingress",
-							Port:     80,
-							Protocol: "https",
-						},
-						{
-							Name:        "https-ingress_with_sni",
-							Port:        80,
-							Protocol:    "https",
-							ServerNames: []string{"foo.bar.svc.cluster.local"},
-						},
+					{
+						Name:     "https-ingress",
+						Port:     80,
+						Protocol: "https",
+					},
+					{
+						Name:        "https-ingress_with_sni",
+						Port:        80,
+						Protocol:    "https",
+						ServerNames: []string{"foo.bar.svc.cluster.local"},
 					},
 				},
 			},
@@ -60,7 +56,7 @@ func TestGetIngressFilterChains(t *testing.T) {
 		},
 		{
 			name:                     "no ingress",
-			ingressPolicies:          nil,
+			ingressTrafficMatches:    nil,
 			expectedFilterChainCount: 0,
 		},
 	}
@@ -69,10 +65,10 @@ func TestGetIngressFilterChains(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 			lb := &listenerBuilder{
-				proxyIdentity:          tests.BookstoreServiceIdentity,
-				ingressTrafficPolicies: tc.ingressPolicies,
-				httpTracingEndpoint:    "foo.com/bar",
-				extAuthzConfig:         &auth.ExtAuthConfig{Enable: true},
+				proxyIdentity:         tests.BookstoreServiceIdentity,
+				ingressTrafficMatches: tc.ingressTrafficMatches,
+				httpTracingEndpoint:   "foo.com/bar",
+				extAuthzConfig:        &auth.ExtAuthConfig{Enable: true},
 			}
 
 			actual := lb.buildIngressFilterChains()
