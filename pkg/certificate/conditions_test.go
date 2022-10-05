@@ -40,12 +40,12 @@ func TestSetMRCCondition(t *testing.T) {
 						},
 					},
 					TrustDomain: "testDomain",
-					Intent:      v1alpha2.Passive,
+					Intent:      v1alpha2.MRCIntentPassive,
 				},
 			},
 			expectedConditionsLen: 1,
 			newCondition: v1alpha2.MeshRootCertificateCondition{
-				Type:    v1alpha2.Accepted,
+				Type:    v1alpha2.MRCConditionTypeAccepted,
 				Status:  v1.ConditionTrue,
 				Reason:  certificateAcceptedReason,
 				Message: "test",
@@ -70,12 +70,12 @@ func TestSetMRCCondition(t *testing.T) {
 						},
 					},
 					TrustDomain: "testDomain",
-					Intent:      v1alpha2.Passive,
+					Intent:      v1alpha2.MRCIntentPassive,
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:               v1alpha2.ValidatingRollback,
+							Type:               v1alpha2.MRCConditionTypeValidatingRollback,
 							Status:             v1.ConditionFalse,
 							Reason:             isNotReadyValidatingReason,
 							Message:            "test",
@@ -87,7 +87,7 @@ func TestSetMRCCondition(t *testing.T) {
 			expectedConditionsLen:      1,
 			expectedLastTransitionTime: &now,
 			newCondition: v1alpha2.MeshRootCertificateCondition{
-				Type:    v1alpha2.ValidatingRollback,
+				Type:    v1alpha2.MRCConditionTypeValidatingRollback,
 				Status:  v1.ConditionFalse,
 				Reason:  noLongerValidatingReason,
 				Message: "test",
@@ -112,12 +112,12 @@ func TestSetMRCCondition(t *testing.T) {
 						},
 					},
 					TrustDomain: "testDomain",
-					Intent:      v1alpha2.Passive,
+					Intent:      v1alpha2.MRCIntentPassive,
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:    v1alpha2.ValidatingRollout,
+							Type:    v1alpha2.MRCConditionTypeValidatingRollout,
 							Status:  v1.ConditionFalse,
 							Reason:  passiveStateValidatingReason,
 							Message: "test",
@@ -127,7 +127,7 @@ func TestSetMRCCondition(t *testing.T) {
 			},
 			expectedConditionsLen: 1,
 			newCondition: v1alpha2.MeshRootCertificateCondition{
-				Type:    v1alpha2.ValidatingRollout,
+				Type:    v1alpha2.MRCConditionTypeValidatingRollout,
 				Status:  v1.ConditionTrue,
 				Reason:  passivelyInUseForValidatingReason,
 				Message: "test",

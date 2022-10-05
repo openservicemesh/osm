@@ -437,27 +437,27 @@ func (b *bootstrap) createMeshRootCertificate() error {
 		State: constants.MRCStatePending,
 		Conditions: []configv1alpha2.MeshRootCertificateCondition{
 			{
-				Type:   configv1alpha2.Ready,
+				Type:   configv1alpha2.MRCConditionTypeReady,
 				Status: corev1.ConditionUnknown,
 			},
 			{
-				Type:   configv1alpha2.Accepted,
+				Type:   configv1alpha2.MRCConditionTypeAccepted,
 				Status: corev1.ConditionUnknown,
 			},
 			{
-				Type:   configv1alpha2.IssuingRollout,
+				Type:   configv1alpha2.MRCConditionTypeIssuingRollout,
 				Status: corev1.ConditionUnknown,
 			},
 			{
-				Type:   configv1alpha2.ValidatingRollout,
+				Type:   configv1alpha2.MRCConditionTypeValidatingRollout,
 				Status: corev1.ConditionUnknown,
 			},
 			{
-				Type:   configv1alpha2.IssuingRollback,
+				Type:   configv1alpha2.MRCConditionTypeIssuingRollback,
 				Status: corev1.ConditionUnknown,
 			},
 			{
-				Type:   configv1alpha2.ValidatingRollback,
+				Type:   configv1alpha2.MRCConditionTypeValidatingRollback,
 				Status: corev1.ConditionUnknown,
 			},
 		},

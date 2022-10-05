@@ -123,11 +123,11 @@ type TresorCASpec struct {
 type MeshRootCertificateIntent string
 
 const (
-	// Passive is the passive option for the Intent of the MeshRootCertificate
-	Passive MeshRootCertificateIntent = "passive"
+	// MRCIntentPassive is the passive option for the Intent of the MeshRootCertificate
+	MRCIntentPassive MeshRootCertificateIntent = "passive"
 
-	// Active is the active option for the Intent of the MeshRootCertificate
-	Active MeshRootCertificateIntent = "active"
+	// MRCIntentActive is the active option for the Intent of the MeshRootCertificate
+	MRCIntentActive MeshRootCertificateIntent = "active"
 )
 
 // MeshRootCertificateComponentStatus specifies the status of the certificate component,
@@ -135,19 +135,19 @@ const (
 type MeshRootCertificateComponentStatus string
 
 const (
-	// Issuing means that the root cert described by this MRC is now issuing certs for this component of OSM.
-	Issuing MeshRootCertificateComponentStatus = "issuing"
+	// MRCComponentStatusIssuing means that the root cert described by this MRC is now issuing certs for this component of OSM.
+	MRCComponentStatusIssuing MeshRootCertificateComponentStatus = "issuing"
 
-	// Validating means that the root cert's cert chain, described by this MRC is now part of the CABundle used to
+	// MRCComponentStatusValidating means that the root cert's cert chain, described by this MRC is now part of the CABundle used to
 	// validate requests for this component.
-	Validating MeshRootCertificateComponentStatus = "validating"
+	MRCComponentStatusValidating MeshRootCertificateComponentStatus = "validating"
 
-	// Unused means that the root cert described by this MRC is unused.
-	Unused MeshRootCertificateComponentStatus = "unused"
+	// MRCComponentStatusUnused means that the root cert described by this MRC is unused.
+	MRCComponentStatusUnused MeshRootCertificateComponentStatus = "unused"
 
-	// UnknownComponentStatus means that the use of the root cert described by this MRC is in an unknown state for this
+	// MRCComponentStatusUnknownComponentStatus means that the use of the root cert described by this MRC is in an unknown state for this
 	// component.
-	UnknownComponentStatus MeshRootCertificateComponentStatus = "unknown"
+	MRCComponentStatusUnknownComponentStatus MeshRootCertificateComponentStatus = "unknown"
 )
 
 // MeshRootCertificateConditionType specifies the type of the condition,
@@ -155,23 +155,23 @@ const (
 type MeshRootCertificateConditionType string
 
 const (
-	// Ready specifies if the MRC is in a ready state.
-	Ready MeshRootCertificateConditionType = "ready"
+	// MRCConditionTypeReady specifies if the MRC is in a ready state.
+	MRCConditionTypeReady MeshRootCertificateConditionType = "ready"
 
-	// Accepted specifies if the provider has been accepted.
-	Accepted MeshRootCertificateConditionType = "accepted"
+	// MRCConditionTypeAccepted specifies if the provider has been accepted.
+	MRCConditionTypeAccepted MeshRootCertificateConditionType = "accepted"
 
-	// IssuingRollout specifies if the MRC is in an issuingRollout state.
-	IssuingRollout MeshRootCertificateConditionType = "issuingRollout"
+	// MRCConditionTypeIssuingRollout specifies if the MRC is in an issuingRollout state.
+	MRCConditionTypeIssuingRollout MeshRootCertificateConditionType = "issuingRollout"
 
-	// ValidatingRollout specifies if the MRC is in a validatingRollout state.
-	ValidatingRollout MeshRootCertificateConditionType = "validatingRollout"
+	// MRCConditionTypeValidatingRollout specifies if the MRC is in a validatingRollout state.
+	MRCConditionTypeValidatingRollout MeshRootCertificateConditionType = "validatingRollout"
 
-	// IssuingRollback specifies if the MRC is in a issuingRollback state.
-	IssuingRollback MeshRootCertificateConditionType = "issuingRollback"
+	// MRCConditionTypeIssuingRollback specifies if the MRC is in a issuingRollback state.
+	MRCConditionTypeIssuingRollback MeshRootCertificateConditionType = "issuingRollback"
 
-	// ValidatingRollback specifies if the MRC is in a validatingRollback state.
-	ValidatingRollback MeshRootCertificateConditionType = "validatingRollback"
+	// MRCConditionTypeValidatingRollback specifies if the MRC is in a validatingRollback state.
+	MRCConditionTypeValidatingRollback MeshRootCertificateConditionType = "validatingRollback"
 )
 
 // MeshRootCertificateComponentStatuses is the set of statuses for each certificate component in the cluster.

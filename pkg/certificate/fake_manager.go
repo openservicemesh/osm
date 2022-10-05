@@ -79,27 +79,27 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 					State: constants.MRCStateActive,
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:   v1alpha2.Ready,
+							Type:   v1alpha2.MRCConditionTypeReady,
 							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   v1alpha2.Accepted,
+							Type:   v1alpha2.MRCConditionTypeAccepted,
 							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   v1alpha2.IssuingRollout,
+							Type:   v1alpha2.MRCConditionTypeIssuingRollout,
 							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   v1alpha2.ValidatingRollout,
+							Type:   v1alpha2.MRCConditionTypeValidatingRollout,
 							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   v1alpha2.IssuingRollback,
+							Type:   v1alpha2.MRCConditionTypeIssuingRollback,
 							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   v1alpha2.ValidatingRollback,
+							Type:   v1alpha2.MRCConditionTypeValidatingRollback,
 							Status: v1.ConditionUnknown,
 						},
 					},

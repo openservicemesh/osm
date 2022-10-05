@@ -303,7 +303,7 @@ func (kc *validator) validateMRCOnCreate(mrc *configv1alpha2.MeshRootCertificate
 		return err
 	}
 
-	if mrc.Spec.Intent == configv1alpha2.Active {
+	if mrc.Spec.Intent == configv1alpha2.MRCIntentActive {
 		foundActive, err := kc.checkForExistingActiveMRC(mrc)
 		if err != nil {
 			return err
@@ -329,7 +329,7 @@ func (kc *validator) validateMRCOnUpdate(oldMRC *configv1alpha2.MeshRootCertific
 		return fmt.Errorf("cannot update SpiffeEnabled for MRC %s. Create a new MRC and initiate root certificate rotation to enable SPIFFE certificates", getNamespacedMRC(oldMRC))
 	}
 
-	if oldMRC.Spec.Intent != newMRC.Spec.Intent && newMRC.Spec.Intent == configv1alpha2.Active {
+	if oldMRC.Spec.Intent != newMRC.Spec.Intent && newMRC.Spec.Intent == configv1alpha2.MRCIntentActive {
 		foundActive, err := kc.checkForExistingActiveMRC(newMRC)
 		if err != nil {
 			return err
@@ -377,7 +377,7 @@ func (kc *validator) checkForExistingActiveMRC(mrc *configv1alpha2.MeshRootCerti
 	}
 
 	for _, m := range mrcs {
-		if m.Spec.Intent == configv1alpha2.Active && m.Name != mrc.Name {
+		if m.Spec.Intent == configv1alpha2.MRCIntentActive && m.Name != mrc.Name {
 			log.Error().Msgf("cannot create MRC %s with intent active. An MRC with active intent already exists in the control plane namespace", getNamespacedMRC(mrc))
 			return true, nil
 		}

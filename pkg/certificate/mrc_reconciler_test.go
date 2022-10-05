@@ -14,7 +14,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -36,7 +35,7 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      v1alpha2.Passive,
+					Intent:      v1alpha2.MRCIntentPassive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -64,7 +63,7 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      v1alpha2.Passive,
+					Intent:      v1alpha2.MRCIntentPassive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -92,7 +91,7 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      v1alpha2.Passive,
+					Intent:      v1alpha2.MRCIntentActive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -120,7 +119,7 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      v1alpha2.Passive,
+					Intent:      v1alpha2.MRCIntentPassive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -136,19 +135,19 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 					State: constants.MRCStatePending,
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:    v1alpha2.Accepted,
+							Type:    v1alpha2.MRCConditionTypeAccepted,
 							Status:  v1.ConditionTrue,
 							Reason:  certificateAcceptedReason,
 							Message: "certificate accepted",
 						},
 						{
-							Type:    v1alpha2.ValidatingRollout,
+							Type:    v1alpha2.MRCConditionTypeValidatingRollout,
 							Status:  v1.ConditionFalse,
 							Reason:  passiveStateValidatingReason,
 							Message: "passive intent",
 						},
 						{
-							Type:    v1alpha2.IssuingRollout,
+							Type:    v1alpha2.MRCConditionTypeIssuingRollout,
 							Status:  v1.ConditionFalse,
 							Reason:  passiveStateIssuingReason,
 							Message: "passive intent",
@@ -194,7 +193,7 @@ func TestUpdateMRCState(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      v1alpha2.Passive,
+					Intent:      v1alpha2.MRCIntentPassive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -217,7 +216,7 @@ func TestUpdateMRCState(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      v1alpha2.Passive,
+					Intent:      v1alpha2.MRCIntentPassive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -240,7 +239,7 @@ func TestUpdateMRCState(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      v1alpha2.Passive,
+					Intent:      v1alpha2.MRCIntentPassive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -256,19 +255,19 @@ func TestUpdateMRCState(t *testing.T) {
 					State: constants.MRCStatePending,
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:    v1alpha2.Accepted,
+							Type:    v1alpha2.MRCConditionTypeAccepted,
 							Status:  v1.ConditionTrue,
 							Reason:  certificateAcceptedReason,
 							Message: "certificate accepted",
 						},
 						{
-							Type:    v1alpha2.ValidatingRollout,
+							Type:    v1alpha2.MRCConditionTypeValidatingRollout,
 							Status:  v1.ConditionFalse,
 							Reason:  passiveStateValidatingReason,
 							Message: "passive intent",
 						},
 						{
-							Type:    v1alpha2.IssuingRollout,
+							Type:    v1alpha2.MRCConditionTypeIssuingRollout,
 							Status:  v1.ConditionFalse,
 							Reason:  passiveStateIssuingReason,
 							Message: "passive intent",
@@ -287,7 +286,7 @@ func TestUpdateMRCState(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      v1alpha2.Passive,
+					Intent:      v1alpha2.MRCIntentPassive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -310,7 +309,7 @@ func TestUpdateMRCState(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      v1alpha2.Passive,
+					Intent:      v1alpha2.MRCIntentPassive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -333,7 +332,7 @@ func TestUpdateMRCState(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      v1alpha2.Passive,
+					Intent:      v1alpha2.MRCIntentPassive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -359,17 +358,10 @@ func TestUpdateMRCState(t *testing.T) {
 			stop := make(chan struct{})
 			defer close(stop)
 
-			msgBroker := messaging.NewBroker(stop)
-
-			ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(tc.configClient, tests.OsmMeshConfigName, tests.OsmNamespace))
-			assert.NoError(err)
-			assert.NotNil(ic)
-
-			err = ic.Add(informers.InformerKeyMeshRootCertificate, tc.mrc, t)
-			assert.NoError(err)
-
-			k8sClient := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, tc.configClient, msgBroker)
+			k8sClient, err := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, messaging.NewBroker(stop),
+				k8s.WithConfigClient(tc.configClient))
 			assert.NotNil(k8sClient)
+			assert.NoError(err)
 
 			computeClient := kube.NewClient(k8sClient)
 

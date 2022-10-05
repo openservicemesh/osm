@@ -342,27 +342,27 @@ func TestHandleMRCEvent(t *testing.T) {
 						// unspecified component status will be unknown.
 						Conditions: []v1alpha2.MeshRootCertificateCondition{
 							{
-								Type:   v1alpha2.Ready,
+								Type:   v1alpha2.MRCConditionTypeReady,
 								Status: corev1.ConditionUnknown,
 							},
 							{
-								Type:   v1alpha2.Accepted,
+								Type:   v1alpha2.MRCConditionTypeAccepted,
 								Status: corev1.ConditionUnknown,
 							},
 							{
-								Type:   v1alpha2.IssuingRollout,
+								Type:   v1alpha2.MRCConditionTypeIssuingRollout,
 								Status: corev1.ConditionUnknown,
 							},
 							{
-								Type:   v1alpha2.ValidatingRollout,
+								Type:   v1alpha2.MRCConditionTypeValidatingRollout,
 								Status: corev1.ConditionUnknown,
 							},
 							{
-								Type:   v1alpha2.IssuingRollback,
+								Type:   v1alpha2.MRCConditionTypeIssuingRollback,
 								Status: corev1.ConditionUnknown,
 							},
 							{
-								Type:   v1alpha2.ValidatingRollback,
+								Type:   v1alpha2.MRCConditionTypeValidatingRollback,
 								Status: corev1.ConditionUnknown,
 							},
 						},

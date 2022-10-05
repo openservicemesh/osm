@@ -65,34 +65,34 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 			Spec: v1alpha2.MeshRootCertificateSpec{
 				Provider:    option.AsProviderSpec(),
 				TrustDomain: trustDomain,
-				Intent:      v1alpha2.Passive,
+				Intent:      v1alpha2.MRCIntentPassive,
 			},
 			Status: v1alpha2.MeshRootCertificateStatus{
 				State: constants.MRCStateActive,
 				// Statuses unset will be marked unknown
 				Conditions: []v1alpha2.MeshRootCertificateCondition{
 					{
-						Type:   v1alpha2.Ready,
+						Type:   v1alpha2.MRCConditionTypeReady,
 						Status: corev1.ConditionUnknown,
 					},
 					{
-						Type:   v1alpha2.Accepted,
+						Type:   v1alpha2.MRCConditionTypeAccepted,
 						Status: corev1.ConditionUnknown,
 					},
 					{
-						Type:   v1alpha2.IssuingRollout,
+						Type:   v1alpha2.MRCConditionTypeIssuingRollout,
 						Status: corev1.ConditionUnknown,
 					},
 					{
-						Type:   v1alpha2.ValidatingRollout,
+						Type:   v1alpha2.MRCConditionTypeValidatingRollout,
 						Status: corev1.ConditionUnknown,
 					},
 					{
-						Type:   v1alpha2.IssuingRollback,
+						Type:   v1alpha2.MRCConditionTypeIssuingRollback,
 						Status: corev1.ConditionUnknown,
 					},
 					{
-						Type:   v1alpha2.ValidatingRollback,
+						Type:   v1alpha2.MRCConditionTypeValidatingRollback,
 						Status: corev1.ConditionUnknown,
 					},
 				},
