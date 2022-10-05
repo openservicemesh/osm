@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	smiAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
@@ -37,7 +38,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/injector"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -188,20 +188,19 @@ func main() {
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(kubeConfig)
 
-	informerCollection, err := informers.NewInformerCollection(meshName, stop,
-		informers.WithKubeClient(kubeClient),
-		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
-		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
-		informers.WithPolicyClient(policyClient),
-		informers.WithMCSClient(mcsClient),
+	// Initialize kubernetes.Controller to watch kubernetes resources
+	kubeController, err := k8s.NewClient(osmNamespace, osmMeshConfigName, msgBroker,
+		k8s.WithKubeClient(kubeClient, meshName),
+		k8s.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		k8s.WithConfigClient(configClient),
+		k8s.WithPolicyClient(policyClient),
+		k8s.WithMCSClient(mcsClient),
 	)
 
 	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating kubernetes client")
 	}
 
-	// Initialize kubernetes.Controller to watch kubernetes resources
-	kubeController := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, kubeClient, policyClient, configClient, mcsClient, msgBroker, informers.InformerKeyNamespace)
 	computeClient := kube.NewClient(kubeController)
 
 	certOpts, err := getCertOptions()
@@ -213,14 +212,14 @@ func main() {
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
 		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, kubeController, informerCollection, constants.CertCheckInterval)
+			certOpts, computeClient, 5*time.Second)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s from MRC", certProviderKind)
 		}
 	} else {
 		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, kubeController, constants.CertCheckInterval, trustDomain)
+			certOpts, computeClient, constants.CertCheckInterval, trustDomain)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s", certProviderKind)

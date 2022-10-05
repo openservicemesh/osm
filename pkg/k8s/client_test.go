@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	gomock "github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	smiAccessClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
@@ -22,7 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
-	testclient "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
@@ -32,7 +30,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/models"
@@ -56,6 +53,9 @@ func TestIsMonitoredNamespace(t *testing.T) {
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "foo",
+					Labels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+					},
 				},
 			},
 			ns:       "foo",
@@ -77,10 +77,11 @@ func TestIsMonitoredNamespace(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
 
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
-			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(tc.namespace), testMeshName))
+			a.NoError(err)
 
 			actual := c.IsMonitoredNamespace(tc.ns)
 			a.Equal(tc.expected, actual)
@@ -100,6 +101,9 @@ func TestGetNamespace(t *testing.T) {
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "foo",
+					Labels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+					},
 				},
 			},
 			ns:       "foo",
@@ -110,6 +114,9 @@ func TestGetNamespace(t *testing.T) {
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "foo",
+					Labels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+					},
 				},
 			},
 			ns:       "invalid",
@@ -120,10 +127,11 @@ func TestGetNamespace(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
-			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(tc.namespace), testMeshName))
+			a.NoError(err)
 
 			actual := c.GetNamespace(tc.ns)
 			if tc.expected {
@@ -138,20 +146,26 @@ func TestGetNamespace(t *testing.T) {
 func TestListNamespaces(t *testing.T) {
 	testCases := []struct {
 		name       string
-		namespaces []*corev1.Namespace
+		namespaces []runtime.Object
 		expected   []string
 	}{
 		{
 			name: "gets the namespace from the cache given its key",
-			namespaces: []*corev1.Namespace{
-				{
+			namespaces: []runtime.Object{
+				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "ns1",
+						Labels: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+						},
 					},
 				},
-				{
+				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "ns2",
+						Labels: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+						},
 					},
 				},
 			},
@@ -167,12 +181,11 @@ func TestListNamespaces(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
-			for _, ns := range tc.namespaces {
-				_ = ic.Add(informers.InformerKeyNamespace, ns, t)
-			}
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(tc.namespaces...), testMeshName))
+			a.NoError(err)
 
 			actual, err := c.ListNamespaces()
 			a.Nil(err)
@@ -234,10 +247,11 @@ func TestGetService(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
-			_ = ic.Add(informers.InformerKeyService, tc.service, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(tc.service), testMeshName))
+			a.NoError(err)
 
 			actual := c.GetService(tc.svcName, tc.svcNamespace)
 			if tc.expected {
@@ -252,22 +266,24 @@ func TestGetService(t *testing.T) {
 func TestListSecrets(t *testing.T) {
 	testCases := []struct {
 		name     string
-		secrets  []*corev1.Secret
+		secrets  []runtime.Object
 		expected []*models.Secret
 	}{
 		{
 			name: "get multiple k8s secrets",
-			secrets: []*corev1.Secret{
-				{
+			secrets: []runtime.Object{
+				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns1",
 						Name:      "s1",
+						Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
 					},
 				},
-				{
+				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns2",
 						Name:      "s2",
+						Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
 					},
 				},
 			},
@@ -284,11 +300,12 @@ func TestListSecrets(t *testing.T) {
 		},
 		{
 			name: "get one k8s secret",
-			secrets: []*corev1.Secret{
-				{
+			secrets: []runtime.Object{
+				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns1",
 						Name:      "s1",
+						Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
 					},
 				},
 			},
@@ -300,22 +317,18 @@ func TestListSecrets(t *testing.T) {
 			},
 		},
 		{
-			name:     "no k8s secret",
-			secrets:  []*corev1.Secret{},
-			expected: []*models.Secret{},
+			name: "no k8s secret",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			for _, s := range tc.secrets {
-				_ = ic.Add(informers.InformerKeySecret, s, t)
-			}
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(tc.secrets...), testMeshName))
+			a.Nil(err)
 
 			actual := c.ListSecrets()
 			a.ElementsMatch(tc.expected, actual)
@@ -337,6 +350,7 @@ func TestGetSecret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "ns1",
+					Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
 				},
 			},
 			secretName: "foo",
@@ -352,6 +366,7 @@ func TestGetSecret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "ns1",
+					Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
 				},
 			},
 			secretName: "doesntExist",
@@ -363,11 +378,12 @@ func TestGetSecret(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
-			err = ic.Add(informers.InformerKeySecret, tc.secret, t)
-			a.Nil(err)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker,
+				WithKubeClient(fake.NewSimpleClientset(tc.secret), testMeshName))
+			a.NoError(err)
 
 			actual := c.GetSecret(tc.secretName, tc.namespace)
 			a.Equal(tc.expSecret, actual)
@@ -387,7 +403,9 @@ func TestUpdateSecret(t *testing.T) {
 			corev1Secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "s1",
-					Namespace: "ns1"},
+					Namespace: "ns1",
+					Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
+				},
 				Data: map[string][]byte{},
 			},
 			secret: &models.Secret{
@@ -401,17 +419,12 @@ func TestUpdateSecret(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			err = ic.Add(informers.InformerKeySecret, tc.corev1Secret, t)
-			a.Nil(err)
-
-			fakeK8sClient := fake.NewSimpleClientset()
-			c := NewClient(testNs, tests.OsmMeshConfigName, ic, fakeK8sClient, nil, nil, nil, nil)
-
-			_, err = c.kubeClient.CoreV1().Secrets("ns1").Create(context.Background(), tc.corev1Secret, metav1.CreateOptions{})
-			a.Nil(err)
+			c, err := NewClient(testNs, tests.OsmMeshConfigName, broker,
+				WithKubeClient(fake.NewSimpleClientset(tc.corev1Secret), testMeshName))
+			a.NoError(err)
 
 			err = c.UpdateSecret(context.Background(), tc.secret)
 			a.Nil(err)
@@ -427,7 +440,7 @@ func TestListServices(t *testing.T) {
 	testCases := []struct {
 		name      string
 		namespace *corev1.Namespace
-		services  []*corev1.Service
+		services  []runtime.Object
 		expected  []*corev1.Service
 	}{
 		{
@@ -435,16 +448,19 @@ func TestListServices(t *testing.T) {
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "ns1",
+					Labels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+					},
 				},
 			},
-			services: []*corev1.Service{
-				{
+			services: []runtime.Object{
+				&corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns1",
 						Name:      "s1",
 					},
 				},
-				{
+				&corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns2",
 						Name:      "s2",
@@ -465,14 +481,11 @@ func TestListServices(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
-			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			for _, s := range tc.services {
-				_ = ic.Add(informers.InformerKeyService, s, t)
-			}
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(append([]runtime.Object{tc.namespace}, tc.services...)...), testMeshName))
+			a.NoError(err)
 
 			actual := c.ListServices()
 			a.ElementsMatch(tc.expected, actual)
@@ -484,7 +497,7 @@ func TestListServiceAccounts(t *testing.T) {
 	testCases := []struct {
 		name      string
 		namespace *corev1.Namespace
-		sa        []*corev1.ServiceAccount
+		sa        []runtime.Object
 		expected  []*corev1.ServiceAccount
 	}{
 		{
@@ -492,16 +505,19 @@ func TestListServiceAccounts(t *testing.T) {
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "ns1",
+					Labels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+					},
 				},
 			},
-			sa: []*corev1.ServiceAccount{
-				{
+			sa: []runtime.Object{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns1",
 						Name:      "s1",
 					},
 				},
-				{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns2",
 						Name:      "s2",
@@ -522,14 +538,11 @@ func TestListServiceAccounts(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
-			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			for _, s := range tc.sa {
-				_ = ic.Add(informers.InformerKeyServiceAccount, s, t)
-			}
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(append([]runtime.Object{tc.namespace}, tc.sa...)...), testMeshName))
+			a.NoError(err)
 
 			actual := c.ListServiceAccounts()
 			a.ElementsMatch(tc.expected, actual)
@@ -541,7 +554,7 @@ func TestListPods(t *testing.T) {
 	testCases := []struct {
 		name      string
 		namespace *corev1.Namespace
-		pods      []*corev1.Pod
+		pods      []runtime.Object
 		expected  []*corev1.Pod
 	}{
 		{
@@ -549,16 +562,19 @@ func TestListPods(t *testing.T) {
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "ns1",
+					Labels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+					},
 				},
 			},
-			pods: []*corev1.Pod{
-				{
+			pods: []runtime.Object{
+				&corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns1",
 						Name:      "s1",
 					},
 				},
-				{
+				&corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns2",
 						Name:      "s2",
@@ -579,14 +595,11 @@ func TestListPods(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
-			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			for _, p := range tc.pods {
-				_ = ic.Add(informers.InformerKeyPod, p, t)
-			}
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(append([]runtime.Object{tc.namespace}, tc.pods...)...), testMeshName))
+			a.NoError(err)
 
 			actual := c.ListPods()
 			a.ElementsMatch(tc.expected, actual)
@@ -636,10 +649,11 @@ func TestGetEndpoints(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
-			_ = ic.Add(informers.InformerKeyEndpoint, tc.endpoints, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(tc.endpoints), testMeshName))
+			a.NoError(err)
 
 			actual, err := c.GetEndpoints(tc.svcName, tc.svcNamespace)
 			a.Nil(err)
@@ -740,11 +754,14 @@ func TestPolicyUpdateStatus(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			kubeClient := testclient.NewSimpleClientset()
+			kubeClient := fake.NewSimpleClientset()
 			policyClient := fakePolicyClient.NewSimpleClientset(tc.existingResource.(runtime.Object))
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(kubeClient), informers.WithPolicyClient(policyClient))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, kubeClient, policyClient, nil, nil, nil)
+
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(kubeClient, testMeshName), WithPolicyClient(policyClient))
+			a.NoError(err)
 			switch v := tc.updatedResource.(type) {
 			case *policyv1alpha1.IngressBackend:
 				_, err = c.UpdateIngressBackendStatus(v)
@@ -810,11 +827,13 @@ func TestConfigUpdateStatus(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			kubeClient := testclient.NewSimpleClientset()
+			kubeClient := fake.NewSimpleClientset()
 			configClient := fakeConfigClient.NewSimpleClientset(tc.existingResource.(runtime.Object))
-			ic, err := informers.NewInformerCollection(tests.MeshName, nil, informers.WithKubeClient(kubeClient))
-			a.Nil(err)
-			c := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, configClient, nil, nil)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker, WithKubeClient(kubeClient, testMeshName), WithConfigClient(configClient))
+			a.NoError(err)
 			switch v := tc.updatedResource.(type) {
 			case *configv1alpha2.MeshRootCertificate:
 				_, err = c.UpdateMeshRootCertificateStatus(v)
@@ -850,10 +869,10 @@ func TestGetPodForProxy(t *testing.T) {
 		tests.NewPodFixture(namespace, "pod-2", tests.BookstoreServiceAccountName, someOthePodLabels),
 	)
 
-	ic, err := informers.NewInformerCollection(testMeshName, stop, informers.WithKubeClient(kubeClient))
-	assert.Nil(err)
+	broker := messaging.NewBroker(stop)
 
-	kubeController := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil, nil, nil, messaging.NewBroker(nil))
+	c, err := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker, WithKubeClient(kubeClient, testMeshName))
+	assert.NoError(err)
 
 	testCases := []struct {
 		name  string
@@ -891,7 +910,7 @@ func TestGetPodForProxy(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			pod, err := kubeController.GetPodForProxy(tc.proxy)
+			pod, err := c.GetPodForProxy(tc.proxy)
 
 			assert.Equal(tc.pod, pod)
 			assert.Equal(tc.err, err)
@@ -913,18 +932,8 @@ func monitoredNS(name string) *v1.Namespace {
 func TestGetMeshConfig(t *testing.T) {
 	a := assert.New(t)
 
-	meshConfigClient := fakeConfigClient.NewSimpleClientset()
-	stop := make(chan struct{})
 	osmNamespace := "osm"
 	osmMeshConfigName := "osm-mesh-config"
-
-	ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClient, osmMeshConfigName, osmNamespace))
-	a.Nil(err)
-
-	c := NewClient(osmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
-
-	// Returns empty MeshConfig if informer cache is empty
-	a.Equal(configv1alpha2.MeshConfig{}, c.GetMeshConfig())
 
 	newObj := &configv1alpha2.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
@@ -936,7 +945,21 @@ func TestGetMeshConfig(t *testing.T) {
 			Name:      osmMeshConfigName,
 		},
 	}
-	err = c.informers.Add(informers.InformerKeyMeshConfig, newObj, t)
+
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+
+	meshConfigClient := fakeConfigClient.NewSimpleClientset()
+	c, err := NewClient(osmNamespace, tests.OsmMeshConfigName, broker, WithConfigClient(meshConfigClient))
+	a.NoError(err)
+
+	// Returns empty MeshConfig if informer cache is empty
+	a.Equal(configv1alpha2.MeshConfig{}, c.GetMeshConfig())
+
+	meshConfigClient = fakeConfigClient.NewSimpleClientset(newObj)
+	c, err = NewClient(osmNamespace, tests.OsmMeshConfigName, broker, WithConfigClient(meshConfigClient))
+	a.NoError(err)
+
 	a.Nil(err)
 	a.Equal(*newObj, c.GetMeshConfig())
 }
@@ -945,9 +968,11 @@ func TestMetricsHandler(t *testing.T) {
 	a := assert.New(t)
 	osmMeshConfigName := "osm-mesh-config"
 
-	c := &Client{
-		informers: &informers.InformerCollection{},
-	}
+	meshConfigClient := fakeConfigClient.NewSimpleClientset()
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+	c, err := NewClient(tests.OsmNamespace, osmMeshConfigName, broker, WithConfigClient(meshConfigClient))
+	a.NoError(err)
 	handlers := c.metricsHandler()
 	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.FeatureFlagEnabled)
 
@@ -998,6 +1023,9 @@ func TestListEgressPolicies(t *testing.T) {
 	egressNsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
 		},
 	}
 
@@ -1058,12 +1086,12 @@ func TestListEgressPolicies(t *testing.T) {
 
 	testCases := []struct {
 		name             string
-		allEgresses      []*policyv1alpha1.Egress
+		allEgresses      []runtime.Object
 		expectedEgresses []*policyv1alpha1.Egress
 	}{
 		{
 			name:             "Only return egress resources for monitored namespaces",
-			allEgresses:      []*policyv1alpha1.Egress{inMeshResource, outMeshResource},
+			allEgresses:      []runtime.Object{inMeshResource, outMeshResource},
 			expectedEgresses: []*policyv1alpha1.Egress{inMeshResource},
 		},
 	}
@@ -1072,24 +1100,14 @@ func TestListEgressPolicies(t *testing.T) {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			a := assert.New(t)
 
-			fakeClient := fakePolicyClient.NewSimpleClientset()
-			informerCollection, err := informers.NewInformerCollection("osm", nil,
-				informers.WithPolicyClient(fakeClient),
-				informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
+			fakeClient := fakePolicyClient.NewSimpleClientset(tc.allEgresses...)
 
-			c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, fakeClient, nil, nil, nil)
-			a.Nil(err)
-			a.NotNil(c)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
+			c, err := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker, WithPolicyClient(fakeClient), WithKubeClient(fake.NewSimpleClientset(egressNsObj), testMeshName))
+			a.NoError(err)
 			// monitor namespaces
-			err = c.informers.Add(informers.InformerKeyNamespace, egressNsObj, t)
-			a.Nil(err)
-
-			// Create fake egress policies
-			for _, egressPolicy := range tc.allEgresses {
-				_ = c.informers.Add(informers.InformerKeyEgress, egressPolicy, t)
-			}
 
 			policies := c.ListEgressPolicies()
 			a.ElementsMatch(tc.expectedEgresses, policies)
@@ -1101,18 +1119,15 @@ func TestListRetryPolicy(t *testing.T) {
 	policyNsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
 		},
 	}
 
 	var thresholdUintVal uint32 = 3
 	thresholdTimeoutDuration := metav1.Duration{Duration: time.Duration(5 * time.Second)}
 	thresholdBackoffDuration := metav1.Duration{Duration: time.Duration(1 * time.Second)}
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockKubeController := NewMockController(mockCtrl)
-	mockKubeController.EXPECT().IsMonitoredNamespace(testNs).Return(true).AnyTimes()
 
 	outMeshResource := &policyv1alpha1.Retry{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1179,12 +1194,12 @@ func TestListRetryPolicy(t *testing.T) {
 
 	testCases := []struct {
 		name            string
-		allRetries      []*policyv1alpha1.Retry
+		allRetries      []runtime.Object
 		expectedRetries []*policyv1alpha1.Retry
 	}{
 		{
 			name:            "Only return retry resources for monitored namespaces",
-			allRetries:      []*policyv1alpha1.Retry{inMeshResource, outMeshResource},
+			allRetries:      []runtime.Object{inMeshResource, outMeshResource},
 			expectedRetries: []*policyv1alpha1.Retry{inMeshResource},
 		},
 	}
@@ -1193,25 +1208,13 @@ func TestListRetryPolicy(t *testing.T) {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			a := assert.New(t)
 
-			fakeClient := fakePolicyClient.NewSimpleClientset()
-			informerCollection, err := informers.NewInformerCollection("osm", nil,
-				informers.WithPolicyClient(fakeClient),
-				informers.WithKubeClient(testclient.NewSimpleClientset()),
-			)
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, fakeClient, nil, nil, nil)
-			a.Nil(err)
-			a.NotNil(c)
+			fakeClient := fakePolicyClient.NewSimpleClientset(tc.allRetries...)
 
-			// monitor namespaces
-			err = c.informers.Add(informers.InformerKeyNamespace, policyNsObj, t)
-			a.Nil(err)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			// Create fake retry policies
-			for _, retryPolicy := range tc.allRetries {
-				err := c.informers.Add(informers.InformerKeyRetry, retryPolicy, t)
-				a.Nil(err)
-			}
+			c, err := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker, WithPolicyClient(fakeClient), WithKubeClient(fake.NewSimpleClientset(policyNsObj), testMeshName))
+			a.NoError(err)
 
 			policies := c.ListRetryPolicies()
 			a.ElementsMatch(tc.expectedRetries, policies)
@@ -1223,6 +1226,9 @@ func TestListUpstreamTrafficSetting(t *testing.T) {
 	settingNsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
 		},
 	}
 
@@ -1246,12 +1252,12 @@ func TestListUpstreamTrafficSetting(t *testing.T) {
 	}
 	testCases := []struct {
 		name         string
-		allResources []*policyv1alpha1.UpstreamTrafficSetting
+		allResources []runtime.Object
 		expected     []*policyv1alpha1.UpstreamTrafficSetting
 	}{
 		{
 			name:         "Only return upstream traffic settings for monitored namespaces",
-			allResources: []*policyv1alpha1.UpstreamTrafficSetting{inMeshResource, outMeshResource},
+			allResources: []runtime.Object{inMeshResource, outMeshResource},
 			expected:     []*policyv1alpha1.UpstreamTrafficSetting{inMeshResource},
 		},
 	}
@@ -1260,24 +1266,12 @@ func TestListUpstreamTrafficSetting(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			fakeClient := fakePolicyClient.NewSimpleClientset()
-			informerCollection, err := informers.NewInformerCollection("osm", nil,
-				informers.WithPolicyClient(fakeClient),
-				informers.WithKubeClient(testclient.NewSimpleClientset()),
-			)
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, fakeClient, nil, nil, nil)
-			a.Nil(err)
-			a.NotNil(c)
+			fakeClient := fakePolicyClient.NewSimpleClientset(tc.allResources...)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			// monitor namespaces
-			err = c.informers.Add(informers.InformerKeyNamespace, settingNsObj, t)
-			a.Nil(err)
-
-			// Create fake upstream traffic settings
-			for _, resource := range tc.allResources {
-				_ = c.informers.Add(informers.InformerKeyUpstreamTrafficSetting, resource, t)
-			}
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithPolicyClient(fakeClient), WithKubeClient(fake.NewSimpleClientset(settingNsObj), testMeshName))
+			a.NoError(err)
 
 			actual := c.ListUpstreamTrafficSettings()
 			a.Equal(tc.expected, actual)
@@ -1319,10 +1313,11 @@ func TestGetMeshRootCertificate(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithConfigClient(fakeConfigClient.NewSimpleClientset(), tests.OsmMeshConfigName, tests.OsmNamespace))
-			a.Nil(err)
-			c := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
-			_ = ic.Add(informers.InformerKeyMeshRootCertificate, tc.meshRootCertificate, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker, WithConfigClient(fakeConfigClient.NewSimpleClientset(tc.meshRootCertificate)))
+			a.NoError(err)
 
 			actual := c.GetMeshRootCertificate(tc.mrcName)
 			if tc.expected {
@@ -1337,69 +1332,49 @@ func TestGetMeshRootCertificate(t *testing.T) {
 func TestListMeshRootCertificates(t *testing.T) {
 	a := assert.New(t)
 
-	mrcClient := fakeConfigClient.NewSimpleClientset()
-	stop := make(chan struct{})
-
-	ic, err := informers.NewInformerCollection(tests.MeshName, stop, informers.WithConfigClient(mrcClient, tests.OsmMeshConfigName, tests.OsmNamespace))
-	a.Nil(err)
-
-	c := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
-
-	mrcList, err := c.ListMeshRootCertificates()
-	a.NoError(err)
-	a.Empty(mrcList)
-
-	newList := []*configv1alpha2.MeshRootCertificate{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "osm-mesh-root-certificate",
-				Namespace: "osm-system",
-			},
-			Spec: configv1alpha2.MeshRootCertificateSpec{
-				Provider: configv1alpha2.ProviderSpec{
-					Tresor: &configv1alpha2.TresorProviderSpec{
-						CA: configv1alpha2.TresorCASpec{
-							SecretRef: v1.SecretReference{
-								Name:      "osm-ca-bundle",
-								Namespace: "osm-system",
-							},
+	mrc := &configv1alpha2.MeshRootCertificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "osm-mesh-root-certificate",
+			Namespace: "osm-system",
+		},
+		Spec: configv1alpha2.MeshRootCertificateSpec{
+			Provider: configv1alpha2.ProviderSpec{
+				Tresor: &configv1alpha2.TresorProviderSpec{
+					CA: configv1alpha2.TresorCASpec{
+						SecretRef: v1.SecretReference{
+							Name:      "osm-ca-bundle",
+							Namespace: "osm-system",
 						},
 					},
 				},
 			},
-			Status: configv1alpha2.MeshRootCertificateStatus{
-				State: constants.MRCStateActive,
-			},
+		},
+		Status: configv1alpha2.MeshRootCertificateStatus{
+			State: constants.MRCStateActive,
 		},
 	}
-	err = c.informers.Add(informers.InformerKeyMeshRootCertificate, newList[0], t)
-	a.Nil(err)
+	mrcClient := fakeConfigClient.NewSimpleClientset(mrc)
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
 
-	mrcList, err = c.ListMeshRootCertificates()
+	c, err := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker, WithConfigClient(mrcClient))
 	a.NoError(err)
-	a.ElementsMatch(newList, mrcList)
+
+	mrcList, err := c.ListMeshRootCertificates()
+	a.NoError(err)
+	a.Contains(mrcList, mrc)
+	a.Len(mrcList, 1)
 }
 
 func TestListHTTPTrafficSpecs(t *testing.T) {
 	nsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
 		},
 	}
-
-	a := assert.New(t)
-	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
-	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
-	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
-
-	informerCollection, err := informers.NewInformerCollection("osm", nil,
-		informers.WithKubeClient(testclient.NewSimpleClientset()),
-		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
-	)
-	a.Nil(err)
-	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil, nil, nil)
-	a.Nil(err)
-	a.NotNil(c)
 
 	obj := &smiSpecs.HTTPRouteGroup{
 		TypeMeta: metav1.TypeMeta{
@@ -1434,11 +1409,18 @@ func TestListHTTPTrafficSpecs(t *testing.T) {
 			},
 		},
 	}
-	err = c.informers.Add(informers.InformerKeyNamespace, nsObj, t)
-	a.Nil(err)
-	err = c.informers.Add(informers.InformerKeyHTTPRouteGroup, obj, t)
-	a.Nil(err)
+	a := assert.New(t)
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset(obj)
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
 
+	c, err := NewClient("osm", tests.OsmMeshConfigName, broker,
+		WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		WithKubeClient(fake.NewSimpleClientset(nsObj), testMeshName),
+	)
+	a.NoError(err)
 	// Verify
 	actual := c.ListHTTPTrafficSpecs()
 	a.Len(actual, 1)
@@ -1449,22 +1431,11 @@ func TestGetHTTPRouteGroup(t *testing.T) {
 	nsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
 		},
 	}
-
-	a := assert.New(t)
-	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
-	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
-	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
-	informerCollection, err := informers.NewInformerCollection("osm", nil,
-		informers.WithKubeClient(testclient.NewSimpleClientset()),
-		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
-	)
-	a.Nil(err)
-	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil, nil, nil)
-	a.Nil(err)
-	a.NotNil(c)
-
 	obj := &smiSpecs.HTTPRouteGroup{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "specs.smi-spec.io/v1alpha4",
@@ -1498,11 +1469,18 @@ func TestGetHTTPRouteGroup(t *testing.T) {
 			},
 		},
 	}
-	err = c.informers.Add(informers.InformerKeyNamespace, nsObj, t)
-	a.Nil(err)
-	err = c.informers.Add(informers.InformerKeyHTTPRouteGroup, obj, t)
-	a.Nil(err)
+	a := assert.New(t)
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset(obj)
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
 
+	c, err := NewClient("osm", tests.OsmMeshConfigName, broker,
+		WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		WithKubeClient(fake.NewSimpleClientset(nsObj), testMeshName),
+	)
+	a.NoError(err)
 	// Verify
 	key, _ := cache.MetaNamespaceKeyFunc(obj)
 	actual := c.GetHTTPRouteGroup(key)
@@ -1516,22 +1494,11 @@ func TestListTCPTrafficSpecs(t *testing.T) {
 	nsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
 		},
 	}
-
-	a := assert.New(t)
-	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
-	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
-	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
-	informerCollection, err := informers.NewInformerCollection("osm", nil,
-		informers.WithKubeClient(testclient.NewSimpleClientset()),
-		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
-	)
-
-	a.Nil(err)
-	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil, nil, nil)
-	a.Nil(err)
-	a.NotNil(c)
 
 	obj := &smiSpecs.TCPRoute{
 		TypeMeta: metav1.TypeMeta{
@@ -1544,11 +1511,18 @@ func TestListTCPTrafficSpecs(t *testing.T) {
 		},
 		Spec: smiSpecs.TCPRouteSpec{},
 	}
-	err = c.informers.Add(informers.InformerKeyNamespace, nsObj, t)
-	a.Nil(err)
-	err = c.informers.Add(informers.InformerKeyTCPRoute, obj, t)
-	a.Nil(err)
+	a := assert.New(t)
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset(obj)
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
 
+	c, err := NewClient("osm", tests.OsmMeshConfigName, broker,
+		WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		WithKubeClient(fake.NewSimpleClientset(nsObj), testMeshName),
+	)
+	a.NoError(err)
 	// Verify
 	actual := c.ListTCPTrafficSpecs()
 	a.Len(actual, 1)
@@ -1559,20 +1533,11 @@ func TestGetTCPRoute(t *testing.T) {
 	nsObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
 		},
 	}
-	a := assert.New(t)
-	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
-	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
-	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
-	informerCollection, err := informers.NewInformerCollection("osm", nil,
-		informers.WithKubeClient(testclient.NewSimpleClientset()),
-		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
-	)
-	a.Nil(err)
-	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil, nil, nil)
-	a.Nil(err)
-	a.NotNil(c)
 
 	obj := &smiSpecs.TCPRoute{
 		TypeMeta: metav1.TypeMeta{
@@ -1585,10 +1550,17 @@ func TestGetTCPRoute(t *testing.T) {
 		},
 		Spec: smiSpecs.TCPRouteSpec{},
 	}
-	err = c.informers.Add(informers.InformerKeyNamespace, nsObj, t)
-	a.Nil(err)
-	err = c.informers.Add(informers.InformerKeyTCPRoute, obj, t)
-	a.Nil(err)
+	a := assert.New(t)
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset(obj)
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+
+	c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		WithKubeClient(fake.NewSimpleClientset(nsObj), testMeshName),
+	)
+	a.NoError(err)
 
 	// Verify
 	key, _ := cache.MetaNamespaceKeyFunc(obj)
@@ -1621,7 +1593,7 @@ func TestGetTelemetryPolicy(t *testing.T) {
 	selectorPolicy := &policyv1alpha1.Telemetry{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: appNamespace,
-			Name:      "t2",
+			Name:      "t3",
 		},
 		Spec: policyv1alpha1.TelemetrySpec{
 			Selector: map[string]string{"app": "foo"},
@@ -1632,7 +1604,7 @@ func TestGetTelemetryPolicy(t *testing.T) {
 		name              string
 		proxy             *models.Proxy
 		pod               *corev1.Pod
-		telemetryPolicies []*policyv1alpha1.Telemetry
+		telemetryPolicies []runtime.Object
 		expected          *policyv1alpha1.Telemetry
 	}{
 		{
@@ -1643,7 +1615,7 @@ func TestGetTelemetryPolicy(t *testing.T) {
 					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
 					"app":                            "foo",
 				}),
-			telemetryPolicies: []*policyv1alpha1.Telemetry{
+			telemetryPolicies: []runtime.Object{
 				globalPolicy,
 			},
 			expected: globalPolicy,
@@ -1656,7 +1628,7 @@ func TestGetTelemetryPolicy(t *testing.T) {
 					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
 					"app":                            "foo",
 				}),
-			telemetryPolicies: []*policyv1alpha1.Telemetry{
+			telemetryPolicies: []runtime.Object{
 				globalPolicy,
 				namespacePolicy,
 			},
@@ -1670,7 +1642,7 @@ func TestGetTelemetryPolicy(t *testing.T) {
 					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
 					"app":                            "foo",
 				}),
-			telemetryPolicies: []*policyv1alpha1.Telemetry{
+			telemetryPolicies: []runtime.Object{
 				globalPolicy,
 				namespacePolicy,
 				selectorPolicy,
@@ -1685,7 +1657,7 @@ func TestGetTelemetryPolicy(t *testing.T) {
 					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
 					"app":                            "foo",
 				}),
-			telemetryPolicies: []*policyv1alpha1.Telemetry{
+			telemetryPolicies: []runtime.Object{
 				globalPolicy,
 				namespacePolicy,
 				selectorPolicy,
@@ -1698,21 +1670,14 @@ func TestGetTelemetryPolicy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			fakeClient := fake.NewSimpleClientset()
-			fakePolicyClient := fakePolicyClient.NewSimpleClientset()
-			ic, err := informers.NewInformerCollection(testMeshName, nil,
-				informers.WithKubeClient(fakeClient), informers.WithPolicyClient(fakePolicyClient))
-			a.Nil(err)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			c := NewClient(osmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil, nil, nil)
-			a.NotNil(c)
-
-			_ = ic.Add(informers.InformerKeyNamespace, monitoredNS(appNamespace), t)
-			_ = ic.Add(informers.InformerKeyPod, tc.pod, t)
-
-			for _, policy := range tc.telemetryPolicies {
-				_ = ic.Add(informers.InformerKeyTelemetry, policy, t)
-			}
+			c, err := NewClient(osmNamespace, testMeshName, broker,
+				WithKubeClient(fake.NewSimpleClientset(monitoredNS(appNamespace), tc.pod), testMeshName),
+				WithPolicyClient(fakePolicyClient.NewSimpleClientset(tc.telemetryPolicies...)),
+			)
+			a.NoError(err)
 
 			actual := c.GetTelemetryPolicy(tc.proxy)
 			a.Equal(tc.expected, actual)
@@ -1721,41 +1686,24 @@ func TestGetTelemetryPolicy(t *testing.T) {
 }
 
 func TestListServiceImports(t *testing.T) {
-	nsObj := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: testNs,
-		},
-	}
-
 	a := assert.New(t)
-	mcsClientSet := mcsClientFake.NewSimpleClientset()
-
-	informerCollection, err := informers.NewInformerCollection("osm", nil,
-		informers.WithKubeClient(testclient.NewSimpleClientset()),
-		informers.WithMCSClient(mcsClientSet),
-	)
-
-	a.Nil(err)
-	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil, nil, nil)
-	a.Nil(err)
-	a.NotNil(c)
 
 	obj := &mcs.ServiceImport{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: testNs,
 			Name:      "test-service-import",
 		},
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "multicluster.x-k8s.io/v1alpha1",
-			Kind:       "ServiceImport",
-		},
-		Spec: mcs.ServiceImportSpec{},
 	}
 
-	err = c.informers.Add(informers.InformerKeyNamespace, nsObj, t)
-	a.Nil(err)
-	err = c.informers.Add(informers.InformerKeyServiceImport, obj, t)
-	a.Nil(err)
+	mcsClientSet := mcsClientFake.NewSimpleClientset(obj)
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+
+	c, err := NewClient("osm-system", "osm-mesh-config", broker,
+		WithKubeClient(fake.NewSimpleClientset(monitoredNS(testNs)), testMeshName),
+		WithMCSClient(mcsClientSet),
+	)
+	a.NoError(err)
 
 	// Verify
 	actual := c.ListServiceImports()
@@ -1764,41 +1712,23 @@ func TestListServiceImports(t *testing.T) {
 }
 
 func TestListServiceExports(t *testing.T) {
-	nsObj := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: testNs,
-		},
-	}
-
 	a := assert.New(t)
-	mcsClientSet := mcsClientFake.NewSimpleClientset()
-
-	informerCollection, err := informers.NewInformerCollection("osm", nil,
-		informers.WithKubeClient(testclient.NewSimpleClientset()),
-		informers.WithMCSClient(mcsClientSet),
-	)
-
-	a.Nil(err)
-	c := NewClient("osm", tests.OsmMeshConfigName, informerCollection, nil, nil, nil, nil, nil)
-	a.Nil(err)
-	a.NotNil(c)
-
 	obj := &mcs.ServiceExport{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: testNs,
 			Name:      "test-service-export",
 		},
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "multicluster.x-k8s.io/v1alpha1",
-			Kind:       "ServiceExport",
-		},
-		Status: mcs.ServiceExportStatus{},
 	}
+	mcsClientSet := mcsClientFake.NewSimpleClientset(obj)
 
-	err = c.informers.Add(informers.InformerKeyNamespace, nsObj, t)
-	a.Nil(err)
-	err = c.informers.Add(informers.InformerKeyServiceExport, obj, t)
-	a.Nil(err)
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+
+	c, err := NewClient("osm-system", "osm-mesh-config", broker,
+		WithKubeClient(fake.NewSimpleClientset(monitoredNS(testNs)), testMeshName),
+		WithMCSClient(mcsClientSet),
+	)
+	a.NoError(err)
 
 	// Verify
 	actual := c.ListServiceExports()

@@ -8,28 +8,30 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 var log = logger.New("reconciler")
 
+// InformerKey is a key used to identify an informer for a specific K8s kind.
+type InformerKey string
+
 const (
 	// CrdInformerKey lookup identifier
-	CrdInformerKey informers.InformerKey = "CRDInformerKey"
+	CrdInformerKey InformerKey = "CRDInformerKey"
 
 	// MutatingWebhookInformerKey lookup identifier
-	MutatingWebhookInformerKey informers.InformerKey = "MutatingWebhookConfigInformerKey"
+	MutatingWebhookInformerKey InformerKey = "MutatingWebhookConfigInformerKey"
 
 	// ValidatingWebhookInformerKey lookup identifier
-	ValidatingWebhookInformerKey informers.InformerKey = "ValidatingWebhookConfigInformerKey"
+	ValidatingWebhookInformerKey InformerKey = "ValidatingWebhookConfigInformerKey"
 
 	// nameIndex is the lookup name for the most comment index function, which is to index by the name field
 	nameIndex string = "name"
 )
 
 // informerCollection is the type holding the collection of informers we keep
-type informerCollection map[informers.InformerKey]cache.SharedIndexInformer
+type informerCollection map[InformerKey]cache.SharedIndexInformer
 
 // client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster
 type client struct {

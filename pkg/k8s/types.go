@@ -4,11 +4,11 @@ package k8s
 
 import (
 	"context"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
@@ -21,7 +21,6 @@ import (
 	configv1alpha2Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/models"
@@ -49,20 +48,13 @@ const (
 	DeleteEvent EventType = "DELETE"
 )
 
-const (
-	// DefaultKubeEventResyncInterval is the default resync interval for k8s events
-	// This is set to 0 because we do not need resyncs from k8s client, and have our
-	// own Ticker to turn on periodic resyncs.
-	DefaultKubeEventResyncInterval = 0 * time.Second
-)
-
 // Client is the type used to represent the k8s client for the native k8s resources
 type Client struct {
 	policyClient   policyv1alpha1Client.Interface
 	configClient   configv1alpha2Client.Interface
 	mcsClient      mcsv1alpha1Client.Interface
 	kubeClient     kubernetes.Interface
-	informers      *informers.InformerCollection
+	informers      map[informerKey]cache.SharedIndexInformer
 	msgBroker      *messaging.Broker
 	osmNamespace   string
 	meshConfigName string
@@ -120,6 +112,8 @@ type PassthroughInterface interface {
 
 	GetMeshConfig() configv1alpha2.MeshConfig
 	GetMeshRootCertificate(mrcName string) *configv1alpha2.MeshRootCertificate
+	AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler)
+
 	ListMeshRootCertificates() ([]*configv1alpha2.MeshRootCertificate, error)
 	UpdateMeshRootCertificate(obj *configv1alpha2.MeshRootCertificate) (*configv1alpha2.MeshRootCertificate, error)
 	UpdateMeshRootCertificateStatus(obj *configv1alpha2.MeshRootCertificate) (*configv1alpha2.MeshRootCertificate, error)

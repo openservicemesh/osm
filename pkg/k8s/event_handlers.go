@@ -3,83 +3,73 @@ package k8s
 import (
 	"reflect"
 
-	"github.com/rs/zerolog"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
-// observeFilter returns true for YES observe and false for NO do not pay attention to this
-// This filter could be added optionally by anything using GetEventHandlerFuncs()
-type observeFilter func(obj interface{}) bool
-
-// GetEventHandlerFuncs returns the ResourceEventHandlerFuncs object used to receive events when a k8s
-// object is added/updated/deleted.
-func GetEventHandlerFuncs(shouldObserve observeFilter, msgBroker *messaging.Broker) cache.ResourceEventHandlerFuncs {
-	if shouldObserve == nil {
-		shouldObserve = func(obj interface{}) bool { return true }
+// Function to filter K8s meta Objects by OSM's isMonitoredNamespace
+func (c *Client) shouldObserve(obj interface{}) bool {
+	switch v := obj.(type) {
+	case *corev1.Namespace, *configv1alpha2.MeshConfig, *configv1alpha2.MeshRootCertificate, *configv1alpha2.ExtensionService:
+		return true
+	case metav1.Object:
+		return c.IsMonitoredNamespace(v.GetNamespace())
 	}
+	return false
+}
+
+// defaultEventHandler returns the ResourceEventHandlerFuncs object used to receive events when a k8s
+// object is added/updated/deleted.
+func (c *Client) defaultEventHandler() cache.ResourceEventHandlerFuncs {
 	return cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			if !shouldObserve(obj) {
-				return
-			}
-			msg := events.PubSubMessage{
-				Kind:   events.GetKind(obj),
-				Type:   events.Added,
-				NewObj: obj,
-				OldObj: nil,
-			}
-			logResourceEvent(log, msg.Topic(), obj)
-			ns := getNamespace(obj)
-			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(msg.Topic(), ns).Inc()
-			msgBroker.GetQueue().AddRateLimited(msg)
+			c.handleEvent(events.Added, nil, obj)
 		},
 
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			if !shouldObserve(newObj) {
-				return
-			}
-			msg := events.PubSubMessage{
-				Kind:   events.GetKind(newObj),
-				Type:   events.Updated,
-				NewObj: newObj,
-				OldObj: oldObj,
-			}
-			logResourceEvent(log, msg.Topic(), newObj)
-			ns := getNamespace(newObj)
-			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(msg.Topic(), ns).Inc()
-			msgBroker.GetQueue().AddRateLimited(msg)
+			c.handleEvent(events.Updated, oldObj, newObj)
 		},
 
 		DeleteFunc: func(obj interface{}) {
-			if !shouldObserve(obj) {
-				return
-			}
-			msg := events.PubSubMessage{
-				Kind:   events.GetKind(obj),
-				Type:   events.Deleted,
-				NewObj: nil,
-				OldObj: obj,
-			}
-			logResourceEvent(log, msg.Topic(), obj)
-			ns := getNamespace(obj)
-			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(msg.Topic(), ns).Inc()
-			msgBroker.GetQueue().AddRateLimited(msg)
+			c.handleEvent(events.Deleted, obj, nil)
 		},
 	}
+}
+
+func (c *Client) handleEvent(event events.EventType, oldObj, newObj interface{}) {
+	obj := newObj
+	if event == events.Deleted {
+		obj = oldObj
+	}
+
+	if !c.shouldObserve(obj) {
+		return
+	}
+
+	msg := events.PubSubMessage{
+		Kind:   events.GetKind(obj),
+		Type:   event,
+		NewObj: newObj,
+		OldObj: oldObj,
+	}
+	logResourceEvent(msg.Topic(), obj)
+	ns := getNamespace(obj)
+	metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(msg.Topic(), ns).Inc()
+	c.msgBroker.GetQueue().AddRateLimited(msg)
 }
 
 func getNamespace(obj interface{}) string {
 	return reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
 }
 
-func logResourceEvent(parent zerolog.Logger, event string, obj interface{}) {
-	log := parent.With().Str("event", event).Logger()
+func logResourceEvent(event string, obj interface{}) {
+	log := log.With().Str("event", event).Logger()
 	o, err := meta.Accessor(obj)
 	if err != nil {
 		log.Error().Err(err).Msg("error parsing object, ignoring")

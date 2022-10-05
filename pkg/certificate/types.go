@@ -127,6 +127,7 @@ type Manager struct {
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
 type MRCClient interface {
 	UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) error
+	ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertificate, error)
 	MRCEventBroker
 
 	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.

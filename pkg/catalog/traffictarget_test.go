@@ -8,15 +8,10 @@ import (
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-	smiAccessClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
-	smiSpecClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned/fake"
-	smiSplitClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 
@@ -918,12 +913,6 @@ func TestListTrafficSplitsByOptions(t *testing.T) {
 	mockCompute.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 
 	testNamespaceName := "test"
-	fakeClient := fakePolicyClient.NewSimpleClientset()
-	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
-	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
-	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
-	ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient), informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet))
-	a.Nil(err)
 	meshCatalog := MeshCatalog{
 		Interface: mockCompute,
 	}
@@ -947,8 +936,6 @@ func TestListTrafficSplitsByOptions(t *testing.T) {
 			},
 		},
 	}
-	err = ic.Add(informers.InformerKeyTrafficSplit, obj, t)
-	a.Nil(err)
 	mockCompute.EXPECT().ListTrafficSplits().Return([]*smiSplit.TrafficSplit{obj}).AnyTimes()
 
 	// Verify
@@ -981,12 +968,6 @@ func TestListTrafficTargetsByOptions(t *testing.T) {
 	mockCompute.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 
 	testNamespaceName := "test"
-	fakeClient := fakePolicyClient.NewSimpleClientset()
-	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
-	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
-	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
-	ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient), informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet))
-	a.Nil(err)
 	meshCatalog := MeshCatalog{
 		Interface: mockCompute,
 	}
@@ -1018,8 +999,6 @@ func TestListTrafficTargetsByOptions(t *testing.T) {
 			}},
 		},
 	}
-	err = ic.Add(informers.InformerKeyTrafficTarget, obj, t)
-	a.Nil(err)
 	mockCompute.EXPECT().ListTrafficTargets().Return([]*smiAccess.TrafficTarget{obj}).AnyTimes()
 
 	// Verify

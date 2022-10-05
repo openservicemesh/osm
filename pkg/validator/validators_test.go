@@ -20,7 +20,6 @@ import (
 	fakeConfigClient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/tests"
 
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -30,6 +29,9 @@ func newNsK8sObj(ns string) *corev1.Namespace {
 	return &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ns,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: "osm",
+			},
 		},
 	}
 }
@@ -779,13 +781,13 @@ func TestIngressBackendValidator(t *testing.T) {
 			}
 
 			fakeClient := fakePolicyClientset.NewSimpleClientset(objects...)
-			informerCollection, err := informers.NewInformerCollection("osm", stop,
-				informers.WithPolicyClient(fakeClient),
-				informers.WithKubeClient(testclient.NewSimpleClientset()),
+
+			k8sClient, err := k8s.NewClient("osm-namespace", "osm-mesh-config", broker,
+				k8s.WithPolicyClient(fakeClient),
+				k8s.WithKubeClient(testclient.NewSimpleClientset(), "osm"),
 			)
 			assert.NoError(err)
 
-			k8sClient := k8s.NewClient("osm-namespace", "osm-mesh-config", informerCollection, nil, fakeClient, nil, nil, broker)
 			computeClient := kube.NewClient(k8sClient)
 			pv := &validator{
 				computeClient: computeClient,
@@ -1304,25 +1306,19 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 			}
 
 			fakeClient := fakePolicyClientset.NewSimpleClientset(objects...)
-			informerCollection, err := informers.NewInformerCollection("osm", stop,
-				informers.WithPolicyClient(fakeClient),
-				informers.WithKubeClient(testclient.NewSimpleClientset()),
+			k8sClient, err := k8s.NewClient("test-namespace", "test-mesh-config", broker,
+				k8s.WithPolicyClient(fakeClient),
+				k8s.WithKubeClient(testclient.NewSimpleClientset(newNsK8sObj(testNs)), "osm"),
 			)
 			assert.NoError(err)
 
-			k8sClient := k8s.NewClient("test-namespace", "test-mesh-config", informerCollection, nil, fakeClient, nil, nil, broker)
 			computeClient := kube.NewClient(k8sClient)
 
 			pv := &validator{
 				computeClient: computeClient,
 			}
 
-			if len(objects) > 0 {
-				// monitor namespaces
-				err := informerCollection.Add(informers.InformerKeyNamespace, newNsK8sObj(testNs), t)
-				assert.Nil(err)
-				assert.True(k8sClient.IsMonitoredNamespace(testNs))
-			}
+			assert.True(k8sClient.IsMonitoredNamespace(testNs))
 
 			// Block until we start getting upstreamtrafficsetting updates
 			// We only do this because the informerCollection doesn't have the
@@ -1816,7 +1812,7 @@ func TestCheckForExistingActiveMRC(t *testing.T) {
 	testCases := []struct {
 		name      string
 		mrc       *configv1alpha2.MeshRootCertificate
-		mrcList   []*configv1alpha2.MeshRootCertificate
+		mrcList   []runtime.Object
 		expReturn bool
 	}{
 		{
@@ -1841,8 +1837,8 @@ func TestCheckForExistingActiveMRC(t *testing.T) {
 					},
 				},
 			},
-			mrcList: []*configv1alpha2.MeshRootCertificate{
-				{
+			mrcList: []runtime.Object{
+				&configv1alpha2.MeshRootCertificate{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "osm-mesh-root-certificate-2",
 						Namespace: "osm-system",
@@ -1887,8 +1883,8 @@ func TestCheckForExistingActiveMRC(t *testing.T) {
 					},
 				},
 			},
-			mrcList: []*configv1alpha2.MeshRootCertificate{
-				{
+			mrcList: []runtime.Object{
+				&configv1alpha2.MeshRootCertificate{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "osm-mesh-root-certificate-2",
 						Namespace: "osm-system",
@@ -1936,8 +1932,8 @@ func TestCheckForExistingActiveMRC(t *testing.T) {
 					State: constants.MRCStateActive,
 				},
 			},
-			mrcList: []*configv1alpha2.MeshRootCertificate{
-				{
+			mrcList: []runtime.Object{
+				&configv1alpha2.MeshRootCertificate{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "osm-mesh-root-certificate",
 						Namespace: "osm-system",
@@ -1966,18 +1962,14 @@ func TestCheckForExistingActiveMRC(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
 
-			mrcClient := fakeConfigClient.NewSimpleClientset()
+			mrcClient := fakeConfigClient.NewSimpleClientset(tc.mrcList...)
 			stop := make(chan struct{})
-
-			ic, err := informers.NewInformerCollection(tests.MeshName, stop, informers.WithConfigClient(mrcClient, tests.OsmMeshConfigName, tests.OsmNamespace))
-			a.Nil(err)
-			for _, mrc := range tc.mrcList {
-				err = ic.Add(informers.InformerKeyMeshRootCertificate, mrc, t)
-				a.NoError(err)
-			}
-
 			broker := messaging.NewBroker(stop)
-			k8sClient := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil, nil, broker)
+			k8sClient, err := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker,
+				k8s.WithConfigClient(mrcClient),
+				k8s.WithKubeClient(testclient.NewSimpleClientset(), "osm"),
+			)
+			a.NoError(err)
 			computeClient := kube.NewClient(k8sClient)
 
 			v := validator{computeClient: computeClient}

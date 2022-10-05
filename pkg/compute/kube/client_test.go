@@ -25,20 +25,16 @@ import (
 	. "github.com/onsi/gomega"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/models"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
-
-var testMeshName = "mesh"
 
 var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
 	var (
@@ -486,11 +482,16 @@ func TestGetServicesForServiceIdentity(t *testing.T) {
 				})
 			}
 			testClient := testclient.NewSimpleClientset(objs...)
-			ic, err := informers.NewInformerCollection("test-mesh", stop, informers.WithKubeClient(testClient))
+
+			k8sClient, err := k8s.NewClient("osm-ns", tests.OsmMeshConfigName, messaging.NewBroker(stop),
+				k8s.WithKubeClient(testClient, "test-mesh"),
+			)
 			assert.NoError(err)
 			c := &client{
-				kubeController: k8s.NewClient("osm-ns", tests.OsmMeshConfigName, ic, nil, nil, nil, nil, messaging.NewBroker(stop)),
+				kubeController: k8sClient,
 			}
+			assert.NoError(err)
+
 			actual := c.GetServicesForServiceIdentity(tc.svcIdentity)
 			assert.ElementsMatch(tc.expected, actual)
 		})
@@ -551,8 +552,7 @@ func TestGetHostnamesForServicePort(t *testing.T) {
 
 func TestIsMetricsEnabled(t *testing.T) {
 	testCases := []struct {
-		name        string
-		informerOpt informers.InformerCollectionOption
+		name string
 
 		pod           *corev1.Pod
 		expectEnabled bool
@@ -820,10 +820,12 @@ func TestListServicesForProxy(t *testing.T) {
 				})
 			}
 			testClient := testclient.NewSimpleClientset(objs...)
-			ic, err := informers.NewInformerCollection("test-mesh", stop, informers.WithKubeClient(testClient))
+			k8sClient, err := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, messaging.NewBroker(stop),
+				k8s.WithKubeClient(testClient, "test-mesh"),
+			)
 			assert.NoError(err)
 			c := &client{
-				kubeController: k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, ic, nil, nil, nil, nil, messaging.NewBroker(stop)),
+				kubeController: k8sClient,
 			}
 			actual, err := c.ListServicesForProxy(tc.proxy)
 			assert.ElementsMatch(tc.expected, actual)
@@ -1140,18 +1142,7 @@ func TestListEgressPoliciesForSourceAccount(t *testing.T) {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			a := assert.New(t)
 
-			fakeClient := fakePolicyClient.NewSimpleClientset()
-			ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
-			a.Nil(err)
-
 			c := NewClient(mockKubeController)
-			a.Nil(err)
-			a.NotNil(c)
-
-			// Create fake egress policies
-			for _, egressPolicy := range tc.allEgresses {
-				_ = ic.Add(informers.InformerKeyEgress, egressPolicy, t)
-			}
 
 			mockKubeController.EXPECT().ListEgressPolicies().Return(tc.allEgresses).AnyTimes()
 			actual := c.ListEgressPoliciesForServiceAccount(tc.source)
@@ -1338,19 +1329,7 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
-
-			fakeClient := fakePolicyClient.NewSimpleClientset()
-			ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
-			a.Nil(err)
-
 			c := NewClient(mockKubeController)
-			a.Nil(err)
-			a.NotNil(c)
-
-			// Create fake ingress backends
-			for _, ingressBackend := range tc.allResources {
-				_ = ic.Add(informers.InformerKeyIngressBackend, ingressBackend, t)
-			}
 
 			mockKubeController.EXPECT().ListIngressBackendPolicies().Return(tc.allResources).AnyTimes()
 
@@ -1489,20 +1468,7 @@ func TestListRetryPolicy(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			a := assert.New(t)
-
-			fakeClient := fakePolicyClient.NewSimpleClientset()
-			ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
-			a.Nil(err)
-
 			c := NewClient(mockKubeController)
-			a.Nil(err)
-			a.NotNil(c)
-
-			// Create fake retry policies
-			for _, retryPolicy := range tc.allRetries {
-				err := ic.Add(informers.InformerKeyRetry, retryPolicy, t)
-				a.Nil(err)
-			}
 
 			mockKubeController.EXPECT().ListRetryPolicies().Return(tc.allRetries).AnyTimes()
 
@@ -1690,12 +1656,11 @@ func TestGetProxyStatsHeaders(t *testing.T) {
 			stop := make(chan struct{})
 			defer close(stop)
 
-			informer, err := informers.NewInformerCollection(tests.MeshName, stop,
-				informers.WithKubeClient(fakeClient),
+			k8sClient, err := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, messaging.NewBroker(stop),
+				k8s.WithKubeClient(fakeClient, tests.MeshName),
 			)
 			assert.NoError(err)
-			controller := k8s.NewClient("ns", "", informer, nil, nil, nil, nil, messaging.NewBroker(stop))
-			c := NewClient(controller)
+			c := NewClient(k8sClient)
 			actual, err := c.GetProxyStatsHeaders(test.proxy)
 			if test.expectErr {
 				assert.Error(err)
@@ -1775,19 +1740,7 @@ func TestGetUpstreamTrafficSettingByService(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			fakeClient := fakePolicyClient.NewSimpleClientset()
-			ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
-			a.Nil(err)
-
 			c := NewClient(mockKubeController)
-			a.Nil(err)
-			a.NotNil(c)
-
-			// Create fake egress policies
-			for _, resource := range tc.allResources {
-				_ = ic.Add(informers.InformerKeyUpstreamTrafficSetting, resource, t)
-			}
-
 			mockKubeController.EXPECT().ListUpstreamTrafficSettings().Return(tc.allResources).AnyTimes()
 
 			actual := c.GetUpstreamTrafficSettingByService(tc.service)
@@ -1849,18 +1802,7 @@ func TestGetUpstreamTrafficSettingByNamespace(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			fakeClient := fakePolicyClient.NewSimpleClientset()
-			ic, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
-			a.Nil(err)
-
 			c := NewClient(mockKubeController)
-			a.Nil(err)
-			a.NotNil(c)
-
-			// Create fake egress policies
-			for _, resource := range tc.allResources {
-				_ = ic.Add(informers.InformerKeyUpstreamTrafficSetting, resource, t)
-			}
 
 			mockKubeController.EXPECT().ListUpstreamTrafficSettings().Return(tc.allResources).AnyTimes()
 			mockKubeController.EXPECT().GetUpstreamTrafficSetting(name1).Return(resource1).AnyTimes()
@@ -2283,13 +2225,13 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
+			stop := make(chan struct{})
 			fakeClient := testclient.NewSimpleClientset(tc.svcEndpoints...)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(fakeClient))
-			assert.Nil(err)
-
-			kubecontroller := k8s.NewClient("", "", ic, nil, nil, nil, nil, messaging.NewBroker(make(<-chan struct{})))
-
-			c := NewClient(kubecontroller)
+			k8sClient, err := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, messaging.NewBroker(stop),
+				k8s.WithKubeClient(fakeClient, "test-mesh"),
+			)
+			assert.NoError(err)
+			c := NewClient(k8sClient)
 
 			actual := c.serviceToMeshServices(tc.svc)
 			assert.ElementsMatch(tc.expected, actual)
@@ -2419,14 +2361,13 @@ func TestGetMeshService(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			_ = ic.Add(informers.InformerKeyService, tc.svc, t)
-			_ = ic.Add(informers.InformerKeyEndpoint, tc.endpoints, t)
 
-			controller := k8s.NewClient(osmNamespace, "", ic, nil, nil, nil, nil, messaging.NewBroker(make(chan struct{})))
-
-			c := NewClient(controller)
+			stop := make(chan struct{})
+			k8sClient, err := k8s.NewClient(osmNamespace, tests.OsmMeshConfigName, messaging.NewBroker(stop),
+				k8s.WithKubeClient(testclient.NewSimpleClientset(tc.svc, tc.endpoints), "test-mesh"),
+			)
+			a.NoError(err)
+			c := NewClient(k8sClient)
 
 			actual, err := c.GetMeshService(tc.namespacedSvc.Name, tc.namespacedSvc.Namespace, tc.port)
 			a.Equal(tc.expectedTargetPort, actual.TargetPort)

@@ -21,6 +21,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
@@ -378,9 +379,7 @@ func TestGetBootstrapSecrets(t *testing.T) {
 			mockInterface := compute.NewMockInterface(gomock.NewController(t))
 			mockInterface.EXPECT().ListSecrets().Return(tc.secrets)
 
-			certManager, err := certificate.FakeCertManager()
-			assert.Nil(err)
-
+			certManager := tresorFake.NewFake(time.Hour)
 			b := NewBootstrapSecretRotator(mockInterface, certManager, time.Duration(1))
 
 			actual := b.getBootstrapSecrets()
@@ -527,7 +526,7 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
-			certManager, err := certificate.FakeCertManager()
+			certManager := tresorFake.NewFake(time.Hour)
 			assert.Nil(err)
 
 			objs := make([]runtime.Object, len(tc.secrets))
