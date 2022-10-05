@@ -24,6 +24,10 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 		Context("with SPIFFE Enabled", func() {
 			testCertManager(WithSpiffeEnabled())
 		})
+
+		Context("with MeshRootCertificate Enabled", func() {
+			testCertManager(WithMeshRootCertificateEnabled())
+		})
 	})
 
 func testCertManager(installOptions ...InstallOsmOpt) {
@@ -35,17 +39,9 @@ func testCertManager(installOptions ...InstallOsmOpt) {
 	)
 
 	It("Tests HTTP traffic for client pod -> server pod", func() {
-		// Install OSM
+		// Install OSM with cert manager
+		installOptions = append(installOptions, WithCertManagerEnabled())
 		installOpts := Td.GetOSMInstallOpts(installOptions...)
-		installOpts.CertManager = "cert-manager"
-		// Currently certs are rotated ~30-35s. This means we will rotate every other time we check, which is on a
-		// 5 second period. We just add the 10 5 extra seconds to make sure the http requests succeed.
-		installOpts.CertValidtyDuration = time.Second * 10
-		installOpts.SetOverrides = []string{
-			// increase timeout when using an external certificate provider due to
-			// potential slowness issuing certs
-			"osm.injector.webhookTimeoutSeconds=30",
-		}
 		Expect(Td.InstallOSM(installOpts)).To(Succeed())
 		Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 5 /* 3 cert-manager pods, 1 controller, 1 injector */, nil)).To(Succeed())
 

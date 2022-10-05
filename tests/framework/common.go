@@ -361,6 +361,40 @@ func WithSpiffeEnabled() InstallOsmOpt {
 	}
 }
 
+// WithCertManagerEnabled will install cert-manager.io before installing OSM
+func WithCertManagerEnabled() InstallOsmOpt {
+	return func(opts *InstallOSMOpts) {
+		opts.CertManager = CertManager
+		// Currently certs are rotated ~30-35s. This means we will rotate every other time we check, which is on a
+		// 5 second period. We just add the 10 5 extra seconds to make sure the http requests succeed.
+		opts.CertValidtyDuration = time.Second * 10
+		opts.SetOverrides = []string{
+			// increase timeout when using an external certificate provider due to
+			// potential slowness issuing certs
+			"osm.injector.webhookTimeoutSeconds=30",
+		}
+	}
+}
+
+// WithVault turns will install vault before installing OSM
+func WithVault() InstallOsmOpt {
+	return func(opts *InstallOSMOpts) {
+		opts.CertManager = Vault
+		opts.SetOverrides = []string{
+			// increase timeout when using an external certificate provider due to
+			// potential slowness issuing certs
+			"osm.injector.webhookTimeoutSeconds=30",
+		}
+	}
+}
+
+// WithMeshRootCertificateEnabled turns on MRC feature flag for OSM
+func WithMeshRootCertificateEnabled() InstallOsmOpt {
+	return func(opts *InstallOSMOpts) {
+		opts.EnableMRC = true
+	}
+}
+
 // GetOSMInstallOpts initializes install options for OSM
 func (td *OsmTestData) GetOSMInstallOpts(options ...InstallOsmOpt) InstallOSMOpts {
 	enablePrivilegedInitContainer := false
@@ -370,7 +404,7 @@ func (td *OsmTestData) GetOSMInstallOpts(options ...InstallOsmOpt) InstallOSMOpt
 
 	baseOpts := InstallOSMOpts{
 		ControlPlaneNS:          td.OsmNamespace,
-		CertManager:             defaultCertManager,
+		CertManager:             DefaultCertManager,
 		ContainerRegistryLoc:    td.CtrRegistryServer,
 		ContainerRegistrySecret: td.CtrRegistryPassword,
 		OsmImagetag:             td.OsmImageTag,
@@ -401,6 +435,7 @@ func (td *OsmTestData) GetOSMInstallOpts(options ...InstallOsmOpt) InstallOSMOpt
 		EnablePrivilegedInitContainer: enablePrivilegedInitContainer,
 		EnableIngressBackendPolicy:    true,
 		EnableSPIFFE:                  td.EnableSPIFFE,
+		EnableMRC:                     false,
 	}
 
 	for _, opt := range options {
@@ -487,7 +522,14 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.
 // installType and instOpts
 func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	if td.InstType == NoInstall {
-		if instOpts.CertManager != defaultCertManager || instOpts.DeployPrometheus || instOpts.DeployGrafana || instOpts.DeployJaeger || instOpts.DeployFluentbit || instOpts.EnableReconciler || instOpts.EnableSPIFFE {
+		if instOpts.CertManager != DefaultCertManager ||
+			instOpts.DeployPrometheus ||
+			instOpts.DeployGrafana ||
+			instOpts.DeployJaeger ||
+			instOpts.DeployFluentbit ||
+			instOpts.EnableReconciler ||
+			instOpts.EnableSPIFFE ||
+			instOpts.EnableMRC {
 			Skip("Skipping test: NoInstall marked on a test that requires modified install")
 		}
 
@@ -536,11 +578,15 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("osm.featureFlags.enableIngressBackendPolicy=%v", instOpts.EnableIngressBackendPolicy),
 		fmt.Sprintf("osm.featureFlags.enableRetryPolicy=%v", instOpts.EnableRetryPolicy),
 		fmt.Sprintf("osm.enableReconciler=%v", instOpts.EnableReconciler),
+		fmt.Sprintf("osm.featureFlags.enableMeshRootCertificate=%v", instOpts.EnableMRC),
 	)
 
 	if instOpts.EnableSPIFFE {
 		instOpts.SetOverrides = append(instOpts.SetOverrides,
 			fmt.Sprintf("osm.featureFlags.enableSPIFFE=%v", instOpts.EnableSPIFFE),
+			// we always need enableMeshRootCertificate for SPIFFE
+			// this might duplicate the setting but helm allows for this, taking the value of the second declaration
+			// this ensure it is enabled when so SPIFFE Setting will work
 			"osm.featureFlags.enableMeshRootCertificate=true",
 		)
 	}
@@ -550,7 +596,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	}
 
 	switch instOpts.CertManager {
-	case "vault":
+	case Vault:
 		if err := td.installVault(instOpts); err != nil {
 			return err
 		}
@@ -565,7 +611,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		if err := td.WaitForPodsRunningReady(instOpts.ControlPlaneNS, 60*time.Second, 1, nil); err != nil {
 			return fmt.Errorf("failed waiting for vault pod to become ready")
 		}
-	case "cert-manager":
+	case CertManager:
 		if err := td.installCertManager(instOpts); err != nil {
 			return err
 		}
@@ -731,7 +777,7 @@ func (td *OsmTestData) installVault(instOpts InstallOSMOpts) error {
 					Containers: []corev1.Container{
 						{
 							Name:            "vault",
-							Image:           "vault:1.4.0",
+							Image:           "vault:1.11.3",
 							ImagePullPolicy: corev1.PullAlways,
 							Command:         []string{"/bin/sh", "-c"},
 							Args: []string{
@@ -902,7 +948,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 		Spec: cmapi.CertificateSpec{
 			IsCA:       true,
 			Duration:   &metav1.Duration{Duration: 90 * 24 * time.Hour},
-			SecretName: osmCABundleName,
+			SecretName: OsmCABundleName,
 			CommonName: "osm-system",
 			IssuerRef: cmmeta.ObjectReference{
 				Name:  selfsigned.Name,
@@ -919,7 +965,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 		Spec: cmapi.IssuerSpec{
 			IssuerConfig: cmapi.IssuerConfig{
 				CA: &cmapi.CAIssuer{
-					SecretName: osmCABundleName,
+					SecretName: OsmCABundleName,
 				},
 			},
 		},
@@ -968,7 +1014,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 	}
 
 	// cert-manager.io creates the OSM CA bundle secret which is required by osm-controller. Wait for it to be ready.
-	if err := Td.waitForCABundleSecret(td.OsmNamespace, 90*time.Second); err != nil {
+	if err := Td.WaitForCABundleSecret(td.OsmNamespace, OsmCABundleName, 90*time.Second); err != nil {
 		return fmt.Errorf("error waiting for cert-manager.io to create OSM CA bundle secret")
 	}
 
@@ -1397,19 +1443,19 @@ func (td *OsmTestData) RetryFuncOnError(f RetryOnErrorFunc, retryTimes int, slee
 	return fmt.Errorf("Error after retrying %d times: %w", retryTimes, err)
 }
 
-// waitForCABundleSecret waits for the CA bundle secret to be created
-func (td *OsmTestData) waitForCABundleSecret(ns string, timeout time.Duration) error {
+// WaitForCABundleSecret waits for the CA bundle secret to be created
+func (td *OsmTestData) WaitForCABundleSecret(ns, name string, timeout time.Duration) error {
 	td.T.Logf("Wait up to %s for OSM CA bundle to be ready in NS [%s]...", timeout, ns)
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(5 * time.Second) {
-		_, err := td.Client.CoreV1().Secrets(ns).Get(context.TODO(), osmCABundleName, metav1.GetOptions{})
+		_, err := td.Client.CoreV1().Secrets(ns).Get(context.TODO(), name, metav1.GetOptions{})
 		if err == nil {
 			return nil
 		}
-		td.T.Logf("OSM CA bundle secret not ready in NS [%s]", ns)
+		td.T.Logf("OSM CA bundle secret [%s] not ready in NS [%s]", name, ns)
 		continue // retry
 	}
 
-	return fmt.Errorf("CA bundle secret not ready in NS %s after %s", ns, timeout)
+	return fmt.Errorf("CA bundle secret  [%s] not ready in NS %s after %s", name, ns, timeout)
 }
 
 // VerifyRestarts ensure no crashes on osm-namespace instances for OSM CTL processes

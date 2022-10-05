@@ -134,6 +134,7 @@ type InstallOSMOpts struct {
 	EnableIngressBackendPolicy    bool
 	EnableRetryPolicy             bool
 	EnableSPIFFE                  bool
+	EnableMRC                     bool
 }
 
 // InstallOsmOpt is a function type for setting install options
