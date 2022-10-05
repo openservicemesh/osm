@@ -110,6 +110,11 @@ static_resources:
         '@type': type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
         explicit_http_config:
           http2_protocol_options: {}
+    upstream_connection_options:
+      tcp_keepalive:
+        keepalive_interval: 5
+        keepalive_probes: 5
+        keepalive_time: 60
   - load_assignment:
       cluster_name: my-container_liveness_cluster
       endpoints:
@@ -451,6 +456,11 @@ static_resources:
         '@type': type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
         explicit_http_config:
           http2_protocol_options: {}
+    upstream_connection_options:
+      tcp_keepalive:
+        keepalive_interval: 5
+        keepalive_probes: 5
+        keepalive_time: 60
   - load_assignment:
       cluster_name: my-container-2_liveness_cluster
       endpoints:
