@@ -9,16 +9,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 )
 
-// MRC condition types
-const (
-	ready              v1alpha2.MeshRootCertificateConditionType = "Ready"
-	accepted           v1alpha2.MeshRootCertificateConditionType = "Accepted"
-	issuingRollout     v1alpha2.MeshRootCertificateConditionType = "IssuingRollout"
-	validatingRollout  v1alpha2.MeshRootCertificateConditionType = "ValidatingRollout"
-	issuingRollback    v1alpha2.MeshRootCertificateConditionType = "IssuingRollback"
-	validatingRollback v1alpha2.MeshRootCertificateConditionType = "ValidatingRollback"
-)
-
 // MRC condition reasons
 const (
 	// Accepted type

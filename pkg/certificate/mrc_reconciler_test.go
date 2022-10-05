@@ -36,7 +36,7 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.Passive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -64,7 +64,7 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.Passive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -92,7 +92,7 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentActive,
+					Intent:      v1alpha2.Passive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -120,7 +120,7 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.Passive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -136,19 +136,19 @@ func TestShouldEnsureIssuerForMRC(t *testing.T) {
 					State: constants.MRCStatePending,
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:    accepted,
+							Type:    v1alpha2.Accepted,
 							Status:  v1.ConditionTrue,
 							Reason:  certificateAcceptedReason,
 							Message: "certificate accepted",
 						},
 						{
-							Type:    validatingRollout,
+							Type:    v1alpha2.ValidatingRollout,
 							Status:  v1.ConditionFalse,
 							Reason:  passiveStateValidatingReason,
 							Message: "passive intent",
 						},
 						{
-							Type:    issuingRollout,
+							Type:    v1alpha2.IssuingRollout,
 							Status:  v1.ConditionFalse,
 							Reason:  passiveStateIssuingReason,
 							Message: "passive intent",
@@ -194,7 +194,7 @@ func TestUpdateMRCState(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.Passive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -217,7 +217,7 @@ func TestUpdateMRCState(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.Passive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -240,7 +240,7 @@ func TestUpdateMRCState(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.Passive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -256,19 +256,19 @@ func TestUpdateMRCState(t *testing.T) {
 					State: constants.MRCStatePending,
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:    accepted,
+							Type:    v1alpha2.Accepted,
 							Status:  v1.ConditionTrue,
 							Reason:  certificateAcceptedReason,
 							Message: "certificate accepted",
 						},
 						{
-							Type:    validatingRollout,
+							Type:    v1alpha2.ValidatingRollout,
 							Status:  v1.ConditionFalse,
 							Reason:  passiveStateValidatingReason,
 							Message: "passive intent",
 						},
 						{
-							Type:    issuingRollout,
+							Type:    v1alpha2.IssuingRollout,
 							Status:  v1.ConditionFalse,
 							Reason:  passiveStateIssuingReason,
 							Message: "passive intent",
@@ -287,7 +287,7 @@ func TestUpdateMRCState(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.Passive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -310,7 +310,7 @@ func TestUpdateMRCState(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.Passive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -333,7 +333,7 @@ func TestUpdateMRCState(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.Passive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{

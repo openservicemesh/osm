@@ -9,7 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 func TestSetMRCCondition(t *testing.T) {
@@ -41,12 +40,12 @@ func TestSetMRCCondition(t *testing.T) {
 						},
 					},
 					TrustDomain: "testDomain",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.Passive,
 				},
 			},
 			expectedConditionsLen: 1,
 			newCondition: v1alpha2.MeshRootCertificateCondition{
-				Type:    accepted,
+				Type:    v1alpha2.Accepted,
 				Status:  v1.ConditionTrue,
 				Reason:  certificateAcceptedReason,
 				Message: "test",
@@ -71,12 +70,12 @@ func TestSetMRCCondition(t *testing.T) {
 						},
 					},
 					TrustDomain: "testDomain",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.Passive,
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:               validatingRollback,
+							Type:               v1alpha2.ValidatingRollback,
 							Status:             v1.ConditionFalse,
 							Reason:             isNotReadyValidatingReason,
 							Message:            "test",
@@ -88,7 +87,7 @@ func TestSetMRCCondition(t *testing.T) {
 			expectedConditionsLen:      1,
 			expectedLastTransitionTime: &now,
 			newCondition: v1alpha2.MeshRootCertificateCondition{
-				Type:    validatingRollback,
+				Type:    v1alpha2.ValidatingRollback,
 				Status:  v1.ConditionFalse,
 				Reason:  noLongerValidatingReason,
 				Message: "test",
@@ -113,12 +112,12 @@ func TestSetMRCCondition(t *testing.T) {
 						},
 					},
 					TrustDomain: "testDomain",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.Passive,
 				},
 				Status: v1alpha2.MeshRootCertificateStatus{
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:    validatingRollout,
+							Type:    v1alpha2.ValidatingRollout,
 							Status:  v1.ConditionFalse,
 							Reason:  passiveStateValidatingReason,
 							Message: "test",
@@ -128,7 +127,7 @@ func TestSetMRCCondition(t *testing.T) {
 			},
 			expectedConditionsLen: 1,
 			newCondition: v1alpha2.MeshRootCertificateCondition{
-				Type:    validatingRollout,
+				Type:    v1alpha2.ValidatingRollout,
 				Status:  v1.ConditionTrue,
 				Reason:  passivelyInUseForValidatingReason,
 				Message: "test",

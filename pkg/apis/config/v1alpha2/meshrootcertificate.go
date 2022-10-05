@@ -122,6 +122,14 @@ type TresorCASpec struct {
 // can be (Active, Passive).
 type MeshRootCertificateIntent string
 
+const (
+	// Passive is the passive option for the Intent of the MeshRootCertificate
+	Passive MeshRootCertificateIntent = "passive"
+
+	// sActive is the active option for the Intent of the MeshRootCertificate
+	Active MeshRootCertificateIntent = "active"
+)
+
 // MeshRootCertificateComponentStatus specifies the status of the certificate component,
 // can be (`Issuing`, `Validating`, `Unknown`).
 type MeshRootCertificateComponentStatus string
@@ -131,7 +139,7 @@ const (
 	Issuing MeshRootCertificateComponentStatus = "issuing"
 
 	// Validating means that the root cert's cert chain, described by this MRC is now part of the CABundle used to
-	// validate requests for this component..
+	// validate requests for this component.
 	Validating MeshRootCertificateComponentStatus = "validating"
 
 	// Unused means that the root cert described by this MRC is unused.
@@ -145,6 +153,26 @@ const (
 // MeshRootCertificateConditionType specifies the type of the condition,
 // one of (`Ready`, `Accepted`, `IssuingRollout`, `ValidatingRollout`, `IssuingRollback`, `ValidatingRollback`).
 type MeshRootCertificateConditionType string
+
+const (
+	// Ready specifies if the MRC is in a ready state
+	Ready MeshRootCertificateConditionType = "ready"
+
+	// Accepted specifies if the provider has been accepted
+	Accepted MeshRootCertificateConditionType = "accepted"
+
+	// IssuingRollout specifies if the MRC is in an issuingRollout state
+	IssuingRollout MeshRootCertificateConditionType = "issuingRollout"
+
+	// ValidatingRollout specifies if the MRC is in a validatingRollout state
+	ValidatingRollout MeshRootCertificateConditionType = "validatingRollout"
+
+	// IssuingRollback specifies if the MRC is in a issuingRollback state
+	IssuingRollback MeshRootCertificateConditionType = "issuingRollback"
+
+	// ValidatingRollback specifies if the MRC is in a validatingRollback state
+	ValidatingRollback MeshRootCertificateConditionType = "validatingRollback"
+)
 
 // MeshRootCertificateComponentStatuses is the set of statuses for each certificate component in the cluster.
 type MeshRootCertificateComponentStatuses struct {

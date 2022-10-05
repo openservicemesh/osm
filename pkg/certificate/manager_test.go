@@ -9,6 +9,7 @@ import (
 	"github.com/cskr/pubsub"
 	tassert "github.com/stretchr/testify/assert"
 	trequire "github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
@@ -341,28 +342,28 @@ func TestHandleMRCEvent(t *testing.T) {
 						// unspecified component status will be unknown.
 						Conditions: []v1alpha2.MeshRootCertificateCondition{
 							{
-								Type:   constants.MRCConditionTypeReady,
-								Status: constants.MRCConditionStatusUnknown,
+								Type:   v1alpha2.Ready,
+								Status: corev1.ConditionUnknown,
 							},
 							{
-								Type:   constants.MRCConditionTypeAccepted,
-								Status: constants.MRCConditionStatusUnknown,
+								Type:   v1alpha2.Accepted,
+								Status: corev1.ConditionUnknown,
 							},
 							{
-								Type:   constants.MRCConditionTypeIssuingRollout,
-								Status: constants.MRCConditionStatusUnknown,
+								Type:   v1alpha2.IssuingRollout,
+								Status: corev1.ConditionUnknown,
 							},
 							{
-								Type:   constants.MRCConditionTypeValidatingRollout,
-								Status: constants.MRCConditionStatusUnknown,
+								Type:   v1alpha2.ValidatingRollout,
+								Status: corev1.ConditionUnknown,
 							},
 							{
-								Type:   constants.MRCConditionTypeIssuingRollback,
-								Status: constants.MRCConditionStatusUnknown,
+								Type:   v1alpha2.IssuingRollback,
+								Status: corev1.ConditionUnknown,
 							},
 							{
-								Type:   constants.MRCConditionTypeValidatingRollback,
-								Status: constants.MRCConditionStatusUnknown,
+								Type:   v1alpha2.ValidatingRollback,
+								Status: corev1.ConditionUnknown,
 							},
 						},
 					},

@@ -98,28 +98,28 @@ var testMeshRootCertificate = &configv1alpha2.MeshRootCertificate{
 		State: constants.MRCStatePending,
 		Conditions: []configv1alpha2.MeshRootCertificateCondition{
 			{
-				Type:   constants.MRCConditionTypeReady,
-				Status: constants.MRCConditionStatusUnknown,
+				Type:   configv1alpha2.Ready,
+				Status: corev1.ConditionUnknown,
 			},
 			{
-				Type:   constants.MRCConditionTypeAccepted,
-				Status: constants.MRCConditionStatusUnknown,
+				Type:   configv1alpha2.Accepted,
+				Status: corev1.ConditionUnknown,
 			},
 			{
-				Type:   constants.MRCConditionTypeIssuingRollout,
-				Status: constants.MRCConditionStatusUnknown,
+				Type:   configv1alpha2.IssuingRollout,
+				Status: corev1.ConditionUnknown,
 			},
 			{
-				Type:   constants.MRCConditionTypeValidatingRollout,
-				Status: constants.MRCConditionStatusUnknown,
+				Type:   configv1alpha2.ValidatingRollout,
+				Status: corev1.ConditionUnknown,
 			},
 			{
-				Type:   constants.MRCConditionTypeIssuingRollback,
-				Status: constants.MRCConditionStatusUnknown,
+				Type:   configv1alpha2.IssuingRollback,
+				Status: corev1.ConditionUnknown,
 			},
 			{
-				Type:   constants.MRCConditionTypeValidatingRollback,
-				Status: constants.MRCConditionStatusUnknown,
+				Type:   configv1alpha2.ValidatingRollback,
+				Status: corev1.ConditionUnknown,
 			},
 		},
 	},

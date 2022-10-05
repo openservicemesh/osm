@@ -9,6 +9,7 @@ import (
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -64,35 +65,35 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 			Spec: v1alpha2.MeshRootCertificateSpec{
 				Provider:    option.AsProviderSpec(),
 				TrustDomain: trustDomain,
-				Intent:      constants.MRCIntentPassive,
+				Intent:      v1alpha2.Passive,
 			},
 			Status: v1alpha2.MeshRootCertificateStatus{
 				State: constants.MRCStateActive,
 				// Statuses unset will be marked unknown
 				Conditions: []v1alpha2.MeshRootCertificateCondition{
 					{
-						Type:   constants.MRCConditionTypeReady,
-						Status: constants.MRCConditionStatusUnknown,
+						Type:   v1alpha2.Ready,
+						Status: corev1.ConditionUnknown,
 					},
 					{
-						Type:   constants.MRCConditionTypeAccepted,
-						Status: constants.MRCConditionStatusUnknown,
+						Type:   v1alpha2.Accepted,
+						Status: corev1.ConditionUnknown,
 					},
 					{
-						Type:   constants.MRCConditionTypeIssuingRollout,
-						Status: constants.MRCConditionStatusUnknown,
+						Type:   v1alpha2.IssuingRollout,
+						Status: corev1.ConditionUnknown,
 					},
 					{
-						Type:   constants.MRCConditionTypeValidatingRollout,
-						Status: constants.MRCConditionStatusUnknown,
+						Type:   v1alpha2.ValidatingRollout,
+						Status: corev1.ConditionUnknown,
 					},
 					{
-						Type:   constants.MRCConditionTypeIssuingRollback,
-						Status: constants.MRCConditionStatusUnknown,
+						Type:   v1alpha2.IssuingRollback,
+						Status: corev1.ConditionUnknown,
 					},
 					{
-						Type:   constants.MRCConditionTypeValidatingRollback,
-						Status: constants.MRCConditionStatusUnknown,
+						Type:   v1alpha2.ValidatingRollback,
+						Status: corev1.ConditionUnknown,
 					},
 				},
 			},

@@ -175,7 +175,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.Passive,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -192,28 +192,28 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Ready,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Accepted,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollback,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollback,
+							Status: v1.ConditionUnknown,
 						},
 					},
 				},
@@ -247,28 +247,28 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Ready,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Accepted,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollback,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollback,
+							Status: v1.ConditionUnknown,
 						},
 					},
 				},
@@ -299,28 +299,28 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Ready,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Accepted,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollback,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollback,
+							Status: v1.ConditionUnknown,
 						},
 					},
 				},
@@ -351,28 +351,28 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Ready,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Accepted,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollback,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollback,
+							Status: v1.ConditionUnknown,
 						},
 					},
 				},
@@ -408,28 +408,28 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Ready,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Accepted,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollback,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollback,
+							Status: v1.ConditionUnknown,
 						},
 					},
 				},
@@ -482,28 +482,28 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Ready,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Accepted,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollback,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollback,
+							Status: v1.ConditionUnknown,
 						},
 					},
 				},
@@ -540,28 +540,28 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Ready,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Accepted,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollback,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollback,
+							Status: v1.ConditionUnknown,
 						},
 					},
 				},
@@ -593,28 +593,28 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					// unspecified component status will be unknown.
 					Conditions: []v1alpha2.MeshRootCertificateCondition{
 						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Ready,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.Accepted,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollout,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.IssuingRollback,
+							Status: v1.ConditionUnknown,
 						},
 						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
+							Type:   v1alpha2.ValidatingRollback,
+							Status: v1.ConditionUnknown,
 						},
 					},
 				},
