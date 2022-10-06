@@ -55,6 +55,7 @@ func TestCreateValidatingWebhook(t *testing.T) {
 	testCases := []struct {
 		name                      string
 		validateTrafficTarget     bool
+		priorOSMVersion           string
 		expectedRules             []admissionregv1.RuleWithOperations
 		expectedControlPlaneRules []admissionregv1.RuleWithOperations
 	}{
@@ -70,6 +71,20 @@ func TestCreateValidatingWebhook(t *testing.T) {
 			expectedRules:             []admissionregv1.RuleWithOperations{ingressRule},
 			expectedControlPlaneRules: []admissionregv1.RuleWithOperations{configRule},
 		},
+		{
+			name:                      "with existing webhook with different version",
+			validateTrafficTarget:     false,
+			expectedRules:             []admissionregv1.RuleWithOperations{ingressRule},
+			expectedControlPlaneRules: []admissionregv1.RuleWithOperations{configRule},
+			priorOSMVersion:           "1.2.2",
+		},
+		{
+			name:                      "with existing webhook of same version",
+			validateTrafficTarget:     false,
+			expectedRules:             []admissionregv1.RuleWithOperations{ingressRule},
+			expectedControlPlaneRules: []admissionregv1.RuleWithOperations{configRule},
+			priorOSMVersion:           osmVersion,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -78,6 +93,11 @@ func TestCreateValidatingWebhook(t *testing.T) {
 			cert := &certificate.Certificate{}
 
 			kubeClient := fake.NewSimpleClientset()
+
+			if tc.priorOSMVersion != "" {
+				err := createOrUpdateValidatingWebhook(kubeClient, cert, webhookName, meshName, osmNamespace, tc.priorOSMVersion, tc.validateTrafficTarget, enableReconciler)
+				assert.Nil(err)
+			}
 
 			err := createOrUpdateValidatingWebhook(kubeClient, cert, webhookName, meshName, osmNamespace, osmVersion, tc.validateTrafficTarget, enableReconciler)
 			assert.Nil(err)
@@ -111,7 +131,7 @@ func TestCreateValidatingWebhook(t *testing.T) {
 							Operator: metav1.LabelSelectorOpDoesNotExist,
 						},
 						{
-							Key:      "name",
+							Key:      "kubernetes.io/metadata.name",
 							Operator: metav1.LabelSelectorOpNotIn,
 							Values:   []string{osmNamespace},
 						},
@@ -124,7 +144,7 @@ func TestCreateValidatingWebhook(t *testing.T) {
 				} else if webhook.Name == ControlPlaneValidatingWebhookName {
 					assert.EqualValues(webhook.NamespaceSelector.MatchExpressions, []metav1.LabelSelectorRequirement{
 						{
-							Key:      "name",
+							Key:      "kubernetes.io/metadata.name",
 							Operator: metav1.LabelSelectorOpIn,
 							Values:   []string{osmNamespace},
 						},

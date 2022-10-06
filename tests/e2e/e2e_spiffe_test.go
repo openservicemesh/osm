@@ -68,12 +68,14 @@ func testSpiffeCert() {
 
 func verifySpiffeIDInPodCert(pod *v1.Pod) {
 	By("Verifying pod has SPIFFE cert in URI SAN")
-	args := []string{"proxy", "get", "certs", pod.Name, fmt.Sprintf("-n=%s", pod.Namespace)}
-	stdout, _, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), args...)
-	Expect(err).NotTo(HaveOccurred())
 
-	Td.T.Logf("stdout:\n%s", stdout)
-	Expect(stdout).Should(ContainSubstring(fmt.Sprintf("\"uri\": \"spiffe://cluster.local/%s/%s", pod.Spec.ServiceAccountName, pod.Namespace)))
+	// It can take a moment for envoy to load the certs
+	Eventually(func() (string, error) {
+		args := []string{"proxy", "get", "certs", pod.Name, fmt.Sprintf("-n=%s", pod.Namespace)}
+		stdout, _, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), args...)
+		Td.T.Logf("stdout:\n%s", stdout)
+		return stdout.String(), err
+	}, 10*time.Second).Should(ContainSubstring(fmt.Sprintf("\"uri\": \"spiffe://cluster.local/%s/%s", pod.Spec.ServiceAccountName, pod.Namespace)))
 }
 
 func verifySpiffeIDForDeployment(deployment appsv1.Deployment) {

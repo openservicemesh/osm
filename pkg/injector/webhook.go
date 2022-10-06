@@ -306,7 +306,7 @@ func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert *certifi
 							Operator: metav1.LabelSelectorOpDoesNotExist,
 						},
 						{
-							Key:      "name",
+							Key:      "kubernetes.io/metadata.name",
 							Operator: metav1.LabelSelectorOpNotIn,
 							Values:   []string{osmNamespace},
 						},
@@ -344,7 +344,12 @@ func createOrUpdateMutatingWebhook(clientSet kubernetes.Interface, cert *certifi
 				return err
 			}
 
-			mwhc.ObjectMeta = existing.ObjectMeta // copy the object meta which includes resource version, required for updates.
+			// copy the object meta which includes resource version, required for updates.
+			// but use the OSM Version, which might be different if this is an upgrade
+			mwhc.ObjectMeta = existing.ObjectMeta
+			if mwhc.ObjectMeta.Labels != nil {
+				mwhc.ObjectMeta.Labels[constants.OSMAppVersionLabelKey] = osmVersion
+			}
 			if _, err = clientSet.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.Background(), &mwhc, metav1.UpdateOptions{}); err != nil {
 				// There might be conflicts when multiple injectors try to update the same resource
 				// One of the injectors will successfully update the resource, hence conflicts shoud be ignored and not treated as an error
