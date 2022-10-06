@@ -24,6 +24,10 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using Vault",
 		Context("with SPIFFE Enabled", func() {
 			testHashCorpVault(WithSpiffeEnabled())
 		})
+
+		Context("with MeshRootCertificate Enabled", func() {
+			testHashCorpVault(WithSpiffeEnabled())
+		})
 	})
 
 func testHashCorpVault(installOptions ...InstallOsmOpt) {
@@ -37,13 +41,8 @@ func testHashCorpVault(installOptions ...InstallOsmOpt) {
 
 	It("Tests HTTP traffic for client pod -> server pod", func() {
 		// Install OSM
+		installOptions = append(installOptions, WithVault())
 		installOpts := Td.GetOSMInstallOpts(installOptions...)
-		installOpts.CertManager = "vault"
-		installOpts.SetOverrides = []string{
-			// increase timeout when using an external certificate provider due to
-			// potential slowness issuing certs
-			"osm.injector.webhookTimeoutSeconds=30",
-		}
 		Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 		// Create Test NS
