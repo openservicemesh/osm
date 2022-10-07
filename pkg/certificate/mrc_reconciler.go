@@ -54,18 +54,23 @@ func (uc UseCase) String() string {
 
 func (m *Manager) handleMRCEvent(event MRCEvent) error {
 	mrc := event.MRC
-	// TODO(5046): remove this first call to setIssuers.
-	err := m.setIssuers(event.MRC)
-	if err == nil {
-		return nil
-	}
-	log.Err(err).Msg("error setting issuers on mrc")
+
 	// TODO(5046): improve logging in this method.
-	if shouldUpdateMRCComponentStatus(mrc) {
+	/*if shouldUpdateMRCComponentStatus(mrc) {
+		log.Debug().Msgf("jaellio: shouldUpdateMRCComponentStatus")
 		if err := m.retryMRCUpdateOnConflict(mrc, m.updateMRCComponentStatus); err != nil {
 			return err
 		}
-	} else if m.shouldUpdateState(mrc) {
+	} else */
+	log.Debug().Msg("jaellio: made it here")
+	if m.shouldSetIssuersForActiveMRC(mrc) || m.shouldSetIssuers(mrc) {
+		log.Debug().Msg("jaellio: set active issuers")
+		if err := m.retryMRCUpdateOnConflict(mrc, m.getCertIssuerAndSetConditions); err != nil {
+			return err
+		}
+	}
+	/*if m.shouldUpdateState(mrc) {
+		log.Debug().Msgf("jaellio: shouldUpdateState")
 		log.Info().Str("mrc", namespacedMRCName(mrc)).Msgf("updating MRC state")
 		if err := m.retryMRCUpdateOnConflict(mrc, m.updateMRCState); err != nil {
 			return err
@@ -75,7 +80,7 @@ func (m *Manager) handleMRCEvent(event MRCEvent) error {
 		if err := m.setIssuers(mrc); err != nil {
 			return err
 		}
-	}
+	}*/
 	return nil
 }
 
@@ -162,7 +167,7 @@ func (m *Manager) updateMRCComponentStatus(mrc *v1alpha2.MeshRootCertificate) er
 		}
 	}
 
-	_, err := m.mrcClient.UpdateMeshRootCertificate(mrc)
+	_, err := m.mrcClient.UpdateMeshRootCertificateStatus(mrc)
 	return err
 }
 
@@ -170,6 +175,50 @@ func (m *Manager) updateMRCComponentStatus(mrc *v1alpha2.MeshRootCertificate) er
 func isTerminal(mrc *v1alpha2.MeshRootCertificate) bool {
 	// TODO(5046): check if the mrc is in a terminal state.
 	return true
+}
+
+func (m *Manager) getCertIssuerAndSetConditions(mrc *v1alpha2.MeshRootCertificate) error {
+	if !m.shouldSetIssuersForActiveMRC(mrc) && !m.shouldSetIssuers(mrc) {
+		return nil
+	}
+
+	client, ca, err := m.mrcClient.GetCertIssuerForMRC(mrc)
+	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRetrievingCA)).Str("mrc", namespacedMRCName(mrc)).Msg("failed to retrieve CA on passive MRC creation")
+
+		// CA not accepted
+		setMRCCondition(mrc, v1alpha2.MRCConditionTypeAccepted, corev1.ConditionFalse, errorRetrievingCAReason, err.Error())
+		setMRCCondition(mrc, v1alpha2.MRCConditionTypeIssuingRollout, corev1.ConditionFalse, notAcceptedIssuingReason, err.Error())
+		setMRCCondition(mrc, v1alpha2.MRCConditionTypeValidatingRollout, corev1.ConditionFalse, notAcceptedValidatingReason, err.Error())
+		mrc.Status.State = constants.MRCStateError
+		_, err := m.mrcClient.UpdateMeshRootCertificateStatus(mrc)
+		return err
+	}
+
+	log.Debug().Str("mrc", namespacedMRCName(mrc)).Msg("successfully retrieved CA on passive MRC creation")
+
+	// CA accepted
+	setMRCCondition(mrc, v1alpha2.MRCConditionTypeAccepted, corev1.ConditionTrue, certificateAcceptedReason, "certificate accepted")
+	// setMRCCondition(mrc, v1alpha2.MRCConditionTypeIssuingRollout, corev1.ConditionFalse, passiveStateIssuingReason, "passive intent")
+	// setMRCCondition(mrc, v1alpha2.MRCConditionTypeValidatingRollout, corev1.ConditionFalse, passiveStateValidatingReason, "passive intent")
+
+	c := &issuer{Issuer: client, ID: mrc.Name, CertificateAuthority: ca, TrustDomain: mrc.Spec.TrustDomain, SpiffeEnabled: mrc.Spec.SpiffeEnabled}
+	switch {
+	case mrc.Spec.Intent == v1alpha2.MRCIntentActive:
+		m.mu.Lock()
+		m.signingIssuer = c
+		m.validatingIssuer = c
+		m.mu.Unlock()
+	default:
+		m.mu.Lock()
+		m.signingIssuer = c
+		m.validatingIssuer = c
+		m.mu.Unlock()
+	}
+	mrc.Status.State = constants.MRCStateActive
+	// setMRCCondition(mrc, v1alpha2.MRCConditionTypeReady, corev1.ConditionTrue, reason, "certificate accepted")
+	_, err = m.mrcClient.UpdateMeshRootCertificateStatus(mrc)
+	return err
 }
 
 // state and condition get updated together.
@@ -192,37 +241,48 @@ func (m *Manager) updateMRCState(mrc *v1alpha2.MeshRootCertificate) error {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRetrievingCA)).Str("mrc", namespacedMRCName(mrc)).Msg("failed to retrieve CA on passive MRC creation")
 
 			// CA not accepted
+			if !m.conditionWriter {
+				return err
+			}
+
 			setMRCCondition(mrc, v1alpha2.MRCConditionTypeAccepted, corev1.ConditionFalse, errorRetrievingCAReason, err.Error())
-			setMRCCondition(mrc, v1alpha2.MRCConditionTypeIssuingRollout, corev1.ConditionFalse, notAcceptedIssuingReason, err.Error())
-			setMRCCondition(mrc, v1alpha2.MRCConditionTypeValidatingRollout, corev1.ConditionFalse, notAcceptedValidatingReason, err.Error())
+			// setMRCCondition(mrc, v1alpha2.MRCConditionTypeIssuingRollout, corev1.ConditionFalse, notAcceptedIssuingReason, err.Error())
+			// setMRCCondition(mrc, v1alpha2.MRCConditionTypeValidatingRollout, corev1.ConditionFalse, notAcceptedValidatingReason, err.Error())
 			mrc.Status.State = constants.MRCStateError
-			_, err := m.mrcClient.UpdateMeshRootCertificate(mrc)
+			_, err := m.mrcClient.UpdateMeshRootCertificateStatus(mrc)
 			return err
 		}
 
 		log.Debug().Str("mrc", namespacedMRCName(mrc)).Msg("successfully retrieved CA on passive MRC creation")
 
+		if !m.conditionWriter {
+			return nil
+		}
 		// CA accepted
 		setMRCCondition(mrc, v1alpha2.MRCConditionTypeAccepted, corev1.ConditionTrue, certificateAcceptedReason, "certificate accepted")
 		setMRCCondition(mrc, v1alpha2.MRCConditionTypeIssuingRollout, corev1.ConditionFalse, passiveStateIssuingReason, "passive intent")
 		setMRCCondition(mrc, v1alpha2.MRCConditionTypeValidatingRollout, corev1.ConditionFalse, passiveStateValidatingReason, "passive intent")
 		mrc.Status.State = constants.MRCStatePending
-		_, err = m.mrcClient.UpdateMeshRootCertificate(mrc)
+		_, err = m.mrcClient.UpdateMeshRootCertificateStatus(mrc)
 		return err
 	}
 
-	_, err := m.mrcClient.UpdateMeshRootCertificate(mrc)
+	_, err := m.mrcClient.UpdateMeshRootCertificateStatus(mrc)
 	return err
 }
 
 func (m *Manager) shouldSetIssuers(mrc *v1alpha2.MeshRootCertificate) bool {
 	// TODO(5046): check the states, and if in some form of an active state, AND if the MRC is not already the existing
 	// then we should set MRC, so return true
-	return true
+	return mrc.Status.State != constants.MRCStateError && (m.signingIssuer == nil || m.validatingIssuer == nil)
 }
 
 func (m *Manager) shouldEnsureIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) bool {
 	return m.conditionWriter && mrc.Spec.Intent == v1alpha2.MRCIntentPassive && len(mrc.Status.Conditions) == 0
+}
+
+func (m *Manager) shouldSetIssuersForActiveMRC(mrc *v1alpha2.MeshRootCertificate) bool {
+	return mrc.Spec.Intent == v1alpha2.MRCIntentActive && len(mrc.Status.Conditions) == 0
 }
 
 func (m *Manager) setIssuers(mrc *v1alpha2.MeshRootCertificate) error {

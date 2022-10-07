@@ -424,7 +424,19 @@ func (b *bootstrap) createMeshRootCertificate() error {
 	if err != nil {
 		return err
 	}
+
+	// Check if the MRC already exists to avoid race conditions between the validating webhook server and MRC updates/creates
+	existingMRC, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), defaultMeshRootCertificate.Name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if existingMRC != nil {
+		log.Info().Msgf("MeshRootCertificate already exists in %s. Skip creating.", b.namespace)
+		return nil
+	}
+
 	createdMRC, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshRootCertificate, metav1.CreateOptions{})
+	// Another osm-bootstrap might have already created the default MRC
 	if apierrors.IsAlreadyExists(err) {
 		log.Info().Msgf("MeshRootCertificate already exists in %s. Skip creating.", b.namespace)
 		return nil
@@ -435,32 +447,6 @@ func (b *bootstrap) createMeshRootCertificate() error {
 
 	createdMRC.Status = configv1alpha2.MeshRootCertificateStatus{
 		State: constants.MRCStatePending,
-		Conditions: []configv1alpha2.MeshRootCertificateCondition{
-			{
-				Type:   configv1alpha2.MRCConditionTypeReady,
-				Status: corev1.ConditionUnknown,
-			},
-			{
-				Type:   configv1alpha2.MRCConditionTypeAccepted,
-				Status: corev1.ConditionUnknown,
-			},
-			{
-				Type:   configv1alpha2.MRCConditionTypeIssuingRollout,
-				Status: corev1.ConditionUnknown,
-			},
-			{
-				Type:   configv1alpha2.MRCConditionTypeValidatingRollout,
-				Status: corev1.ConditionUnknown,
-			},
-			{
-				Type:   configv1alpha2.MRCConditionTypeIssuingRollback,
-				Status: corev1.ConditionUnknown,
-			},
-			{
-				Type:   configv1alpha2.MRCConditionTypeValidatingRollback,
-				Status: corev1.ConditionUnknown,
-			},
-		},
 	}
 
 	_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).UpdateStatus(context.Background(), createdMRC, metav1.UpdateOptions{})

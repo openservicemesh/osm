@@ -39,13 +39,13 @@ func (c *fakeMRCClient) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertific
 	}}, nil
 }
 
-// UpdateMeshRootCertificate updates the given mesh root certificate.
-func (c *fakeMRCClient) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+// UpdateMeshRootCertificateStatus updates the status of the given MeshRootCertificate.
+func (c *fakeMRCClient) UpdateMeshRootCertificateStatus(mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
 	// TODO(5046): implement this.
 	return nil, nil
 }
 
-// GetMeshRootCertificate gets the specified mesh root certificate.
+// GetMeshRootCertificate gets the specified MeshRootCertificate.
 func (c *fakeMRCClient) GetMeshRootCertificate(mrcName string) *v1alpha2.MeshRootCertificate {
 	// TODO(5046): implement this.
 	return nil

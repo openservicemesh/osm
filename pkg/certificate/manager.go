@@ -100,7 +100,8 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 				err = m.handleMRCEvent(event)
 				if err != nil {
 					log.Error().Err(err).Msgf("error encountered processing MRCEvent")
-					continue
+					// TODO(jaellio): still check issuers even on error - remove continue
+					// continue
 				}
 			}
 
