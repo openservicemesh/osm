@@ -31,7 +31,7 @@ func (s *Server) OnStreamRequest(streamID int64, req *discovery.DiscoveryRequest
 		log.Error().Str("node", req.Node.Id).Str("nonce", req.ResponseNonce).Str("type", req.TypeUrl).
 			Str("lastVersionApplied", req.VersionInfo).Array("resourceNames", resourceNamesArr).
 			Err(errors.New(req.ErrorDetail.String())).
-			Msgf("[NACK] detected from DiscoveryRequest")
+			Msgf("[NACK]detected during OnStreamRequest callback")
 	} else {
 		log.Debug().Msgf("OnStreamRequest node: %s, type: %s, v: %s, nonce: %s, resNames: %s", req.Node.Id, req.TypeUrl, req.VersionInfo, req.ResponseNonce, req.ResourceNames)
 	}
@@ -40,7 +40,19 @@ func (s *Server) OnStreamRequest(streamID int64, req *discovery.DiscoveryRequest
 
 // OnStreamResponse is called when a response is being sent to a request
 func (s *Server) OnStreamResponse(_ context.Context, streamID int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
-	log.Debug().Msgf("OnStreamDeltaResponse node: %s type: %s, v: %s, nonce: %s, NumResources: %d", req.Node.Id, resp.TypeUrl, resp.VersionInfo, resp.Nonce, len(resp.Resources))
+	resourceNamesArr := zerolog.Arr()
+	for _, n := range req.ResourceNames {
+		resourceNamesArr.Str(n)
+	}
+	// Log NACK case
+	if req.ErrorDetail != nil {
+		log.Error().Str("node", req.Node.Id).Str("nonce", req.ResponseNonce).Str("type", req.TypeUrl).
+			Str("lastVersionApplied", req.VersionInfo).Array("resourceNames", resourceNamesArr).
+			Err(errors.New(req.ErrorDetail.String())).
+			Msgf("[NACK]detected during OnStreamRequest callback")
+	} else {
+		log.Debug().Msgf("OnStreamDeltaResponse node: %s type: %s, v: %s, nonce: %s, NumResources: %d", req.Node.Id, resp.TypeUrl, resp.VersionInfo, resp.Nonce, len(resp.Resources))
+	}
 }
 
 // --- Fetch request types. Callback interfaces still requires these to be defined

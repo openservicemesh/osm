@@ -716,30 +716,28 @@ func TestBuildOutboundFilterChains(t *testing.T) {
 		},
 		{
 			name: "duplicate TrafficMatches should result in only the first being selected",
-			policy: &trafficpolicy.OutboundMeshTrafficPolicy{
-				TrafficMatches: []*trafficpolicy.TrafficMatch{
-					{
-						Name:                "1",
-						DestinationPort:     8080,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "foo",
-								Weight:      constants.ClusterWeightAcceptAll,
-							},
+			outboundMeshTrafficMatches: []*trafficpolicy.TrafficMatch{
+				{
+					Name:                "1",
+					DestinationPort:     8080,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "foo",
+							Weight:      constants.ClusterWeightAcceptAll,
 						},
 					},
-					{
-						Name:                "2",
-						DestinationPort:     8080,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "foo",
-								Weight:      constants.ClusterWeightAcceptAll,
-							},
+				},
+				{
+					Name:                "2",
+					DestinationPort:     8080,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"1.1.1.1/32", "2.2.2.2/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "foo",
+							Weight:      constants.ClusterWeightAcceptAll,
 						},
 					},
 				},
