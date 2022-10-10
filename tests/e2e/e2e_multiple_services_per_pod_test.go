@@ -19,7 +19,9 @@ var _ = OSMDescribe("Test access via multiple services matching the same pod",
 	func() {
 		Context("Multiple services matching same pod", func() {
 			testMultipleServicePerPod(false) // test with regular services
-			testMultipleServicePerPod(true)  // test with headless services
+		})
+		Context("Multiple headless services matching same pod", func() {
+			testMultipleServicePerPod(true) // test with headless services
 		})
 	})
 

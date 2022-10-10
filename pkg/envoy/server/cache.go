@@ -22,7 +22,19 @@ func (s *Server) OnStreamClosed(streamID int64) {
 
 // OnStreamRequest is called when a request happens on an open connection
 func (s *Server) OnStreamRequest(streamID int64, req *discovery.DiscoveryRequest) error {
-	log.Debug().Msgf("OnStreamRequest node: %s, type: %s, v: %s, nonce: %s, resNames: %s", req.Node.Id, req.TypeUrl, req.VersionInfo, req.ResponseNonce, req.ResourceNames)
+	resourceNamesArr := zerolog.Arr()
+	for _, n := range req.ResourceNames {
+		resourceNamesArr.Str(n)
+	}
+	// Log NACK case
+	if req.ErrorDetail != nil {
+		log.Error().Str("node", req.Node.Id).Str("nonce", req.ResponseNonce).Str("type", req.TypeUrl).
+			Str("lastVersionApplied", req.VersionInfo).Array("resourceNames", resourceNamesArr).
+			Err(errors.New(req.ErrorDetail.String())).
+			Msgf("[NACK] detected from DiscoveryRequest")
+	} else {
+		log.Debug().Msgf("OnStreamRequest node: %s, type: %s, v: %s, nonce: %s, resNames: %s", req.Node.Id, req.TypeUrl, req.VersionInfo, req.ResponseNonce, req.ResourceNames)
+	}
 	return nil
 }
 
