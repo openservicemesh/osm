@@ -40,18 +40,14 @@ func (s *Server) OnStreamRequest(streamID int64, req *discovery.DiscoveryRequest
 
 // OnStreamResponse is called when a response is being sent to a request
 func (s *Server) OnStreamResponse(_ context.Context, streamID int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
-	resourceNamesArr := zerolog.Arr()
-	for _, n := range req.ResourceNames {
-		resourceNamesArr.Str(n)
-	}
 	// Log NACK case
 	if req.ErrorDetail != nil {
-		log.Error().Str("node", req.Node.Id).Str("nonce", req.ResponseNonce).Str("type", req.TypeUrl).
-			Str("lastVersionApplied", req.VersionInfo).Array("resourceNames", resourceNamesArr).
+		log.Error().Str("node", req.Node.Id).Str("nonce", resp.Nonce).Str("type", resp.TypeUrl).
+			Str("lastVersionApplied", resp.VersionInfo).Int("numResources", len(resp.Resources)).
 			Err(errors.New(req.ErrorDetail.String())).
-			Msgf("[NACK]detected during OnStreamRequest callback")
+			Msgf("[NACK] detected during OnStreamResponse callback")
 	} else {
-		log.Debug().Msgf("OnStreamDeltaResponse node: %s type: %s, v: %s, nonce: %s, NumResources: %d", req.Node.Id, resp.TypeUrl, resp.VersionInfo, resp.Nonce, len(resp.Resources))
+		log.Debug().Msgf("OnStreamResponse node: %s type: %s, v: %s, nonce: %s, NumResources: %d", req.Node.Id, resp.TypeUrl, resp.VersionInfo, resp.Nonce, len(resp.Resources))
 	}
 }
 
