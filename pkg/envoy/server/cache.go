@@ -33,7 +33,7 @@ func (s *Server) OnStreamRequest(streamID int64, req *discovery.DiscoveryRequest
 			Err(errors.New(req.ErrorDetail.String())).
 			Msgf("[NACK]detected during OnStreamRequest callback")
 	} else {
-		log.Debug().Msgf("OnStreamRequest node: %s, type: %s, v: %s, nonce: %s, resNames: %s", req.Node.Id, req.TypeUrl, req.VersionInfo, req.ResponseNonce, req.ResourceNames)
+		log.Debug().Str("errorDetail", req.ErrorDetail.String()).Msgf("OnStreamRequest node: %s, type: %s, v: %s, nonce: %s, resNames: %s", req.Node.Id, req.TypeUrl, req.VersionInfo, req.ResponseNonce, req.ResourceNames)
 	}
 	return nil
 }
@@ -47,7 +47,7 @@ func (s *Server) OnStreamResponse(_ context.Context, streamID int64, req *discov
 			Err(errors.New(req.ErrorDetail.String())).
 			Msgf("[NACK] detected during OnStreamResponse callback")
 	} else {
-		log.Debug().Msgf("OnStreamResponse node: %s type: %s, v: %s, nonce: %s, NumResources: %d", req.Node.Id, resp.TypeUrl, resp.VersionInfo, resp.Nonce, len(resp.Resources))
+		log.Debug().Str("errorDetail", req.ErrorDetail.String()).Msgf("OnStreamResponse node: %s type: %s, v: %s, nonce: %s, NumResources: %d", req.Node.Id, resp.TypeUrl, resp.VersionInfo, resp.Nonce, len(resp.Resources))
 	}
 }
 
