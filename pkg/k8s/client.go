@@ -490,10 +490,10 @@ func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
 	return trafficTargets
 }
 
-// GetTelemetryPolicy returns the Telemetry policy for the given proxy instance.
+// getTelemetryPolicy returns the Telemetry policy for the given proxy instance.
 // It returns the most specific match if multiple matching policies exist, in the following
 // order of preference: 1. selector match, 2. namespace match, 3. global match
-func (c *Client) GetTelemetryPolicy(proxy *models.Proxy) *policyv1alpha1.Telemetry {
+func (c *Client) getTelemetryPolicy(proxy *models.Proxy) *policyv1alpha1.Telemetry {
 	pod, _ := c.GetPodForProxy(proxy)
 	if pod == nil {
 		return nil
@@ -572,4 +572,27 @@ func (c *Client) ListServiceExports() []*mcs.ServiceExport {
 // AddMeshRootCertificateEventHandler adds an event handler specific to mesh root certificiates.
 func (c *Client) AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler) {
 	c.informers[informerKeyMeshRootCertificate].AddEventHandler(handler)
+}
+
+func (c *Client) getExtensionService(svc policyv1alpha1.ExtensionServiceRef) *configv1alpha2.ExtensionService {
+	resource, exists, err := c.getByKey(informerKeyExtensionService, key(svc.Name, svc.Namespace))
+	if exists && err == nil {
+		return resource.(*configv1alpha2.ExtensionService)
+	}
+	return nil
+}
+
+// GetTelemetryConfig returns the Telemetry config for the given proxy instance.
+// It returns the most specific match if multiple matching policies exist, in the following
+// order of preference: 1. selector match, 2. namespace match, 3. global match
+func (c *Client) GetTelemetryConfig(proxy *models.Proxy) models.TelemetryConfig {
+	var config models.TelemetryConfig
+
+	config.Policy = c.getTelemetryPolicy(proxy)
+
+	if config.Policy != nil && config.Policy.Spec.AccessLog != nil && config.Policy.Spec.AccessLog.OpenTelemetry != nil {
+		config.OpenTelemetryService = c.getExtensionService(config.Policy.Spec.AccessLog.OpenTelemetry.ExtensionService)
+	}
+
+	return config
 }

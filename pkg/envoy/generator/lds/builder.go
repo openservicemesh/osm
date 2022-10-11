@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_http_local_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
@@ -15,12 +16,12 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/auth"
-	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/service"
 
+	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/protobuf"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -79,6 +80,11 @@ func (lb *listenerBuilder) PermissiveMesh(enable bool) *listenerBuilder {
 
 func (lb *listenerBuilder) PermissiveEgress(enable bool) *listenerBuilder {
 	lb.permissiveEgress = enable
+	return lb
+}
+
+func (lb *listenerBuilder) AccessLogs(accessLogs []*xds_accesslog.AccessLog) *listenerBuilder {
+	lb.accessLogs = accessLogs
 	return lb
 }
 
@@ -199,7 +205,7 @@ func (lb *listenerBuilder) buildOutboundListener() *xds_listener.Listener {
 		Address:          lb.address,
 		TrafficDirection: lb.trafficDirection,
 		ListenerFilters:  lb.listenerFilters,
-		AccessLog:        envoy.GetAccessLog(),
+		AccessLog:        lb.accessLogs,
 	}
 
 	var outboundTrafficMatches []*trafficpolicy.TrafficMatch // used to configure FilterDisabled match predicate
@@ -265,7 +271,7 @@ func (lb *listenerBuilder) buildInboundListener() *xds_listener.Listener {
 		TrafficDirection: lb.trafficDirection,
 		ListenerFilters:  lb.listenerFilters,
 		FilterChains:     lb.buildInboundFilterChains(),
-		AccessLog:        envoy.GetAccessLog(),
+		AccessLog:        lb.accessLogs,
 	}
 
 	return l
@@ -275,7 +281,8 @@ func (lb *listenerBuilder) buildInboundListener() *xds_listener.Listener {
 func (lb *listenerBuilder) buildOutboundHTTPFilter(routeConfigName string) (*xds_listener.Filter, error) {
 	hb := HTTPConnManagerBuilder()
 	hb.StatsPrefix(routeConfigName).
-		RouteConfigName(routeConfigName)
+		RouteConfigName(routeConfigName).
+		AccessLogs(lb.accessLogs)
 
 	if lb.httpTracingEndpoint != "" {
 		tracing, err := getHTTPTracingConfig(lb.httpTracingEndpoint)
@@ -481,6 +488,11 @@ func (hb *httpConnManagerBuilder) HTTPGlobalRateLimit(rl *policyv1alpha1.HTTPGlo
 	return hb
 }
 
+func (hb *httpConnManagerBuilder) AccessLogs(accessLogs []*xds_accesslog.AccessLog) *httpConnManagerBuilder {
+	hb.accessLogs = accessLogs
+	return hb
+}
+
 // Build builds the HttpConnectionManager filter from the builder config
 func (hb *httpConnManagerBuilder) Build() (*xds_listener.Filter, error) {
 	httpFilters := hb.defaultFilters()
@@ -510,7 +522,7 @@ func (hb *httpConnManagerBuilder) Build() (*xds_listener.Filter, error) {
 				RouteConfigName: hb.routeConfigName,
 			},
 		},
-		AccessLog: envoy.GetAccessLog(),
+		AccessLog: hb.accessLogs,
 		UpgradeConfigs: []*xds_hcm.HttpConnectionManager_UpgradeConfig{
 			{
 				UpgradeType: websocketUpgradeType,

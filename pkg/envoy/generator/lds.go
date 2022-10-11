@@ -39,6 +39,12 @@ func (g *EnvoyConfigGenerator) generateLDS(ctx context.Context, proxy *models.Pr
 		}
 	}
 
+	accessLogs, err := lds.BuildAccessLogs(proxy.String(), g.catalog.GetTelemetryConfig(proxy))
+	if err != nil {
+		log.Error().Err(err).Msgf("Error building access log config for proxy %s", proxy)
+		return nil, err
+	}
+
 	// --- OUTBOUND -------------------
 	outboundLis := lds.ListenerBuilder().
 		Name(lds.OutboundListenerName).
@@ -47,7 +53,8 @@ func (g *EnvoyConfigGenerator) generateLDS(ctx context.Context, proxy *models.Pr
 		TrafficDirection(xds_core.TrafficDirection_OUTBOUND).
 		PermissiveMesh(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode).
 		OutboundMeshTrafficMatches(g.catalog.GetOutboundMeshTrafficMatches(proxy.Identity)).
-		ActiveHealthCheck(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks)
+		ActiveHealthCheck(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks).
+		AccessLogs(accessLogs)
 
 	if meshConfig.Spec.Traffic.EnableEgress {
 		outboundLis.PermissiveEgress(true)
@@ -88,7 +95,8 @@ func (g *EnvoyConfigGenerator) generateLDS(ctx context.Context, proxy *models.Pr
 		PermissiveMesh(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode).
 		InboundMeshTrafficMatches(g.catalog.GetInboundMeshTrafficMatches(svcList)).
 		ActiveHealthCheck(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks).
-		SidecarSpec(meshConfig.Spec.Sidecar)
+		SidecarSpec(meshConfig.Spec.Sidecar).
+		AccessLogs(accessLogs)
 
 	trafficTargets, err := g.catalog.ListInboundTrafficTargetsWithRoutes(proxy.Identity)
 	if err != nil {
@@ -121,7 +129,7 @@ func (g *EnvoyConfigGenerator) generateLDS(ctx context.Context, proxy *models.Pr
 		log.Warn().Str("proxy", proxy.String()).Msgf("Could not find pod for connecting proxy, no metadata was recorded")
 	} else if enabled {
 		// Build Prometheus listener config
-		if prometheusListener, err := lds.BuildPrometheusListener(); err != nil {
+		if prometheusListener, err := lds.BuildPrometheusListener(accessLogs); err != nil {
 			log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error building Prometheus listener")
 		} else {
 			ldsResources = append(ldsResources, prometheusListener)

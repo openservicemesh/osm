@@ -279,7 +279,7 @@ func shouldPublish(msg events.PubSubMessage) (bool, string) {
 	case
 		events.Endpoint, events.Ingress,
 		events.Egress, events.IngressBackend, events.RetryPolicy, events.UpstreamTrafficSetting,
-		events.RouteGroup, events.TCPRoute, events.TrafficSplit, events.TrafficTarget,
+		events.RouteGroup, events.TCPRoute, events.TrafficSplit, events.TrafficTarget, events.Telemetry,
 		events.ProxyUpdate:
 		return true, ""
 

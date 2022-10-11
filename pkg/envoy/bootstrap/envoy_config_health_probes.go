@@ -4,22 +4,21 @@ import (
 	"fmt"
 	"time"
 
-	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
+	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	xds_http_connection_manager "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/generator/lds"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/models"
 )
@@ -106,6 +105,17 @@ func (plb *probeListenerBuilder) AddProbe(containerName, clusterName, newProbePa
 	}
 }
 
+func getHTTPAccessLogs() ([]*xds_accesslog.AccessLog, error) {
+	ab := lds.NewAccessLogBuilder().Name(envoy.StreamAccessLoggerName)
+	return ab.Build()
+}
+
+func getTCPAccessLogs() ([]*xds_accesslog.AccessLog, error) {
+	format := `{"start_time":"%START_TIME%","bytes_received":"%BYTES_RECEIVED%","bytes_sent":"%BYTES_SENT%","duration":"%DURATION%","requested_server_name":"%REQUESTED_SERVER_NAME%","response_flags":"%RESPONSE_FLAGS%","upstream_cluster":"%UPSTREAM_CLUSTER%","upstream_host":"%UPSTREAM_HOST%"}`
+	ab := lds.NewAccessLogBuilder().Name(envoy.StreamAccessLoggerName).Format(format)
+	return ab.Build()
+}
+
 func (plb *probeListenerBuilder) Build() (*xds_listener.Listener, error) {
 	// listenerName should be populated and one of (httpsClusterName, []virtualHostRoutes) should be set
 	if plb.listenerName == "" || (plb.httpsClusterName == "" && len(plb.virtualHostRoutes) == 0) {
@@ -113,7 +123,7 @@ func (plb *probeListenerBuilder) Build() (*xds_listener.Listener, error) {
 	}
 
 	var filterChains []*xds_listener.FilterChain
-	httpAccessLog, err := getHTTPAccessLog()
+	httpAccessLogs, err := getHTTPAccessLogs()
 	if err != nil {
 		return nil, err
 	}
@@ -123,15 +133,13 @@ func (plb *probeListenerBuilder) Build() (*xds_listener.Listener, error) {
 		// NOTE: Only 1 HTTPS probe is supported per type (liveness, readiness, startup)
 		// This is due to the fact that we passthrough HTTPS and cannot do any kind of filtering on path
 		// Therefore, the last declared HTTPS probe will be the only one receiving traffic
-		tcpAccessLog, err := getTCPAccessLog()
+		tcpAccessLogs, err := getTCPAccessLogs()
 		if err != nil {
 			return nil, err
 		}
 		tcpProxy := &xds_tcp_proxy.TcpProxy{
 			StatPrefix: "health_probes_https",
-			AccessLog: []*xds_accesslog_filter.AccessLog{
-				tcpAccessLog,
-			},
+			AccessLog:  tcpAccessLogs,
 			ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{
 				Cluster: plb.httpsClusterName,
 			},
@@ -162,9 +170,7 @@ func (plb *probeListenerBuilder) Build() (*xds_listener.Listener, error) {
 		httpConnectionManager := &xds_http_connection_manager.HttpConnectionManager{
 			CodecType:  xds_http_connection_manager.HttpConnectionManager_AUTO,
 			StatPrefix: "health_probes_http",
-			AccessLog: []*xds_accesslog_filter.AccessLog{
-				httpAccessLog,
-			},
+			AccessLog:  httpAccessLogs,
 			RouteSpecifier: &xds_http_connection_manager.HttpConnectionManager_RouteConfig{
 				RouteConfig: &xds_route.RouteConfiguration{
 					Name: "local_route",
@@ -262,104 +268,5 @@ func getVirtualHost(routes []probeListenerRoute) *xds_route.VirtualHost {
 			"*",
 		},
 		Routes: xdsRoutes,
-	}
-}
-
-// getHTTPAccessLog creates an Envoy AccessLog struct.
-func getHTTPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
-	accessLog, err := anypb.New(getStdoutAccessLog())
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
-			Msg("Error marshalling AccessLog object")
-		return nil, err
-	}
-	return &xds_accesslog_filter.AccessLog{
-		Name: envoy.AccessLoggerName,
-		ConfigType: &xds_accesslog_filter.AccessLog_TypedConfig{
-			TypedConfig: accessLog,
-		},
-	}, nil
-}
-
-// getTCPAccessLog creates an Envoy AccessLog struct.
-func getTCPAccessLog() (*xds_accesslog_filter.AccessLog, error) {
-	accessLog, err := anypb.New(getTCPStdoutAccessLog())
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
-			Msg("Error marshalling tcp AccessLog object")
-		return nil, err
-	}
-	return &xds_accesslog_filter.AccessLog{
-		Name: envoy.AccessLoggerName,
-		ConfigType: &xds_accesslog_filter.AccessLog_TypedConfig{
-			TypedConfig: accessLog,
-		},
-	}, nil
-}
-
-func getStdoutAccessLog() *xds_accesslog.StdoutAccessLog {
-	accessLogger := &xds_accesslog.StdoutAccessLog{
-		AccessLogFormat: &xds_accesslog.StdoutAccessLog_LogFormat{
-			LogFormat: &xds_core.SubstitutionFormatString{
-				Format: &xds_core.SubstitutionFormatString_JsonFormat{
-					JsonFormat: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							"start_time":            pbStringValue(`%START_TIME%`),
-							"method":                pbStringValue(`%REQ(:METHOD)%`),
-							"path":                  pbStringValue(`%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%`),
-							"protocol":              pbStringValue(`%PROTOCOL%`),
-							"response_code":         pbStringValue(`%RESPONSE_CODE%`),
-							"response_code_details": pbStringValue(`%RESPONSE_CODE_DETAILS%`),
-							"time_to_first_byte":    pbStringValue(`%RESPONSE_DURATION%`),
-							"upstream_cluster":      pbStringValue(`%UPSTREAM_CLUSTER%`),
-							"response_flags":        pbStringValue(`%RESPONSE_FLAGS%`),
-							"bytes_received":        pbStringValue(`%BYTES_RECEIVED%`),
-							"bytes_sent":            pbStringValue(`%BYTES_SENT%`),
-							"duration":              pbStringValue(`%DURATION%`),
-							"upstream_service_time": pbStringValue(`%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%`),
-							"x_forwarded_for":       pbStringValue(`%REQ(X-FORWARDED-FOR)%`),
-							"user_agent":            pbStringValue(`%REQ(USER-AGENT)%`),
-							"request_id":            pbStringValue(`%REQ(X-REQUEST-ID)%`),
-							"requested_server_name": pbStringValue("%REQUESTED_SERVER_NAME%"),
-							"authority":             pbStringValue(`%REQ(:AUTHORITY)%`),
-							"upstream_host":         pbStringValue(`%UPSTREAM_HOST%`),
-						},
-					},
-				},
-			},
-		},
-	}
-	return accessLogger
-}
-
-func getTCPStdoutAccessLog() *xds_accesslog.StdoutAccessLog {
-	accessLogger := &xds_accesslog.StdoutAccessLog{
-		AccessLogFormat: &xds_accesslog.StdoutAccessLog_LogFormat{
-			LogFormat: &xds_core.SubstitutionFormatString{
-				Format: &xds_core.SubstitutionFormatString_JsonFormat{
-					JsonFormat: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							"start_time":            pbStringValue(`%START_TIME%`),
-							"upstream_cluster":      pbStringValue(`%UPSTREAM_CLUSTER%`),
-							"response_flags":        pbStringValue(`%RESPONSE_FLAGS%`),
-							"bytes_received":        pbStringValue(`%BYTES_RECEIVED%`),
-							"bytes_sent":            pbStringValue(`%BYTES_SENT%`),
-							"duration":              pbStringValue(`%DURATION%`),
-							"requested_server_name": pbStringValue("%REQUESTED_SERVER_NAME%"),
-							"upstream_host":         pbStringValue(`%UPSTREAM_HOST%`),
-						},
-					},
-				},
-			},
-		},
-	}
-	return accessLogger
-}
-
-func pbStringValue(v string) *structpb.Value {
-	return &structpb.Value{
-		Kind: &structpb.Value_StringValue{
-			StringValue: v,
-		},
 	}
 }

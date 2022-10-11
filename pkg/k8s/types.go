@@ -155,14 +155,14 @@ type PassthroughInterface interface {
 	// returned list
 	ListTrafficTargets() []*access.TrafficTarget
 
-	// GetTelemetryPolicy returns the Telemetry policy for the given proxy instance.
-	// It returns the most specific match if multiple matching policies exist, in the following
-	// order of preference: 1. selector match, 2. namespace match, 3. global match
-	GetTelemetryPolicy(*models.Proxy) *policyv1alpha1.Telemetry
-
 	// ListServiceImports returns all the ServiceImport resources
 	ListServiceImports() []*mcs.ServiceImport
 
 	// ListServiceExports returns all the ServiceExport resources
 	ListServiceExports() []*mcs.ServiceExport
+
+	// GetTelemetryConfig returns the Telemetry config for the given proxy instance.
+	// It returns the most specific match if multiple matching policies exist, in the following
+	// order of preference: 1. selector match, 2. namespace match, 3. global match
+	GetTelemetryConfig(*models.Proxy) models.TelemetryConfig
 }

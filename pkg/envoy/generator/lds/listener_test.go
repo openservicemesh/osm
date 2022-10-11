@@ -12,7 +12,12 @@ import (
 
 func TestBuildPrometheusListener(t *testing.T) {
 	a := assert.New(t)
-	listener, err := BuildPrometheusListener()
+
+	ab := NewAccessLogBuilder().Name("test")
+	accessLogs, err := ab.Build()
+	a.Nil(err)
+
+	listener, err := BuildPrometheusListener(accessLogs)
 	a.NotNil(listener)
 	a.Nil(err)
 }

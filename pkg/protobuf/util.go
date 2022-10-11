@@ -2,6 +2,9 @@
 package protobuf
 
 import (
+	"fmt"
+
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -15,4 +18,25 @@ func MustMarshalAny(pb proto.Message) *any.Any {
 	}
 
 	return msg
+}
+
+// ToJSON marshals a protobuf Message to a JSON string representation
+func ToJSON(pb proto.Message) (string, error) {
+	if pb == nil {
+		return "", fmt.Errorf("unexpected nil proto.Message")
+	}
+
+	m := jsonpb.Marshaler{}
+	return m.MarshalToString(pb)
+}
+
+// MustToJSON marshals a protobuf Message to a JSON string representation and panics
+// if the marshalling fails
+func MustToJSON(pb proto.Message) string {
+	str, err := ToJSON(pb)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return str
 }
