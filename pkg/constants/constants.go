@@ -150,6 +150,9 @@ const (
 
 	// OSMMeshConfig is the name of the OSM MeshConfig
 	OSMMeshConfig = "osm-mesh-config"
+
+	// DefaultMeshRootCertificateName is the default MeshRootCertificateName name
+	DefaultMeshRootCertificateName = "osm-mesh-root-certificate"
 )
 
 // HealthProbe constants

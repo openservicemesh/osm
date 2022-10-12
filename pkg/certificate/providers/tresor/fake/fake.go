@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -18,7 +16,7 @@ import (
 
 const (
 	rootCertOrganization = "Open Service Mesh Tresor"
-	initialRootName      = "osm-mesh-root-certificate"
+	initialRootName      = constants.DefaultMeshRootCertificateName
 )
 
 type fakeMRCClient struct {
@@ -37,55 +35,7 @@ func NewFakeMRC() *fakeMRCClient { //nolint: revive // unexported-return
 // NewCertEvent allows pushing MRC events which can trigger cert changes
 func (c *fakeMRCClient) NewCertEvent(name, state, trustDomain string) {
 	c.mrcChannel <- certificate.MRCEvent{
-		Type: certificate.MRCEventAdded,
-		MRC: &v1alpha2.MeshRootCertificate{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: "osm-system",
-			},
-			Spec: v1alpha2.MeshRootCertificateSpec{
-				TrustDomain: trustDomain,
-				Provider: v1alpha2.ProviderSpec{
-					Tresor: &v1alpha2.TresorProviderSpec{
-						CA: v1alpha2.TresorCASpec{
-							SecretRef: v1.SecretReference{
-								Name:      "osm-ca-bundle",
-								Namespace: "osm-system",
-							},
-						},
-					},
-				},
-			},
-			Status: v1alpha2.MeshRootCertificateStatus{
-				State: state,
-				Conditions: []v1alpha2.MeshRootCertificateCondition{
-					{
-						Type:   constants.MRCConditionTypeReady,
-						Status: constants.MRCConditionStatusUnknown,
-					},
-					{
-						Type:   constants.MRCConditionTypeAccepted,
-						Status: constants.MRCConditionStatusUnknown,
-					},
-					{
-						Type:   constants.MRCConditionTypeIssuingRollout,
-						Status: constants.MRCConditionStatusUnknown,
-					},
-					{
-						Type:   constants.MRCConditionTypeValidatingRollout,
-						Status: constants.MRCConditionStatusUnknown,
-					},
-					{
-						Type:   constants.MRCConditionTypeIssuingRollback,
-						Status: constants.MRCConditionStatusUnknown,
-					},
-					{
-						Type:   constants.MRCConditionTypeValidatingRollback,
-						Status: constants.MRCConditionStatusUnknown,
-					},
-				},
-			},
-		},
+		MRCName: name,
 	}
 }
 
@@ -119,7 +69,10 @@ func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (
 // List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
 func (c *fakeMRCClient) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertificate, error) {
 	// return single empty object in the list.
-	return []*v1alpha2.MeshRootCertificate{{Spec: v1alpha2.MeshRootCertificateSpec{TrustDomain: "fake.example.com"}}}, nil
+	return []*v1alpha2.MeshRootCertificate{{Spec: v1alpha2.MeshRootCertificateSpec{
+		TrustDomain: "fake.example.com",
+		Intent:      v1alpha2.ActiveIntent,
+	}}}, nil
 }
 
 func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {

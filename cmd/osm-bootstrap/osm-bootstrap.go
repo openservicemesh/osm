@@ -49,7 +49,6 @@ const (
 	meshConfigName                   = "osm-mesh-config"
 	presetMeshConfigName             = "preset-mesh-config"
 	presetMeshConfigJSONKey          = "preset-mesh-config.json"
-	meshRootCertificateName          = "osm-mesh-root-certificate"
 	presetMeshRootCertificateName    = "preset-mesh-root-certificate"
 	presetMeshRootCertificateJSONKey = "preset-mesh-root-certificate.json"
 )
@@ -168,7 +167,7 @@ func main() {
 	if enableMeshRootCertificate {
 		err = bootstrap.ensureMeshRootCertificate()
 		if err != nil {
-			log.Fatal().Err(err).Msgf("Error setting up default MeshRootCertificate %s from ConfigMap %s", meshRootCertificateName, presetMeshRootCertificateName)
+			log.Fatal().Err(err).Msgf("Error setting up default MeshRootCertificate %s from ConfigMap %s", constants.DefaultMeshRootCertificateName, presetMeshRootCertificateName)
 			return
 		}
 	}
@@ -433,36 +432,6 @@ func (b *bootstrap) createMeshRootCertificate() error {
 		return err
 	}
 
-	createdMRC.Status = configv1alpha2.MeshRootCertificateStatus{
-		State: constants.MRCStatePending,
-		Conditions: []configv1alpha2.MeshRootCertificateCondition{
-			{
-				Type:   constants.MRCConditionTypeReady,
-				Status: constants.MRCConditionStatusUnknown,
-			},
-			{
-				Type:   constants.MRCConditionTypeAccepted,
-				Status: constants.MRCConditionStatusUnknown,
-			},
-			{
-				Type:   constants.MRCConditionTypeIssuingRollout,
-				Status: constants.MRCConditionStatusUnknown,
-			},
-			{
-				Type:   constants.MRCConditionTypeValidatingRollout,
-				Status: constants.MRCConditionStatusUnknown,
-			},
-			{
-				Type:   constants.MRCConditionTypeIssuingRollback,
-				Status: constants.MRCConditionStatusUnknown,
-			},
-			{
-				Type:   constants.MRCConditionTypeValidatingRollback,
-				Status: constants.MRCConditionStatusUnknown,
-			},
-		},
-	}
-
 	_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).UpdateStatus(context.Background(), createdMRC, metav1.UpdateOptions{})
 	if apierrors.IsAlreadyExists(err) {
 		log.Info().Msgf("MeshRootCertificate status already exists in %s. Skip creating.", b.namespace)
@@ -472,7 +441,7 @@ func (b *bootstrap) createMeshRootCertificate() error {
 		return err
 	}
 
-	log.Info().Msgf("Successfully created MeshRootCertificate %s in %s.", meshRootCertificateName, b.namespace)
+	log.Info().Msgf("Successfully created MeshRootCertificate %s in %s.", constants.DefaultMeshRootCertificateName, b.namespace)
 	return nil
 }
 
@@ -490,7 +459,7 @@ func buildMeshRootCertificate(presetMeshRootCertificateConfigMap *corev1.ConfigM
 			APIVersion: "config.openservicemesh.io/configv1alpha2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: meshRootCertificateName,
+			Name: constants.DefaultMeshRootCertificateName,
 		},
 		Spec: presetMeshRootCertificateSpec,
 	}

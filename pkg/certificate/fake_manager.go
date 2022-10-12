@@ -5,13 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 var (
@@ -19,21 +15,19 @@ var (
 )
 
 // fakeMRCClient implements the MRCClient interface
-type fakeMRCClient struct{}
+type fakeMRCClient struct {
+	mrcList []*v1alpha2.MeshRootCertificate
+}
 
 // GetCertIssuerForMRC returns a fakeIssuer and pre-generated RootCertificate. It is intended to implement the certificate.MRCClient interface.
 func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error) {
-	return &fakeIssuer{}, pem.RootCertificate("rootCA"), nil
+	return &fakeIssuer{id: mrc.Name}, pem.RootCertificate("rootCA"), nil
 }
 
 // ListMeshRootCertificates returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
 func (c *fakeMRCClient) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertificate, error) {
 	// return single empty object in the list.
-	return []*v1alpha2.MeshRootCertificate{{
-		Spec: v1alpha2.MeshRootCertificateSpec{
-			TrustDomain: "fake.domain.com",
-		},
-	}}, nil
+	return c.mrcList, nil
 }
 
 // UpdateMeshRootCertificate updates the given mesh root certificate.
@@ -47,55 +41,7 @@ func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
 	ch := make(chan MRCEvent)
 	go func() {
 		ch <- MRCEvent{
-			Type: MRCEventAdded,
-			MRC: &v1alpha2.MeshRootCertificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
-					Namespace: "osm-system",
-				},
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					TrustDomain: "fake.domain.com",
-					Provider: v1alpha2.ProviderSpec{
-						Tresor: &v1alpha2.TresorProviderSpec{
-							CA: v1alpha2.TresorCASpec{
-								SecretRef: v1.SecretReference{
-									Name:      "osm-ca-bundle",
-									Namespace: "osm-system",
-								},
-							},
-						},
-					},
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					State: constants.MRCStateActive,
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-					},
-				},
-			},
+			MRCName: "osm-mesh-root-certificate",
 		}
 		close(ch)
 	}()

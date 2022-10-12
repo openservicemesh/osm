@@ -329,16 +329,7 @@ func (kc *validator) validateMRCOnUpdate(oldMRC *configv1alpha2.MeshRootCertific
 		return fmt.Errorf("cannot update SpiffeEnabled for MRC %s. Create a new MRC and initiate root certificate rotation to enable SPIFFE certificates", getNamespacedMRC(oldMRC))
 	}
 
-	if oldMRC.Spec.Intent != newMRC.Spec.Intent && newMRC.Spec.Intent == constants.MRCIntentActive {
-		foundActive, err := kc.checkForExistingActiveMRC(newMRC)
-		if err != nil {
-			return err
-		}
-		if foundActive {
-			return fmt.Errorf("cannot update MRC %s to intent active. An MRC with active intent already exists in the control plane namespace", getNamespacedMRC(newMRC))
-		}
-	}
-
+	// TODO(#5205): add validation for simplified root certificate rotation process
 	return nil
 }
 

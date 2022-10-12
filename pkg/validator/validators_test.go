@@ -1623,7 +1623,7 @@ func TestValidateMRCProvider(t *testing.T) {
 				},
 				Spec: configv1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      configv1alpha2.ActiveIntent,
 					Provider: configv1alpha2.ProviderSpec{
 						Tresor: &configv1alpha2.TresorProviderSpec{
 							CA: configv1alpha2.TresorCASpec{
@@ -1647,7 +1647,7 @@ func TestValidateMRCProvider(t *testing.T) {
 				},
 				Spec: configv1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      configv1alpha2.ActiveIntent,
 					Provider: configv1alpha2.ProviderSpec{
 						Tresor: &configv1alpha2.TresorProviderSpec{
 							CA: configv1alpha2.TresorCASpec{
@@ -1671,7 +1671,7 @@ func TestValidateMRCProvider(t *testing.T) {
 				},
 				Spec: configv1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      configv1alpha2.ActiveIntent,
 					Provider: configv1alpha2.ProviderSpec{
 						CertManager: &configv1alpha2.CertManagerProviderSpec{
 							IssuerName:  "osm-ca",
@@ -1692,7 +1692,7 @@ func TestValidateMRCProvider(t *testing.T) {
 				},
 				Spec: configv1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      configv1alpha2.ActiveIntent,
 					Provider: configv1alpha2.ProviderSpec{
 						CertManager: &configv1alpha2.CertManagerProviderSpec{
 							IssuerName:  "",
@@ -1713,7 +1713,7 @@ func TestValidateMRCProvider(t *testing.T) {
 				},
 				Spec: configv1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      configv1alpha2.ActiveIntent,
 					Provider: configv1alpha2.ProviderSpec{
 						Vault: &configv1alpha2.VaultProviderSpec{
 							Host:     "vault.contoso.com",
@@ -1742,7 +1742,7 @@ func TestValidateMRCProvider(t *testing.T) {
 				},
 				Spec: configv1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      configv1alpha2.ActiveIntent,
 					Provider: configv1alpha2.ProviderSpec{
 						Vault: &configv1alpha2.VaultProviderSpec{
 							Host:     "",
@@ -1771,7 +1771,7 @@ func TestValidateMRCProvider(t *testing.T) {
 				},
 				Spec: configv1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      configv1alpha2.ActiveIntent,
 					Provider: configv1alpha2.ProviderSpec{
 						Vault: &configv1alpha2.VaultProviderSpec{
 							Host:     "vault.contoso.com",
@@ -1824,7 +1824,7 @@ func TestCheckForExistingActiveMRC(t *testing.T) {
 				},
 				Spec: configv1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentActive,
+					Intent:      configv1alpha2.ActiveIntent,
 					Provider: configv1alpha2.ProviderSpec{
 						Tresor: &configv1alpha2.TresorProviderSpec{
 							CA: configv1alpha2.TresorCASpec{
@@ -1845,7 +1845,7 @@ func TestCheckForExistingActiveMRC(t *testing.T) {
 					},
 					Spec: configv1alpha2.MeshRootCertificateSpec{
 						TrustDomain: "cluster.local",
-						Intent:      constants.MRCIntentPassive,
+						Intent:      configv1alpha2.PassiveIntent,
 						Provider: configv1alpha2.ProviderSpec{
 							Tresor: &configv1alpha2.TresorProviderSpec{
 								CA: configv1alpha2.TresorCASpec{
@@ -1870,7 +1870,7 @@ func TestCheckForExistingActiveMRC(t *testing.T) {
 				},
 				Spec: configv1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentActive,
+					Intent:      configv1alpha2.ActiveIntent,
 					Provider: configv1alpha2.ProviderSpec{
 						Tresor: &configv1alpha2.TresorProviderSpec{
 							CA: configv1alpha2.TresorCASpec{
@@ -1891,7 +1891,7 @@ func TestCheckForExistingActiveMRC(t *testing.T) {
 					},
 					Spec: configv1alpha2.MeshRootCertificateSpec{
 						TrustDomain: "cluster.local",
-						Intent:      constants.MRCIntentActive,
+						Intent:      configv1alpha2.ActiveIntent,
 						Provider: configv1alpha2.ProviderSpec{
 							Tresor: &configv1alpha2.TresorProviderSpec{
 								CA: configv1alpha2.TresorCASpec{
@@ -1916,7 +1916,7 @@ func TestCheckForExistingActiveMRC(t *testing.T) {
 				},
 				Spec: configv1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentActive,
+					Intent:      configv1alpha2.ActiveIntent,
 					Provider: configv1alpha2.ProviderSpec{
 						Tresor: &configv1alpha2.TresorProviderSpec{
 							CA: configv1alpha2.TresorCASpec{
@@ -1940,7 +1940,7 @@ func TestCheckForExistingActiveMRC(t *testing.T) {
 					},
 					Spec: configv1alpha2.MeshRootCertificateSpec{
 						TrustDomain: "cluster.local",
-						Intent:      constants.MRCIntentActive,
+						Intent:      configv1alpha2.ActiveIntent,
 						Provider: configv1alpha2.ProviderSpec{
 							Tresor: &configv1alpha2.TresorProviderSpec{
 								CA: configv1alpha2.TresorCASpec{

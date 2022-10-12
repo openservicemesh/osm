@@ -91,38 +91,9 @@ var testPresetMeshConfigMap = &corev1.ConfigMap{
 var testMeshRootCertificate = &configv1alpha2.MeshRootCertificate{
 	ObjectMeta: metav1.ObjectMeta{
 		Namespace: testNamespace,
-		Name:      meshRootCertificateName,
+		Name:      constants.DefaultMeshRootCertificateName,
 	},
 	Spec: configv1alpha2.MeshRootCertificateSpec{},
-	Status: configv1alpha2.MeshRootCertificateStatus{
-		State: constants.MRCStatePending,
-		Conditions: []configv1alpha2.MeshRootCertificateCondition{
-			{
-				Type:   constants.MRCConditionTypeReady,
-				Status: constants.MRCConditionStatusUnknown,
-			},
-			{
-				Type:   constants.MRCConditionTypeAccepted,
-				Status: constants.MRCConditionStatusUnknown,
-			},
-			{
-				Type:   constants.MRCConditionTypeIssuingRollout,
-				Status: constants.MRCConditionStatusUnknown,
-			},
-			{
-				Type:   constants.MRCConditionTypeValidatingRollout,
-				Status: constants.MRCConditionStatusUnknown,
-			},
-			{
-				Type:   constants.MRCConditionTypeIssuingRollback,
-				Status: constants.MRCConditionStatusUnknown,
-			},
-			{
-				Type:   constants.MRCConditionTypeValidatingRollback,
-				Status: constants.MRCConditionStatusUnknown,
-			},
-		},
-	},
 }
 
 var testPresetMeshRootCertificate = &corev1.ConfigMap{
@@ -136,6 +107,7 @@ var testPresetMeshRootCertificate = &corev1.ConfigMap{
 	},
 	Data: map[string]string{
 		presetMeshRootCertificateJSONKey: `{
+"intent": "Active",
 "provider": {
 	"tresor": {
 	 "ca": {
@@ -176,7 +148,7 @@ func TestBuildMeshRootCertificate(t *testing.T) {
 	meshRootCertificate, err := buildMeshRootCertificate(testPresetMeshRootCertificate)
 	assert.Contains(meshRootCertificate.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
 	assert.NoError(err)
-	assert.Equal(meshRootCertificate.Name, meshRootCertificateName)
+	assert.Equal(meshRootCertificate.Name, constants.DefaultMeshRootCertificateName)
 	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Name, "osm-ca-bundle")
 	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Namespace, testNamespace)
 	assert.Nil(meshRootCertificate.Spec.Provider.Vault)
@@ -388,10 +360,9 @@ func TestCreateMeshRootCertificate(t *testing.T) {
 				assert.Error(err)
 			}
 
-			mrc, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), meshRootCertificateName, metav1.GetOptions{})
+			_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), constants.DefaultMeshRootCertificateName, metav1.GetOptions{})
 			if tc.expectDefaultMeshRootCertificate {
 				assert.NoError(err)
-				assert.Equal(constants.MRCStatePending, mrc.Status.State)
 			} else {
 				assert.Error(err)
 			}
@@ -442,7 +413,7 @@ func TestEnsureMeshRootCertificate(t *testing.T) {
 			err := b.ensureMeshRootCertificate()
 			assert.Equal(tc.expectErr, err != nil)
 
-			_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), meshRootCertificateName, metav1.GetOptions{})
+			_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), constants.DefaultMeshRootCertificateName, metav1.GetOptions{})
 			assert.Equal(tc.expectErr, err != nil)
 		})
 	}
