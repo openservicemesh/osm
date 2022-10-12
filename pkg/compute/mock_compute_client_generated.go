@@ -7,6 +7,7 @@ package compute
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	gomock "github.com/golang/mock/gomock"
 	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
@@ -47,15 +48,15 @@ func (m *MockInterface) EXPECT() *MockInterfaceMockRecorder {
 }
 
 // AddMeshRootCertificateEventHandler mocks base method.
-func (m *MockInterface) AddMeshRootCertificateEventHandler(arg0 cache.ResourceEventHandler) {
+func (m *MockInterface) AddMeshRootCertificateEventHandler(arg0 cache.ResourceEventHandler, arg1 time.Duration) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddMeshRootCertificateEventHandler", arg0)
+	m.ctrl.Call(m, "AddMeshRootCertificateEventHandler", arg0, arg1)
 }
 
 // AddMeshRootCertificateEventHandler indicates an expected call of AddMeshRootCertificateEventHandler.
-func (mr *MockInterfaceMockRecorder) AddMeshRootCertificateEventHandler(arg0 interface{}) *gomock.Call {
+func (mr *MockInterfaceMockRecorder) AddMeshRootCertificateEventHandler(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMeshRootCertificateEventHandler", reflect.TypeOf((*MockInterface)(nil).AddMeshRootCertificateEventHandler), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMeshRootCertificateEventHandler", reflect.TypeOf((*MockInterface)(nil).AddMeshRootCertificateEventHandler), arg0, arg1)
 }
 
 // GetHTTPRouteGroup mocks base method.

@@ -19,7 +19,6 @@ import (
 	mcsClient "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned"
 	mcsInformers "sigs.k8s.io/mcs-api/pkg/client/informers/externalversions"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	configInformers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
@@ -81,9 +80,6 @@ const (
 	// This is set to 0 because we do not need resyncs from k8s client.
 	// For the MeshConfig resource, we have our own Ticker to turn on periodic resyncs.
 	DefaultKubeEventResyncInterval = 0 * time.Second
-	// MRCResyncInterval is the resync interval to provide a retry mechanism for MRC event handlers
-	// It is half of the MrcDurationPerStage (the amount of time we leave each MRC in a stage before moving to the next stage)
-	MRCResyncInterval = certificate.MrcDurationPerStage / 2
 )
 
 var (
@@ -148,7 +144,7 @@ func WithConfigClient(configClient configClientset.Interface) ClientOption {
 			opt.FieldSelector = fields.OneTermEqualSelector(metav1.ObjectNameField, c.meshConfigName).String()
 		})
 		meshConfiginformerFactory := configInformers.NewSharedInformerFactoryWithOptions(configClient, DefaultKubeEventResyncInterval, configInformers.WithNamespace(c.osmNamespace), listOption)
-		mrcInformerFactory := configInformers.NewSharedInformerFactoryWithOptions(configClient, MRCResyncInterval, configInformers.WithNamespace(c.osmNamespace))
+		mrcInformerFactory := configInformers.NewSharedInformerFactoryWithOptions(configClient, DefaultKubeEventResyncInterval, configInformers.WithNamespace(c.osmNamespace))
 		informerFactory := configInformers.NewSharedInformerFactory(configClient, DefaultKubeEventResyncInterval)
 
 		c.informers[informerKeyMeshConfig] = meshConfiginformerFactory.Config().V1alpha2().MeshConfigs().Informer()
