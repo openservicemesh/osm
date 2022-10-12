@@ -10,8 +10,8 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
-	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 // Tests GetHandlers returns the expected debug endpoints and non-nil handlers
@@ -23,7 +23,7 @@ func TestGetHandlers(t *testing.T) {
 	mockXdsDebugger := NewMockXDSDebugger(mockCtrl)
 	mockCatalogDebugger := catalog.NewMockMeshCataloger(mockCtrl)
 	client := testclient.NewSimpleClientset()
-	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockCompute := compute.NewMockInterface(mockCtrl)
 	proxyRegistry := registry.NewProxyRegistry()
 
 	ds := NewDebugConfig(cm,
@@ -32,7 +32,7 @@ func TestGetHandlers(t *testing.T) {
 		proxyRegistry,
 		nil,
 		client,
-		mockKubeController,
+		mockCompute,
 		nil)
 
 	handlers := ds.GetHandlers()

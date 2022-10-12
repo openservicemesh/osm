@@ -74,15 +74,14 @@ func (ds DebugConfig) getConfigDump(streamID int64, w http.ResponseWriter) {
 		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
-	pod, err := ds.kubeController.GetPodForProxy(proxy)
+	envoyConfig, err := ds.computeClient.ConfigFromProxy(proxy, "config_dump", ds.kubeConfig)
 	if err != nil {
-		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy)
+		msg := fmt.Sprintf("Error getting envoy config from proxy %s", proxy)
 		log.Error().Err(err).Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	envoyConfig := ds.getEnvoyConfig(pod, "config_dump")
 	_, _ = fmt.Fprintf(w, "%s", envoyConfig)
 }
 
@@ -94,14 +93,13 @@ func (ds DebugConfig) getProxy(streamID int64, w http.ResponseWriter) {
 		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
-	pod, err := ds.kubeController.GetPodForProxy(proxy)
+	envoyConfig, err := ds.computeClient.ConfigFromProxy(proxy, "certs", ds.kubeConfig)
 	if err != nil {
-		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy)
+		msg := fmt.Sprintf("Error getting envoy config from proxy %s", proxy)
 		log.Error().Err(err).Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	envoyConfig := ds.getEnvoyConfig(pod, "certs")
 	_, _ = fmt.Fprintf(w, "%s", envoyConfig)
 }

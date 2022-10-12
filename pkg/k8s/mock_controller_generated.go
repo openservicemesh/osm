@@ -71,6 +71,20 @@ func (mr *MockControllerMockRecorder) GetEndpoints(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEndpoints", reflect.TypeOf((*MockController)(nil).GetEndpoints), arg0, arg1)
 }
 
+// GetExtensionService mocks base method.
+func (m *MockController) GetExtensionService(arg0 v1alpha1.ExtensionServiceRef) *v1alpha2.ExtensionService {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetExtensionService", arg0)
+	ret0, _ := ret[0].(*v1alpha2.ExtensionService)
+	return ret0
+}
+
+// GetExtensionService indicates an expected call of GetExtensionService.
+func (mr *MockControllerMockRecorder) GetExtensionService(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExtensionService", reflect.TypeOf((*MockController)(nil).GetExtensionService), arg0)
+}
+
 // GetHTTPRouteGroup mocks base method.
 func (m *MockController) GetHTTPRouteGroup(arg0 string) *v1alpha4.HTTPRouteGroup {
 	m.ctrl.T.Helper()
@@ -141,21 +155,6 @@ func (mr *MockControllerMockRecorder) GetOSMNamespace() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOSMNamespace", reflect.TypeOf((*MockController)(nil).GetOSMNamespace))
 }
 
-// GetPodForProxy mocks base method.
-func (m *MockController) GetPodForProxy(arg0 *models.Proxy) (*v1.Pod, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPodForProxy", arg0)
-	ret0, _ := ret[0].(*v1.Pod)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPodForProxy indicates an expected call of GetPodForProxy.
-func (mr *MockControllerMockRecorder) GetPodForProxy(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPodForProxy", reflect.TypeOf((*MockController)(nil).GetPodForProxy), arg0)
-}
-
 // GetSecret mocks base method.
 func (m *MockController) GetSecret(arg0, arg1 string) *models.Secret {
 	m.ctrl.T.Helper()
@@ -196,20 +195,6 @@ func (m *MockController) GetTCPRoute(arg0 string) *v1alpha4.TCPRoute {
 func (mr *MockControllerMockRecorder) GetTCPRoute(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTCPRoute", reflect.TypeOf((*MockController)(nil).GetTCPRoute), arg0)
-}
-
-// GetTelemetryConfig mocks base method.
-func (m *MockController) GetTelemetryConfig(arg0 *models.Proxy) models.TelemetryConfig {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTelemetryConfig", arg0)
-	ret0, _ := ret[0].(models.TelemetryConfig)
-	return ret0
-}
-
-// GetTelemetryConfig indicates an expected call of GetTelemetryConfig.
-func (mr *MockControllerMockRecorder) GetTelemetryConfig(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTelemetryConfig", reflect.TypeOf((*MockController)(nil).GetTelemetryConfig), arg0)
 }
 
 // GetUpstreamTrafficSetting mocks base method.
@@ -422,6 +407,20 @@ func (m *MockController) ListTCPTrafficSpecs() []*v1alpha4.TCPRoute {
 func (mr *MockControllerMockRecorder) ListTCPTrafficSpecs() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTCPTrafficSpecs", reflect.TypeOf((*MockController)(nil).ListTCPTrafficSpecs))
+}
+
+// ListTelemetryPolicies mocks base method.
+func (m *MockController) ListTelemetryPolicies() []*v1alpha1.Telemetry {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListTelemetryPolicies")
+	ret0, _ := ret[0].([]*v1alpha1.Telemetry)
+	return ret0
+}
+
+// ListTelemetryPolicies indicates an expected call of ListTelemetryPolicies.
+func (mr *MockControllerMockRecorder) ListTelemetryPolicies() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTelemetryPolicies", reflect.TypeOf((*MockController)(nil).ListTelemetryPolicies))
 }
 
 // ListTrafficSplits mocks base method.

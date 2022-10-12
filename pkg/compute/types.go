@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -76,9 +78,20 @@ type Interface interface {
 
 	GetProxyStatsHeaders(p *models.Proxy) (map[string]string, error)
 
+	// ConfigFromProxy takes the given proxy, port forwards to the pod from this proxy, and returns the envoy config
+	ConfigFromProxy(proxy *models.Proxy, configType string, kubeConfig *rest.Config) (string, error)
+
 	// VerifyProxy attempts to lookup a pod that matches the given proxy instance by service identity, namespace, and UUID
 	VerifyProxy(proxy *models.Proxy) error
 
 	// ListNamespaces returns the namespaces monitored by the mesh
 	ListNamespaces() ([]string, error)
+
+	// GetTelemetryConfig returns the Telemetry config for the given proxy instance.
+	// It returns the most specific match if multiple matching policies exist, in the following
+	// order of preference: 1. selector match, 2. namespace match, 3. global match
+	GetTelemetryConfig(*models.Proxy) models.TelemetryConfig
+
+	// GetMeshConfig returns the current MeshConfig
+	GetMeshConfig() configv1alpha2.MeshConfig
 }
