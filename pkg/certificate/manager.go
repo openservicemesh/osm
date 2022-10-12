@@ -3,9 +3,7 @@ package certificate
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/rand"
-	"strings"
 	"sync"
 	"time"
 
@@ -198,10 +196,6 @@ func (m *Manager) checkAndRotate() {
 	})
 
 	for key, cert := range certs {
-		// TODO(5000): remove this check
-		if err := m.CheckCacheMatch(cert); err != nil {
-			log.Warn().Msg(err.Error()) // don't log as a full error message
-		}
 		opts := []IssueOption{}
 		opts = append(opts, withCommonNamePrefix(key))
 		opts = append(opts, withCertType(cert.certType))
@@ -343,27 +337,4 @@ func (m *Manager) SubscribeRotations(key string) (chan interface{}, func()) {
 		for range ch {
 		}
 	}
-}
-
-// CheckCacheMatch checks that the cert is the same cert present in the cache. it is currently only used for debugging
-// https://github.com/openservicemesh/osm/issues/5000
-// TODO(5000): delete this function once we fix the issue
-func (m *Manager) CheckCacheMatch(cert *Certificate) error {
-	if cert == nil {
-		return nil
-	}
-
-	// Currently, these don't get rotated, so we assume the cache is correct.
-	if cert.certType != service {
-		return nil
-	}
-	key := strings.TrimSuffix(cert.CommonName.String(), "."+m.GetTrustDomain())
-	cachedCert := m.getFromCache(key)
-	if cachedCert == nil {
-		return fmt.Errorf("no certificate found in cache for %s", cert.CommonName)
-	}
-	if cert != cachedCert {
-		return fmt.Errorf("certificate %s does not match cached certificate %s, this may be due to a race around rotation, or a caching issue", cert, cachedCert)
-	}
-	return nil
 }
