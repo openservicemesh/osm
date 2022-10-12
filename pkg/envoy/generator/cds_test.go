@@ -97,6 +97,7 @@ func TestGenerateCDS(t *testing.T) {
 	mockCatalog.EXPECT().IsMetricsEnabled(proxy).Return(true, nil).AnyTimes()
 	mockCatalog.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
 	mockCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	mockCatalog.EXPECT().GetTelemetryConfig(proxy).Return(models.TelemetryConfig{}).AnyTimes()
 
 	podlabels := map[string]string{
 		constants.AppLabel:               testMeshSvc.Name,
@@ -429,6 +430,7 @@ func TestNewResponseGetEgressClusterConfigsError(t *testing.T) {
 	meshCatalog.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	meshCatalog.EXPECT().GetTelemetryConfig(proxy).Return(models.TelemetryConfig{}).AnyTimes()
 
 	g := NewEnvoyConfigGenerator(meshCatalog, nil)
 
@@ -453,6 +455,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	}, nil).Times(1)
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	meshCatalog.EXPECT().GetTelemetryConfig(proxy).Return(models.TelemetryConfig{}).AnyTimes()
 
 	g := NewEnvoyConfigGenerator(meshCatalog, nil)
 

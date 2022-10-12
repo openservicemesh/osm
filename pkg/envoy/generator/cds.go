@@ -47,6 +47,8 @@ func (g *EnvoyConfigGenerator) generateCDS(ctx context.Context, proxy *models.Pr
 		cb.SetEnvoyTracingAddress(tracingAddress)
 	}
 
+	cb.SetOpenTelemetryExtSvc(g.catalog.GetTelemetryConfig(proxy).OpenTelemetryService)
+
 	// Build upstream, local, egress, outbound passthrough, inbound prometheus and outbound tracing clusters per mesh policies
 	clusters, err := cb.Build()
 	if err != nil {

@@ -572,3 +572,50 @@ func TestRemoveDups(t *testing.T) {
 		},
 	}, removeDups(orig))
 }
+
+func TestBuild(t *testing.T) {
+	testCases := []struct {
+		name             string
+		builder          *clusterBuilder
+		expectedClusters []string
+		expectErr        bool
+	}{
+		{
+			name: "OpenTelemetry ExtensionService cluster",
+			builder: &clusterBuilder{
+				openTelemetryExtSvc: &configv1alpha2.ExtensionService{
+					Spec: configv1alpha2.ExtensionServiceSpec{
+						Host:     "otel-collector",
+						Port:     4317,
+						Protocol: "h2c",
+					},
+				},
+			},
+			expectedClusters: []string{"otel-collector.4317"},
+			expectErr:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+
+			actual, err := tc.builder.Build()
+
+			contains := func(got []types.Resource, expected string) bool {
+				for _, r := range got {
+					actual := r.(*xds_cluster.Cluster)
+					if actual.Name == expected {
+						return true
+					}
+				}
+				return false
+			}
+
+			for _, expected := range tc.expectedClusters {
+				a.True(contains(actual, expected))
+			}
+			a.Equal(tc.expectErr, err != nil)
+		})
+	}
+}
