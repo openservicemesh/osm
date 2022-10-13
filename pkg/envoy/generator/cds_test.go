@@ -5,6 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
+
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/messaging"
+
+	"github.com/openservicemesh/osm/pkg/compute"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -43,7 +51,15 @@ func TestGenerateCDS(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 	kubeClient := testclient.NewSimpleClientset()
-	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
+	mock := compute.NewMockInterface(mockCtrl)
+	//mock := catalog.NewMockMeshCataloger(mockCtrl)
+	stop := make(chan struct{})
+	meshCatalog := catalog.NewMeshCatalog(
+		mock,
+		tresorFake.NewFake(time.Hour),
+		stop,
+		messaging.NewBroker(stop),
+	)
 
 	proxyUUID := uuid.New()
 	proxy := models.NewProxy(models.KindSidecar, proxyUUID, identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
@@ -72,31 +88,36 @@ func TestGenerateCDS(t *testing.T) {
 		},
 	}
 
-	expectedOutboundMeshClusterConfigs := []*trafficpolicy.MeshClusterConfig{
-		{
-			Name:    "default/bookstore-v1|80",
-			Service: tests.BookstoreV1Service,
-		},
-		{
-			Name:    "default/bookstore-v2|80",
-			Service: tests.BookstoreV2Service,
-		},
-	}
-	expectedInboundMeshClusterConfigs := []*trafficpolicy.MeshClusterConfig{
-		{
-			Name:    "default/bookbuyer|8080|local",
-			Service: testMeshSvc,
-			Port:    8080,
-			Address: "127.0.0.1",
-		},
-	}
+	//expectedOutboundMeshClusterConfigs := []*trafficpolicy.MeshClusterConfig{
+	//	{
+	//		Name:    "default/bookstore-v1|80",
+	//		Service: tests.BookstoreV1Service,
+	//	},
+	//	{
+	//		Name:    "default/bookstore-v2|80",
+	//		Service: tests.BookstoreV2Service,
+	//	},
+	//}
+	//expectedInboundMeshClusterConfigs := []*trafficpolicy.MeshClusterConfig{
+	//	{
+	//		Name:    "default/bookbuyer|8080|local",
+	//		Service: testMeshSvc,
+	//		Port:    8080,
+	//		Address: "127.0.0.1",
+	//	},
+	//}
 
-	mockCatalog.EXPECT().GetInboundMeshClusterConfigs(gomock.Any()).Return(expectedInboundMeshClusterConfigs).AnyTimes()
-	mockCatalog.EXPECT().GetOutboundMeshClusterConfigs(tests.BookbuyerServiceIdentity).Return(expectedOutboundMeshClusterConfigs).AnyTimes()
-	mockCatalog.EXPECT().GetEgressClusterConfigs(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
-	mockCatalog.EXPECT().IsMetricsEnabled(proxy).Return(true, nil).AnyTimes()
-	mockCatalog.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
-	mockCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	//mock.EXPECT().GetInboundMeshClusterConfigs(gomock.Any()).Return(expectedInboundMeshClusterConfigs).AnyTimes()
+	//mock.EXPECT().GetOutboundMeshClusterConfigs(tests.BookbuyerServiceIdentity).Return(expectedOutboundMeshClusterConfigs).AnyTimes()
+	//mock.EXPECT().GetEgressClusterConfigs(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
+	mock.EXPECT().IsMetricsEnabled(proxy).Return(true, nil).AnyTimes()
+	mock.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
+	mock.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	mock.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
+	mock.EXPECT().GetServicesForServiceIdentity(gomock.Any()).Return([]service.MeshService{
+		tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService,
+	}).AnyTimes()
+	mock.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
 
 	podlabels := map[string]string{
 		constants.AppLabel:               testMeshSvc.Name,
@@ -110,7 +131,7 @@ func TestGenerateCDS(t *testing.T) {
 	_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), newPod1, metav1.CreateOptions{})
 	assert.Nil(err)
 
-	g := NewEnvoyConfigGenerator(mockCatalog, nil)
+	g := NewEnvoyConfigGenerator(meshCatalog, nil)
 
 	resources, err := g.generateCDS(context.Background(), proxy)
 	assert.Nil(err)
@@ -404,7 +425,7 @@ func TestNewResponseListServicesError(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	meshCatalog.EXPECT().GetOutboundMeshClusterConfigs(proxy.Identity).Return(nil).AnyTimes()
+	//meshCatalog.EXPECT().GetOutboundMeshClusterConfigs(proxy.Identity).Return(nil).AnyTimes()
 	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
 	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, errors.New("no services found")).AnyTimes()
 

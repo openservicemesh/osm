@@ -6,21 +6,18 @@ import (
 	"testing"
 	"time"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
-	"github.com/openservicemesh/osm/pkg/messaging"
-
-	"github.com/openservicemesh/osm/pkg/compute"
-
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 )
