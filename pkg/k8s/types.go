@@ -65,13 +65,16 @@ type Client struct {
 type Controller interface {
 	PassthroughInterface
 	// GetSecret returns the secret for a given namespace and secret name
-	GetSecret(string, string) *models.Secret
+	GetSecret(name string, namespace string) *models.Secret
 
 	// ListSecrets returns a list of secrets
 	ListSecrets() []*models.Secret
 
 	// UpdateSecret updates the given secret
 	UpdateSecret(context.Context, *models.Secret) error
+
+	// CreateSecret creates corev1.Secret from models.Secret
+	CreateSecret(*models.Secret) error
 
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service

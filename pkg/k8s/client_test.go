@@ -358,6 +358,7 @@ func TestGetSecret(t *testing.T) {
 			expSecret: &models.Secret{
 				Name:      "foo",
 				Namespace: "ns1",
+				Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
 			},
 		},
 		{
@@ -396,7 +397,7 @@ func TestUpdateSecret(t *testing.T) {
 		name         string
 		corev1Secret *corev1.Secret
 		secret       *models.Secret
-		secretData   map[string][]byte
+		expErr       bool
 	}{
 		{
 			name: "Update secret",
@@ -413,6 +414,20 @@ func TestUpdateSecret(t *testing.T) {
 				Namespace: "ns1",
 				Data:      map[string][]byte{"a": {}},
 			},
+			expErr: false,
+		},
+		{
+			name: "Nil secret",
+			corev1Secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "s1",
+					Namespace: "ns1",
+					Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
+				},
+				Data: map[string][]byte{},
+			},
+			secret: nil,
+			expErr: true,
 		},
 	}
 
@@ -427,11 +442,63 @@ func TestUpdateSecret(t *testing.T) {
 			a.NoError(err)
 
 			err = c.UpdateSecret(context.Background(), tc.secret)
-			a.Nil(err)
+			if tc.expErr {
+				a.NotNil(err)
+			} else {
+				a.Nil(err)
+				secret, err := c.kubeClient.CoreV1().Secrets("ns1").Get(context.Background(), tc.secret.Name, metav1.GetOptions{})
+				a.Nil(err)
+				a.Equal(tc.secret.Data, secret.Data)
+			}
+		})
+	}
+}
 
-			secret, err := c.kubeClient.CoreV1().Secrets("ns1").Get(context.Background(), tc.secret.Name, metav1.GetOptions{})
-			a.Nil(err)
-			a.Equal(tc.secret.Data, secret.Data)
+func TestCreateSecret(t *testing.T) {
+	testCases := []struct {
+		name   string
+		secret *models.Secret
+		expErr bool
+	}{
+		{
+			name: "Create secret",
+			secret: &models.Secret{
+				Name:      "s1",
+				Namespace: "ns1",
+				Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
+				Data:      map[string][]byte{"a": {}},
+			},
+			expErr: false,
+		},
+		{
+			name:   "Nil secret",
+			secret: nil,
+			expErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient(testNs, tests.OsmMeshConfigName, broker,
+				WithKubeClient(fake.NewSimpleClientset(), testMeshName))
+			a.NoError(err)
+
+			err = c.CreateSecret(tc.secret)
+			if tc.expErr {
+				a.Error(err)
+			} else {
+				a.NoError(err)
+				corev1Secret, err := c.kubeClient.CoreV1().Secrets("ns1").Get(context.Background(), tc.secret.Name, metav1.GetOptions{})
+				a.Nil(err)
+				a.Equal(tc.secret.Name, corev1Secret.Name)
+				a.Equal(tc.secret.Namespace, corev1Secret.Namespace)
+				a.Equal(tc.secret.Labels, corev1Secret.Labels)
+				a.Equal(tc.secret.Data, corev1Secret.Data)
+			}
 		})
 	}
 }

@@ -60,6 +60,20 @@ func (mr *MockMeshCatalogerMockRecorder) AddMeshRootCertificateEventHandler(arg0
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMeshRootCertificateEventHandler", reflect.TypeOf((*MockMeshCataloger)(nil).AddMeshRootCertificateEventHandler), arg0, arg1)
 }
 
+// CreateSecret mocks base method.
+func (m *MockMeshCataloger) CreateSecret(arg0 *models.Secret) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSecret", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateSecret indicates an expected call of CreateSecret.
+func (mr *MockMeshCatalogerMockRecorder) CreateSecret(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecret", reflect.TypeOf((*MockMeshCataloger)(nil).CreateSecret), arg0)
+}
+
 // GetEgressClusterConfigs mocks base method.
 func (m *MockMeshCataloger) GetEgressClusterConfigs(arg0 identity.ServiceIdentity) ([]*trafficpolicy.EgressClusterConfig, error) {
 	m.ctrl.T.Helper()

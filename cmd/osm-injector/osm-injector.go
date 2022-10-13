@@ -211,14 +211,14 @@ func main() {
 	// Intitialize certificate manager/provider
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
-		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace,
+		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeConfig, osmNamespace,
 			certOpts, computeClient, 5*time.Second)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s from MRC", certProviderKind)
 		}
 	} else {
-		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, osmNamespace,
+		certManager, err = providers.NewCertificateManager(ctx, kubeConfig, osmNamespace,
 			certOpts, computeClient, constants.CertCheckInterval, trustDomain)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,

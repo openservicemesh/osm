@@ -4,5 +4,6 @@ package models
 type Secret struct {
 	Name      string
 	Namespace string
+	Labels    map[string]string
 	Data      map[string][]byte
 }

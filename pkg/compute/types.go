@@ -18,13 +18,16 @@ import (
 type Interface interface {
 	k8s.PassthroughInterface
 	// GetSecret returns the secret for a given namespace and secret name
-	GetSecret(string, string) *models.Secret
+	GetSecret(name string, namespace string) *models.Secret
 
 	// ListSecrets returns a list of secrets
 	ListSecrets() []*models.Secret
 
 	// UpdateSecret updates the given secret
 	UpdateSecret(context.Context, *models.Secret) error
+
+	// CreateSecret creates corev1.Secret from models.Secret
+	CreateSecret(*models.Secret) error
 
 	// GetMeshService returns the service.MeshService corresponding to the Port used by clients
 	// to communicate with it

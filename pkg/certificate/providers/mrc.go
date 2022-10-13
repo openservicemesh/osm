@@ -7,7 +7,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/compute"
 )
 
 // MRCResyncInterval is the resync interval to provide a retry mechanism for MRC event handlers
@@ -18,7 +17,7 @@ const MRCResyncInterval = certificate.MrcDurationPerStage / 2
 // to observe MRCs (via List() and Watch()) as well as generate
 // `certificate.Provider`s from those MRCs
 type MRCComposer struct {
-	compute.Interface
+	// compute.Interface
 	MRCProviderGenerator
 }
 

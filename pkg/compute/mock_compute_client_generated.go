@@ -59,6 +59,20 @@ func (mr *MockInterfaceMockRecorder) AddMeshRootCertificateEventHandler(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMeshRootCertificateEventHandler", reflect.TypeOf((*MockInterface)(nil).AddMeshRootCertificateEventHandler), arg0, arg1)
 }
 
+// CreateSecret mocks base method.
+func (m *MockInterface) CreateSecret(arg0 *models.Secret) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSecret", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateSecret indicates an expected call of CreateSecret.
+func (mr *MockInterfaceMockRecorder) CreateSecret(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecret", reflect.TypeOf((*MockInterface)(nil).CreateSecret), arg0)
+}
+
 // GetHTTPRouteGroup mocks base method.
 func (m *MockInterface) GetHTTPRouteGroup(arg0 string) *v1alpha4.HTTPRouteGroup {
 	m.ctrl.T.Helper()

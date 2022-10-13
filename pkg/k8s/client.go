@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
@@ -89,6 +90,7 @@ func (c *Client) GetSecret(name, namespace string) *models.Secret {
 		return &models.Secret{
 			Name:      corev1Secret.Name,
 			Namespace: corev1Secret.Namespace,
+			Labels:    corev1Secret.Labels,
 			Data:      corev1Secret.Data,
 		}
 	}
@@ -120,12 +122,32 @@ func (c *Client) ListSecrets() []*models.Secret {
 
 // UpdateSecret updates the given secret
 func (c *Client) UpdateSecret(ctx context.Context, secret *models.Secret) error {
+	if secret == nil {
+		return fmt.Errorf("Cannot update nil secret")
+	}
 	corev1Secret, err := c.kubeClient.CoreV1().Secrets(secret.Namespace).Get(ctx, secret.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	corev1Secret.Data = secret.Data
 	_, err = c.kubeClient.CoreV1().Secrets(secret.Namespace).Update(ctx, corev1Secret, metav1.UpdateOptions{})
+	return err
+}
+
+// CreateSecret creates corev1.Secret from models.Secret
+func (c *Client) CreateSecret(secret *models.Secret) error {
+	if secret == nil {
+		return fmt.Errorf("Cannot create nil secret")
+	}
+	corev1Secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secret.Name,
+			Namespace: secret.Namespace,
+			Labels:    secret.Labels,
+		},
+		Data: secret.Data,
+	}
+	_, err := c.kubeClient.CoreV1().Secrets(secret.Namespace).Create(context.TODO(), corev1Secret, metav1.CreateOptions{})
 	return err
 }
 

@@ -2,12 +2,12 @@
 package providers
 
 import (
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -81,7 +81,8 @@ type MRCCompatClient struct {
 
 // MRCProviderGenerator knows how to convert a given MRC to its appropriate provider.
 type MRCProviderGenerator struct {
-	kubeClient kubernetes.Interface
+	compute.Interface
+	// kubeClient kubernetes.Interface
 	kubeConfig *rest.Config // used to generate a CertificateManager client.
 
 	// TODO(#4711): move these to the compat client once we have added these fields to the MRC.

@@ -233,8 +233,11 @@ func (c *client) ListSecrets() []*models.Secret {
 
 // UpdateSecret updates the given secret
 func (c *client) UpdateSecret(ctx context.Context, secret *models.Secret) error {
-	err := c.kubeController.UpdateSecret(ctx, secret)
-	return err
+	return c.kubeController.UpdateSecret(ctx, secret)
+}
+
+func (c *client) CreateSecret(secret *models.Secret) error {
+	return c.kubeController.CreateSecret(secret)
 }
 
 // ListServices returns a list of services that are part of monitored namespaces
