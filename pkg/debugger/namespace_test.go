@@ -3,8 +3,13 @@ package debugger
 import (
 	"net/http/httptest"
 	"testing"
+	"time"
 
-	"github.com/golang/mock/gomock"
+	gomock "github.com/golang/mock/gomock"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/compute"
+	"github.com/openservicemesh/osm/pkg/messaging"
+
 	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -15,10 +20,17 @@ import (
 func TestMonitoredNamespaceHandler(t *testing.T) {
 	assert := tassert.New(t)
 
-	mock := catalog.NewMockMeshCataloger(gomock.NewController(t))
+	mock := compute.NewMockInterface(gomock.NewController(t))
+	stop := make(chan struct{})
+	meshCatalog := catalog.NewMeshCatalog(
+		mock,
+		tresorFake.NewFake(time.Hour),
+		stop,
+		messaging.NewBroker(stop),
+	)
 
 	ds := DebugConfig{
-		meshCatalog: mock,
+		meshCatalog: meshCatalog,
 	}
 	monitoredNamespacesHandler := ds.getMonitoredNamespacesHandler()
 
