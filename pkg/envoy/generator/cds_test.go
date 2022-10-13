@@ -15,6 +15,8 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
 	tassert "github.com/stretchr/testify/assert"
 	trequire "github.com/stretchr/testify/require"
@@ -24,17 +26,17 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/models"
-
-	"github.com/openservicemesh/osm/pkg/catalog"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/generator/cds"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
-	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 func TestGenerateCDS(t *testing.T) {
@@ -43,14 +45,15 @@ func TestGenerateCDS(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 	kubeClient := testclient.NewSimpleClientset()
-	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
+	mockComputeInterface := compute.NewMockInterface(mockCtrl)
+	meshCatalog := catalogFake.NewFakeMeshCatalog(mockComputeInterface)
 
 	proxyUUID := uuid.New()
 	proxy := models.NewProxy(models.KindSidecar, proxyUUID, identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
 
 	testMeshSvc := service.MeshService{
 		Namespace:  tests.BookbuyerService.Namespace,
-		Name:       tests.BookbuyerService.Namespace,
+		Name:       tests.BookbuyerService.Name,
 		Port:       80,
 		TargetPort: 8080,
 	}
@@ -72,32 +75,23 @@ func TestGenerateCDS(t *testing.T) {
 		},
 	}
 
-	expectedOutboundMeshClusterConfigs := []*trafficpolicy.MeshClusterConfig{
-		{
-			Name:    "default/bookstore-v1|80",
-			Service: tests.BookstoreV1Service,
-		},
-		{
-			Name:    "default/bookstore-v2|80",
-			Service: tests.BookstoreV2Service,
-		},
-	}
-	expectedInboundMeshClusterConfigs := []*trafficpolicy.MeshClusterConfig{
-		{
-			Name:    "default/bookbuyer|8080|local",
-			Service: testMeshSvc,
-			Port:    8080,
-			Address: "127.0.0.1",
-		},
-	}
-
-	mockCatalog.EXPECT().GetInboundMeshClusterConfigs(gomock.Any()).Return(expectedInboundMeshClusterConfigs).AnyTimes()
-	mockCatalog.EXPECT().GetOutboundMeshClusterConfigs(tests.BookbuyerServiceIdentity).Return(expectedOutboundMeshClusterConfigs).AnyTimes()
-	mockCatalog.EXPECT().GetEgressClusterConfigs(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
-	mockCatalog.EXPECT().IsMetricsEnabled(proxy).Return(true, nil).AnyTimes()
-	mockCatalog.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
-	mockCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
-	mockCatalog.EXPECT().GetTelemetryConfig(proxy).Return(models.TelemetryConfig{}).AnyTimes()
+	mockComputeInterface.EXPECT().IsMetricsEnabled(proxy).Return(true, nil).AnyTimes()
+	mockComputeInterface.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
+	mockComputeInterface.EXPECT().ListServicesForProxy(proxy).Return([]service.MeshService{testMeshSvc}, nil).AnyTimes()
+	mockComputeInterface.EXPECT().ListTrafficSplits().Return(
+		[]*split.TrafficSplit{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "bar",
+				}},
+		})
+	mockComputeInterface.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
+	mockComputeInterface.EXPECT().GetServicesForServiceIdentity(gomock.Any()).Return([]service.MeshService{
+		tests.BookstoreV1Service, tests.BookstoreV2Service,
+	}).AnyTimes()
+	mockComputeInterface.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
+	mockComputeInterface.EXPECT().GetTelemetryConfig(proxy).Return(models.TelemetryConfig{}).AnyTimes()
 
 	podlabels := map[string]string{
 		constants.AppLabel:               testMeshSvc.Name,
@@ -111,7 +105,7 @@ func TestGenerateCDS(t *testing.T) {
 	_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), newPod1, metav1.CreateOptions{})
 	assert.Nil(err)
 
-	g := NewEnvoyConfigGenerator(mockCatalog, nil)
+	g := NewEnvoyConfigGenerator(meshCatalog, nil)
 
 	resources, err := g.generateCDS(context.Background(), proxy)
 	assert.Nil(err)
@@ -181,7 +175,7 @@ func TestGenerateCDS(t *testing.T) {
 
 	expectedBookstoreV1Cluster := &xds_cluster.Cluster{
 		TransportSocketMatches:        nil,
-		Name:                          "default/bookstore-v1|80",
+		Name:                          "default/bookstore-v1|8888",
 		AltStatName:                   "",
 		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
 		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
@@ -195,7 +189,7 @@ func TestGenerateCDS(t *testing.T) {
 			ServiceName: "",
 		},
 		TransportSocket: &xds_core.TransportSocket{
-			Name: "default/bookstore-v1|80",
+			Name: "default/bookstore-v1|8888",
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: string(envoy.TypeUpstreamTLSContext),
@@ -212,7 +206,7 @@ func TestGenerateCDS(t *testing.T) {
 	require.Nil(err)
 	expectedBookstoreV2Cluster := &xds_cluster.Cluster{
 		TransportSocketMatches:        nil,
-		Name:                          "default/bookstore-v2|80",
+		Name:                          "default/bookstore-v2|8888",
 		AltStatName:                   "",
 		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
 		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
@@ -226,7 +220,7 @@ func TestGenerateCDS(t *testing.T) {
 			ServiceName: "",
 		},
 		TransportSocket: &xds_core.TransportSocket{
-			Name: "default/bookstore-v2|80",
+			Name: "default/bookstore-v2|8888",
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: string(envoy.TypeUpstreamTLSContext),
@@ -334,8 +328,8 @@ func TestGenerateCDS(t *testing.T) {
 	}
 
 	expectedClusters := []string{
-		"default/bookstore-v1|80",
-		"default/bookstore-v2|80",
+		"default/bookstore-v1|8888",
+		"default/bookstore-v2|8888",
 		"default/bookbuyer|8080|local",
 		"passthrough-outbound",
 		"envoy-metrics-cluster",
@@ -350,7 +344,7 @@ func TestGenerateCDS(t *testing.T) {
 			foundClusters = append(foundClusters, "default/bookbuyer|8080|local")
 			continue
 		}
-		if a.Name == "default/bookstore-v1|80" {
+		if a.Name == "default/bookstore-v1|8888" {
 			assert.Truef(cmp.Equal(expectedBookstoreV1Cluster, a, protocmp.Transform()), cmp.Diff(expectedBookstoreV1Cluster, a, protocmp.Transform()))
 
 			upstreamTLSContext := xds_auth.UpstreamTlsContext{}
@@ -361,11 +355,11 @@ func TestGenerateCDS(t *testing.T) {
 			assert.Equal("bookstore-v1.default.svc.cluster.local", upstreamTLSContext.Sni)
 			assert.Nil(a.LoadAssignment) //ClusterLoadAssignment setting for non EDS clusters
 
-			foundClusters = append(foundClusters, "default/bookstore-v1|80")
+			foundClusters = append(foundClusters, "default/bookstore-v1|8888")
 			continue
 		}
 
-		if a.Name == "default/bookstore-v2|80" {
+		if a.Name == "default/bookstore-v2|8888" {
 			assert.Truef(cmp.Equal(expectedBookstoreV2Cluster, a, protocmp.Transform()), cmp.Diff(expectedBookstoreV1Cluster, a, protocmp.Transform()))
 
 			upstreamTLSContext := xds_auth.UpstreamTlsContext{}
@@ -376,7 +370,7 @@ func TestGenerateCDS(t *testing.T) {
 			assert.Equal("bookstore-v2.default.svc.cluster.local", upstreamTLSContext.Sni)
 			assert.Nil(a.LoadAssignment) //ClusterLoadAssignment setting for non EDS clusters
 
-			foundClusters = append(foundClusters, "default/bookstore-v2|80")
+			foundClusters = append(foundClusters, "default/bookstore-v2|8888")
 			continue
 		}
 
@@ -404,10 +398,32 @@ func TestNewResponseListServicesError(t *testing.T) {
 	proxy := models.NewProxy(models.KindSidecar, uuid.New(), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
 
 	ctrl := gomock.NewController(t)
-	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	meshCatalog.EXPECT().GetOutboundMeshClusterConfigs(proxy.Identity).Return(nil).AnyTimes()
-	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
-	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, errors.New("no services found")).AnyTimes()
+	mockComputeInterface := compute.NewMockInterface(ctrl)
+	meshCatalog := catalogFake.NewFakeMeshCatalog(mockComputeInterface)
+
+	meshConfig := configv1alpha2.MeshConfig{
+		Spec: configv1alpha2.MeshConfigSpec{
+			Traffic: configv1alpha2.TrafficSpec{
+				EnableEgress: true,
+			},
+			Observability: configv1alpha2.ObservabilitySpec{
+				Tracing: configv1alpha2.TracingSpec{
+					Enable: true,
+				},
+			},
+			Sidecar: configv1alpha2.SidecarSpec{
+				TLSMinProtocolVersion: "TLSv1_2",
+				TLSMaxProtocolVersion: "TLSv1_3",
+			},
+		},
+	}
+	mockComputeInterface.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
+	mockComputeInterface.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
+	mockComputeInterface.EXPECT().GetServicesForServiceIdentity(gomock.Any()).Return([]service.MeshService{
+		tests.BookstoreV1Service, tests.BookstoreV2Service,
+	}).AnyTimes()
+	mockComputeInterface.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
+	mockComputeInterface.EXPECT().ListServicesForProxy(proxy).Return(nil, errors.New("no services found")).AnyTimes()
 
 	g := NewEnvoyConfigGenerator(meshCatalog, nil)
 
@@ -422,15 +438,15 @@ func TestNewResponseGetEgressClusterConfigsError(t *testing.T) {
 	proxy := models.NewProxy(models.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
 
 	ctrl := gomock.NewController(t)
-	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
+	mockComputeInterface := compute.NewMockInterface(ctrl)
+	meshCatalog := catalogFake.NewFakeMeshCatalog(mockComputeInterface)
 
-	meshCatalog.EXPECT().GetInboundMeshClusterConfigs(gomock.Any()).Return(nil).Times(1)
-	meshCatalog.EXPECT().GetOutboundMeshClusterConfigs(proxyIdentity).Return(nil).Times(1)
-	meshCatalog.EXPECT().GetEgressClusterConfigs(proxyIdentity).Return(nil, fmt.Errorf("some error")).Times(1)
-	meshCatalog.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
-	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
-	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
-	meshCatalog.EXPECT().GetTelemetryConfig(proxy).Return(models.TelemetryConfig{}).AnyTimes()
+	mockComputeInterface.EXPECT().GetMeshConfig().AnyTimes()
+	mockComputeInterface.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
+	mockComputeInterface.EXPECT().ListEgressPoliciesForServiceAccount(proxyIdentity.ToK8sServiceAccount()).Return(nil).AnyTimes()
+	mockComputeInterface.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
+	mockComputeInterface.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	mockComputeInterface.EXPECT().GetTelemetryConfig(proxy).Return(models.TelemetryConfig{}).AnyTimes()
 
 	g := NewEnvoyConfigGenerator(meshCatalog, nil)
 
@@ -445,22 +461,77 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	proxy := models.NewProxy(models.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
 
 	ctrl := gomock.NewController(t)
-	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	meshCatalog.EXPECT().GetInboundMeshClusterConfigs(gomock.Any()).Return(nil).Times(1)
-	meshCatalog.EXPECT().GetOutboundMeshClusterConfigs(proxyIdentity).Return(nil).Times(1)
-	meshCatalog.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
-	meshCatalog.EXPECT().GetEgressClusterConfigs(proxyIdentity).Return([]*trafficpolicy.EgressClusterConfig{
-		{Name: "my-cluster"},
-		{Name: "my-cluster"}, // the test ensures this duplicate is removed
-	}, nil).Times(1)
-	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
-	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
-	meshCatalog.EXPECT().GetTelemetryConfig(proxy).Return(models.TelemetryConfig{}).AnyTimes()
+	mockComputeInterface := compute.NewMockInterface(ctrl)
+	meshCatalog := catalogFake.NewFakeMeshCatalog(mockComputeInterface)
+
+	egressPolicies := []*policyv1alpha1.Egress{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-cluster",
+				Namespace: "test",
+			},
+			Spec: policyv1alpha1.EgressSpec{
+				Sources: []policyv1alpha1.EgressSourceSpec{
+					{
+						Kind:      "ServiceAccount",
+						Name:      "sa-1",
+						Namespace: "test",
+					},
+					{
+						Kind:      "ServiceAccount",
+						Name:      "sa-2",
+						Namespace: "test",
+					},
+				},
+				Hosts: []string{"my-cluster"},
+				Ports: []policyv1alpha1.PortSpec{
+					{
+						Number:   80,
+						Protocol: "http",
+					},
+				},
+			},
+		},
+		// the test ensures this duplicate is removed
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-cluster",
+				Namespace: "test",
+			},
+			Spec: policyv1alpha1.EgressSpec{
+				Sources: []policyv1alpha1.EgressSourceSpec{
+					{
+						Kind:      "ServiceAccount",
+						Name:      "sa-1",
+						Namespace: "test",
+					},
+					{
+						Kind:      "ServiceAccount",
+						Name:      "sa-2",
+						Namespace: "test",
+					},
+				},
+				Hosts: []string{"my-cluster"},
+				Ports: []policyv1alpha1.PortSpec{
+					{
+						Number:   80,
+						Protocol: "http",
+					},
+				},
+			},
+		},
+	}
+	mockComputeInterface.EXPECT().GetMeshConfig().AnyTimes()
+	mockComputeInterface.EXPECT().ListTrafficTargets().Return(nil).AnyTimes()
+	mockComputeInterface.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	mockComputeInterface.EXPECT().ListEgressPoliciesForServiceAccount(proxyIdentity.ToK8sServiceAccount()).Return(egressPolicies).AnyTimes()
+	mockComputeInterface.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
+	mockComputeInterface.EXPECT().GetTelemetryConfig(proxy).Return(models.TelemetryConfig{}).AnyTimes()
 
 	g := NewEnvoyConfigGenerator(meshCatalog, nil)
 
 	resources, err := g.generateCDS(context.Background(), proxy)
 	tassert.NoError(t, err)
 	tassert.Len(t, resources, 1)
-	tassert.Equal(t, resources[0].(*xds_cluster.Cluster).Name, "my-cluster")
+	tassert.Equal(t, resources[0].(*xds_cluster.Cluster).Name, "my-cluster:80")
 }

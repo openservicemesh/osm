@@ -15,17 +15,17 @@ import (
 func TestMonitoredNamespaceHandler(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
-	mockCompute := compute.NewMockInterface(mockCtrl)
+	mockComputeInterface := compute.NewMockInterface(mockCtrl)
 
 	uniqueNs := tests.GetUnique([]string{
 		tests.BookbuyerService.Namespace,   // default
 		tests.BookstoreV1Service.Namespace, // default
 	})
 
-	mockCompute.EXPECT().ListNamespaces().Return(uniqueNs, nil)
+	mockComputeInterface.EXPECT().ListNamespaces().Return(uniqueNs, nil)
 
 	ds := DebugConfig{
-		computeClient: mockCompute,
+		computeClient: mockComputeInterface,
 	}
 	monitoredNamespacesHandler := ds.getMonitoredNamespacesHandler()
 

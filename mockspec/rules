@@ -5,9 +5,6 @@
 # pkg/k8s
 k8s; pkg/k8s/mock_controller_generated.go; github.com/openservicemesh/osm/pkg/k8s; Controller
 
-# pkg/catalog
-catalog; pkg/catalog/mock_catalog_generated.go; github.com/openservicemesh/osm/pkg/catalog; MeshCataloger
-
 # pkg/debugger
 debugger; pkg/debugger/mock_debugger_generated.go; github.com/openservicemesh/osm/pkg/debugger; XDSDebugger
 
