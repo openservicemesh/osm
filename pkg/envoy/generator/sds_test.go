@@ -6,6 +6,12 @@ import (
 	"testing"
 	"time"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+
+	"github.com/openservicemesh/osm/pkg/messaging"
+
+	"github.com/openservicemesh/osm/pkg/compute"
+
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -75,14 +81,29 @@ func TestGenerateSDS(t *testing.T) {
 			// The Common Name of the xDS Certificate (issued to the Envoy on the Pod by the Injector) will
 			// have be prefixed with the ID of the pod. It is the first chunk of a dot-separated string.
 			proxy := models.NewProxy(models.KindSidecar, uuid.New(), proxySvcID, nil, 1)
-			meshCatalog := catalog.NewMockMeshCataloger(mockCtrl)
+			mock := compute.NewMockInterface(mockCtrl)
+			stop := make(chan struct{})
+			meshCatalog := catalog.NewMeshCatalog(
+				mock,
+				tresorFake.NewFake(time.Hour),
+				stop,
+				messaging.NewBroker(stop),
+			)
 
 			var services []service.MeshService
 			for svc, identities := range tc.serviceIdentitiesForService {
 				services = append(services, svc)
-				meshCatalog.EXPECT().ListServiceIdentitiesForService(svc.Name, svc.Namespace).Return(identities, nil)
+				mock.EXPECT().ListServiceIdentitiesForService(svc.Name, svc.Namespace).Return(identities, nil)
 			}
-			meshCatalog.EXPECT().ListOutboundServicesForIdentity(proxy.Identity).Return(services)
+
+			mock.EXPECT().GetMeshConfig().Return(configv1alpha2.MeshConfig{
+				Spec: configv1alpha2.MeshConfigSpec{
+					Traffic: configv1alpha2.TrafficSpec{
+						EnablePermissiveTrafficPolicyMode: true,
+					},
+				},
+			})
+			mock.EXPECT().ListServices().Return(services)
 
 			g := NewEnvoyConfigGenerator(meshCatalog, certManager)
 
