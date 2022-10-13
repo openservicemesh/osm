@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 	"testing"
-	time "time"
+	"time"
 
 	"github.com/cskr/pubsub"
 	tassert "github.com/stretchr/testify/assert"
@@ -438,4 +438,42 @@ func TestSubscribeRotations(t *testing.T) {
 	cm.checkAndRotate()
 
 	wg.Wait()
+}
+
+func TestManager_GetTrustDomain(t *testing.T) {
+	tests := []struct {
+		name                 string
+		signingIssuer        *issuer
+		validatingIssuer     *issuer
+		expectedTrustDomains TrustDomain
+		expectedAreDifferent bool
+	}{
+		{
+			name:                 "should return both trustdomains",
+			signingIssuer:        &issuer{TrustDomain: "cluster.local"},
+			validatingIssuer:     &issuer{TrustDomain: "old.local"},
+			expectedTrustDomains: TrustDomain{Signing: "cluster.local", Validating: "old.local"},
+			expectedAreDifferent: true,
+		},
+		{
+			name:                 "should return both trustdomains when the same",
+			signingIssuer:        &issuer{TrustDomain: "cluster.local"},
+			validatingIssuer:     &issuer{TrustDomain: "cluster.local"},
+			expectedTrustDomains: TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
+			expectedAreDifferent: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			m := &Manager{
+				signingIssuer:    tt.signingIssuer,
+				validatingIssuer: tt.validatingIssuer,
+			}
+			got := m.GetTrustDomains()
+			assert.Equal(tt.expectedTrustDomains.Signing, got.Signing)
+			assert.Equal(tt.expectedTrustDomains.Validating, got.Validating)
+			assert.Equal(tt.expectedAreDifferent, got.AreDifferent())
+		})
+	}
 }

@@ -126,12 +126,24 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 	return nil
 }
 
-// GetTrustDomain returns the trust domain from the configured signingkey issuer.
+// TrustDomain is used to hold the current certificate information about the trust domain
+type TrustDomain struct {
+	Signing    string
+	Validating string
+}
+
+// AreDifferent returns true if the signing and validating trust domains are different
+func (td TrustDomain) AreDifferent() bool {
+	return td.Signing != td.Validating
+}
+
+// GetTrustDomains returns the trust domains from the configured issuers.
 // Note that the CRD uses a default, so this value will always be set.
-func (m *Manager) GetTrustDomain() string {
+// It is up to the caller to determine if the signing and validating trust domains are different
+func (m *Manager) GetTrustDomains() TrustDomain {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return m.signingIssuer.TrustDomain
+	return TrustDomain{Signing: m.signingIssuer.TrustDomain, Validating: m.validatingIssuer.TrustDomain}
 }
 
 // ShouldRotate determines whether a certificate should be rotated.

@@ -19,7 +19,7 @@ const (
 // buildInboundRBACFilterForRule builds an HTTP RBAC per route filter based on the given traffic policy rule.
 // The principals in the RBAC policy are derived from the allowed service accounts specified in the given rule.
 // The permissions in the RBAC policy are implicitly set to ANY (all permissions).
-func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule, trustDomain string) (*any.Any, error) {
+func buildInboundRBACFilterForRule(rule *trafficpolicy.Rule) (*any.Any, error) {
 	if rule.AllowedPrincipals == nil {
 		return nil, errors.New("traffipolicy.Rule.AllowedPrincipals not set")
 	}

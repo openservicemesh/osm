@@ -19,7 +19,7 @@ type SecretsBuilder struct {
 	// Service certificate for this proxy
 	serviceCert *certificate.Certificate
 
-	trustDomain string
+	trustDomain certificate.TrustDomain
 
 	// identities, used for SAN matches, mapped to the name of the secret. Currently only used for outbound secrets.
 	identitiesForSecrets map[string][]identity.ServiceIdentity
@@ -43,7 +43,7 @@ func (b *SecretsBuilder) SetProxyCert(cert *certificate.Certificate) *SecretsBui
 }
 
 // SetTrustDomain sets the trust domain on the builder.
-func (b *SecretsBuilder) SetTrustDomain(trustDomain string) *SecretsBuilder {
+func (b *SecretsBuilder) SetTrustDomain(trustDomain certificate.TrustDomain) *SecretsBuilder {
 	b.trustDomain = trustDomain
 	return b
 }
@@ -119,7 +119,7 @@ func (b *SecretsBuilder) buildSecret(name string, allowedIdentities []identity.S
 }
 
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
-func getSubjectAltNamesFromSvcIdentities(serviceIdentities []identity.ServiceIdentity, trustDomain string) []*xds_auth.SubjectAltNameMatcher {
+func getSubjectAltNamesFromSvcIdentities(serviceIdentities []identity.ServiceIdentity, trustDomains certificate.TrustDomain) []*xds_auth.SubjectAltNameMatcher {
 	var matchSANs []*xds_auth.SubjectAltNameMatcher
 
 	for _, si := range serviceIdentities {
@@ -127,11 +127,23 @@ func getSubjectAltNamesFromSvcIdentities(serviceIdentities []identity.ServiceIde
 			SanType: xds_auth.SubjectAltNameMatcher_DNS,
 			Matcher: &xds_matcher.StringMatcher{
 				MatchPattern: &xds_matcher.StringMatcher_Exact{
-					Exact: si.AsPrincipal(trustDomain),
+					Exact: si.AsPrincipal(trustDomains.Signing),
 				},
 			},
 		}
 		matchSANs = append(matchSANs, &match)
+
+		if trustDomains.AreDifferent() {
+			validatorMatch := xds_auth.SubjectAltNameMatcher{
+				SanType: xds_auth.SubjectAltNameMatcher_DNS,
+				Matcher: &xds_matcher.StringMatcher{
+					MatchPattern: &xds_matcher.StringMatcher_Exact{
+						Exact: si.AsPrincipal(trustDomains.Validating),
+					},
+				},
+			}
+			matchSANs = append(matchSANs, &validatorMatch)
+		}
 	}
 
 	return matchSANs

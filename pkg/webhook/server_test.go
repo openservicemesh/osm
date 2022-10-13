@@ -88,7 +88,7 @@ func TestCertRotation(t *testing.T) {
 			<-wait
 
 			for i := 0; i < tc.rotations; i++ {
-				mrc.NewCertEvent(fmt.Sprintf("newcert-%d", i), constants.MRCStateIssuingRollout)
+				mrc.NewCertEvent(fmt.Sprintf("newcert-%d", i), constants.MRCStateIssuingRollout, "cluster.local")
 				if tc.waitForRotation {
 					<-wait
 				}

@@ -292,7 +292,7 @@ func buildVirtualHostStub(namePrefix string, host string, domains []string) *xds
 }
 
 // buildInboundRoutes takes a route information from the given inbound traffic policy and returns a list of xds routes
-func buildInboundRoutes(rules []*trafficpolicy.Rule, trustDomain string) []*xds_route.Route {
+func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
 	var routes []*xds_route.Route
 	for _, rule := range rules {
 		// For a given route path, sanitize the methods in case there
@@ -301,7 +301,7 @@ func buildInboundRoutes(rules []*trafficpolicy.Rule, trustDomain string) []*xds_
 
 		// Create an RBAC policy derived from 'trafficpolicy.Rule'
 		// Each route is associated with an RBAC policy
-		rbacConfig, err := buildInboundRBACFilterForRule(rule, trustDomain)
+		rbacConfig, err := buildInboundRBACFilterForRule(rule)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrBuildingRBACPolicyForRoute)).
 				Msgf("Error building RBAC policy for rule [%v], skipping route addition", rule)

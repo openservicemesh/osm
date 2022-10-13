@@ -8,6 +8,7 @@ import (
 
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy/rbac"
 
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -16,14 +17,15 @@ import (
 
 func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 	testCases := []struct {
-		name          string
-		trafficTarget trafficpolicy.TrafficTargetWithRoutes
-
-		expectedPolicy *xds_rbac.Policy
+		name                  string
+		trafficTarget         trafficpolicy.TrafficTargetWithRoutes
+		configuredTrustDomain certificate.TrustDomain
+		expectedPolicy        *xds_rbac.Policy
 	}{
 		{
 			// Test 1
-			name: "traffic target without TCP routes",
+			name:                  "traffic target without TCP routes",
+			configuredTrustDomain: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
 			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
 				Name:        "ns-1/test-1",
 				Destination: identity.ServiceIdentity("sa-1.ns-1"),
@@ -49,7 +51,8 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 
 		{
 			// Test 2
-			name: "traffic target with TCP routes",
+			name:                  "traffic target with TCP routes",
+			configuredTrustDomain: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
 			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
 				Name:        "ns-1/test-1",
 				Destination: identity.ServiceIdentity("sa-1.ns-1"),
@@ -79,14 +82,42 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			name:                  "traffic target without TCP routes and multiple trust domains",
+			configuredTrustDomain: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.new"},
+			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
+				Name:        "ns-1/test-1",
+				Destination: identity.ServiceIdentity("sa-1.ns-1"),
+				Sources: []identity.ServiceIdentity{
+					identity.ServiceIdentity("sa-2.ns-2"),
+					identity.ServiceIdentity("sa-3.ns-3"),
+				},
+				TCPRouteMatches: nil,
+			},
+
+			expectedPolicy: &xds_rbac.Policy{
+				Permissions: []*xds_rbac.Permission{
+					{
+						Rule: &xds_rbac.Permission_Any{Any: true},
+					},
+				},
+				Principals: []*xds_rbac.Principal{
+					rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.local"),
+					rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.new"),
+					rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.local"),
+					rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.new"),
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Testing test case %d: %s", i+1, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
 			// Test the RBAC policies
-			policy := buildRBACPolicyFromTrafficTarget(tc.trafficTarget, "cluster.local")
+			policy := buildRBACPolicyFromTrafficTarget(tc.trafficTarget, tc.configuredTrustDomain)
 
 			assert.Equal(tc.expectedPolicy, policy)
 		})
@@ -95,15 +126,16 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 
 func TestBuildInboundRBACPolicies(t *testing.T) {
 	testCases := []struct {
-		name           string
-		trafficTargets []trafficpolicy.TrafficTargetWithRoutes
-
-		expectedPolicyKeys []string
-		expectErr          bool
+		name                  string
+		trafficTargets        []trafficpolicy.TrafficTargetWithRoutes
+		configuredTrustDomain certificate.TrustDomain
+		expectedPolicyKeys    map[string][]string
+		expectErr             bool
 	}{
 		{
 			// Test 1
-			name: "traffic target without TCP routes",
+			name:                  "traffic target without TCP routes",
+			configuredTrustDomain: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
@@ -116,14 +148,17 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 				},
 			},
 
-			expectedPolicyKeys: []string{"ns-1/test-1"},
+			expectedPolicyKeys: map[string][]string{
+				"ns-1/test-1": {"sa-2.ns-2.cluster.local", "sa-3.ns-3.cluster.local"},
+			},
 
 			expectErr: false, // no error
 		},
 
 		{
 			// Test 2
-			name: "traffic target with TCP routes",
+			name:                  "traffic target with TCP routes",
+			configuredTrustDomain: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
@@ -142,8 +177,37 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 				},
 			},
 
-			expectedPolicyKeys: []string{"ns-1/test-1", "ns-1/test-2"},
-			expectErr:          false, // no error
+			expectedPolicyKeys: map[string][]string{
+				"ns-1/test-1": {
+					"sa-2.ns-2.cluster.local", "sa-3.ns-3.cluster.local",
+				},
+				"ns-1/test-2": {
+					"sa-4.ns-2.cluster.local",
+				},
+			},
+			expectErr: false, // no error
+		},
+
+		{
+			name:                  "traffic target without TCP routes and different trust domains",
+			configuredTrustDomain: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.new"},
+			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
+				{
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-2.ns-2"),
+						identity.ServiceIdentity("sa-3.ns-3"),
+					},
+					TCPRouteMatches: nil,
+				},
+			},
+
+			expectedPolicyKeys: map[string][]string{
+				"ns-1/test-1": {"sa-2.ns-2.cluster.local", "sa-3.ns-3.cluster.local", "sa-2.ns-2.cluster.new", "sa-3.ns-3.cluster.new"},
+			},
+
+			expectErr: false, // no error
 		},
 	}
 
@@ -152,17 +216,30 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 			assert := tassert.New(t)
 
 			// Test the RBAC policies
-			policy, err := buildInboundRBACPolicies(tc.trafficTargets, "")
+			policy, err := buildInboundRBACPolicies(tc.trafficTargets, tc.configuredTrustDomain)
 
 			assert.Equal(tc.expectErr, err != nil)
 			assert.Equal(xds_rbac.RBAC_ALLOW, policy.Rules.Action)
 			assert.Len(policy.Rules.Policies, len(tc.expectedPolicyKeys))
 
 			var actualPolicyKeys []string
-			for key := range policy.Rules.Policies {
+			for key, v := range policy.Rules.Policies {
 				actualPolicyKeys = append(actualPolicyKeys, key)
+
+				expectedPrincipals := tc.expectedPolicyKeys[key]
+				var actualPrincipals []string
+				for _, v := range v.GetPrincipals() {
+					p := v.GetAuthenticated().GetPrincipalName().GetExact()
+					actualPrincipals = append(actualPrincipals, p)
+				}
+				assert.ElementsMatch(expectedPrincipals, actualPrincipals)
 			}
-			assert.ElementsMatch(tc.expectedPolicyKeys, actualPolicyKeys)
+
+			var expectedKeys []string
+			for key := range tc.expectedPolicyKeys {
+				expectedKeys = append(expectedKeys, key)
+			}
+			assert.ElementsMatch(expectedKeys, actualPolicyKeys)
 		})
 	}
 }

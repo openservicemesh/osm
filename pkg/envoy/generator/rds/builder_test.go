@@ -313,7 +313,6 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 			rb := &routesBuilder{
 				inboundPortSpecificRouteConfigs: tc.InboundMeshHTTPRouteConfigsPerPort,
 				statsHeaders:                    nil,
-				trustDomain:                     "cluster.local",
 			}
 			actual := rb.buildInboundMeshRouteConfiguration()
 
@@ -398,7 +397,6 @@ func TestBuildInboundMeshRouteConfiguration(t *testing.T) {
 				inboundPortSpecificRouteConfigs: testInboundHTTPRouteConfigsPerPort,
 				proxy:                           &models.Proxy{},
 				statsHeaders:                    tc.statsHeaders,
-				trustDomain:                     "cluster.local",
 			}
 			actual := rb.buildInboundMeshRouteConfiguration()
 			for _, routeConfig := range actual {
@@ -488,7 +486,6 @@ func TestBuildIngressRouteConfiguration(t *testing.T) {
 			assert := tassert.New(t)
 			rb := &routesBuilder{
 				ingressTrafficPolicies: tc.ingressPolicies,
-				trustDomain:            "cluster.local",
 			}
 			actual := rb.buildIngressConfiguration()
 

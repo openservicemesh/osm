@@ -35,7 +35,7 @@ func NewFakeMRC() *fakeMRCClient { //nolint: revive // unexported-return
 }
 
 // NewCertEvent allows pushing MRC events which can trigger cert changes
-func (c *fakeMRCClient) NewCertEvent(name, state string) {
+func (c *fakeMRCClient) NewCertEvent(name, state, trustDomain string) {
 	c.mrcChannel <- certificate.MRCEvent{
 		Type: certificate.MRCEventAdded,
 		MRC: &v1alpha2.MeshRootCertificate{
@@ -44,7 +44,7 @@ func (c *fakeMRCClient) NewCertEvent(name, state string) {
 				Namespace: "osm-system",
 			},
 			Spec: v1alpha2.MeshRootCertificateSpec{
-				TrustDomain: "cluster.local",
+				TrustDomain: trustDomain,
 				Provider: v1alpha2.ProviderSpec{
 					Tresor: &v1alpha2.TresorProviderSpec{
 						CA: v1alpha2.TresorCASpec{
@@ -125,7 +125,7 @@ func (c *fakeMRCClient) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertific
 func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
 	// send event for first CA created
 	go func() {
-		c.NewCertEvent(initialRootName, constants.MRCStateActive)
+		c.NewCertEvent(initialRootName, constants.MRCStateActive, "cluster.local")
 	}()
 
 	return c.mrcChannel, nil

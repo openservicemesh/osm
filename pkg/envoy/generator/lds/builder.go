@@ -18,6 +18,7 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/auth"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/protobuf"
@@ -163,7 +164,7 @@ func (lb *listenerBuilder) TrafficTargets(t []trafficpolicy.TrafficTargetWithRou
 	return lb
 }
 
-func (lb *listenerBuilder) TrustDomain(trustDomain string) *listenerBuilder {
+func (lb *listenerBuilder) TrustDomain(trustDomain certificate.TrustDomain) *listenerBuilder {
 	lb.trustDomain = trustDomain
 	return lb
 }
@@ -326,7 +327,7 @@ func (fb *filterBuilder) StatsPrefix(statsPrefix string) *filterBuilder {
 }
 
 // WithRBAC sets the RBAC properties used to build the filter
-func (fb *filterBuilder) WithRBAC(t []trafficpolicy.TrafficTargetWithRoutes, trustDomain string) *filterBuilder {
+func (fb *filterBuilder) WithRBAC(t []trafficpolicy.TrafficTargetWithRoutes, trustDomain certificate.TrustDomain) *filterBuilder {
 	fb.withRBAC = true
 	fb.trafficTargets = t
 	fb.trustDomain = trustDomain

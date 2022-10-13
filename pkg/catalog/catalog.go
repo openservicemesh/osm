@@ -26,8 +26,3 @@ func NewMeshCatalog(computeInterface compute.Interface, certManager *certificate
 
 	return mc
 }
-
-// GetTrustDomain returns the currently configured trust domain, ie: cluster.local
-func (mc *MeshCatalog) GetTrustDomain() string {
-	return mc.certManager.GetTrustDomain()
-}
