@@ -283,6 +283,8 @@ spec:
                       type: boolean
                     enableRetryPolicy:
                       type: boolean
+                    enableMeshRootCertificate:
+                      type: boolean
     - name: v1alpha1
       served: true
       storage: false

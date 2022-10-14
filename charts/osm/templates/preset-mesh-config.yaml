@@ -54,6 +54,7 @@ data:
         "enableAsyncProxyServiceMapping": {{.Values.osm.featureFlags.enableAsyncProxyServiceMapping | mustToJson}},
         "enableIngressBackendPolicy": {{.Values.osm.featureFlags.enableIngressBackendPolicy | mustToJson}},
         "enableEnvoyActiveHealthChecks": {{.Values.osm.featureFlags.enableEnvoyActiveHealthChecks | mustToJson}},
-        "enableRetryPolicy": {{.Values.osm.featureFlags.enableRetryPolicy | mustToJson}}
+        "enableRetryPolicy": {{.Values.osm.featureFlags.enableRetryPolicy | mustToJson}},
+        "enableMeshRootCertificate": {{.Values.osm.featureFlags.enableMeshRootCertificate | mustToJson }}
       }
     }

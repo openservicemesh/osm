@@ -234,4 +234,7 @@ type FeatureFlags struct {
 
 	// EnableRetryPolicy defines if retry policy is enabled.
 	EnableRetryPolicy bool `json:"enableRetryPolicy"`
+
+	// EnableMeshRootCertificate defines if MRCs are used for certificate management.
+	EnableMeshRootCertificate bool `json:"enableMeshRootCertificate"`
 }

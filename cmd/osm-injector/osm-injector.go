@@ -58,8 +58,7 @@ var (
 	osmVersion         string
 	trustDomain        string
 
-	certProviderKind          string
-	enableMeshRootCertificate bool
+	certProviderKind string
 
 	enableReconciler bool
 
@@ -89,7 +88,6 @@ func init() {
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
-	flags.BoolVar(&enableMeshRootCertificate, "enable-mesh-root-certificate", false, "Enable unsupported MeshRootCertificate to create the OSM Certificate Manager")
 	flags.StringVar(&caBundleSecretName, "ca-bundle-secret-name", "", "Name of the Kubernetes Secret for the OSM CA bundle")
 
 	// TODO (#4502): Remove when we add full MRC support
@@ -210,6 +208,7 @@ func main() {
 
 	// Intitialize certificate manager/provider
 	var certManager *certificate.Manager
+	enableMeshRootCertificate := computeClient.GetMeshConfig().Spec.FeatureFlags.EnableMeshRootCertificate
 	if enableMeshRootCertificate {
 		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace,
 			certOpts, computeClient, 5*time.Second)
