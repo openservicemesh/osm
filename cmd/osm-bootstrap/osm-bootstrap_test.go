@@ -83,7 +83,7 @@ var testPresetMeshConfigMap = &corev1.ConfigMap{
 	"enableEnvoyActiveHealthChecks": true,
 	"enableSnapshotCacheMode": true,
 	"enableRetryPolicy": false,
-	"enableMeshRootCertificate": false,
+	"enableMeshRootCertificate": false
 	}
 }`,
 	},

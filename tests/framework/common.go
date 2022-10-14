@@ -680,34 +680,34 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	return nil
 }
 
-// RestartOSMController restarts the osm-controller pod in the installed controller's namespace
-func (td *OsmTestData) RestartOSMController(instOpts InstallOSMOpts) error {
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{constants.AppLabel: constants.OSMControllerName}}
+// RestartOSMControlPlaneComponent restarts the specified OSM control plane component in the installed controller's namespace
+func (td *OsmTestData) RestartOSMControlPlaneComponent(componentName string, instOpts InstallOSMOpts) error {
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{constants.AppLabel: componentName}}
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
 
-	controllerPods, err := td.Client.CoreV1().Pods(instOpts.ControlPlaneNS).List(context.TODO(), listOptions)
+	componentPodList, err := td.Client.CoreV1().Pods(instOpts.ControlPlaneNS).List(context.TODO(), listOptions)
 	if err != nil {
-		return fmt.Errorf("error fetching controller pod")
+		return fmt.Errorf("error fetching %s pod", componentName)
 	}
 
-	controllerDeployment, errDeployment := td.Client.AppsV1().Deployments(instOpts.ControlPlaneNS).Get(context.TODO(), constants.OSMControllerName, metav1.GetOptions{})
+	componentDeployment, errDeployment := td.Client.AppsV1().Deployments(instOpts.ControlPlaneNS).Get(context.TODO(), componentName, metav1.GetOptions{})
 	if errDeployment != nil {
-		return fmt.Errorf("error fetching controller deployment")
+		return fmt.Errorf("error fetching %s deployment", componentName)
 	}
 
-	expectedReplicaCount := int(*(controllerDeployment.Spec.Replicas))
-	if len(controllerPods.Items) != expectedReplicaCount {
-		return fmt.Errorf("expected %d osm-controller pod(s), got %d", expectedReplicaCount, len(controllerPods.Items))
+	expectedReplicaCount := int(*(componentDeployment.Spec.Replicas))
+	if len(componentPodList.Items) != expectedReplicaCount {
+		return fmt.Errorf("expected %d %s pod(s), got %d", expectedReplicaCount, componentName, len(componentPodList.Items))
 	}
 
-	pod := controllerPods.Items[0]
-
-	// Delete the pod and let k8s spin it up again
-	err = td.Client.CoreV1().Pods(instOpts.ControlPlaneNS).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return fmt.Errorf("error deleting osm-controller pod")
+	// Delete the pods and let k8s spin it up again
+	for _, pod := range componentPodList.Items {
+		err = td.Client.CoreV1().Pods(instOpts.ControlPlaneNS).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+		if err != nil {
+			return fmt.Errorf("error deleting %s %s pod", componentName, pod.Name)
+		}
 	}
 
 	return nil

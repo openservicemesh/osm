@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/tests/framework"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
@@ -105,7 +106,7 @@ func testHTTPTrafficWithControllerRestart() {
 
 		// Restart osm-controller
 		By("Restarting OSM controller")
-		Expect(Td.RestartOSMController(Td.GetOSMInstallOpts())).To(Succeed())
+		Expect(Td.RestartOSMControlPlaneComponent(constants.OSMControllerName, Td.GetOSMInstallOpts())).To(Succeed())
 
 		// Expect client to reach server
 		cond = Td.WaitForRepeatedSuccess(func() bool {
