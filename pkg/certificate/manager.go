@@ -15,14 +15,14 @@ import (
 )
 
 const (
-	// mrcDurationPerStage is the amount of time we leave each MRC in a stage before moving to the next stage. This is
+	// MrcDurationPerStage is the amount of time we leave each MRC in a stage before moving to the next stage. This is
 	// intended to accommodate the rotation of *all* rotations across all injector and controller pods for:
 	// 1. Bootstrap Cert rotation for each live proxy
 	// 2. Service Cert rotation and xDS push for each connected proxy
 	// 3. xDS server cert rotation on the controller
 	// 4. Mutating and Validating Webhook rotation for the servers and for the webhook configuration objects.
 	// 5. Ingress Gateway Certificate.
-	mrcDurationPerStage = 5 * time.Minute
+	MrcDurationPerStage = 5 * time.Minute
 )
 
 var (

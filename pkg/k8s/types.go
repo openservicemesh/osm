@@ -4,6 +4,7 @@ package k8s
 
 import (
 	"context"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -112,7 +113,7 @@ type PassthroughInterface interface {
 
 	GetMeshConfig() configv1alpha2.MeshConfig
 	GetMeshRootCertificate(mrcName string) *configv1alpha2.MeshRootCertificate
-	AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler)
+	AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler, resyncInterval time.Duration)
 
 	ListMeshRootCertificates() ([]*configv1alpha2.MeshRootCertificate, error)
 	UpdateMeshRootCertificate(obj *configv1alpha2.MeshRootCertificate) (*configv1alpha2.MeshRootCertificate, error)
