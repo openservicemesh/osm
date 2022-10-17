@@ -4,8 +4,8 @@ const (
 	// test tag prefix, for NS labeling
 	osmTest = "osmTest"
 
-	// osmCABundleName is the name of the secret used to store the CA bundle
-	osmCABundleName = "osm-ca-bundle"
+	// OsmCABundleName is the name of the secret used to store the CA bundle
+	OsmCABundleName = "osm-ca-bundle"
 )
 
 const (
@@ -26,9 +26,6 @@ const (
 	// default image tag
 	defaultImageTag = "latest"
 
-	// default cert manager
-	defaultCertManager = "tresor"
-
 	// default envoy loglevel
 	defaultEnvoyLogLevel = "debug"
 
@@ -37,6 +34,17 @@ const (
 
 	// Test folder base default value
 	testFolderBase = "/tmp"
+)
+
+const (
+	// DefaultCertManager is Tressor
+	DefaultCertManager = "tresor"
+
+	// CertManager for cert-manager.io
+	CertManager = "cert-manager"
+
+	// Vault cert manager
+	Vault = "vault"
 )
 
 const (

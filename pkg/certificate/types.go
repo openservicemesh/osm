@@ -7,9 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/sync/singleflight"
-
 	"github.com/cskr/pubsub"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
@@ -41,25 +40,27 @@ func (cn CommonName) String() string {
 	return string(cn)
 }
 
-// CertType is the type of certificate. This is only used by OSM.
-type CertType string
+// certTypeInternal is the type of certificate. This is only used by OSM.
+type certType string
 
 const (
-	// Internal is the CertType representing all certs issued for use by the OSM
+	// internal is the CertType representing all certs issued for use by the OSM
 	// control plane.
-	Internal CertType = "internal"
+	internal certType = "internal"
 
-	// IngressGateway is the CertType for certs issued for use by ingress gateways.
-	IngressGateway CertType = "ingressGateway"
+	// ingressGateway is the CertType for certs issued for use by ingress gateways.
+	ingressGateway certType = "ingressGateway"
 
-	// Service is the CertType for certs issued for use by the data plane.
-	Service CertType = "service"
+	// service is the CertType for certs issued for use by the data plane.
+	service certType = "service"
 )
 
 // Certificate represents an x509 certificate.
 type Certificate struct {
 	// The CommonName of the certificate
 	CommonName CommonName
+
+	cacheKey string
 
 	// The serial number of the certificate
 	SerialNumber SerialNumber
@@ -82,34 +83,38 @@ type Certificate struct {
 	signingIssuerID    string
 	validatingIssuerID string
 
-	certType CertType
+	certType certType
 }
 
 // Issuer is the interface for a certificate authority that can issue certificates from a given root certificate.
 type Issuer interface {
 	// IssueCertificate issues a new certificate.
-	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
+	IssueCertificate(IssueOptions) (*Certificate, error)
 }
 
 type issuer struct {
 	Issuer
-	ID          string
-	TrustDomain string
+	ID            string
+	TrustDomain   string
+	SpiffeEnabled bool
 	// memoized once the first certificate is issued
 	CertificateAuthority pem.RootCertificate
 }
 
 // Manager represents all necessary information for the certificate managers.
 type Manager struct {
-	// Cache for all the certificates issued
+	// cache for all the certificates issued
 	// Types: map[certificate.CommonName]*certificate.Certificate
-	cache sync.Map
+	cache         sync.Map
+	ownedUseCases []UseCase
+
+	mrcClient MRCClient
 
 	ingressCertValidityDuration func() time.Duration
 	// TODO(#4711): define serviceCertValidityDuration in the MRC
 	serviceCertValidityDuration func() time.Duration
 
-	mu            sync.Mutex // mu syncrhonizes acces to the below resources.
+	mu            sync.Mutex // mu syncrhonizes access to the below resources.
 	signingIssuer *issuer
 	// equal to signingIssuer if there is no additional public cert issuer.
 	validatingIssuer *issuer
@@ -121,7 +126,8 @@ type Manager struct {
 
 // MRCClient is an interface that can watch for changes to the MRC. It is typically backed by a k8s informer.
 type MRCClient interface {
-	List() ([]*v1alpha2.MeshRootCertificate, error)
+	UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) error
+	ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertificate, error)
 	MRCEventBroker
 
 	// GetCertIssuerForMRC returns an Issuer based on the provided MRC.

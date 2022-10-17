@@ -4,7 +4,6 @@ import "fmt"
 
 var (
 	errListingNamespaces = fmt.Errorf("Failed to list monitored namespaces")
-	errServiceNotFound   = fmt.Errorf("Service not found")
 
 	// errMoreThanOnePodForUUID is an error for when OSM finds more than one pod for a given xDS certificate. There should always be exactly one Pod for a given xDS certificate.
 	errMoreThanOnePodForUUID = fmt.Errorf("found more than one pod for xDS uuid")

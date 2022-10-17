@@ -475,8 +475,9 @@ func TestQueueLenMetric(t *testing.T) {
 
 	b := &Broker{
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		stop:  stop,
 	}
-	go b.queueLenMetric(stop, 10*time.Millisecond)
+	go b.queueLenMetric(10 * time.Millisecond)
 	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.EventsQueued)
 
 	numEvents := 10

@@ -90,10 +90,8 @@ func (s *Server) setCert() error {
 	// This is a certificate issued for the webhook handler
 	// This cert does not have to be related to the Envoy certs, but it does have to match
 	// the cert provisioned.
-	webhookCert, err := s.cm.IssueCertificate(
-		s.certCommonName(),
-		certificate.Internal,
-		certificate.FullCNProvided())
+	// Kubernetes requires webhooks to have format of 'servicename.namespace.svc' without trust domain
+	webhookCert, err := s.cm.IssueCertificate(certificate.ForCommonName(s.certCommonName()))
 	if err != nil {
 		return err
 	}

@@ -7,34 +7,19 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
+	"github.com/openservicemesh/osm/pkg/compute"
 )
+
+// MRCResyncInterval is the resync interval to provide a retry mechanism for MRC event handlers
+// It is half of the MrcDurationPerStage (the amount of time we leave each MRC in a stage before moving to the next stage)
+const MRCResyncInterval = certificate.MrcDurationPerStage / 2
 
 // MRCComposer is a composer object that allows consumers
 // to observe MRCs (via List() and Watch()) as well as generate
 // `certificate.Provider`s from those MRCs
 type MRCComposer struct {
-	informerCollection *informers.InformerCollection
+	compute.Interface
 	MRCProviderGenerator
-}
-
-// List returns the MRCs stored in the informerCollection's store
-func (m *MRCComposer) List() ([]*v1alpha2.MeshRootCertificate, error) {
-	// informers return slice of pointers so we'll convert them to value types before returning
-	mrcPtrs := m.informerCollection.List(informers.InformerKeyMeshRootCertificate)
-	var mrcs []*v1alpha2.MeshRootCertificate
-	for _, mrcPtr := range mrcPtrs {
-		if mrcPtr == nil {
-			continue
-		}
-		mrc, ok := mrcPtr.(*v1alpha2.MeshRootCertificate)
-		if !ok {
-			continue
-		}
-		mrcs = append(mrcs, mrc)
-	}
-
-	return mrcs, nil
 }
 
 // Watch returns a channel that receives events whenever MRCs are added, updated, and deleted
@@ -43,7 +28,7 @@ func (m *MRCComposer) List() ([]*v1alpha2.MeshRootCertificate, error) {
 // to be ordered for any particular resources, but NOT across different resources.
 func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
 	eventChan := make(chan certificate.MRCEvent)
-	m.informerCollection.AddEventHandler(informers.InformerKeyMeshRootCertificate, cache.ResourceEventHandlerFuncs{
+	m.AddMeshRootCertificateEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			mrc := obj.(*v1alpha2.MeshRootCertificate)
 			log.Debug().Msgf("received MRC add event for MRC %s/%s", mrc.GetNamespace(), mrc.GetName())
@@ -66,7 +51,13 @@ func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, e
 		// happen come from the control plane cleaning up an old MRC. Our
 		// ValdatingWebhookConfiguration should prevent deletes from users
 		DeleteFunc: func(obj interface{}) {},
-	})
+	}, MRCResyncInterval)
 
 	return eventChan, nil
+}
+
+// UpdateMeshRootCertificate updates the given mesh root certificate.
+func (m *MRCComposer) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) error {
+	// TODO(5046): implement this.
+	return nil
 }

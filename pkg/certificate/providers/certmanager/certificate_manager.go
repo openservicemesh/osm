@@ -8,6 +8,7 @@ import (
 	"crypto/x509/pkix"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -79,24 +80,24 @@ func (cm *CertManager) certificateFromCertificateRequest(cr *cmapi.CertificateRe
 }
 
 // IssueCertificate will request a new signed certificate from the configured cert-manager issuer.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
+func (cm *CertManager) IssueCertificate(options certificate.IssueOptions) (*certificate.Certificate, error) {
 	duration := &metav1.Duration{
-		Duration: validityPeriod,
+		Duration: options.ValidityDuration,
 	}
 
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, cm.keySize)
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGeneratingPrivateKey)).
-			Msgf("Error generating private key for certificate with CN=%s", cn)
-		return nil, fmt.Errorf("failed to generate private key for certificate with CN=%s: %w", cn, err)
+			Msgf("Error generating private key for certificate with CN=%s", options.CommonName())
+		return nil, fmt.Errorf("failed to generate private key for certificate with CN=%s: %w", options.CommonName(), err)
 	}
 
 	privKeyPEM, err := certificate.EncodeKeyDERtoPEM(certPrivKey)
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEncodingKeyDERtoPEM)).
-			Msgf("Error encoding private key for certificate with CN=%s", cn)
+			Msgf("Error encoding private key for certificate with CN=%s", options.CommonName())
 		return nil, err
 	}
 
@@ -105,9 +106,14 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		SignatureAlgorithm: x509.SHA512WithRSA,
 		PublicKeyAlgorithm: x509.RSA,
 		Subject: pkix.Name{
-			CommonName: cn.String(),
+			CommonName: options.CommonName().String(),
 		},
-		DNSNames: []string{cn.String()},
+		DNSNames: []string{options.CommonName().String()},
+	}
+
+	if options.URISAN().String() != "" {
+		log.Trace().Str("cn", options.CommonName().String()).Msg("Generating Certificate with Uri SAN")
+		csr.URIs = []*url.URL{options.URISAN()}
 	}
 
 	csrDER, err := x509.CreateCertificateRequest(rand.Reader, csr, certPrivKey)
@@ -123,7 +129,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrEncodingCertDERtoPEM)).
 			Msg("error encoding cert request DER to PEM")
-		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %w", cn, err)
+		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %w", options.CommonName(), err)
 	}
 
 	cr := &cmapi.CertificateRequest{
@@ -147,7 +153,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		return nil, err
 	}
 
-	log.Debug().Msgf("Created CertificateRequest %s/%s for CN=%s", cm.namespace, cr.Name, cn)
+	log.Debug().Msgf("Created CertificateRequest %s/%s for CN=%s", cm.namespace, cr.Name, options.CommonName())
 
 	// TODO: add timeout option instead of 60s hard coded.
 	cr, err = cm.waitForCertificateReady(cr.Name, time.Second*60)

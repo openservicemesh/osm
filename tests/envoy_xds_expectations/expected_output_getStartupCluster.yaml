@@ -1,5 +1,5 @@
 load_assignment:
-  cluster_name: startup_cluster
+  cluster_name: my-container_startup_cluster
   endpoints:
   - lb_endpoints:
     - endpoint:
@@ -7,5 +7,5 @@ load_assignment:
           socket_address:
             address: 127.0.0.1
             port_value: 83
-name: startup_cluster
+name: my-container_startup_cluster
 type: STATIC

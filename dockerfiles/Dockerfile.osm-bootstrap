@@ -21,3 +21,4 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM $FINAL_BASE_IMAGE
 ENV GOFIPS=1
 COPY --from=builder /osm/osm-bootstrap /
+COPY ./cmd/osm-bootstrap/crds /osm-crds/

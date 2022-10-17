@@ -50,9 +50,11 @@ osm:
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
   # -- Envoy sidecar image for Linux workloads
-  sidecarImage: envoyproxy/envoy-distroless:v1.22.2@sha256:541d31419b95e3c62d8cc0967db9cdb4ad2782cc08faa6f15f04c081200e324a
+  # -- NOTE: This should point to digest of the manifest that points to both the AMD and ARM images, rather than one of the two
+  # -- This can be obtained by running "docker inspect envoyproxy/envoy-distroless:<version> -f '{{index .RepoDigests 0}}'" after running "docker pull"
+  sidecarImage: envoyproxy/envoy-distroless:v1.23.1@sha256:293ffbe026e50a9463e909d9114278ca0af076b33d59d77a4a369acc6cbc53a0
   # -- Envoy sidecar image for Windows workloads
-  sidecarWindowsImage: envoyproxy/envoy-windows:v1.22.1@sha256:92733f8e5beae5c45df204a0e13edbd29e99adf962d1b1c7869b197d85c64bd0
+  sidecarWindowsImage: envoyproxy/envoy-windows:v1.23.1@sha256:c1da166a272c0ca02a2ffbe568eadef5e373ed4def1cb156b584cefda44be014
   # -- Curl image for control plane init container
   curlImage: curlimages/curl
 
@@ -485,6 +487,8 @@ osm:
     enableRetryPolicy: false
     # -- Enable the MeshRootCertificate to configure the OSM certificate provider
     enableMeshRootCertificate: false
+    # -- Enable adding a SPIFFE ID to certificatess
+    enableSPIFFE: false
 
   # -- Node tolerations applied to control plane pods.
   # The specified tolerations allow pods to schedule onto nodes with matching taints.
@@ -614,13 +618,13 @@ contour:
     image:
       registry: ghcr.io
       repository: projectcontour/contour
-      tag: v1.21.1
+      tag: v1.22.1
   # -- Contour envoy edge proxy configuration
   envoy:
     image:
       registry: docker.io
       repository: envoyproxy/envoy-distroless
-      tag: v1.22.2
+      tag: v1.23.1
 
 #
 # -- SMI configuration

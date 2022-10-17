@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -32,9 +31,6 @@ func recordCall(ts *httptest.Server, path string) *http.Response {
 func TestNewHTTPServer(t *testing.T) {
 	assert := tassert.New(t)
 
-	mockCtrl := gomock.NewController(t)
-	mockProbe := health.NewMockProbes(mockCtrl)
-	testProbes := []health.Probes{mockProbe}
 	metricsStore := metricsstore.DefaultMetricsStore
 	metricsStore.Start(
 		metricsstore.DefaultMetricsStore.HTTPResponseTotal,
@@ -43,12 +39,8 @@ func TestNewHTTPServer(t *testing.T) {
 
 	httpServ := NewHTTPServer(testPort)
 
-	testReadinessPath := "/ready"
-	testLivenessPath := "/alive"
-
 	httpServ.AddHandlers(map[string]http.Handler{
-		testReadinessPath: health.ReadinessHandler(testProbes, nil),
-		testLivenessPath:  health.LivenessHandler(testProbes, nil),
+		"/alive": http.HandlerFunc(health.SimpleHandler),
 	})
 
 	httpServ.AddHandler(constants.MetricsPath, metricsStore.Handler())
@@ -57,41 +49,12 @@ func TestNewHTTPServer(t *testing.T) {
 		Config: httpServ.server,
 	}
 
-	type newHTTPServerTest struct {
-		readyLiveCheck     bool
-		path               string
-		expectedStatusCode int
-	}
-
-	//Readiness/Liveness Check
-	newHTTPServerTests := []newHTTPServerTest{
-		{true, testReadinessPath, http.StatusOK},
-		{false, testReadinessPath, http.StatusServiceUnavailable},
-		{true, testLivenessPath, http.StatusOK},
-		{false, testLivenessPath, http.StatusServiceUnavailable},
-	}
-
-	for _, rt := range newHTTPServerTests {
-		if rt.path == testReadinessPath {
-			mockProbe.EXPECT().Readiness().Return(rt.readyLiveCheck).Times(1)
-		} else {
-			mockProbe.EXPECT().Liveness().Return(rt.readyLiveCheck).Times(1)
-		}
-		if rt.expectedStatusCode == http.StatusServiceUnavailable {
-			mockProbe.EXPECT().GetID().Return("test").Times(1)
-		}
-		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, rt.path))
-
-		assert.Equal(rt.expectedStatusCode, resp.StatusCode)
-	}
-
 	//InvalidPath Check
-	mockProbe.EXPECT().Liveness().Times(0)
-	mockProbe.EXPECT().Liveness().Times(0)
-	mockProbe.EXPECT().GetID().Times(0)
 	respL := recordCall(testServer, fmt.Sprintf("%s%s", url, invalidRoutePath))
-	assert.Equal(http.StatusNotFound, respL.StatusCode)
+	respHealth := recordCall(testServer, fmt.Sprintf("%s%s", url, "/alive"))
 
+	assert.Equal(http.StatusNotFound, respL.StatusCode)
+	assert.Equal(http.StatusOK, respHealth.StatusCode)
 	// Ensure added metrics are generated based on previous requests in this
 	// test
 	assert.True(metricsStore.Contains(`osm_http_response_total{code="200",method="get",path="/alive"} 1` + "\n"))

@@ -15,6 +15,8 @@ limitations under the License.
 
 package v1alpha2
 
+type ExtensionServiceExpansion interface{}
+
 type MeshConfigExpansion interface{}
 
 type MeshRootCertificateExpansion interface{}

@@ -8,7 +8,7 @@ import (
 
 func (ds DebugConfig) getFeatureFlags() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		featureFlags := ds.kubeController.GetMeshConfig().Spec.FeatureFlags
+		featureFlags := ds.meshCatalog.GetMeshConfig().Spec.FeatureFlags
 		if featureFlagsJSON, err := json.Marshal(featureFlags); err != nil {
 			log.Error().Err(err).Msgf("Error marshaling feature flags struct: %+v", featureFlags)
 		} else {

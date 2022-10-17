@@ -4,11 +4,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/openservicemesh/osm/pkg/k8s"
-
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -16,10 +15,10 @@ import (
 func TestMonitoredNamespaceHandler(t *testing.T) {
 	assert := tassert.New(t)
 
-	mockKubeController := k8s.NewMockController(gomock.NewController(t))
+	mock := catalog.NewMockMeshCataloger(gomock.NewController(t))
 
 	ds := DebugConfig{
-		kubeController: mockKubeController,
+		meshCatalog: mock,
 	}
 	monitoredNamespacesHandler := ds.getMonitoredNamespacesHandler()
 
@@ -28,7 +27,7 @@ func TestMonitoredNamespaceHandler(t *testing.T) {
 		tests.BookstoreV1Service.Namespace, // default
 	})
 
-	mockKubeController.EXPECT().ListMonitoredNamespaces().Return(uniqueNs, nil)
+	mock.EXPECT().ListNamespaces().Return(uniqueNs, nil)
 
 	responseRecorder := httptest.NewRecorder()
 	monitoredNamespacesHandler.ServeHTTP(responseRecorder, nil)

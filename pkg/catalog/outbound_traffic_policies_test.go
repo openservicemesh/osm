@@ -10,18 +10,15 @@ import (
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
-	"github.com/openservicemesh/osm/pkg/policy"
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -106,6 +103,10 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					Name:      "sa-x", // matches downstreamIdentity
 					Namespace: "ns1",
 				}},
+				Rules: []access.TrafficTargetRule{{
+					Kind: "HTTPRouteGroup",
+					Name: "rule",
+				}},
 			},
 		},
 		{
@@ -127,6 +128,10 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					Kind:      "ServiceAccount",
 					Name:      "sa-x", // matches downstreamIdentity
 					Namespace: "ns1",
+				}},
+				Rules: []access.TrafficTargetRule{{
+					Kind: "HTTPRouteGroup",
+					Name: "rule",
 				}},
 			},
 		},
@@ -168,262 +173,262 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name           string
-		permissiveMode bool
-		expected       *trafficpolicy.OutboundMeshTrafficPolicy
+		name                            string
+		permissiveMode                  bool
+		expectedTrafficMatches          []*trafficpolicy.TrafficMatch
+		expectedClusterConfigs          []*trafficpolicy.MeshClusterConfig
+		expectedHTTPRouteConfigsPerPort map[int][]*trafficpolicy.OutboundTrafficPolicy
 	}{
 		{
 			name:           "SMI mode with traffic target(deny ns2/sa2/s2) and split(ns3/s3)",
 			permissiveMode: false,
-			expected: &trafficpolicy.OutboundMeshTrafficPolicy{
-				TrafficMatches: []*trafficpolicy.TrafficMatch{
+			expectedTrafficMatches: []*trafficpolicy.TrafficMatch{
+				{
+					// To match ns1/s1 on port 8080
+					Name:                meshSvc1P1.OutboundTrafficMatchName(),
+					DestinationPort:     8080,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns1/s1|80",
+							Weight:      100,
+						},
+					},
+				},
+				{
+					// To match ns1/s1 on port 9090
+					Name:                meshSvc1P2.OutboundTrafficMatchName(),
+					DestinationPort:     9090,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns1/s1|90",
+							Weight:      100,
+						},
+					},
+				},
+				{
+					// To match ns3/s3(s3 apex) on port 8080, split to s3-v1 and s3-v2
+					Name:                meshSvc3.OutboundTrafficMatchName(),
+					DestinationPort:     8080,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"10.0.3.1/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns3/s3-v1|80",
+							Weight:      10,
+						},
+						{
+							ClusterName: "ns3/s3-v2|80",
+							Weight:      90,
+						},
+					},
+				},
+				{
+					// To match ns3/s3(s3-v1) on port 8080
+					Name:                meshSvc3V1.OutboundTrafficMatchName(),
+					DestinationPort:     8080,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"10.0.3.2/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns3/s3-v1|80",
+							Weight:      100,
+						},
+					},
+				},
+				{
+					// To match ns3/s3(s3-v2) on port 8080
+					Name:                meshSvc3V2.OutboundTrafficMatchName(),
+					DestinationPort:     8080,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"10.0.3.3/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns3/s3-v2|80",
+							Weight:      100,
+						},
+					},
+				},
+				{
+					// To match ns3/s4 on port 9090
+					Name:                meshSvc4.OutboundTrafficMatchName(),
+					DestinationPort:     9090,
+					DestinationProtocol: "tcp",
+					DestinationIPRanges: []string{"10.0.4.1/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns3/s4|90",
+							Weight:      100,
+						},
+					},
+				},
+				{
+					// To match ns3/s5 on port 9091
+					Name:                meshSvc5.OutboundTrafficMatchName(),
+					DestinationPort:     9091,
+					DestinationProtocol: "tcp-server-first",
+					DestinationIPRanges: []string{"10.0.5.1/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns3/s5|91",
+							Weight:      100,
+						},
+					},
+				},
+			},
+			expectedClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:                   "ns1/s1|80",
+					Service:                meshSvc1P1,
+					UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
+				},
+				{
+					Name:                   "ns1/s1|90",
+					Service:                meshSvc1P2,
+					UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
+				},
+				{
+					Name:    "ns3/s3|8080",
+					Service: meshSvc3,
+				},
+				{
+					Name:    "ns3/s3-v1|80",
+					Service: meshSvc3V1,
+				},
+				{
+					Name:    "ns3/s3-v2|80",
+					Service: meshSvc3V2,
+				},
+				{
+					Name:    "ns3/s4|90",
+					Service: meshSvc4,
+				},
+				{
+					Name:    "ns3/s5|91",
+					Service: meshSvc5,
+				},
+			},
+			expectedHTTPRouteConfigsPerPort: map[int][]*trafficpolicy.OutboundTrafficPolicy{
+				8080: {
 					{
-						// To match ns1/s1 on port 8080
-						Name:                meshSvc1P1.OutboundTrafficMatchName(),
-						DestinationPort:     8080,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
-						WeightedClusters: []service.WeightedCluster{
+						Name: "s1.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1",
+							"s1:8080",
+							"s1.ns1",
+							"s1.ns1:8080",
+							"s1.ns1.svc",
+							"s1.ns1.svc:8080",
+							"s1.ns1.svc.cluster",
+							"s1.ns1.svc.cluster:8080",
+							"s1.ns1.svc.cluster.local",
+							"s1.ns1.svc.cluster.local:8080",
+						},
+						Routes: []*trafficpolicy.RouteWeightedClusters{
 							{
-								ClusterName: "ns1/s1|80",
-								Weight:      100,
+								HTTPRouteMatch: tests.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "ns1/s1|80",
+									Weight:      100,
+								}),
 							},
 						},
 					},
 					{
-						// To match ns1/s1 on port 9090
-						Name:                meshSvc1P2.OutboundTrafficMatchName(),
-						DestinationPort:     9090,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
-						WeightedClusters: []service.WeightedCluster{
+						Name: "s3.ns3.svc.cluster.local",
+						Hostnames: []string{
+							"s3.ns3",
+							"s3.ns3:8080",
+							"s3.ns3.svc",
+							"s3.ns3.svc:8080",
+							"s3.ns3.svc.cluster",
+							"s3.ns3.svc.cluster:8080",
+							"s3.ns3.svc.cluster.local",
+							"s3.ns3.svc.cluster.local:8080",
+						},
+						Routes: []*trafficpolicy.RouteWeightedClusters{
 							{
-								ClusterName: "ns1/s1|90",
-								Weight:      100,
+								HTTPRouteMatch: tests.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "ns3/s3-v1|80",
+									Weight:      10,
+								}, service.WeightedCluster{
+									ClusterName: "ns3/s3-v2|80",
+									Weight:      90,
+								}),
 							},
 						},
 					},
 					{
-						// To match ns3/s3(s3 apex) on port 8080, split to s3-v1 and s3-v2
-						Name:                meshSvc3.OutboundTrafficMatchName(),
-						DestinationPort:     8080,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"10.0.3.1/32"},
-						WeightedClusters: []service.WeightedCluster{
+						Name: "s3-v1.ns3.svc.cluster.local",
+						Hostnames: []string{
+							"s3-v1.ns3",
+							"s3-v1.ns3:8080",
+							"s3-v1.ns3.svc",
+							"s3-v1.ns3.svc:8080",
+							"s3-v1.ns3.svc.cluster",
+							"s3-v1.ns3.svc.cluster:8080",
+							"s3-v1.ns3.svc.cluster.local",
+							"s3-v1.ns3.svc.cluster.local:8080",
+						},
+						Routes: []*trafficpolicy.RouteWeightedClusters{
 							{
-								ClusterName: "ns3/s3-v1|80",
-								Weight:      10,
-							},
-							{
-								ClusterName: "ns3/s3-v2|80",
-								Weight:      90,
+								HTTPRouteMatch: tests.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "ns3/s3-v1|80",
+									Weight:      100,
+								}),
 							},
 						},
 					},
 					{
-						// To match ns3/s3(s3-v1) on port 8080
-						Name:                meshSvc3V1.OutboundTrafficMatchName(),
-						DestinationPort:     8080,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"10.0.3.2/32"},
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "ns3/s3-v1|80",
-								Weight:      100,
-							},
+						Name: "s3-v2.ns3.svc.cluster.local",
+						Hostnames: []string{
+							"s3-v2.ns3",
+							"s3-v2.ns3:8080",
+							"s3-v2.ns3.svc",
+							"s3-v2.ns3.svc:8080",
+							"s3-v2.ns3.svc.cluster",
+							"s3-v2.ns3.svc.cluster:8080",
+							"s3-v2.ns3.svc.cluster.local",
+							"s3-v2.ns3.svc.cluster.local:8080",
 						},
-					},
-					{
-						// To match ns3/s3(s3-v2) on port 8080
-						Name:                meshSvc3V2.OutboundTrafficMatchName(),
-						DestinationPort:     8080,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"10.0.3.3/32"},
-						WeightedClusters: []service.WeightedCluster{
+						Routes: []*trafficpolicy.RouteWeightedClusters{
 							{
-								ClusterName: "ns3/s3-v2|80",
-								Weight:      100,
-							},
-						},
-					},
-					{
-						// To match ns3/s4 on port 9090
-						Name:                meshSvc4.OutboundTrafficMatchName(),
-						DestinationPort:     9090,
-						DestinationProtocol: "tcp",
-						DestinationIPRanges: []string{"10.0.4.1/32"},
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "ns3/s4|90",
-								Weight:      100,
-							},
-						},
-					},
-					{
-						// To match ns3/s5 on port 9091
-						Name:                meshSvc5.OutboundTrafficMatchName(),
-						DestinationPort:     9091,
-						DestinationProtocol: "tcp-server-first",
-						DestinationIPRanges: []string{"10.0.5.1/32"},
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "ns3/s5|91",
-								Weight:      100,
+								HTTPRouteMatch: tests.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "ns3/s3-v2|80",
+									Weight:      100,
+								}),
 							},
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+				9090: {
 					{
-						Name:                   "ns1/s1|80",
-						Service:                meshSvc1P1,
-						UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
-					},
-					{
-						Name:                   "ns1/s1|90",
-						Service:                meshSvc1P2,
-						UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
-					},
-					{
-						Name:    "ns3/s3|8080",
-						Service: meshSvc3,
-					},
-					{
-						Name:    "ns3/s3-v1|80",
-						Service: meshSvc3V1,
-					},
-					{
-						Name:    "ns3/s3-v2|80",
-						Service: meshSvc3V2,
-					},
-					{
-						Name:    "ns3/s4|90",
-						Service: meshSvc4,
-					},
-					{
-						Name:    "ns3/s5|91",
-						Service: meshSvc5,
-					},
-				},
-				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.OutboundTrafficPolicy{
-					8080: {
-						{
-							Name: "s1.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1",
-								"s1:8080",
-								"s1.ns1",
-								"s1.ns1:8080",
-								"s1.ns1.svc",
-								"s1.ns1.svc:8080",
-								"s1.ns1.svc.cluster",
-								"s1.ns1.svc.cluster:8080",
-								"s1.ns1.svc.cluster.local",
-								"s1.ns1.svc.cluster.local:8080",
-							},
-							Routes: []*trafficpolicy.RouteWeightedClusters{
-								{
-									HTTPRouteMatch: tests.WildCardRouteMatch,
-									WeightedClusters: mapset.NewSet(service.WeightedCluster{
-										ClusterName: "ns1/s1|80",
-										Weight:      100,
-									}),
-								},
-							},
+						Name: "s1.ns1.svc.cluster.local",
+						Hostnames: []string{
+							"s1",
+							"s1:9090",
+							"s1.ns1",
+							"s1.ns1:9090",
+							"s1.ns1.svc",
+							"s1.ns1.svc:9090",
+							"s1.ns1.svc.cluster",
+							"s1.ns1.svc.cluster:9090",
+							"s1.ns1.svc.cluster.local",
+							"s1.ns1.svc.cluster.local:9090",
 						},
-						{
-							Name: "s3.ns3.svc.cluster.local",
-							Hostnames: []string{
-								"s3.ns3",
-								"s3.ns3:8080",
-								"s3.ns3.svc",
-								"s3.ns3.svc:8080",
-								"s3.ns3.svc.cluster",
-								"s3.ns3.svc.cluster:8080",
-								"s3.ns3.svc.cluster.local",
-								"s3.ns3.svc.cluster.local:8080",
-							},
-							Routes: []*trafficpolicy.RouteWeightedClusters{
-								{
-									HTTPRouteMatch: tests.WildCardRouteMatch,
-									WeightedClusters: mapset.NewSet(service.WeightedCluster{
-										ClusterName: "ns3/s3-v1|80",
-										Weight:      10,
-									}, service.WeightedCluster{
-										ClusterName: "ns3/s3-v2|80",
-										Weight:      90,
-									}),
-								},
-							},
-						},
-						{
-							Name: "s3-v1.ns3.svc.cluster.local",
-							Hostnames: []string{
-								"s3-v1.ns3",
-								"s3-v1.ns3:8080",
-								"s3-v1.ns3.svc",
-								"s3-v1.ns3.svc:8080",
-								"s3-v1.ns3.svc.cluster",
-								"s3-v1.ns3.svc.cluster:8080",
-								"s3-v1.ns3.svc.cluster.local",
-								"s3-v1.ns3.svc.cluster.local:8080",
-							},
-							Routes: []*trafficpolicy.RouteWeightedClusters{
-								{
-									HTTPRouteMatch: tests.WildCardRouteMatch,
-									WeightedClusters: mapset.NewSet(service.WeightedCluster{
-										ClusterName: "ns3/s3-v1|80",
-										Weight:      100,
-									}),
-								},
-							},
-						},
-						{
-							Name: "s3-v2.ns3.svc.cluster.local",
-							Hostnames: []string{
-								"s3-v2.ns3",
-								"s3-v2.ns3:8080",
-								"s3-v2.ns3.svc",
-								"s3-v2.ns3.svc:8080",
-								"s3-v2.ns3.svc.cluster",
-								"s3-v2.ns3.svc.cluster:8080",
-								"s3-v2.ns3.svc.cluster.local",
-								"s3-v2.ns3.svc.cluster.local:8080",
-							},
-							Routes: []*trafficpolicy.RouteWeightedClusters{
-								{
-									HTTPRouteMatch: tests.WildCardRouteMatch,
-									WeightedClusters: mapset.NewSet(service.WeightedCluster{
-										ClusterName: "ns3/s3-v2|80",
-										Weight:      100,
-									}),
-								},
-							},
-						},
-					},
-					9090: {
-						{
-							Name: "s1.ns1.svc.cluster.local",
-							Hostnames: []string{
-								"s1",
-								"s1:9090",
-								"s1.ns1",
-								"s1.ns1:9090",
-								"s1.ns1.svc",
-								"s1.ns1.svc:9090",
-								"s1.ns1.svc.cluster",
-								"s1.ns1.svc.cluster:9090",
-								"s1.ns1.svc.cluster.local",
-								"s1.ns1.svc.cluster.local:9090",
-							},
-							Routes: []*trafficpolicy.RouteWeightedClusters{
-								{
-									HTTPRouteMatch: tests.WildCardRouteMatch,
-									WeightedClusters: mapset.NewSet(service.WeightedCluster{
-										ClusterName: "ns1/s1|90",
-										Weight:      100,
-									}),
-								},
+						Routes: []*trafficpolicy.RouteWeightedClusters{
+							{
+								HTTPRouteMatch: tests.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "ns1/s1|90",
+									Weight:      100,
+								}),
 							},
 						},
 					},
@@ -433,139 +438,137 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 		{
 			name:           "Permissive mode with traffic split(ns3/s3)",
 			permissiveMode: true,
-			expected: &trafficpolicy.OutboundMeshTrafficPolicy{
-				TrafficMatches: []*trafficpolicy.TrafficMatch{
-					{
-						// To match ns1/s1 on port 8080
-						Name:                meshSvc1P1.OutboundTrafficMatchName(),
-						DestinationPort:     8080,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "ns1/s1|80",
-								Weight:      100,
-							},
-						},
-					},
-					{
-						// To match ns1/s1 on port 9090
-						Name:                meshSvc1P2.OutboundTrafficMatchName(),
-						DestinationPort:     9090,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "ns1/s1|90",
-								Weight:      100,
-							},
-						},
-					},
-					{
-						// To match ns2/s2 on port 8080
-						Name:                meshSvc2.OutboundTrafficMatchName(),
-						DestinationPort:     8080,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"10.0.2.1/32"},
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "ns2/s2|80",
-								Weight:      100,
-							},
-						},
-					},
-					{
-						// To match ns3/s3(s3 apex) on port 8080, split to s3-v1 and s3-v2
-						Name:                meshSvc3.OutboundTrafficMatchName(),
-						DestinationPort:     8080,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"10.0.3.1/32"},
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "ns3/s3-v1|80",
-								Weight:      10,
-							},
-							{
-								ClusterName: "ns3/s3-v2|80",
-								Weight:      90,
-							},
-						},
-					},
-					{
-						// To match ns3/s3(s3-v1) on port 8080
-						Name:                meshSvc3V1.OutboundTrafficMatchName(),
-						DestinationPort:     8080,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"10.0.3.2/32"},
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "ns3/s3-v1|80",
-								Weight:      100,
-							},
-						},
-					},
-					{
-						// To match ns3/s3(s3-v2) on port 8080
-						Name:                meshSvc3V2.OutboundTrafficMatchName(),
-						DestinationPort:     8080,
-						DestinationProtocol: "http",
-						DestinationIPRanges: []string{"10.0.3.3/32"},
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "ns3/s3-v2|80",
-								Weight:      100,
-							},
-						},
-					},
-					{
-						// To match ns3/s4 on port 9090
-						Name:                meshSvc4.OutboundTrafficMatchName(),
-						DestinationPort:     9090,
-						DestinationProtocol: "tcp",
-						DestinationIPRanges: []string{"10.0.4.1/32"},
-						WeightedClusters: []service.WeightedCluster{
-							{
-								ClusterName: "ns3/s4|90",
-								Weight:      100,
-							},
+			expectedTrafficMatches: []*trafficpolicy.TrafficMatch{
+				{
+					// To match ns1/s1 on port 8080
+					Name:                meshSvc1P1.OutboundTrafficMatchName(),
+					DestinationPort:     8080,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns1/s1|80",
+							Weight:      100,
 						},
 					},
 				},
-				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
-					{
-						Name:                   "ns1/s1|80",
-						Service:                meshSvc1P1,
-						UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
+				{
+					// To match ns1/s1 on port 9090
+					Name:                meshSvc1P2.OutboundTrafficMatchName(),
+					DestinationPort:     9090,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns1/s1|90",
+							Weight:      100,
+						},
 					},
-					{
-						Name:                   "ns1/s1|90",
-						Service:                meshSvc1P2,
-						UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
+				},
+				{
+					// To match ns2/s2 on port 8080
+					Name:                meshSvc2.OutboundTrafficMatchName(),
+					DestinationPort:     8080,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"10.0.2.1/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns2/s2|80",
+							Weight:      100,
+						},
 					},
-					{
-						Name:    "ns2/s2|80",
-						Service: meshSvc2,
+				},
+				{
+					// To match ns3/s3(s3 apex) on port 8080, split to s3-v1 and s3-v2
+					Name:                meshSvc3.OutboundTrafficMatchName(),
+					DestinationPort:     8080,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"10.0.3.1/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns3/s3-v1|80",
+							Weight:      10,
+						},
+						{
+							ClusterName: "ns3/s3-v2|80",
+							Weight:      90,
+						},
 					},
-					{
-						Name:    "ns3/s3|80",
-						Service: meshSvc3,
+				},
+				{
+					// To match ns3/s3(s3-v1) on port 8080
+					Name:                meshSvc3V1.OutboundTrafficMatchName(),
+					DestinationPort:     8080,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"10.0.3.2/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns3/s3-v1|80",
+							Weight:      100,
+						},
 					},
-					{
-						Name:    "ns3/s3-v1|80",
-						Service: meshSvc3V1,
+				},
+				{
+					// To match ns3/s3(s3-v2) on port 8080
+					Name:                meshSvc3V2.OutboundTrafficMatchName(),
+					DestinationPort:     8080,
+					DestinationProtocol: "http",
+					DestinationIPRanges: []string{"10.0.3.3/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns3/s3-v2|80",
+							Weight:      100,
+						},
 					},
-					{
-						Name:    "ns3/s3-v2|80",
-						Service: meshSvc3V2,
+				},
+				{
+					// To match ns3/s4 on port 9090
+					Name:                meshSvc4.OutboundTrafficMatchName(),
+					DestinationPort:     9090,
+					DestinationProtocol: "tcp",
+					DestinationIPRanges: []string{"10.0.4.1/32"},
+					WeightedClusters: []service.WeightedCluster{
+						{
+							ClusterName: "ns3/s4|90",
+							Weight:      100,
+						},
 					},
-					{
-						Name:    "ns3/s4|90",
-						Service: meshSvc4,
-					},
-					{
-						Name:    "ns3/s5|91",
-						Service: meshSvc5,
-					},
+				},
+			},
+			expectedClusterConfigs: []*trafficpolicy.MeshClusterConfig{
+				{
+					Name:                   "ns1/s1|80",
+					Service:                meshSvc1P1,
+					UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
+				},
+				{
+					Name:                   "ns1/s1|90",
+					Service:                meshSvc1P2,
+					UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
+				},
+				{
+					Name:    "ns2/s2|80",
+					Service: meshSvc2,
+				},
+				{
+					Name:    "ns3/s3|80",
+					Service: meshSvc3,
+				},
+				{
+					Name:    "ns3/s3-v1|80",
+					Service: meshSvc3V1,
+				},
+				{
+					Name:    "ns3/s3-v2|80",
+					Service: meshSvc3V2,
+				},
+				{
+					Name:    "ns3/s4|90",
+					Service: meshSvc4,
+				},
+				{
+					Name:    "ns3/s5|91",
+					Service: meshSvc5,
 				},
 			},
 		},
@@ -578,13 +581,9 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			mockProvider := compute.NewMockInterface(mockCtrl)
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockPolicyController := policy.NewMockController(mockCtrl)
 
 			mc := MeshCatalog{
-				Interface:        mockProvider,
-				meshSpec:         mockMeshSpec,
-				policyController: mockPolicyController,
+				Interface: mockProvider,
 			}
 
 			// Mock calls to k8s client caches
@@ -597,24 +596,10 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			}).AnyTimes()
 
 			mockProvider.EXPECT().ListServices().Return(allMeshServices).AnyTimes()
-			mockMeshSpec.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
-			// Mock conditional traffic split for service
-			mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).DoAndReturn(
-				func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
-					o := &smi.TrafficSplitListOpt{}
-					for _, opt := range options {
-						opt(o)
-					}
-					// In this test, only service ns3/s3 has a split configured
-					if o.ApexService.String() == "ns3/s3" {
-						return []*split.TrafficSplit{trafficSplitSvc3}
-					}
-					return nil
-				}).AnyTimes()
-			mockProvider.EXPECT().GetTargetPortForServicePort(
-				types.NamespacedName{Namespace: meshSvc3V1.Namespace, Name: meshSvc3V1.Name}, meshSvc3.Port).Return(meshSvc3V1.TargetPort, nil).AnyTimes()
-			mockProvider.EXPECT().GetTargetPortForServicePort(
-				types.NamespacedName{Namespace: meshSvc3V2.Namespace, Name: meshSvc3V2.Name}, meshSvc3.Port).Return(meshSvc3V2.TargetPort, nil).AnyTimes()
+			mockProvider.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
+			mockProvider.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{trafficSplitSvc3}).AnyTimes()
+			mockProvider.EXPECT().GetMeshService(meshSvc3V1.Name, meshSvc3V1.Namespace, meshSvc3.Port).Return(meshSvc3V1, nil).AnyTimes()
+			mockProvider.EXPECT().GetMeshService(meshSvc3V2.Name, meshSvc3V2.Namespace, meshSvc3.Port).Return(meshSvc3V2, nil).AnyTimes()
 
 			// Mock ServiceIdentity -> Service lookups executed when TrafficTargets are evaluated
 			for svcIdentity, services := range svcIdentityToSvcMapping {
@@ -632,24 +617,28 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				}).AnyTimes()
 
 			// Mock calls to UpstreamTrafficSetting lookups
-			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).DoAndReturn(
-				func(opt policy.UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting {
+			mockProvider.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).DoAndReturn(
+				func(meshService *service.MeshService) *policyv1alpha1.UpstreamTrafficSetting {
 					// In this test, only service ns1/<p1|p2> has UpstreamTrafficSetting configured
-					if opt.MeshService != nil &&
-						(*opt.MeshService == meshSvc1P1 || *opt.MeshService == meshSvc1P2) {
+					if meshService != nil &&
+						(*meshService == meshSvc1P1 || *meshService == meshSvc1P2) {
 						return &upstreamTrafficSettingSvc1
 					}
 					return nil
 				}).AnyTimes()
 
-			actual := mc.GetOutboundMeshTrafficPolicy(downstreamIdentity)
-			assert.NotNil(actual)
+			actualTrafficMatches := mc.GetOutboundMeshTrafficMatches(downstreamIdentity)
+			assert.NotNil(actualTrafficMatches)
+			actualClusterConfigs := mc.GetOutboundMeshClusterConfigs(downstreamIdentity)
+			assert.NotNil(actualClusterConfigs)
+			actualHTTPRouteConfigsPerPort := mc.GetOutboundMeshHTTPRouteConfigsPerPort(downstreamIdentity)
+			assert.NotNil(actualHTTPRouteConfigsPerPort)
 
 			// Verify expected fields
-			assert.ElementsMatch(tc.expected.TrafficMatches, actual.TrafficMatches)
-			assert.ElementsMatch(tc.expected.ClustersConfigs, actual.ClustersConfigs)
-			for expectedKey, expectedVal := range tc.expected.HTTPRouteConfigsPerPort {
-				assert.ElementsMatch(expectedVal, actual.HTTPRouteConfigsPerPort[expectedKey])
+			assert.ElementsMatch(tc.expectedTrafficMatches, actualTrafficMatches)
+			assert.ElementsMatch(tc.expectedClusterConfigs, actualClusterConfigs)
+			for expectedKey, expectedVal := range tc.expectedHTTPRouteConfigsPerPort {
+				assert.ElementsMatch(expectedVal, actualHTTPRouteConfigsPerPort[expectedKey])
 			}
 		})
 		break

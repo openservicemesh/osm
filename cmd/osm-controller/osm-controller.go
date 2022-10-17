@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	smiAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
@@ -25,38 +26,35 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
+	mcsClientset "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
-	"github.com/openservicemesh/osm/pkg/envoy/ads"
+	"github.com/openservicemesh/osm/pkg/envoy/generator"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/envoy/server"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
-	"github.com/openservicemesh/osm/pkg/policy"
+	"github.com/openservicemesh/osm/pkg/osm"
 	"github.com/openservicemesh/osm/pkg/reconciler"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/validator"
 	"github.com/openservicemesh/osm/pkg/version"
-)
-
-const (
-	xdsServerCertificateCommonName = "ads"
 )
 
 var (
@@ -160,6 +158,7 @@ func main() {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	policyClient := policyClientset.NewForConfigOrDie(kubeConfig)
 	configClient := configClientset.NewForConfigOrDie(kubeConfig)
+	mcsClient := mcsClientset.NewForConfigOrDie(kubeConfig)
 
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-controller pod resource
 	controllerPod, err := getOSMControllerPod(kubeClient)
@@ -188,19 +187,19 @@ func main() {
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(kubeConfig)
 
-	informerCollection, err := informers.NewInformerCollection(meshName, stop,
-		informers.WithKubeClient(kubeClient),
-		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
-		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
-		informers.WithPolicyClient(policyClient),
+	k8sClient, err := k8s.NewClient(osmNamespace, osmMeshConfigName, msgBroker,
+		k8s.WithKubeClient(kubeClient, meshName),
+		k8s.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		k8s.WithConfigClient(configClient),
+		k8s.WithPolicyClient(policyClient),
+		k8s.WithMCSClient(mcsClient),
 	)
+
 	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating kubernetes client")
 	}
 
-	k8sClient := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, policyClient, msgBroker)
-
-	meshSpec := smi.NewSMIClient(informerCollection, osmNamespace, k8sClient, msgBroker)
+	computeClient := kube.NewClient(k8sClient)
 
 	certOpts, err := getCertOptions()
 	if err != nil {
@@ -211,78 +210,50 @@ func main() {
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
 		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, k8sClient, informerCollection, 5*time.Second)
+			certOpts, computeClient, 5*time.Second)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error fetching certificate manager of kind %s from MRC", certProviderKind)
 		}
 	} else {
 		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, k8sClient, 5*time.Second, trustDomain)
+			certOpts, computeClient, 5*time.Second, trustDomain)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error fetching certificate manager of kind %s", certProviderKind)
 		}
 	}
 
-	computeClient := kube.NewClient(k8sClient)
-
 	ingress.Initialize(kubeClient, k8sClient, stop, certManager, msgBroker)
 
-	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
-
 	meshCatalog := catalog.NewMeshCatalog(
-		meshSpec,
-		certManager,
-		policyController,
-		stop,
 		computeClient,
+		certManager,
+		stop,
 		msgBroker,
 	)
 
 	proxyRegistry := registry.NewProxyRegistry()
-
-	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, certificate.Internal)
-	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing XDS certificate to ADS server")
-	}
-
 	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, k8sClient.GetMeshConfig().Spec.Observability.EnableDebugServer, osmNamespace, certManager, k8sClient, msgBroker)
-	if err := xdsServer.Start(ctx, cancel, constants.ADSServerPort, adsCert); err != nil {
+	xdsServer := server.NewADSServer()
+	xdsGenerator := generator.NewEnvoyConfigGenerator(meshCatalog, certManager)
+
+	cp := osm.NewControlPlane[map[string][]types.Resource](xdsServer, xdsGenerator, meshCatalog, proxyRegistry, certManager, msgBroker)
+	xdsServer.SetCallbacks(cp)
+
+	if err := xdsServer.Start(ctx, certManager, cancel, constants.ADSServerPort); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
 
-	if err := validator.NewValidatingWebhook(ctx, validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, certManager, kubeClient, policyController); err != nil {
+	if err := validator.NewValidatingWebhook(ctx, validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, certManager, kubeClient, computeClient); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, fmt.Sprintf("Error starting the validating webhook server: %s", err))
 	}
 
 	version.SetMetric()
 
-	// Initialize OSM's http service server
-	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
-	// Health/Liveness probes
-	funcProbes := []health.Probes{xdsServer}
-	httpServer.AddHandlers(map[string]http.Handler{
-		constants.OSMControllerReadinessPath: health.ReadinessHandler(funcProbes, nil),
-		constants.OSMControllerLivenessPath:  health.LivenessHandler(funcProbes, nil),
-	})
-	// Metrics
-	httpServer.AddHandler(constants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
-	// Version
-	httpServer.AddHandler(constants.VersionPath, version.GetVersionHandler())
-	// Supported SMI Versions
-	httpServer.AddHandler(constants.OSMControllerSMIVersionPath, smi.GetSmiClientVersionHTTPHandler())
-
-	// Start HTTP server
-	err = httpServer.Start()
-	if err != nil {
-		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
-	}
-
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
-	debugConfig := debugger.NewDebugConfig(certManager, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, k8sClient, msgBroker)
+	debugConfig := debugger.NewDebugConfig(certManager, xdsGenerator, meshCatalog, proxyRegistry, kubeConfig, kubeClient, k8sClient, msgBroker)
 	go debugConfig.StartDebugServerConfigListener(stop)
 
 	// Start the k8s pod watcher that updates corresponding k8s secrets
@@ -296,6 +267,24 @@ func main() {
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating reconciler client to reconcile validating webhook")
 		}
+	}
+
+	// Initialize OSM's http service server
+	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
+	// Health/Liveness probes
+	httpServer.AddHandler(constants.OSMControllerReadinessPath, http.HandlerFunc(health.SimpleHandler))
+	httpServer.AddHandler(constants.OSMControllerLivenessPath, http.HandlerFunc(health.SimpleHandler))
+	// Metrics
+	httpServer.AddHandler(constants.MetricsPath, metricsstore.DefaultMetricsStore.Handler())
+	// Version
+	httpServer.AddHandler(constants.VersionPath, version.GetVersionHandler())
+	// Supported SMI Versions
+	httpServer.AddHandler(constants.OSMControllerSMIVersionPath, smi.GetSmiClientVersionHTTPHandler())
+
+	// Start HTTP server
+	err = httpServer.Start()
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
 	}
 
 	<-stop

@@ -4,16 +4,13 @@ package debugger
 import (
 	"time"
 
-	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -23,20 +20,14 @@ var log = logger.New("debugger")
 
 // DebugConfig implements the DebugServer interface.
 type DebugConfig struct {
-	certDebugger        *certificate.Manager
-	xdsDebugger         XDSDebugger
-	meshCatalogDebugger MeshCatalogDebugger
-	proxyRegistry       *registry.ProxyRegistry
-	kubeConfig          *rest.Config
-	kubeClient          kubernetes.Interface
-	kubeController      k8s.Controller
-	msgBroker           *messaging.Broker
-}
-
-// MeshCatalogDebugger is an interface with methods for debugging Mesh Catalog.
-type MeshCatalogDebugger interface {
-	// ListSMIPolicies lists the SMI policies detected by OSM.
-	ListSMIPolicies() ([]*split.TrafficSplit, []identity.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget)
+	certDebugger   *certificate.Manager
+	xdsDebugger    XDSDebugger
+	meshCatalog    catalog.MeshCataloger
+	proxyRegistry  *registry.ProxyRegistry
+	kubeConfig     *rest.Config
+	kubeClient     kubernetes.Interface
+	kubeController k8s.Controller
+	msgBroker      *messaging.Broker
 }
 
 // XDSDebugger is an interface providing debugging server with methods introspecting XDS.

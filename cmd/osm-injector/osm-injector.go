@@ -23,8 +23,10 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
+	mcsClientset "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/health"
@@ -36,7 +38,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/injector"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -149,6 +150,7 @@ func main() {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	policyClient := policyClientset.NewForConfigOrDie(kubeConfig)
 	configClient := configClientset.NewForConfigOrDie(kubeConfig)
+	mcsClient := mcsClientset.NewForConfigOrDie(kubeConfig)
 
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-injector pod resource
 	injectorPod, err := getInjectorPod(kubeClient)
@@ -186,36 +188,38 @@ func main() {
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(kubeConfig)
 
-	informerCollection, err := informers.NewInformerCollection(meshName, stop,
-		informers.WithKubeClient(kubeClient),
-		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
-		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
-		informers.WithPolicyClient(policyClient),
+	// Initialize kubernetes.Controller to watch kubernetes resources
+	kubeController, err := k8s.NewClient(osmNamespace, osmMeshConfigName, msgBroker,
+		k8s.WithKubeClient(kubeClient, meshName),
+		k8s.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		k8s.WithConfigClient(configClient),
+		k8s.WithPolicyClient(policyClient),
+		k8s.WithMCSClient(mcsClient),
 	)
 
 	if err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating kubernetes client")
 	}
 
-	// Initialize kubernetes.Controller to watch kubernetes resources
-	kubeController := k8s.NewClient(osmNamespace, osmMeshConfigName, informerCollection, policyClient, msgBroker, k8s.Namespaces)
+	computeClient := kube.NewClient(kubeController)
 
 	certOpts, err := getCertOptions()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error getting certificate options")
 	}
+
 	// Intitialize certificate manager/provider
 	var certManager *certificate.Manager
 	if enableMeshRootCertificate {
 		certManager, err = providers.NewCertificateManagerFromMRC(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, kubeController, informerCollection, 5*time.Second)
+			certOpts, computeClient, 5*time.Second)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s from MRC", certProviderKind)
 		}
 	} else {
 		certManager, err = providers.NewCertificateManager(ctx, kubeClient, kubeConfig, osmNamespace,
-			certOpts, kubeController, 5*time.Second, trustDomain)
+			certOpts, computeClient, constants.CertCheckInterval, trustDomain)
 		if err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 				"Error initializing certificate manager of kind %s", certProviderKind)
@@ -226,6 +230,10 @@ func main() {
 	if err := injector.NewMutatingWebhook(ctx, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, osmVersion, webhookTimeout, enableReconciler, corev1.PullPolicy(osmContainerPullPolicy)); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, fmt.Sprintf("Error creating sidecar injector webhook: %s", err))
 	}
+
+	// Initialize bootstrap secret rotator
+	bootstrapSecretRotator := injector.NewBootstrapSecretRotator(computeClient, certManager, constants.CertCheckInterval)
+	bootstrapSecretRotator.StartBootstrapSecretRotationTicker(ctx)
 
 	version.SetMetric()
 	/*

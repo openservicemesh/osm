@@ -33,18 +33,6 @@ spec:
       {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
       {{- include "restricted.securityContext" . | nindent 6 }}
       {{- end }}
-      initContainers:
-        - name: init-osm-bootstrap
-          image: "{{ include "osmCRDs.image" . }}"
-          imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
-          command:
-          - sh
-          - -c
-          - >
-            kubectl apply -f /osm-crds;
-            {{- if .Values.osm.enableReconciler }}
-            kubectl label -f /osm-crds openservicemesh.io/reconcile=true --overwrite;
-            {{- end }}
       containers:
         - name: osm-bootstrap
           image: "{{ include "osmBootstrap.image" . }}"

@@ -114,7 +114,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestIssueCertificate(t *testing.T) {
-	var commonName certificate.CommonName = "localhost"
+	var commonName = "localhost"
 	var validityPeriod = time.Hour
 
 	token, addr := mockVault(t)
@@ -126,10 +126,11 @@ func TestIssueCertificate(t *testing.T) {
 	mockVaultwithPKI(t, cm)
 
 	testCases := []struct {
-		description string
-		cn          certificate.CommonName
-		vP          time.Duration
-		wantErr     bool
+		description   string
+		cn            string
+		vP            time.Duration
+		spiffeEnabled bool
+		wantErr       bool
 	}{
 		{
 			description: "valid inputs",
@@ -138,8 +139,15 @@ func TestIssueCertificate(t *testing.T) {
 			wantErr:     false,
 		},
 		{
+			description:   "valid inputs with spiffe Id",
+			cn:            commonName,
+			vP:            validityPeriod,
+			spiffeEnabled: true,
+			wantErr:       false,
+		},
+		{
 			description: "error with invalid common name",
-			cn:          certificate.CommonName(" "),
+			cn:          " ",
 			vP:          time.Duration(-1),
 			wantErr:     true,
 		},
@@ -147,11 +155,22 @@ func TestIssueCertificate(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			tassert := assert.New(t)
-			_, err = cm.IssueCertificate(tc.cn, tc.vP)
+			o := certificate.NewCertOptionsWithTrustDomain(tc.cn, "cluster.local", tc.vP, tc.spiffeEnabled)
+			cert, err := cm.IssueCertificate(o)
+
 			if tc.wantErr {
 				tassert.Error(err, "expected error, got nil")
-			} else {
-				tassert.NoError(err, "did not expect error, got %v", err)
+				return
+			}
+
+			tassert.NoError(err, "did not expect error, got %v", err)
+			xCert, err := certificate.DecodePEMCertificate(cert.CertChain)
+			tassert.NoError(err, "did not expect error, got %v", err)
+			tassert.Equal(tc.cn+".cluster.local", xCert.Subject.CommonName)
+
+			if tc.spiffeEnabled {
+				uri := xCert.URIs[0]
+				tassert.Equal("spiffe://cluster.local/"+tc.cn, uri.String())
 			}
 		})
 	}
@@ -202,7 +221,11 @@ func mockVaultwithPKI(t *testing.T, cm *CertManager) {
 		t.Fatal("expected ca info, response from vault was nil")
 	}
 
-	_, err = cm.client.Logical().Write("pki/roles/default_role", map[string]interface{}{})
+	_, err = cm.client.Logical().Write("pki/roles/default_role", map[string]interface{}{
+		"allowed_uri_sans": "spiffe://*",
+		"allowed_domains":  "cluster.local",
+		"allow_subdomains": "true",
+	})
 
 	req := cm.client.NewRequest("POST", "/v1/pki_int/roles/default_role")
 	req.BodyBytes = []byte(`{

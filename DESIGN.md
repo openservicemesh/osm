@@ -306,7 +306,7 @@ type MeshCataloger interface {
 
   // ListServicesForProxy returns a list of services the given Envoy is a member of based on its certificate,
   // which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
-	ListServicesForProxy(*envoy.Proxy) ([]service.MeshService, error)
+	ListServicesForProxy(*models.Proxy) ([]service.MeshService, error)
 
 	// GetServicesForServiceIdentity returns a list of services corresponding to a service identity
 	GetServicesForServiceIdentity(identity.ServiceIdentityt) ([]service.MeshService, error)

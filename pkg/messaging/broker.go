@@ -34,21 +34,27 @@ func NewBroker(stopCh <-chan struct{}) *Broker {
 		proxyUpdatePubSub: pubsub.New(0),
 		proxyUpdateCh:     make(chan string),
 		kubeEventPubSub:   pubsub.New(0),
+		stop:              stopCh,
 	}
 
-	go b.runWorkqueueProcessor(stopCh)
-	go b.runProxyUpdateDispatcher(stopCh)
-	go b.queueLenMetric(stopCh, 5*time.Second)
+	go b.runWorkqueueProcessor()
+	go b.runProxyUpdateDispatcher()
+	go b.queueLenMetric(5 * time.Second)
 
 	return b
 }
 
-func (b *Broker) queueLenMetric(stop <-chan struct{}, interval time.Duration) {
+// Done returns a channel that's closed when the broker is shutdown.
+func (b *Broker) Done() <-chan struct{} {
+	return b.stop
+}
+
+func (b *Broker) queueLenMetric(interval time.Duration) {
 	tick := time.NewTicker(interval)
 	defer tick.Stop()
 	for {
 		select {
-		case <-stop:
+		case <-b.stop:
 			return
 		case <-tick.C:
 			metricsstore.DefaultMetricsStore.EventsQueued.Set(float64(b.queue.Len()))
@@ -88,7 +94,7 @@ func (b *Broker) GetTotalDispatchedProxyEventCount() uint64 {
 
 // runWorkqueueProcessor starts a goroutine to process events from the workqueue until
 // signalled to stop on the given channel.
-func (b *Broker) runWorkqueueProcessor(stopCh <-chan struct{}) {
+func (b *Broker) runWorkqueueProcessor() {
 	// Start the goroutine workqueue to process kubernetes events
 	// The continuous processing of items in the workqueue will run
 	// until signalled to stop.
@@ -101,7 +107,7 @@ func (b *Broker) runWorkqueueProcessor(stopCh <-chan struct{}) {
 			}
 		},
 		time.Second,
-		stopCh,
+		b.stop,
 	)
 }
 
@@ -112,7 +118,7 @@ func (b *Broker) runWorkqueueProcessor(stopCh <-chan struct{}) {
 // 2. Max window timer that caps the max duration a sliding window can be reset to
 // When either of the above timers expire, the proxy update event is published
 // on the dedicated pub-sub instance.
-func (b *Broker) runProxyUpdateDispatcher(stopCh <-chan struct{}) {
+func (b *Broker) runProxyUpdateDispatcher() {
 	// batchTimer and maxTimer are updated by the dispatcher routine
 	// when events are processed and timeouts expire. They are initialized
 	// with a large timeout (a decade) so they don't time out till an event
@@ -201,7 +207,7 @@ func (b *Broker) runProxyUpdateDispatcher(stopCh <-chan struct{}) {
 			dispatchPending = false
 			batchCount = 0
 
-		case <-stopCh:
+		case <-b.stop:
 			log.Info().Msg("Proxy update dispatcher received stop signal, exiting")
 			return
 		}
@@ -273,7 +279,7 @@ func shouldPublish(msg events.PubSubMessage) (bool, string) {
 	case
 		events.Endpoint, events.Ingress,
 		events.Egress, events.IngressBackend, events.RetryPolicy, events.UpstreamTrafficSetting,
-		events.RouteGroup, events.TCPRoute, events.TrafficSplit, events.TrafficTarget,
+		events.RouteGroup, events.TCPRoute, events.TrafficSplit, events.TrafficTarget, events.Telemetry,
 		events.ProxyUpdate:
 		return true, ""
 

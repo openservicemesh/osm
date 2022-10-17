@@ -6,7 +6,7 @@ set -aueo pipefail
 source .env
 
 for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
-    kubectl create namespace "$ns" --save-config
+    kubectl create namespace "$ns" --save-config || true
     ./scripts/create-container-registry-creds.sh "$ns"
 done
 

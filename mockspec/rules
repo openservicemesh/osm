@@ -5,20 +5,11 @@
 # pkg/k8s
 k8s; pkg/k8s/mock_controller_generated.go; github.com/openservicemesh/osm/pkg/k8s; Controller
 
-# pkg/smi
-smi; pkg/smi/mock_meshspec_generated.go; github.com/openservicemesh/osm/pkg/smi; MeshSpec
-
-# pkg/policy
-policy; pkg/policy/mock_client_generated.go; github.com/openservicemesh/osm/pkg/policy; Controller
-
 # pkg/catalog
 catalog; pkg/catalog/mock_catalog_generated.go; github.com/openservicemesh/osm/pkg/catalog; MeshCataloger
 
 # pkg/debugger
-debugger; pkg/debugger/mock_debugger_generated.go; github.com/openservicemesh/osm/pkg/debugger; MeshCatalogDebugger,XDSDebugger
-
-# pkg/health
-health; pkg/health/mock_probes_generated.go; github.com/openservicemesh/osm/pkg/health; Probes
+debugger; pkg/debugger/mock_debugger_generated.go; github.com/openservicemesh/osm/pkg/debugger; XDSDebugger
 
 # pkg/compute
 compute; pkg/compute/mock_compute_client_generated.go; github.com/openservicemesh/osm/pkg/compute; Interface

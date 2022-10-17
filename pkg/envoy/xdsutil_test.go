@@ -5,9 +5,7 @@ import (
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -21,52 +19,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
-
-func TestGetAccessLog(t *testing.T) {
-	assert := tassert.New(t)
-
-	res := GetAccessLog()
-	assert.NotNil(res)
-}
-
-func TestGetStdoutAccessLog(t *testing.T) {
-	assert := tassert.New(t)
-
-	expAccessLogger := &xds_accesslog.StdoutAccessLog{
-		AccessLogFormat: &xds_accesslog.StdoutAccessLog_LogFormat{
-			LogFormat: &xds_core.SubstitutionFormatString{
-				Format: &xds_core.SubstitutionFormatString_JsonFormat{
-					JsonFormat: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							"start_time":            pbStringValue(`%START_TIME%`),
-							"method":                pbStringValue(`%REQ(:METHOD)%`),
-							"path":                  pbStringValue(`%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%`),
-							"protocol":              pbStringValue(`%PROTOCOL%`),
-							"response_code":         pbStringValue(`%RESPONSE_CODE%`),
-							"response_code_details": pbStringValue(`%RESPONSE_CODE_DETAILS%`),
-							"time_to_first_byte":    pbStringValue(`%RESPONSE_DURATION%`),
-							"upstream_cluster":      pbStringValue(`%UPSTREAM_CLUSTER%`),
-							"response_flags":        pbStringValue(`%RESPONSE_FLAGS%`),
-							"bytes_received":        pbStringValue(`%BYTES_RECEIVED%`),
-							"bytes_sent":            pbStringValue(`%BYTES_SENT%`),
-							"duration":              pbStringValue(`%DURATION%`),
-							"upstream_service_time": pbStringValue(`%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%`),
-							"x_forwarded_for":       pbStringValue(`%REQ(X-FORWARDED-FOR)%`),
-							"user_agent":            pbStringValue(`%REQ(USER-AGENT)%`),
-							"request_id":            pbStringValue(`%REQ(X-REQUEST-ID)%`),
-							"requested_server_name": pbStringValue("%REQUESTED_SERVER_NAME%"),
-							"authority":             pbStringValue(`%REQ(:AUTHORITY)%`),
-							"upstream_host":         pbStringValue(`%UPSTREAM_HOST%`),
-						},
-					},
-				},
-			},
-		},
-	}
-	resAccessLogger := getStdoutAccessLog()
-
-	assert.Equal(resAccessLogger, expAccessLogger)
-}
 
 var sidecarSpec = configv1alpha2.SidecarSpec{
 	TLSMinProtocolVersion: "TLSv1_2",
@@ -212,18 +164,6 @@ var _ = Describe("Test Envoy tools", func() {
 		})
 	})
 
-	Context("Test pbStringValue()", func() {
-		It("returns structpb", func() {
-			exp := &structpb.Value{
-				Kind: &structpb.Value_StringValue{
-					StringValue: "apples",
-				},
-			}
-			res := pbStringValue("apples")
-			Expect(res).To(Equal(exp))
-		})
-	})
-
 	Context("Test getCommonTLSContext()", func() {
 		It("returns proper auth.CommonTlsContext for outbound mTLS", func() {
 			actual := getCommonTLSContext(secrets.NameForIdentity(identity.New("bookbuyer", "default")),
@@ -282,53 +222,6 @@ var _ = Describe("Test Envoy tools", func() {
 			}
 
 			Expect(actual).To(Equal(expected))
-		})
-	})
-
-	Context("Test GetEnvoyServiceNodeID()", func() {
-		It("", func() {
-			actual := GetEnvoyServiceNodeID("-nodeID-", "-workload-kind-", "-workload-name-")
-			expected := "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/-nodeID-/$(POD_NAME)/-workload-kind-/-workload-name-"
-			Expect(actual).To(Equal(expected))
-		})
-	})
-
-	Context("Test ParseEnvoyServiceNodeID()", func() {
-		It("", func() {
-			serviceNodeID := GetEnvoyServiceNodeID("-nodeID-", "-workload-kind-", "-workload-name-")
-			meta, err := ParseEnvoyServiceNodeID(serviceNodeID)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(meta.UID).To(Equal("$(POD_UID)"))
-			Expect(meta.Namespace).To(Equal("$(POD_NAMESPACE)"))
-			Expect(meta.IP).To(Equal("$(POD_IP)"))
-			Expect(meta.ServiceAccount.Name).To(Equal("$(SERVICE_ACCOUNT)"))
-			Expect(meta.ServiceAccount.Namespace).To(Equal("$(POD_NAMESPACE)"))
-			Expect(meta.EnvoyNodeID).To(Equal("-nodeID-"))
-			Expect(meta.Name).To(Equal("$(POD_NAME)"))
-			Expect(meta.WorkloadKind).To(Equal("-workload-kind-"))
-			Expect(meta.WorkloadName).To(Equal("-workload-name-"))
-		})
-
-		It("handles when not all fields are defined", func() {
-			serviceNodeID := "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/-nodeID-"
-			meta, err := ParseEnvoyServiceNodeID(serviceNodeID)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(meta.UID).To(Equal("$(POD_UID)"))
-			Expect(meta.Namespace).To(Equal("$(POD_NAMESPACE)"))
-			Expect(meta.IP).To(Equal("$(POD_IP)"))
-			Expect(meta.ServiceAccount.Name).To(Equal("$(SERVICE_ACCOUNT)"))
-			Expect(meta.ServiceAccount.Namespace).To(Equal("$(POD_NAMESPACE)"))
-			Expect(meta.EnvoyNodeID).To(Equal("-nodeID-"))
-			Expect(meta.Name).To(Equal(""))
-			Expect(meta.WorkloadKind).To(Equal(""))
-			Expect(meta.WorkloadName).To(Equal(""))
-		})
-
-		It("should error when there are less than 5 chunks in the serviceNodeID string", func() {
-			// this 'serviceNodeID' will yield 2 chunks
-			serviceNodeID := "$(POD_UID)/$(POD_NAMESPACE)"
-			_, err := ParseEnvoyServiceNodeID(serviceNodeID)
-			Expect(err).To(HaveOccurred())
 		})
 	})
 })

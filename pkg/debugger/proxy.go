@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	envoy "github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 const (
@@ -45,7 +45,7 @@ func (ds DebugConfig) printProxies(w http.ResponseWriter) {
 	// This function is needed to convert the list of connected proxies to
 	// the type (map) required by the printProxies function.
 	proxyMap := ds.proxyRegistry.ListConnectedProxies()
-	proxies := make([]*envoy.Proxy, 0, len(proxyMap))
+	proxies := make([]*models.Proxy, 0, len(proxyMap))
 	for _, proxy := range proxyMap {
 		proxies = append(proxies, proxy)
 	}
@@ -68,7 +68,7 @@ func (ds DebugConfig) printProxies(w http.ResponseWriter) {
 
 func (ds DebugConfig) getConfigDump(streamID int64, w http.ResponseWriter) {
 	proxy := ds.proxyRegistry.GetConnectedProxy(streamID)
-	if proxy != nil {
+	if proxy == nil {
 		msg := fmt.Sprintf("Proxy for Stream ID %d not found, may have been disconnected", streamID)
 		log.Error().Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
@@ -76,7 +76,7 @@ func (ds DebugConfig) getConfigDump(streamID int64, w http.ResponseWriter) {
 	}
 	pod, err := ds.kubeController.GetPodForProxy(proxy)
 	if err != nil {
-		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy.GetName())
+		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy)
 		log.Error().Err(err).Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
 		return
@@ -96,7 +96,7 @@ func (ds DebugConfig) getProxy(streamID int64, w http.ResponseWriter) {
 	}
 	pod, err := ds.kubeController.GetPodForProxy(proxy)
 	if err != nil {
-		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy.GetName())
+		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy)
 		log.Error().Err(err).Msg(msg)
 		http.Error(w, msg, http.StatusNotFound)
 		return

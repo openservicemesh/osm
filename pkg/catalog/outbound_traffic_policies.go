@@ -2,43 +2,22 @@ package catalog
 
 import (
 	mapset "github.com/deckarep/golang-set"
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-// GetOutboundMeshTrafficPolicy returns the outbound mesh traffic policy for the given downstream identity
-//
-// The function works as follows:
-//  1. If permissive mode is enabled, builds outbound mesh traffic policies to reach every upstream service
-//     discovered using service discovery, using wildcard routes.
-//  2. In SMI mode, builds outbound mesh traffic policies to reach every upstream service corresponding
-//     to every upstream service account that this downstream is authorized to access using SMI TrafficTarget
-//     policies.
-//  3. Process TraficSplit policies and update the weights for the upstream services based on the policies.
-//
-// The route configurations are consolidated per port, such that upstream services using the same port are a part
-// of the same route configuration. This is required to avoid route conflicts that can occur when the same hostname
-// needs to be routed differently based on the port used.
-func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.ServiceIdentity) *trafficpolicy.OutboundMeshTrafficPolicy {
+// GetOutboundMeshTrafficMatches returns the traffic matches for the outbound mesh traffic policy for the given downstream identity
+func (mc *MeshCatalog) GetOutboundMeshTrafficMatches(downstreamIdentity identity.ServiceIdentity) []*trafficpolicy.TrafficMatch {
 	var trafficMatches []*trafficpolicy.TrafficMatch
-	var clusterConfigs []*trafficpolicy.MeshClusterConfig
-	routeConfigPerPort := make(map[int][]*trafficpolicy.OutboundTrafficPolicy)
-	downstreamSvcAccount := downstreamIdentity.ToK8sServiceAccount()
 
-	// For each service, build the traffic policies required to access it.
-	// It is important to aggregate HTTP route configs by the service's port.
 	for _, meshSvc := range mc.ListOutboundServicesForIdentity(downstreamIdentity) {
 		meshSvc := meshSvc // To prevent loop variable memory aliasing in for loop
-
-		// Retrieve the destination IP address from the endpoints for this service
-		// IP range must not have duplicates, use a mapset to only add unique IP ranges
+		upstreamClusters := mc.getUpstreamClusters(meshSvc)
 		var destinationIPRanges []string
 		destinationIPSet := mapset.NewSet()
 		for _, endp := range mc.GetResolvableEndpointsForService(meshSvc) {
@@ -47,62 +26,6 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 				destinationIPRanges = append(destinationIPRanges, ipCIDR)
 			}
 		}
-
-		// ---
-		// Create the cluster config for this upstream service
-		clusterConfigForServicePort := &trafficpolicy.MeshClusterConfig{
-			Name:                          meshSvc.EnvoyClusterName(),
-			Service:                       meshSvc,
-			EnableEnvoyActiveHealthChecks: mc.GetMeshConfig().Spec.FeatureFlags.EnableEnvoyActiveHealthChecks,
-			UpstreamTrafficSetting: mc.policyController.GetUpstreamTrafficSetting(
-				policy.UpstreamTrafficSettingGetOpt{MeshService: &meshSvc}),
-		}
-		clusterConfigs = append(clusterConfigs, clusterConfigForServicePort)
-
-		var upstreamClusters []service.WeightedCluster
-		// Check if there is a traffic split corresponding to this service.
-		// The upstream clusters are to be derived from the traffic split backends
-		// in that case.
-		trafficSplits := mc.meshSpec.ListTrafficSplits(smi.WithTrafficSplitApexService(meshSvc))
-		if len(trafficSplits) > 1 {
-			// TODO: enhancement(#2759)
-			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMultipleSMISplitPerServiceUnsupported)).
-				Msgf("Found more than 1 SMI TrafficSplit configuration for the same apex service %s, this is unsupported. Picking the first one!", meshSvc)
-		}
-		if len(trafficSplits) != 0 {
-			// Program routes to the backends specified in the traffic split
-			split := trafficSplits[0] // TODO(#2759): support multiple traffic splits per apex service
-
-			for _, backend := range split.Spec.Backends {
-				backendMeshSvc := service.MeshService{
-					Namespace: meshSvc.Namespace, // Backends belong to the same namespace as the apex service
-					Name:      backend.Service,
-				}
-				targetPort, err := mc.GetTargetPortForServicePort(
-					types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
-				if err != nil {
-					log.Error().Err(err).Msgf("Error fetching target port for leaf service %s, ignoring it", backendMeshSvc)
-					continue
-				}
-				backendMeshSvc.TargetPort = targetPort
-
-				wc := service.WeightedCluster{
-					ClusterName: service.ClusterName(backendMeshSvc.EnvoyClusterName()),
-					Weight:      backend.Weight,
-				}
-				upstreamClusters = append(upstreamClusters, wc)
-			}
-		} else {
-			wc := service.WeightedCluster{
-				ClusterName: service.ClusterName(meshSvc.EnvoyClusterName()),
-				Weight:      constants.ClusterWeightAcceptAll,
-			}
-			// No TrafficSplit for this upstream service, so use a default weighted cluster
-			upstreamClusters = append(upstreamClusters, wc)
-		}
-
-		retryPolicy := mc.getRetryPolicy(downstreamIdentity, meshSvc)
-
 		// ---
 		// Create a TrafficMatch for this upstream service and port combination.
 		// The TrafficMatch will be used by LDS to program a filter chain match
@@ -116,7 +39,43 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			WeightedClusters:    upstreamClusters,
 		}
 		trafficMatches = append(trafficMatches, trafficMatchForServicePort)
-		log.Trace().Msgf("Built traffic match %s for downstream %s", trafficMatchForServicePort.Name, downstreamIdentity)
+	}
+
+	return trafficMatches
+}
+
+// GetOutboundMeshClusterConfigs returns the cluster configs for the outbound mesh traffic policy for the given downstream identity
+func (mc *MeshCatalog) GetOutboundMeshClusterConfigs(downstreamIdentity identity.ServiceIdentity) []*trafficpolicy.MeshClusterConfig {
+	var clusterConfigs []*trafficpolicy.MeshClusterConfig
+
+	for _, meshSvc := range mc.ListOutboundServicesForIdentity(downstreamIdentity) {
+		meshSvc := meshSvc // To prevent loop variable memory aliasing in for loop
+
+		// ---
+		// Create the cluster config for this upstream service
+		clusterConfigForServicePort := &trafficpolicy.MeshClusterConfig{
+			Name:                          meshSvc.EnvoyClusterName(),
+			Service:                       meshSvc,
+			EnableEnvoyActiveHealthChecks: mc.GetMeshConfig().Spec.FeatureFlags.EnableEnvoyActiveHealthChecks,
+			UpstreamTrafficSetting:        mc.GetUpstreamTrafficSettingByService(&meshSvc),
+		}
+		clusterConfigs = append(clusterConfigs, clusterConfigForServicePort)
+	}
+
+	return clusterConfigs
+}
+
+// GetOutboundMeshHTTPRouteConfigsPerPort returns the map of outbound traffic policies per port for the given downstream identity
+func (mc *MeshCatalog) GetOutboundMeshHTTPRouteConfigsPerPort(downstreamIdentity identity.ServiceIdentity) map[int][]*trafficpolicy.OutboundTrafficPolicy {
+	routeConfigPerPort := make(map[int][]*trafficpolicy.OutboundTrafficPolicy)
+	downstreamSvcAccount := downstreamIdentity.ToK8sServiceAccount()
+
+	// For each service, build the traffic policies required to access it.
+	// It is important to aggregate HTTP route configs by the service's port.
+	for _, meshSvc := range mc.ListOutboundServicesForIdentity(downstreamIdentity) {
+		meshSvc := meshSvc // To prevent loop variable memory aliasing in for loop
+		upstreamClusters := mc.getUpstreamClusters(meshSvc)
+		retryPolicy := mc.getRetryPolicy(downstreamIdentity, meshSvc)
 
 		// Build the HTTP route configs for this service and port combination.
 		// If the port's protocol corresponds to TCP, we can skip this step
@@ -134,11 +93,47 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		routeConfigPerPort[int(meshSvc.Port)] = append(routeConfigPerPort[int(meshSvc.Port)], outboundTrafficPolicy)
 	}
 
-	return &trafficpolicy.OutboundMeshTrafficPolicy{
-		TrafficMatches:          trafficMatches,
-		ClustersConfigs:         clusterConfigs,
-		HTTPRouteConfigsPerPort: routeConfigPerPort,
+	return routeConfigPerPort
+}
+
+func (mc *MeshCatalog) getUpstreamClusters(meshSvc service.MeshService) []service.WeightedCluster {
+	var upstreamClusters []service.WeightedCluster
+	// Check if there is a traffic split corresponding to this service.
+	// The upstream clusters are to be derived from the traffic split backends
+	// in that case.
+	trafficSplits := mc.ListTrafficSplitsByOptions(smi.WithTrafficSplitApexService(meshSvc))
+	if len(trafficSplits) > 1 {
+		// TODO: enhancement(#2759)
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMultipleSMISplitPerServiceUnsupported)).
+			Msgf("Found more than 1 SMI TrafficSplit configuration for the same apex service %s, this is unsupported. Picking the first one!", meshSvc)
 	}
+	if len(trafficSplits) != 0 {
+		// Program routes to the backends specified in the traffic split
+		split := trafficSplits[0] // TODO(#2759): support multiple traffic splits per apex service
+
+		for _, backend := range split.Spec.Backends {
+			backendMeshSvc, err := mc.GetMeshService(backend.Service, meshSvc.Namespace, meshSvc.Port)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error fetching target port for leaf service %s, ignoring it", backendMeshSvc)
+				continue
+			}
+
+			wc := service.WeightedCluster{
+				ClusterName: service.ClusterName(backendMeshSvc.EnvoyClusterName()),
+				Weight:      backend.Weight,
+			}
+			upstreamClusters = append(upstreamClusters, wc)
+		}
+	} else {
+		wc := service.WeightedCluster{
+			ClusterName: service.ClusterName(meshSvc.EnvoyClusterName()),
+			Weight:      constants.ClusterWeightAcceptAll,
+		}
+		// No TrafficSplit for this upstream service, so use a default weighted cluster
+		upstreamClusters = append(upstreamClusters, wc)
+	}
+
+	return upstreamClusters
 }
 
 // ListOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
@@ -152,7 +147,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	serviceSet := mapset.NewSet()
 	var allowedServices []service.MeshService
 
-	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
+	for _, t := range mc.ListTrafficTargetsByOptions() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
 			if source.Name != svcAccount.Name || source.Namespace != svcAccount.Namespace {
 				// Source doesn't match the downstream's service identity

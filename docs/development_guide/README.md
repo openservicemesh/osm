@@ -10,6 +10,7 @@
   - [Code Formatting](#code-formatting)
   - [Putting it all together (inner development loop)](#putting-it-all-together-inner-development-loop)
     - [Making changes to OSM](#making-changes-to-osm)
+    - [Using Tilt](#using-tilt)
   - [Testing your changes](#testing-your-changes)
       - [Unit Tests](#unit-tests)
         - [Mocking](#mocking)
@@ -225,6 +226,25 @@ make build-osm-all
 # redeploy 
 ./bin/osm install --set=osm.image.registry="$CTR_REGISTRY" --set=osm.image.pullPolicy=Always --verbose 
 ```
+
+### Using Tilt
+[Tilt](https://docs.tilt.dev/index.html) can automatically build and deploy your changes as you save the file.  This is slightly different from the above option where you manually build the components and restart them, instead it precompiles and deploys the components on the fly. 
+
+After installing [tilt](https://docs.tilt.dev/install.html), [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) and [helm](https://helm.sh/docs/intro/install/) run:
+
+```
+make tilt-up
+```
+
+This will create a kind cluster and deploy all the components.  If you edit one of the files and save it to disk, tilt will recompile that component and deploy it to the running pod.  
+
+> note: currently works for controller pods (controller, injector, bootstrap) but not the all init containers
+
+Customizing the OSM deployments can be done via `tilt_config.json` file.  For instance you can configure helm values to customize OSM HELM chart deployment.
+
+To run the demo, click on the demo deploy button (:repeat:) in tilt. Make sure you have the `.env` file [copied locally](#create-environment-variables).
+
+Reset your kind cluster using `make kind-reset`.
 
 ## Testing your changes
 

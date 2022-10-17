@@ -20,9 +20,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -34,7 +33,7 @@ const (
 )
 
 var getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
-	cert, err := i.IssueCertificate("init-cert", 1*time.Second)
+	cert, err := i.IssueCertificate(certificate.NewCertOptionsWithFullName("init-cert", 1*time.Second))
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +44,7 @@ var getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
 // NewCertificateManager returns a new certificate manager with a MRC compat client.
 // TODO(4713): Remove and use NewCertificateManagerFromMRC
 func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config,
-	providerNamespace string, option Options, kubeController k8s.Controller, checkInterval time.Duration, trustDomain string) (*certificate.Manager, error) {
+	providerNamespace string, option Options, computeClient compute.Interface, checkInterval time.Duration, trustDomain string) (*certificate.Manager, error) {
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}
@@ -54,7 +53,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 		MRCProviderGenerator: MRCProviderGenerator{
 			kubeClient:      kubeClient,
 			kubeConfig:      kubeConfig,
-			KeyBitSize:      utils.GetCertKeyBitSize(kubeController.GetMeshConfig()),
+			KeyBitSize:      utils.GetCertKeyBitSize(computeClient.GetMeshConfig()),
 			caExtractorFunc: getCA,
 		},
 		mrc: &v1alpha2.MeshRootCertificate{
@@ -65,9 +64,37 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 			Spec: v1alpha2.MeshRootCertificateSpec{
 				Provider:    option.AsProviderSpec(),
 				TrustDomain: trustDomain,
+				Intent:      constants.MRCIntentPassive,
 			},
 			Status: v1alpha2.MeshRootCertificateStatus{
 				State: constants.MRCStateActive,
+				// Statuses unset will be marked unknown
+				Conditions: []v1alpha2.MeshRootCertificateCondition{
+					{
+						Type:   constants.MRCConditionTypeReady,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeAccepted,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeIssuingRollout,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeValidatingRollout,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeIssuingRollback,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeValidatingRollback,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+				},
 			},
 		},
 	}
@@ -79,27 +106,27 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 	return certificate.NewManager(
 		ctx,
 		mrcClient,
-		func() time.Duration { return utils.GetServiceCertValidityPeriod(kubeController.GetMeshConfig()) },
-		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(kubeController.GetMeshConfig()) },
+		func() time.Duration { return utils.GetServiceCertValidityPeriod(computeClient.GetMeshConfig()) },
+		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(computeClient.GetMeshConfig()) },
 		checkInterval,
 	)
 }
 
 // NewCertificateManagerFromMRC returns a new certificate manager.
 func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config,
-	providerNamespace string, option Options, kubeController k8s.Controller, ic *informers.InformerCollection, checkInterval time.Duration) (*certificate.Manager, error) {
+	providerNamespace string, option Options, computeClient compute.Interface, checkInterval time.Duration) (*certificate.Manager, error) {
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}
 
 	mrcClient := &MRCComposer{
+		Interface: computeClient,
 		MRCProviderGenerator: MRCProviderGenerator{
 			kubeClient:      kubeClient,
 			kubeConfig:      kubeConfig,
-			KeyBitSize:      utils.GetCertKeyBitSize(kubeController.GetMeshConfig()),
+			KeyBitSize:      utils.GetCertKeyBitSize(computeClient.GetMeshConfig()),
 			caExtractorFunc: getCA,
 		},
-		informerCollection: ic,
 	}
 	// TODO(#4745): Remove after deprecating the osm.vault.token option.
 	if vaultOption, ok := option.(VaultOptions); ok {
@@ -109,8 +136,8 @@ func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Int
 	return certificate.NewManager(
 		ctx,
 		mrcClient,
-		func() time.Duration { return utils.GetServiceCertValidityPeriod(kubeController.GetMeshConfig()) },
-		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(kubeController.GetMeshConfig()) },
+		func() time.Duration { return utils.GetServiceCertValidityPeriod(computeClient.GetMeshConfig()) },
+		func() time.Duration { return utils.GetIngressGatewayCertValidityPeriod(computeClient.GetMeshConfig()) },
 		checkInterval,
 	)
 }

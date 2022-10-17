@@ -91,6 +91,13 @@ func TestRun_MetricsEnable(t *testing.T) {
 		{
 			cmd: &metricsEnableCmd{
 				out:        new(bytes.Buffer),
+				namespaces: []string{},
+				clientSet:  fakeClient,
+			},
+		},
+		{
+			cmd: &metricsEnableCmd{
+				out:        new(bytes.Buffer),
 				namespaces: []string{"ns-1"},
 				clientSet:  fakeClient,
 			},
@@ -124,7 +131,9 @@ func TestRun_MetricsEnable(t *testing.T) {
 		}
 
 		err := scenario.cmd.run()
-		assert.Nil(err)
+		if err != nil {
+			assert.EqualError(err, "required flag(s) "+"\"namespace\""+" not set", "no namespace mentioned")
+		}
 
 		// Test expectation for scenario
 		for _, ns := range scenario.cmd.namespaces {
@@ -161,6 +170,13 @@ func TestRun_MetricsDisable(t *testing.T) {
 		{
 			cmd: &metricsDisableCmd{
 				out:        new(bytes.Buffer),
+				namespaces: []string{},
+				clientSet:  fakeClient,
+			},
+		},
+		{
+			cmd: &metricsDisableCmd{
+				out:        new(bytes.Buffer),
 				namespaces: []string{"ns-1"},
 				clientSet:  fakeClient,
 			},
@@ -194,7 +210,9 @@ func TestRun_MetricsDisable(t *testing.T) {
 		}
 
 		err := scenario.cmd.run()
-		assert.Nil(err)
+		if err != nil {
+			assert.EqualError(err, "required flag(s) "+"\"namespace\""+" not set", "no namespace mentioned")
+		}
 
 		// Test expectation for scenario
 		for _, ns := range scenario.cmd.namespaces {

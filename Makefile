@@ -141,6 +141,10 @@ go-benchmark: embed-files
 kind-up:
 	./scripts/kind-with-registry.sh
 
+.PHONY: tilt-up
+tilt-up: kind-up
+	tilt up
+
 .PHONY: kind-reset
 kind-reset:
 	kind delete cluster --name osm

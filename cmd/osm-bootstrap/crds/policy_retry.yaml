@@ -30,6 +30,8 @@ spec:
       - retry
     singular: retry
     plural: retries
+  conversion:
+    strategy: None
   versions:
     - name: v1alpha1
       served: true

@@ -3,9 +3,7 @@ package certificate
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/rand"
-	"strings"
 	"sync"
 	"time"
 
@@ -16,13 +14,26 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
+const (
+	// MrcDurationPerStage is the amount of time we leave each MRC in a stage before moving to the next stage. This is
+	// intended to accommodate the rotation of *all* rotations across all injector and controller pods for:
+	// 1. Bootstrap Cert rotation for each live proxy
+	// 2. Service Cert rotation and xDS push for each connected proxy
+	// 3. xDS server cert rotation on the controller
+	// 4. Mutating and Validating Webhook rotation for the servers and for the webhook configuration objects.
+	// 5. Ingress Gateway Certificate.
+	MrcDurationPerStage = 5 * time.Minute
+)
+
 var (
 	log = logger.New("certificate")
 )
 
 // NewManager creates a new CertificateManager with the passed MRCClient and options
+// TODO(5046): plumb ownedUseCases through.
 func NewManager(ctx context.Context, mrcClient MRCClient, getServiceCertValidityPeriod func() time.Duration, getIngressCertValidityDuration func() time.Duration, checkInterval time.Duration) (*Manager, error) {
 	m := &Manager{
+		mrcClient:                   mrcClient,
 		serviceCertValidityDuration: getServiceCertValidityPeriod,
 		ingressCertValidityDuration: getIngressCertValidityDuration,
 		pubsub:                      pubsub.New(1),
@@ -82,8 +93,7 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 					log.Info().Msg("stopping MRC watch...")
 					return
 				}
-
-				err = m.handleMRCEvent(mrcClient, event)
+				err = m.handleMRCEvent(event)
 				if err != nil {
 					log.Error().Err(err).Msgf("error encountered processing MRCEvent")
 					continue
@@ -116,65 +126,38 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 	return nil
 }
 
-func (m *Manager) handleMRCEvent(mrcClient MRCClient, event MRCEvent) error {
-	switch event.Type {
-	case MRCEventAdded:
-		mrc := event.MRC
-		if mrc.Status.State == constants.MRCStateError {
-			log.Debug().Msgf("skipping MRC with error state %s", mrc.GetName())
-			return nil
-		}
-
-		client, ca, err := mrcClient.GetCertIssuerForMRC(mrc)
-		if err != nil {
-			return err
-		}
-
-		c := &issuer{Issuer: client, ID: mrc.Name, CertificateAuthority: ca, TrustDomain: mrc.Spec.TrustDomain}
-		switch {
-		case mrc.Status.State == constants.MRCStateActive:
-			m.mu.Lock()
-			m.signingIssuer = c
-			m.validatingIssuer = c
-			m.mu.Unlock()
-		case mrc.Status.State == constants.MRCStateIssuingRollback || mrc.Status.State == constants.MRCStateIssuingRollout:
-			m.mu.Lock()
-			m.signingIssuer = c
-			m.mu.Unlock()
-		case mrc.Status.State == constants.MRCStateValidatingRollback || mrc.Status.State == constants.MRCStateValidatingRollout:
-			m.mu.Lock()
-			m.validatingIssuer = c
-			m.mu.Unlock()
-		default:
-			m.mu.Lock()
-			m.signingIssuer = c
-			m.validatingIssuer = c
-			m.mu.Unlock()
-		}
-	case MRCEventUpdated:
-		// TODO
-	}
-
-	return nil
+// TrustDomain is used to hold the current certificate information about the trust domain
+type TrustDomain struct {
+	Signing    string
+	Validating string
 }
 
-// GetTrustDomain returns the trust domain from the configured signingkey issuer.
+// AreDifferent returns true if the signing and validating trust domains are different
+func (td TrustDomain) AreDifferent() bool {
+	return td.Signing != td.Validating
+}
+
+// GetTrustDomains returns the trust domains from the configured issuers.
 // Note that the CRD uses a default, so this value will always be set.
-func (m *Manager) GetTrustDomain() string {
+// It is up to the caller to determine if the signing and validating trust domains are different
+func (m *Manager) GetTrustDomains() TrustDomain {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return m.signingIssuer.TrustDomain
+	return TrustDomain{Signing: m.signingIssuer.TrustDomain, Validating: m.validatingIssuer.TrustDomain}
 }
 
-// shouldRotate determines whether a certificate should be rotated.
-func (m *Manager) shouldRotate(c *Certificate) bool {
+// ShouldRotate determines whether a certificate should be rotated.
+func (m *Manager) ShouldRotate(c *Certificate) bool {
 	// The certificate is going to expire at a timestamp T
-	// We want to renew earlier. How much earlier is defined in renewBeforeCertExpires.
+	// We want to renew earlier. How much earlier is defined as the max between
+	// a fractionValidityDuration of the certificate's validity duration and the minimum allowed time defined in minRotateBeforeExpireTime.
 	// We add a few seconds noise to the early renew period so that certificates that may have been
 	// created at the same time are not renewed at the exact same time.
 	intNoise := rand.Intn(noiseSeconds) // #nosec G404
 	secondsNoise := time.Duration(intNoise) * time.Second
-	renewBefore := RenewBeforeCertExpires + secondsNoise
+	minRotateBeforeExpireTime := time.Duration(MinRotateBeforeExpireMinutes) * time.Minute
+	fractionOfValidityDuration := m.getValidityDurationForCertType(c.certType) / fractionValidityDuration
+	renewBefore := maxDuration(fractionOfValidityDuration, minRotateBeforeExpireTime) + secondsNoise
 	// Round is called to truncate monotonic clock to the nearest second. This is done to avoid environments where the
 	// CPU clock may stop, resulting in a time measurement that differs significantly from the x509 timestamp.
 	// See https://github.com/openservicemesh/osm/issues/5000#issuecomment-1218539412 for more details.
@@ -206,6 +189,13 @@ func (m *Manager) shouldRotate(c *Certificate) bool {
 	return false
 }
 
+func maxDuration(a time.Duration, b time.Duration) time.Duration {
+	if a >= b {
+		return a
+	}
+	return b
+}
+
 func (m *Manager) checkAndRotate() {
 	// NOTE: checkAndRotate can reintroduce a certificate that has been released, thereby creating an unbounded cache.
 	// A certificate can also have been rotated already, leaving the list of issued certs stale, and we re-rotate.
@@ -218,16 +208,17 @@ func (m *Manager) checkAndRotate() {
 	})
 
 	for key, cert := range certs {
-		// TODO(5000): remove this check
-		if err := m.CheckCacheMatch(cert); err != nil {
-			log.Warn().Msg(err.Error()) // don't log as a full error message
-		}
 		opts := []IssueOption{}
-		if key == cert.CommonName.String() {
-			opts = append(opts, FullCNProvided())
+		opts = append(opts, withCommonNamePrefix(key))
+		opts = append(opts, withCertType(cert.certType))
+
+		// There are a few certificates (webhook and Ingress)  that have entire CN passed
+		// In that case the key will be the common name on the cert
+		if key == cert.GetCommonName().String() {
+			opts = append(opts, withFullCommonName())
 		}
 
-		_, err := m.IssueCertificate(key, cert.certType, opts...)
+		_, err := m.IssueCertificate(opts...)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrRotatingCert)).
 				Msgf("Error rotating cert SerialNumber=%s", cert.GetSerialNumber())
@@ -235,13 +226,13 @@ func (m *Manager) checkAndRotate() {
 	}
 }
 
-func (m *Manager) getValidityDurationForCertType(ct CertType) time.Duration {
+func (m *Manager) getValidityDurationForCertType(ct certType) time.Duration {
 	switch ct {
-	case Internal:
+	case internal:
 		return constants.OSMCertificateValidityPeriod
-	case IngressGateway:
+	case ingressGateway:
 		return m.ingressCertValidityDuration()
-	case Service:
+	case service:
 		return m.serviceCertValidityDuration()
 	default:
 		log.Debug().Msgf("Unknown certificate type %s provided when getting validity duration", ct)
@@ -263,12 +254,14 @@ func (m *Manager) getFromCache(key string) *Certificate {
 
 // IssueCertificate returns a newly issued certificate from the given client
 // or an existing valid certificate from the local cache.
-func (m *Manager) IssueCertificate(prefix string, ct CertType, opts ...IssueOption) (*Certificate, error) {
+func (m *Manager) IssueCertificate(opts ...IssueOption) (*Certificate, error) {
+	options := NewCertOptions(opts...)
+
 	// a singleflight group is used here to ensure that only one issueCertificate is in
 	// flight at a time for a given certificate prefix. Helps avoid a race condition if
 	// issueCertificate is called multiple times in a row for the same certificate prefix.
-	cert, err, _ := m.group.Do(prefix, func() (interface{}, error) {
-		return m.issueCertificate(prefix, ct, opts...)
+	cert, err, _ := m.group.Do(options.cacheKey(), func() (interface{}, error) {
+		return m.issueCertificate(options)
 	})
 	if err != nil {
 		return nil, err
@@ -276,20 +269,15 @@ func (m *Manager) IssueCertificate(prefix string, ct CertType, opts ...IssueOpti
 	return cert.(*Certificate), nil
 }
 
-func (m *Manager) issueCertificate(prefix string, ct CertType, opts ...IssueOption) (*Certificate, error) {
+func (m *Manager) issueCertificate(options IssueOptions) (*Certificate, error) {
 	var rotate bool
-	cert := m.getFromCache(prefix) // Don't call this while holding the lock
+	cert := m.getFromCache(options.cacheKey()) // Don't call this while holding the lock
 	if cert != nil {
 		// check if cert needs to be rotated
-		rotate = m.shouldRotate(cert)
+		rotate = m.ShouldRotate(cert)
 		if !rotate {
 			return cert, nil
 		}
-	}
-
-	options := &issueOptions{}
-	for _, o := range opts {
-		o(options)
 	}
 
 	m.mu.Lock()
@@ -299,8 +287,10 @@ func (m *Manager) issueCertificate(prefix string, ct CertType, opts ...IssueOpti
 
 	start := time.Now()
 
-	validityDuration := m.getValidityDurationForCertType(ct)
-	newCert, err := signingIssuer.IssueCertificate(options.formatCN(prefix, signingIssuer.TrustDomain), validityDuration)
+	options.ValidityDuration = m.getValidityDurationForCertType(options.certType)
+	options.trustDomain = signingIssuer.TrustDomain
+	options.spiffeEnabled = signingIssuer.SpiffeEnabled
+	newCert, err := signingIssuer.IssueCertificate(options)
 	if err != nil {
 		return nil, err
 	}
@@ -311,18 +301,19 @@ func (m *Manager) issueCertificate(prefix string, ct CertType, opts ...IssueOpti
 		newCert = newCert.newMergedWithRoot(validatingIssuer.CertificateAuthority)
 	}
 
+	// Add some additional meta data for internal usage
 	newCert.signingIssuerID = signingIssuer.ID
 	newCert.validatingIssuerID = validatingIssuer.ID
+	newCert.certType = options.certType
+	newCert.cacheKey = options.cacheKey()
 
-	newCert.certType = ct
-
-	m.cache.Store(prefix, newCert)
+	m.cache.Store(newCert.cacheKey, newCert)
 
 	log.Trace().Msgf("It took %s to issue certificate with SerialNumber=%s", time.Since(start), newCert.GetSerialNumber())
 
 	if rotate {
 		// Certificate was rotated
-		m.pubsub.Pub(newCert, prefix)
+		m.pubsub.Pub(newCert, cert.cacheKey)
 
 		log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s", cert.SerialNumber, newCert.SerialNumber)
 	}
@@ -358,27 +349,4 @@ func (m *Manager) SubscribeRotations(key string) (chan interface{}, func()) {
 		for range ch {
 		}
 	}
-}
-
-// CheckCacheMatch checks that the cert is the same cert present in the cache. it is currently only used for debugging
-// https://github.com/openservicemesh/osm/issues/5000
-// TODO(5000): delete this function once we fix the issue
-func (m *Manager) CheckCacheMatch(cert *Certificate) error {
-	if cert == nil {
-		return nil
-	}
-
-	// Currently, these don't get rotated, so we assume the cache is correct.
-	if cert.certType != Service {
-		return nil
-	}
-	key := strings.TrimSuffix(cert.CommonName.String(), "."+m.GetTrustDomain())
-	cachedCert := m.getFromCache(key)
-	if cachedCert == nil {
-		return fmt.Errorf("no certificate found in cache for %s", cert.CommonName)
-	}
-	if cert != cachedCert {
-		return fmt.Errorf("certificate %s does not match cached certificate %s, this may be due to a race around rotation, or a caching issue", cert, cachedCert)
-	}
-	return nil
 }

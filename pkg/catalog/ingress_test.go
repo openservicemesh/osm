@@ -12,7 +12,6 @@ import (
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/policy"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -34,7 +33,8 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 		enableHTTPSIngress          bool
 		meshSvc                     service.MeshService
 		ingressBackend              *policyV1alpha1.IngressBackend
-		expectedPolicy              *trafficpolicy.IngressTrafficPolicy
+		expectedHTTPRoutePolicies   []*trafficpolicy.InboundTrafficPolicy
+		expectedTrafficMatches      []*trafficpolicy.IngressTrafficMatch
 		expectError                 bool
 	}{
 		{
@@ -43,7 +43,8 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			enableHTTPSIngress:          false,
 			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns", Protocol: "http", TargetPort: 80},
 			ingressBackend:              nil,
-			expectedPolicy:              nil,
+			expectedTrafficMatches:      nil,
+			expectedHTTPRoutePolicies:   nil,
 			expectError:                 false,
 		},
 		{
@@ -74,34 +75,32 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectedPolicy: &trafficpolicy.IngressTrafficPolicy{
-				HTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
-					{
-						Name: "testns/foo_from_ingress-backend-1",
-						Hostnames: []string{
-							"*",
-						},
-						Rules: []*trafficpolicy.Rule{
-							{
-								Route: trafficpolicy.RouteWeightedClusters{
-									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-									WeightedClusters: mapset.NewSet(service.WeightedCluster{
-										ClusterName: "testns/foo|80|local",
-										Weight:      100,
-									}),
-								},
-								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+			expectedHTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "testns/foo_from_ingress-backend-1",
+					Hostnames: []string{
+						"*",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "testns/foo|80|local",
+									Weight:      100,
+								}),
 							},
+							AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 						},
 					},
 				},
-				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
-					{
-						Name:           "ingress_testns/foo_80_http",
-						Protocol:       "http",
-						Port:           80,
-						SourceIPRanges: []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
-					},
+			},
+			expectedTrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+				{
+					Name:           "ingress_testns/foo_80_http",
+					Protocol:       "http",
+					Port:           80,
+					SourceIPRanges: []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
 				},
 			},
 			expectError: false,
@@ -142,36 +141,34 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectedPolicy: &trafficpolicy.IngressTrafficPolicy{
-				HTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
-					{
-						Name: "testns/foo_from_ingress-backend-1",
-						Hostnames: []string{
-							"*",
-						},
-						Rules: []*trafficpolicy.Rule{
-							{
-								Route: trafficpolicy.RouteWeightedClusters{
-									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-									WeightedClusters: mapset.NewSet(service.WeightedCluster{
-										ClusterName: "testns/foo|80|local",
-										Weight:      100,
-									}),
-								},
-								AllowedPrincipals: mapset.NewSet("ingressGw.ingressGwNs.cluster.local"),
+			expectedHTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "testns/foo_from_ingress-backend-1",
+					Hostnames: []string{
+						"*",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "testns/foo|80|local",
+									Weight:      100,
+								}),
 							},
+							AllowedPrincipals: mapset.NewSet("ingressGw.ingressGwNs.cluster.local"),
 						},
 					},
 				},
-				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
-					{
-						Name:                     "ingress_testns/foo_80_https",
-						Protocol:                 "https",
-						Port:                     80,
-						SourceIPRanges:           []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
-						SkipClientCertValidation: false,
-						ServerNames:              []string{"foo.org"},
-					},
+			},
+			expectedTrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+				{
+					Name:                     "ingress_testns/foo_80_https",
+					Protocol:                 "https",
+					Port:                     80,
+					SourceIPRanges:           []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
+					SkipClientCertValidation: false,
+					ServerNames:              []string{"foo.org"},
 				},
 			},
 			expectError: false,
@@ -211,41 +208,39 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectedPolicy: &trafficpolicy.IngressTrafficPolicy{
-				HTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
-					{
-						Name: "testns/foo_from_ingress-backend-1",
-						Hostnames: []string{
-							"*",
-						},
-						Rules: []*trafficpolicy.Rule{
-							{
-								Route: trafficpolicy.RouteWeightedClusters{
-									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-									WeightedClusters: mapset.NewSet(service.WeightedCluster{
-										ClusterName: "testns/foo|80|local",
-										Weight:      100,
-									}),
-								},
-								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+			expectedHTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "testns/foo_from_ingress-backend-1",
+					Hostnames: []string{
+						"*",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "testns/foo|80|local",
+									Weight:      100,
+								}),
 							},
+							AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 						},
 					},
 				},
-				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
-					{
-						Name:                     "ingress_testns/foo_80_https",
-						Protocol:                 "https",
-						Port:                     80,
-						SourceIPRanges:           []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
-						SkipClientCertValidation: true,
-					},
+			},
+			expectedTrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+				{
+					Name:                     "ingress_testns/foo_80_https",
+					Protocol:                 "https",
+					Port:                     80,
+					SourceIPRanges:           []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
+					SkipClientCertValidation: true,
 				},
 			},
 			expectError: false,
 		},
 		{
-			name:                        "Specifying a source service without endpoints in an IngressBackend should error",
+			name:                        "Specifying a source service without endpoints in an IngressBackend should error for trafficMatches",
 			ingressBackendPolicyEnabled: true,
 			meshSvc:                     service.MeshService{Name: "foo", Namespace: "testns", Protocol: "http", TargetPort: 80},
 			ingressBackend: &policyV1alpha1.IngressBackend{
@@ -272,8 +267,28 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectedPolicy: nil,
-			expectError:    true,
+			expectedTrafficMatches: nil,
+			expectedHTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "testns/foo_from_ingress-backend-1",
+					Hostnames: []string{
+						"*",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "testns/foo|80|local",
+									Weight:      100,
+								}),
+							},
+							AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+						},
+					},
+				},
+			},
+			expectError: true,
 		},
 		{
 			name:                        "HTTP ingress with IPRange as a source using the IngressBackend API",
@@ -310,34 +325,32 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectedPolicy: &trafficpolicy.IngressTrafficPolicy{
-				HTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
-					{
-						Name: "testns/foo_from_ingress-backend-1",
-						Hostnames: []string{
-							"*",
-						},
-						Rules: []*trafficpolicy.Rule{
-							{
-								Route: trafficpolicy.RouteWeightedClusters{
-									HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
-									WeightedClusters: mapset.NewSet(service.WeightedCluster{
-										ClusterName: "testns/foo|80|local",
-										Weight:      100,
-									}),
-								},
-								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+			expectedHTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "testns/foo_from_ingress-backend-1",
+					Hostnames: []string{
+						"*",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "testns/foo|80|local",
+									Weight:      100,
+								}),
 							},
+							AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 						},
 					},
 				},
-				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
-					{
-						Name:           "ingress_testns/foo_80_http",
-						Protocol:       "http",
-						Port:           80,
-						SourceIPRanges: []string{"10.0.0.0/10", "20.0.0.0/10"}, // 'IPRange' referenced as a source
-					},
+			},
+			expectedTrafficMatches: []*trafficpolicy.IngressTrafficMatch{
+				{
+					Name:           "ingress_testns/foo_80_http",
+					Protocol:       "http",
+					Port:           80,
+					SourceIPRanges: []string{"10.0.0.0/10", "20.0.0.0/10"}, // 'IPRange' referenced as a source
 				},
 			},
 			expectError: false,
@@ -378,8 +391,17 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 					},
 				},
 			},
-			expectedPolicy: nil,
-			expectError:    false,
+			expectedTrafficMatches: nil,
+			expectedHTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "testns/foo_from_ingress-backend-1",
+					Hostnames: []string{
+						"*",
+					},
+					Rules: nil,
+				},
+			},
+			expectError: false,
 		},
 	}
 
@@ -390,23 +412,24 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			mockProvider := compute.NewMockInterface(mockCtrl)
-			mockPolicyController := policy.NewMockController(mockCtrl)
 
 			meshCatalog := &MeshCatalog{
-				Interface:        mockProvider,
-				policyController: mockPolicyController,
+				Interface: mockProvider,
 			}
 
 			// Note: if AnyTimes() is used with a mock function, it implies the function may or may not be called
 			// depending on the test case.
-			mockPolicyController.EXPECT().GetIngressBackendPolicy(tc.meshSvc).Return(tc.ingressBackend).AnyTimes()
+			mockProvider.EXPECT().GetIngressBackendPolicyForService(tc.meshSvc).Return(tc.ingressBackend).AnyTimes()
 			mockProvider.EXPECT().ListEndpointsForService(ingressSourceSvc).Return(ingressBackendSvcEndpoints).AnyTimes()
 			mockProvider.EXPECT().ListEndpointsForService(sourceSvcWithoutEndpoints).Return(nil).AnyTimes()
 			mockProvider.EXPECT().UpdateIngressBackendStatus(gomock.Any()).Return(nil, nil).AnyTimes()
 
-			actual, err := meshCatalog.GetIngressTrafficPolicy(tc.meshSvc)
+			actualHTTPRoutePolicies := meshCatalog.GetIngressHTTPRoutePoliciesForSvc(tc.meshSvc)
+			actualTrafficMatches, err := meshCatalog.GetIngressTrafficMatchesForSvc(tc.meshSvc)
 			assert.Equal(tc.expectError, err != nil)
-			assert.Equal(tc.expectedPolicy, actual)
+
+			assert.Equal(tc.expectedHTTPRoutePolicies, actualHTTPRoutePolicies)
+			assert.Equal(tc.expectedTrafficMatches, actualTrafficMatches)
 		})
 	}
 }

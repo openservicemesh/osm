@@ -18,7 +18,7 @@ func (d *DebugConfig) StartDebugServerConfigListener(stop chan struct{}) {
 	defer unsub()
 
 	started := false
-	if d.kubeController.GetMeshConfig().Spec.Observability.EnableDebugServer {
+	if d.meshCatalog.GetMeshConfig().Spec.Observability.EnableDebugServer {
 		if err := httpDebugServer.Start(); err != nil {
 			log.Error().Err(err).Msgf("error starting debug server")
 		}

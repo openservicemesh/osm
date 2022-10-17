@@ -21,6 +21,6 @@ filter_chains:
               start_time: '%START_TIME%'
               upstream_cluster: '%UPSTREAM_CLUSTER%'
               upstream_host: '%UPSTREAM_HOST%'
-      cluster: liveness_cluster
-      stat_prefix: health_probes
+      cluster: my-container_liveness_cluster
+      stat_prefix: health_probes_https
 name: liveness_listener

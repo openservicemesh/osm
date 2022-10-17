@@ -30,7 +30,7 @@ func TestValidateClient(t *testing.T) {
 
 	certManager := tresorFake.NewFake(1 * time.Hour)
 	cnPrefix := fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace)
-	certPEM, _ := certManager.IssueCertificate(cnPrefix, certificate.Internal)
+	certPEM, _ := certManager.IssueCertificate(certificate.ForCommonNamePrefix(cnPrefix))
 	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 
 	validateClientTests := []validateClientTest{

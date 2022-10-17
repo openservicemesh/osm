@@ -17,21 +17,22 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.AdmissionRequest, proxyUUID uuid.UUID) ([]byte, error) {
+	// pod.Namespace is unset in the API request to the webhook so namespace is derived from req.Namespace
 	namespace := req.Namespace
 
 	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)
-	cnPrefix := envoy.NewXDSCertCNPrefix(proxyUUID, envoy.KindSidecar, identity.New(pod.Spec.ServiceAccountName, namespace))
+	cnPrefix := models.NewXDSCertCNPrefix(proxyUUID, models.KindSidecar, identity.New(pod.Spec.ServiceAccountName, namespace))
 	log.Debug().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
 	startTime := time.Now()
-	bootstrapCertificate, err := wh.certManager.IssueCertificate(cnPrefix, certificate.Internal)
+	bootstrapCertificate, err := wh.certManager.IssueCertificate(certificate.ForCommonNamePrefix(cnPrefix))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN prefix=%s", cnPrefix)
 		return nil, err
@@ -44,7 +45,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	originalHealthProbes := rewriteHealthProbes(pod)
 
 	// Create the bootstrap configuration for the Envoy proxy for the given pod
-	envoyBootstrapConfigName := bootstrapSecretPrefix + proxyUUID.String()
+	envoyBootstrapConfigName := bootstrapConfigName(proxyUUID)
 
 	// This needs to occur before replacing the label below.
 	originalUUID, alreadyInjected := getProxyUUID(pod)
@@ -61,12 +62,12 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		// with the same UUID, so instead we change the UUID, and create a new bootstrap config, copied from the original,
 		// with the proxy UUID changed.
 		oldConfigName := bootstrapSecretPrefix + originalUUID
-		if _, err := wh.createEnvoyBootstrapFromExisting(envoyBootstrapConfigName, oldConfigName, namespace, bootstrapCertificate); err != nil {
+		if _, err := wh.createEnvoyBootstrapFromExisting(proxyUUID, oldConfigName, namespace, bootstrapCertificate); err != nil {
 			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for already-injected pod: service-account=%s, namespace=%s, certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
 			return nil, err
 		}
 	default:
-		if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
+		if _, err = wh.createEnvoyBootstrapConfig(proxyUUID, namespace, bootstrapCertificate, originalHealthProbes); err != nil {
 			log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN prefix=%s", pod.Spec.ServiceAccountName, namespace, cnPrefix)
 			return nil, err
 		}
@@ -121,7 +122,15 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		return nil, err
 	}
 
-	if originalHealthProbes.UsesTCP() {
+	var usesTCP bool
+	for _, probes := range originalHealthProbes {
+		if probes.UsesTCP() {
+			usesTCP = true
+			break
+		}
+	}
+
+	if usesTCP {
 		healthcheckContainer := corev1.Container{
 			Name:            "osm-healthcheck",
 			Image:           os.Getenv("OSM_DEFAULT_HEALTHCHECK_CONTAINER_IMAGE"),
@@ -142,7 +151,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	}
 
 	// Add the Envoy sidecar
-	sidecar := getEnvoySidecarContainerSpec(pod, wh.kubeController.GetMeshConfig(), originalHealthProbes, podOS)
+	sidecar := getEnvoySidecarContainerSpec(pod, namespace, wh.kubeController.GetMeshConfig(), originalHealthProbes, podOS)
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
 	return json.Marshal(makePatches(req, pod))
@@ -236,4 +245,8 @@ func getProxyUUID(pod *corev1.Pod) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func bootstrapConfigName(proxyUUID uuid.UUID) string {
+	return bootstrapSecretPrefix + proxyUUID.String()
 }

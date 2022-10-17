@@ -45,6 +45,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&RetryList{},
 		&UpstreamTrafficSetting{},
 		&UpstreamTrafficSettingList{},
+		&Telemetry{},
+		&TelemetryList{},
 	)
 
 	metav1.AddToGroupVersion(

@@ -1,37 +1,44 @@
 package k8s
 
 import (
+	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	smiAccessClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
+	smiSpecClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned/fake"
+	smiSplitClientFake "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned/fake"
+	mcs "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
+	mcsClientFake "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned/fake"
+
 	"github.com/stretchr/testify/assert"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
-	testclient "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/utils/pointer"
+	"k8s.io/client-go/tools/cache"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/envoy"
-	fakeConfig "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	fakeConfigClient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
-	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/metricsstore"
-	"github.com/openservicemesh/osm/pkg/tests"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
-	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/models"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var (
 	testMeshName = "mesh"
+	testNs       = "test-ns"
 )
 
 func TestIsMonitoredNamespace(t *testing.T) {
@@ -46,6 +53,9 @@ func TestIsMonitoredNamespace(t *testing.T) {
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "foo",
+					Labels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+					},
 				},
 			},
 			ns:       "foo",
@@ -67,10 +77,11 @@ func TestIsMonitoredNamespace(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
 
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
-			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(tc.namespace), testMeshName))
+			a.NoError(err)
 
 			actual := c.IsMonitoredNamespace(tc.ns)
 			a.Equal(tc.expected, actual)
@@ -90,6 +101,9 @@ func TestGetNamespace(t *testing.T) {
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "foo",
+					Labels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+					},
 				},
 			},
 			ns:       "foo",
@@ -100,6 +114,9 @@ func TestGetNamespace(t *testing.T) {
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "foo",
+					Labels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+					},
 				},
 			},
 			ns:       "invalid",
@@ -110,10 +127,11 @@ func TestGetNamespace(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
-			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(tc.namespace), testMeshName))
+			a.NoError(err)
 
 			actual := c.GetNamespace(tc.ns)
 			if tc.expected {
@@ -125,23 +143,29 @@ func TestGetNamespace(t *testing.T) {
 	}
 }
 
-func TestListMonitoredNamespaces(t *testing.T) {
+func TestListNamespaces(t *testing.T) {
 	testCases := []struct {
 		name       string
-		namespaces []*corev1.Namespace
+		namespaces []runtime.Object
 		expected   []string
 	}{
 		{
 			name: "gets the namespace from the cache given its key",
-			namespaces: []*corev1.Namespace{
-				{
+			namespaces: []runtime.Object{
+				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "ns1",
+						Labels: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+						},
 					},
 				},
-				{
+				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "ns2",
+						Labels: map[string]string{
+							constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+						},
 					},
 				},
 			},
@@ -157,26 +181,30 @@ func TestListMonitoredNamespaces(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
-			for _, ns := range tc.namespaces {
-				_ = ic.Add(informers.InformerKeyNamespace, ns, t)
-			}
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			actual, err := c.ListMonitoredNamespaces()
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(tc.namespaces...), testMeshName))
+			a.NoError(err)
+
+			actual, err := c.ListNamespaces()
 			a.Nil(err)
-			a.ElementsMatch(tc.expected, actual)
+			names := make([]string, 0, len(actual))
+			for _, ns := range actual {
+				names = append(names, ns.Name)
+			}
+			a.ElementsMatch(tc.expected, names)
 		})
 	}
 }
 
 func TestGetService(t *testing.T) {
 	testCases := []struct {
-		name     string
-		service  *corev1.Service
-		svc      service.MeshService
-		expected bool
+		name         string
+		service      *corev1.Service
+		svcName      string
+		svcNamespace string
+		expected     bool
 	}{
 		{
 			name: "gets the service from the cache given its key",
@@ -186,8 +214,9 @@ func TestGetService(t *testing.T) {
 					Namespace: "ns1",
 				},
 			},
-			svc:      service.MeshService{Name: "foo", Namespace: "ns1"},
-			expected: true,
+			svcName:      "foo",
+			svcNamespace: "ns1",
+			expected:     true,
 		},
 		{
 			name: "returns nil if the service is not found in the cache",
@@ -197,8 +226,9 @@ func TestGetService(t *testing.T) {
 					Namespace: "ns1",
 				},
 			},
-			svc:      service.MeshService{Name: "invalid", Namespace: "ns1"},
-			expected: false,
+			svcName:      "invalid",
+			svcNamespace: "ns1",
+			expected:     false,
 		},
 		{
 			name: "gets the headless service from the cache from a subdomained MeshService",
@@ -208,20 +238,22 @@ func TestGetService(t *testing.T) {
 					Namespace: "ns1",
 				},
 			},
-			svc:      service.MeshService{Name: "foo-headless", Namespace: "ns1", Subdomain: "foo-0"},
-			expected: true,
+			svcName:      "foo-headless",
+			svcNamespace: "ns1",
+			expected:     true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
-			_ = ic.Add(informers.InformerKeyService, tc.service, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			actual := c.GetService(tc.svc)
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(tc.service), testMeshName))
+			a.NoError(err)
+
+			actual := c.GetService(tc.svcName, tc.svcNamespace)
 			if tc.expected {
 				a.Equal(tc.service, actual)
 			} else {
@@ -231,11 +263,184 @@ func TestGetService(t *testing.T) {
 	}
 }
 
+func TestListSecrets(t *testing.T) {
+	testCases := []struct {
+		name     string
+		secrets  []runtime.Object
+		expected []*models.Secret
+	}{
+		{
+			name: "get multiple k8s secrets",
+			secrets: []runtime.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1",
+						Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns2",
+						Name:      "s2",
+						Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
+					},
+				},
+			},
+			expected: []*models.Secret{
+				{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+				{
+					Namespace: "ns2",
+					Name:      "s2",
+				},
+			},
+		},
+		{
+			name: "get one k8s secret",
+			secrets: []runtime.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1",
+						Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
+					},
+				},
+			},
+			expected: []*models.Secret{
+				{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+			},
+		},
+		{
+			name: "no k8s secret",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(tc.secrets...), testMeshName))
+			a.Nil(err)
+
+			actual := c.ListSecrets()
+			a.ElementsMatch(tc.expected, actual)
+		})
+	}
+}
+
+func TestGetSecret(t *testing.T) {
+	testCases := []struct {
+		name       string
+		secret     *corev1.Secret
+		secretName string
+		namespace  string
+		expSecret  *models.Secret
+	}{
+		{
+			name: "gets the secret from the cache",
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "ns1",
+					Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
+				},
+			},
+			secretName: "foo",
+			namespace:  "ns1",
+			expSecret: &models.Secret{
+				Name:      "foo",
+				Namespace: "ns1",
+			},
+		},
+		{
+			name: "returns nil if the secret is not found in the cache",
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "ns1",
+					Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
+				},
+			},
+			secretName: "doesntExist",
+			namespace:  "ns1",
+			expSecret:  nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker,
+				WithKubeClient(fake.NewSimpleClientset(tc.secret), testMeshName))
+			a.NoError(err)
+
+			actual := c.GetSecret(tc.secretName, tc.namespace)
+			a.Equal(tc.expSecret, actual)
+		})
+	}
+}
+
+func TestUpdateSecret(t *testing.T) {
+	testCases := []struct {
+		name         string
+		corev1Secret *corev1.Secret
+		secret       *models.Secret
+		secretData   map[string][]byte
+	}{
+		{
+			name: "Update secret",
+			corev1Secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "s1",
+					Namespace: "ns1",
+					Labels:    map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue},
+				},
+				Data: map[string][]byte{},
+			},
+			secret: &models.Secret{
+				Name:      "s1",
+				Namespace: "ns1",
+				Data:      map[string][]byte{"a": {}},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient(testNs, tests.OsmMeshConfigName, broker,
+				WithKubeClient(fake.NewSimpleClientset(tc.corev1Secret), testMeshName))
+			a.NoError(err)
+
+			err = c.UpdateSecret(context.Background(), tc.secret)
+			a.Nil(err)
+
+			secret, err := c.kubeClient.CoreV1().Secrets("ns1").Get(context.Background(), tc.secret.Name, metav1.GetOptions{})
+			a.Nil(err)
+			a.Equal(tc.secret.Data, secret.Data)
+		})
+	}
+}
+
 func TestListServices(t *testing.T) {
 	testCases := []struct {
 		name      string
 		namespace *corev1.Namespace
-		services  []*corev1.Service
+		services  []runtime.Object
 		expected  []*corev1.Service
 	}{
 		{
@@ -243,16 +448,19 @@ func TestListServices(t *testing.T) {
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "ns1",
+					Labels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+					},
 				},
 			},
-			services: []*corev1.Service{
-				{
+			services: []runtime.Object{
+				&corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns1",
 						Name:      "s1",
 					},
 				},
-				{
+				&corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns2",
 						Name:      "s2",
@@ -273,14 +481,11 @@ func TestListServices(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
-			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			for _, s := range tc.services {
-				_ = ic.Add(informers.InformerKeyService, s, t)
-			}
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(append([]runtime.Object{tc.namespace}, tc.services...)...), testMeshName))
+			a.NoError(err)
 
 			actual := c.ListServices()
 			a.ElementsMatch(tc.expected, actual)
@@ -292,7 +497,7 @@ func TestListServiceAccounts(t *testing.T) {
 	testCases := []struct {
 		name      string
 		namespace *corev1.Namespace
-		sa        []*corev1.ServiceAccount
+		sa        []runtime.Object
 		expected  []*corev1.ServiceAccount
 	}{
 		{
@@ -300,16 +505,19 @@ func TestListServiceAccounts(t *testing.T) {
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "ns1",
+					Labels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+					},
 				},
 			},
-			sa: []*corev1.ServiceAccount{
-				{
+			sa: []runtime.Object{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns1",
 						Name:      "s1",
 					},
 				},
-				{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns2",
 						Name:      "s2",
@@ -330,14 +538,11 @@ func TestListServiceAccounts(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
-			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			for _, s := range tc.sa {
-				_ = ic.Add(informers.InformerKeyServiceAccount, s, t)
-			}
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(append([]runtime.Object{tc.namespace}, tc.sa...)...), testMeshName))
+			a.NoError(err)
 
 			actual := c.ListServiceAccounts()
 			a.ElementsMatch(tc.expected, actual)
@@ -349,7 +554,7 @@ func TestListPods(t *testing.T) {
 	testCases := []struct {
 		name      string
 		namespace *corev1.Namespace
-		pods      []*corev1.Pod
+		pods      []runtime.Object
 		expected  []*corev1.Pod
 	}{
 		{
@@ -357,16 +562,19 @@ func TestListPods(t *testing.T) {
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "ns1",
+					Labels: map[string]string{
+						constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+					},
 				},
 			},
-			pods: []*corev1.Pod{
-				{
+			pods: []runtime.Object{
+				&corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns1",
 						Name:      "s1",
 					},
 				},
-				{
+				&corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns2",
 						Name:      "s2",
@@ -387,14 +595,11 @@ func TestListPods(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
-			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			for _, p := range tc.pods {
-				_ = ic.Add(informers.InformerKeyPod, p, t)
-			}
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(append([]runtime.Object{tc.namespace}, tc.pods...)...), testMeshName))
+			a.NoError(err)
 
 			actual := c.ListPods()
 			a.ElementsMatch(tc.expected, actual)
@@ -404,10 +609,11 @@ func TestListPods(t *testing.T) {
 
 func TestGetEndpoints(t *testing.T) {
 	testCases := []struct {
-		name      string
-		endpoints *corev1.Endpoints
-		svc       service.MeshService
-		expected  *corev1.Endpoints
+		name         string
+		endpoints    *corev1.Endpoints
+		svcName      string
+		svcNamespace string
+		expected     *corev1.Endpoints
 	}{
 		{
 			name: "gets the service from the cache given its key",
@@ -417,7 +623,8 @@ func TestGetEndpoints(t *testing.T) {
 					Namespace: "ns1",
 				},
 			},
-			svc: service.MeshService{Name: "foo", Namespace: "ns1"},
+			svcName:      "foo",
+			svcNamespace: "ns1",
 			expected: &corev1.Endpoints{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
@@ -433,131 +640,29 @@ func TestGetEndpoints(t *testing.T) {
 					Namespace: "ns1",
 				},
 			},
-			svc:      service.MeshService{Name: "invalid", Namespace: "ns1"},
-			expected: nil,
+			svcName:      "invalid",
+			svcNamespace: "ns1",
+			expected:     nil,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
-			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			actual, err := c.GetEndpoints(tc.svc)
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(fake.NewSimpleClientset(tc.endpoints), testMeshName))
+			a.NoError(err)
+
+			actual, err := c.GetEndpoints(tc.svcName, tc.svcNamespace)
 			a.Nil(err)
 			a.Equal(tc.expected, actual)
 		})
 	}
 }
 
-func TestListServiceIdentitiesForService(t *testing.T) {
-	testCases := []struct {
-		name      string
-		namespace *corev1.Namespace
-		pods      []*corev1.Pod
-		service   *corev1.Service
-		svc       service.MeshService
-		expected  []identity.K8sServiceAccount
-		expectErr bool
-	}{
-		{
-			name: "returns the service accounts for the given MeshService",
-			namespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ns1",
-				},
-			},
-			pods: []*corev1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "ns1",
-						Name:      "p1",
-						Labels: map[string]string{
-							"k1": "v1", // matches selector for service ns1/s1
-						},
-					},
-					Spec: corev1.PodSpec{
-						ServiceAccountName: "sa1",
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "ns1",
-						Name:      "p2",
-						Labels: map[string]string{
-							"k1": "v2", // does not match selector for service ns1/s1
-						},
-					},
-					Spec: corev1.PodSpec{
-						ServiceAccountName: "sa2",
-					},
-				},
-			},
-			service: &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Spec: corev1.ServiceSpec{
-					Selector: map[string]string{
-						"k1": "v1", // matches labels on pod ns1/p1
-					},
-				},
-			},
-			svc: service.MeshService{Name: "s1", Namespace: "ns1"}, // Matches service ns1/s1
-			expected: []identity.K8sServiceAccount{
-				{Namespace: "ns1", Name: "sa1"},
-			},
-			expectErr: false,
-		},
-		{
-			name: "returns an error when the given MeshService is not found",
-			namespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ns1",
-				},
-			},
-			service: &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Spec: corev1.ServiceSpec{
-					Selector: map[string]string{
-						"k1": "v1", // matches labels on pod ns1/p1
-					},
-				},
-			},
-			svc:       service.MeshService{Name: "invalid", Namespace: "ns1"}, // Does not match service ns1/s1
-			expected:  nil,
-			expectErr: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			a := tassert.New(t)
-
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
-			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
-			for _, p := range tc.pods {
-				_ = ic.Add(informers.InformerKeyPod, p, t)
-			}
-			_ = ic.Add(informers.InformerKeyService, tc.service, t)
-
-			actual, err := c.ListServiceIdentitiesForService(tc.svc)
-			a.Equal(tc.expectErr, err != nil)
-			a.ElementsMatch(tc.expected, actual)
-		})
-	}
-}
-
-func TestUpdateStatus(t *testing.T) {
+func TestPolicyUpdateStatus(t *testing.T) {
 	testCases := []struct {
 		name             string
 		existingResource interface{}
@@ -649,11 +754,14 @@ func TestUpdateStatus(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := tassert.New(t)
-			kubeClient := testclient.NewSimpleClientset()
+			kubeClient := fake.NewSimpleClientset()
 			policyClient := fakePolicyClient.NewSimpleClientset(tc.existingResource.(runtime.Object))
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(kubeClient), informers.WithPolicyClient(policyClient))
-			a.Nil(err)
-			c := NewClient("osm", tests.OsmMeshConfigName, ic, policyClient, nil)
+
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithKubeClient(kubeClient, testMeshName), WithPolicyClient(policyClient))
+			a.NoError(err)
 			switch v := tc.updatedResource.(type) {
 			case *policyv1alpha1.IngressBackend:
 				_, err = c.UpdateIngressBackendStatus(v)
@@ -666,306 +774,51 @@ func TestUpdateStatus(t *testing.T) {
 	}
 }
 
-func TestK8sServicesToMeshServices(t *testing.T) {
+func TestConfigUpdateStatus(t *testing.T) {
 	testCases := []struct {
-		name         string
-		svc          corev1.Service
-		svcEndpoints []runtime.Object
-		expected     []service.MeshService
+		name             string
+		existingResource interface{}
+		updatedResource  interface{}
 	}{
 		{
-			name: "k8s service with single port and endpoint, no appProtocol set",
-			// Single port on the service maps to a single MeshService.
-			// Since no appProtocol is specified, MeshService.Protocol should default
-			// to http.
-			svc: corev1.Service{
+			name: "valid MeshRootCertificate resource",
+			existingResource: &configv1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
-					Name:      "s1",
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
 				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{
-						{
-							Name: "p1",
-							Port: 80,
-						},
-					},
-					ClusterIP: "10.0.0.1",
-				},
-			},
-			svcEndpoints: []runtime.Object{
-				&corev1.Endpoints{
-					ObjectMeta: metav1.ObjectMeta{
-						// Should match svc.Name and svc.Namespace
-						Namespace: "ns1",
-						Name:      "s1",
-					},
-					Subsets: []corev1.EndpointSubset{
-						{
-							Ports: []corev1.EndpointPort{
-								{
-									// Must match the port of 'svc.Spec.Ports[0]'
-									Port: 8080, // TargetPort
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					Provider: configv1alpha2.ProviderSpec{
+						Tresor: &configv1alpha2.TresorProviderSpec{
+							CA: configv1alpha2.TresorCASpec{
+								SecretRef: v1.SecretReference{
+									Name:      "osm-ca-bundle",
+									Namespace: "osm-system",
 								},
 							},
 						},
 					},
 				},
 			},
-			expected: []service.MeshService{
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Port:       80,
-					TargetPort: 8080,
-					Protocol:   "http",
-				},
-			},
-		},
-		{
-			name: "k8s service with single port and endpoint, no appProtocol set, protocol in port name",
-			// Single port on the service maps to a single MeshService.
-			// Since no appProtocol is specified, MeshService.Protocol should match
-			// the protocol specified in the port name
-			svc: corev1.Service{
+			updatedResource: &configv1alpha2.MeshRootCertificate{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
-					Name:      "s1",
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
 				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{
-						{
-							Name: "tcp-p1",
-							Port: 80,
-						},
-					},
-					ClusterIP: "10.0.0.1",
-				},
-			},
-			svcEndpoints: []runtime.Object{
-				&corev1.Endpoints{
-					ObjectMeta: metav1.ObjectMeta{
-						// Should match svc.Name and svc.Namespace
-						Namespace: "ns1",
-						Name:      "s1",
-					},
-					Subsets: []corev1.EndpointSubset{
-						{
-							Ports: []corev1.EndpointPort{
-								{
-									// Must match the port of 'svc.Spec.Ports[0]'
-									Port: 8080, // TargetPort
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					Provider: configv1alpha2.ProviderSpec{
+						Tresor: &configv1alpha2.TresorProviderSpec{
+							CA: configv1alpha2.TresorCASpec{
+								SecretRef: v1.SecretReference{
+									Name:      "osm-ca-bundle",
+									Namespace: "osm-system",
 								},
 							},
 						},
 					},
 				},
-			},
-			expected: []service.MeshService{
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Port:       80,
-					TargetPort: 8080,
-					Protocol:   "tcp",
-				},
-			},
-		},
-		{
-			name: "k8s headless service with single port and endpoint, no appProtocol set",
-			// Single port on the service maps to a single MeshService.
-			// Since no appProtocol is specified, MeshService.Protocol should default
-			// to http.
-			svc: corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
-					Name:      "s1",
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{
-						{
-							Name: "p1",
-							Port: 80,
-						},
-					},
-					ClusterIP: corev1.ClusterIPNone,
-				},
-			},
-			svcEndpoints: []runtime.Object{
-				&corev1.Endpoints{
-					ObjectMeta: metav1.ObjectMeta{
-						// Should match svc.Name and svc.Namespace
-						Namespace: "ns1",
-						Name:      "s1",
-					},
-					Subsets: []corev1.EndpointSubset{
-						{
-							Addresses: []corev1.EndpointAddress{
-								{
-									IP:       "10.1.0.1",
-									Hostname: "pod-0",
-								},
-							},
-							Ports: []corev1.EndpointPort{
-								{
-									// Must match the port of 'svc.Spec.Ports[0]'
-									Port: 8080, // TargetPort
-								},
-							},
-						},
-					},
-				},
-			},
-			expected: []service.MeshService{
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Subdomain:  "pod-0",
-					Port:       80,
-					TargetPort: 8080,
-					Protocol:   "http",
-				},
-			},
-		},
-		{
-			name: "multiple ports on k8s service with appProtocol specified",
-			svc: corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
-					Name:      "s1",
-				},
-				Spec: corev1.ServiceSpec{
-					ClusterIP: "10.0.0.1",
-					Ports: []corev1.ServicePort{
-						{
-							Name:        "p1",
-							Port:        80,
-							AppProtocol: pointer.StringPtr("http"),
-						},
-						{
-							Name:        "p2",
-							Port:        90,
-							AppProtocol: pointer.StringPtr("tcp"),
-						},
-					},
-				},
-			},
-			svcEndpoints: []runtime.Object{
-				&corev1.Endpoints{
-					ObjectMeta: metav1.ObjectMeta{
-						// Should match svc.Name and svc.Namespace
-						Namespace: "ns1",
-						Name:      "s1",
-					},
-					Subsets: []corev1.EndpointSubset{
-						{
-							Ports: []corev1.EndpointPort{
-								{
-									// Must match the port of 'svc.Spec.Ports[0]'
-									Name:        "p1",
-									Port:        8080, // TargetPort
-									AppProtocol: pointer.StringPtr("http"),
-								},
-								{
-									// Must match the port of 'svc.Spec.Ports[1]'
-									Name:        "p2",
-									Port:        9090, // TargetPort
-									AppProtocol: pointer.StringPtr("tcp"),
-								},
-							},
-						},
-					},
-				},
-			},
-			expected: []service.MeshService{
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Port:       80,
-					TargetPort: 8080,
-					Protocol:   "http",
-				},
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Port:       90,
-					TargetPort: 9090,
-					Protocol:   "tcp",
-				},
-			},
-		},
-		{
-			name: "multiple ports on k8s headless service with appProtocol specified",
-			svc: corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
-					Name:      "s1",
-				},
-				Spec: corev1.ServiceSpec{
-					ClusterIP: corev1.ClusterIPNone,
-					Ports: []corev1.ServicePort{
-						{
-							Name:        "p1",
-							Port:        80,
-							AppProtocol: pointer.StringPtr("http"),
-						},
-						{
-							Name:        "p2",
-							Port:        90,
-							AppProtocol: pointer.StringPtr("tcp"),
-						},
-					},
-				},
-			},
-			svcEndpoints: []runtime.Object{
-				&corev1.Endpoints{
-					ObjectMeta: metav1.ObjectMeta{
-						// Should match svc.Name and svc.Namespace
-						Namespace: "ns1",
-						Name:      "s1",
-					},
-					Subsets: []corev1.EndpointSubset{
-						{
-							Addresses: []corev1.EndpointAddress{
-								{
-									IP:       "10.1.0.1",
-									Hostname: "pod-0",
-								},
-							},
-							Ports: []corev1.EndpointPort{
-								{
-									// Must match the port of 'svc.Spec.Ports[0]'
-									Name:        "p1",
-									Port:        8080, // TargetPort
-									AppProtocol: pointer.StringPtr("http"),
-								},
-								{
-									// Must match the port of 'svc.Spec.Ports[1]'
-									Name:        "p2",
-									Port:        9090, // TargetPort
-									AppProtocol: pointer.StringPtr("tcp"),
-								},
-							},
-						},
-					},
-				},
-			},
-			expected: []service.MeshService{
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Subdomain:  "pod-0",
-					Port:       80,
-					TargetPort: 8080,
-					Protocol:   "http",
-				},
-				{
-					Namespace:  "ns1",
-					Name:       "s1",
-					Subdomain:  "pod-0",
-					Port:       90,
-					TargetPort: 9090,
-					Protocol:   "tcp",
+				Status: configv1alpha2.MeshRootCertificateStatus{
+					State: constants.MRCStateActive,
 				},
 			},
 		},
@@ -973,17 +826,19 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert := tassert.New(t)
+			a := tassert.New(t)
+			kubeClient := fake.NewSimpleClientset()
+			configClient := fakeConfigClient.NewSimpleClientset(tc.existingResource.(runtime.Object))
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
 
-			fakeClient := testclient.NewSimpleClientset(tc.svcEndpoints...)
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(fakeClient))
-			assert.Nil(err)
-
-			kubeController := NewClient("osm", tests.OsmMeshConfigName, ic, nil, nil)
-			assert.NotNil(kubeController)
-
-			actual := kubeController.ServiceToMeshServices(tc.svc)
-			assert.ElementsMatch(tc.expected, actual)
+			c, err := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker, WithKubeClient(kubeClient, testMeshName), WithConfigClient(configClient))
+			a.NoError(err)
+			switch v := tc.updatedResource.(type) {
+			case *configv1alpha2.MeshRootCertificate:
+				_, err = c.UpdateMeshRootCertificateStatus(v)
+				a.NoError(err)
+			}
 		})
 	}
 }
@@ -1014,48 +869,48 @@ func TestGetPodForProxy(t *testing.T) {
 		tests.NewPodFixture(namespace, "pod-2", tests.BookstoreServiceAccountName, someOthePodLabels),
 	)
 
-	ic, err := informers.NewInformerCollection(testMeshName, stop, informers.WithKubeClient(kubeClient))
-	assert.Nil(err)
+	broker := messaging.NewBroker(stop)
 
-	kubeController := NewClient("osm", tests.OsmMeshConfigName, ic, nil, messaging.NewBroker(nil))
+	c, err := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker, WithKubeClient(kubeClient, testMeshName))
+	assert.NoError(err)
 
 	testCases := []struct {
 		name  string
 		pod   *corev1.Pod
-		proxy *envoy.Proxy
+		proxy *models.Proxy
 		err   error
 	}{
 		{
 			name:  "fails when UUID does not match",
-			proxy: envoy.NewProxy(envoy.KindSidecar, uuid.New(), tests.BookstoreServiceIdentity, nil, 1),
+			proxy: models.NewProxy(models.KindSidecar, uuid.New(), tests.BookstoreServiceIdentity, nil, 1),
 			err:   errDidNotFindPodForUUID,
 		},
 		{
 			name:  "fails when service account does not match certificate",
-			proxy: &envoy.Proxy{UUID: proxyUUID, Identity: identity.New("bad-name", namespace)},
+			proxy: &models.Proxy{UUID: proxyUUID, Identity: identity.New("bad-name", namespace)},
 			err:   errServiceAccountDoesNotMatchProxy,
 		},
 		{
 			name:  "2 pods with same uuid",
-			proxy: envoy.NewProxy(envoy.KindSidecar, someOtherEnvoyUID, tests.BookstoreServiceIdentity, nil, 1),
+			proxy: models.NewProxy(models.KindSidecar, someOtherEnvoyUID, tests.BookstoreServiceIdentity, nil, 1),
 			err:   errMoreThanOnePodForUUID,
 		},
 		{
 			name:  "fails when namespace does not match certificate",
-			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, "bad-namespace"), nil, 1),
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, "bad-namespace"), nil, 1),
 			err:   errNamespaceDoesNotMatchProxy,
 		},
 		{
 			name:  "works as expected",
 			pod:   pod,
-			proxy: envoy.NewProxy(envoy.KindSidecar, proxyUUID, tests.BookstoreServiceIdentity, nil, 1),
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, tests.BookstoreServiceIdentity, nil, 1),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			pod, err := kubeController.GetPodForProxy(tc.proxy)
+			pod, err := c.GetPodForProxy(tc.proxy)
 
 			assert.Equal(tc.pod, pod)
 			assert.Equal(tc.err, err)
@@ -1074,191 +929,11 @@ func monitoredNS(name string) *v1.Namespace {
 	}
 }
 
-func TestGetTargetPortForServicePort(t *testing.T) {
-	osmNamespace := "osm"
-	testCases := []struct {
-		name               string
-		svc                *corev1.Service
-		endpoints          *corev1.Endpoints
-		namespacedSvc      types.NamespacedName
-		port               uint16
-		expectedTargetPort uint16
-		expectErr          bool
-	}{
-		{
-			name: "TargetPort found",
-			svc: &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{{
-						Name: "p1",
-						Port: 80,
-					}},
-				},
-			},
-			endpoints: &corev1.Endpoints{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Subsets: []corev1.EndpointSubset{
-					{
-						Ports: []corev1.EndpointPort{
-							{
-								Name: "p1",
-								Port: 8080,
-							},
-						},
-					},
-				},
-			},
-			namespacedSvc:      types.NamespacedName{Namespace: "ns1", Name: "s1"}, // matches svc
-			port:               80,                                                 // matches svc
-			expectedTargetPort: 8080,                                               // matches endpoint's 'p1' port
-			expectErr:          false,
-		},
-		{
-			name: "TargetPort not found as given service name does not exist",
-			svc: &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{{
-						Name: "p1",
-						Port: 80,
-					}},
-				},
-			},
-			endpoints: &corev1.Endpoints{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Subsets: []corev1.EndpointSubset{
-					{
-						Ports: []corev1.EndpointPort{
-							{
-								Name: "p1",
-								Port: 8080,
-							},
-						},
-					},
-				},
-			},
-			namespacedSvc:      types.NamespacedName{Namespace: "ns1", Name: "invalid"}, // does not match svc
-			port:               80,                                                      // matches svc
-			expectedTargetPort: 0,                                                       // matches endpoint's 'p1' port
-			expectErr:          true,
-		},
-		{
-			name: "TargetPort not found as Endpoint does not exist",
-			svc: &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{{
-						Name: "p1",
-						Port: 80,
-					}},
-				},
-			},
-			endpoints: &corev1.Endpoints{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Subsets: []corev1.EndpointSubset{
-					{
-						Ports: []corev1.EndpointPort{
-							{
-								Name: "invalid", // does not match svc port
-								Port: 8080,
-							},
-						},
-					},
-				},
-			},
-			namespacedSvc:      types.NamespacedName{Namespace: "ns1", Name: "s1"}, // matches svc
-			port:               80,                                                 // matches svc
-			expectedTargetPort: 0,                                                  // matches endpoint's 'p1' port
-			expectErr:          true,
-		},
-		{
-			name: "TargetPort not found as Endpoint matching given service does not exist",
-			svc: &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "s1",
-					Namespace: "ns1",
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{{
-						Name: "p1",
-						Port: 80,
-					}},
-				},
-			},
-			endpoints: &corev1.Endpoints{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "invalid", // does not match svc
-					Namespace: "ns1",
-				},
-				Subsets: []corev1.EndpointSubset{
-					{
-						Ports: []corev1.EndpointPort{
-							{
-								Name: "p1",
-								Port: 8080,
-							},
-						},
-					},
-				},
-			},
-			namespacedSvc:      types.NamespacedName{Namespace: "ns1", Name: "s1"}, // matches svc
-			port:               80,                                                 // matches svc
-			expectedTargetPort: 0,                                                  // matches endpoint's 'p1' port
-			expectErr:          true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			a := tassert.New(t)
-
-			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
-			a.Nil(err)
-			c := NewClient(osmNamespace, tests.OsmMeshConfigName, ic, nil, nil)
-			_ = ic.Add(informers.InformerKeyService, tc.svc, t)
-			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
-
-			actual, err := c.GetTargetPortForServicePort(tc.namespacedSvc, tc.port)
-			a.Equal(tc.expectedTargetPort, actual)
-			a.Equal(tc.expectErr, err != nil)
-		})
-	}
-}
-
 func TestGetMeshConfig(t *testing.T) {
 	a := assert.New(t)
 
-	meshConfigClient := fakeConfig.NewSimpleClientset()
-	stop := make(chan struct{})
 	osmNamespace := "osm"
 	osmMeshConfigName := "osm-mesh-config"
-
-	ic, err := informers.NewInformerCollection("osm", stop, informers.WithConfigClient(meshConfigClient, osmMeshConfigName, osmNamespace))
-	a.Nil(err)
-
-	c := NewClient(osmNamespace, tests.OsmMeshConfigName, ic, nil, nil)
-
-	// Returns empty MeshConfig if informer cache is empty
-	a.Equal(configv1alpha2.MeshConfig{}, c.GetMeshConfig())
 
 	newObj := &configv1alpha2.MeshConfig{
 		TypeMeta: metav1.TypeMeta{
@@ -1270,7 +945,21 @@ func TestGetMeshConfig(t *testing.T) {
 			Name:      osmMeshConfigName,
 		},
 	}
-	err = c.informers.Add(informers.InformerKeyMeshConfig, newObj, t)
+
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+
+	meshConfigClient := fakeConfigClient.NewSimpleClientset()
+	c, err := NewClient(osmNamespace, tests.OsmMeshConfigName, broker, WithConfigClient(meshConfigClient))
+	a.NoError(err)
+
+	// Returns empty MeshConfig if informer cache is empty
+	a.Equal(configv1alpha2.MeshConfig{}, c.GetMeshConfig())
+
+	meshConfigClient = fakeConfigClient.NewSimpleClientset(newObj)
+	c, err = NewClient(osmNamespace, tests.OsmMeshConfigName, broker, WithConfigClient(meshConfigClient))
+	a.NoError(err)
+
 	a.Nil(err)
 	a.Equal(*newObj, c.GetMeshConfig())
 }
@@ -1279,9 +968,11 @@ func TestMetricsHandler(t *testing.T) {
 	a := assert.New(t)
 	osmMeshConfigName := "osm-mesh-config"
 
-	c := &Client{
-		informers: &informers.InformerCollection{},
-	}
+	meshConfigClient := fakeConfigClient.NewSimpleClientset()
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+	c, err := NewClient(tests.OsmNamespace, osmMeshConfigName, broker, WithConfigClient(meshConfigClient))
+	a.NoError(err)
 	handlers := c.metricsHandler()
 	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.FeatureFlagEnabled)
 
@@ -1326,4 +1017,772 @@ func TestMetricsHandler(t *testing.T) {
 	})
 	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableRetryPolicy"} 0` + "\n"))
 	a.True(metricsstore.DefaultMetricsStore.Contains(`osm_feature_flag_enabled{feature_flag="enableSnapshotCacheMode"} 0` + "\n"))
+}
+
+func TestListEgressPolicies(t *testing.T) {
+	egressNsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
+		},
+	}
+
+	outMeshResource := &policyv1alpha1.Egress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "egress-1",
+			Namespace: "wrong-ns",
+		},
+		Spec: policyv1alpha1.EgressSpec{
+			Sources: []policyv1alpha1.EgressSourceSpec{
+				{
+					Kind:      "ServiceAccount",
+					Name:      "sa-1",
+					Namespace: testNs,
+				},
+				{
+					Kind:      "ServiceAccount",
+					Name:      "sa-2",
+					Namespace: testNs,
+				},
+			},
+			Hosts: []string{"foo.com"},
+			Ports: []policyv1alpha1.PortSpec{
+				{
+					Number:   80,
+					Protocol: "http",
+				},
+			},
+		},
+	}
+	inMeshResource := &policyv1alpha1.Egress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "egress-1",
+			Namespace: testNs,
+		},
+		Spec: policyv1alpha1.EgressSpec{
+			Sources: []policyv1alpha1.EgressSourceSpec{
+				{
+					Kind:      "ServiceAccount",
+					Name:      "sa-1",
+					Namespace: testNs,
+				},
+				{
+					Kind:      "ServiceAccount",
+					Name:      "sa-2",
+					Namespace: testNs,
+				},
+			},
+			Hosts: []string{"foo.com"},
+			Ports: []policyv1alpha1.PortSpec{
+				{
+					Number:   80,
+					Protocol: "http",
+				},
+			},
+		},
+	}
+
+	testCases := []struct {
+		name             string
+		allEgresses      []runtime.Object
+		expectedEgresses []*policyv1alpha1.Egress
+	}{
+		{
+			name:             "Only return egress resources for monitored namespaces",
+			allEgresses:      []runtime.Object{inMeshResource, outMeshResource},
+			expectedEgresses: []*policyv1alpha1.Egress{inMeshResource},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset(tc.allEgresses...)
+
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker, WithPolicyClient(fakeClient), WithKubeClient(fake.NewSimpleClientset(egressNsObj), testMeshName))
+			a.NoError(err)
+			// monitor namespaces
+
+			policies := c.ListEgressPolicies()
+			a.ElementsMatch(tc.expectedEgresses, policies)
+		})
+	}
+}
+
+func TestListRetryPolicy(t *testing.T) {
+	policyNsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
+		},
+	}
+
+	var thresholdUintVal uint32 = 3
+	thresholdTimeoutDuration := metav1.Duration{Duration: time.Duration(5 * time.Second)}
+	thresholdBackoffDuration := metav1.Duration{Duration: time.Duration(1 * time.Second)}
+
+	outMeshResource := &policyv1alpha1.Retry{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "retry-1",
+			Namespace: "wrong-ns",
+		},
+		Spec: policyv1alpha1.RetrySpec{
+			Source: policyv1alpha1.RetrySrcDstSpec{
+				Kind:      "ServiceAccount",
+				Name:      "sa-1",
+				Namespace: testNs,
+			},
+			Destinations: []policyv1alpha1.RetrySrcDstSpec{
+				{
+					Kind:      "Service",
+					Name:      "s1",
+					Namespace: testNs,
+				},
+				{
+					Kind:      "Service",
+					Name:      "s2",
+					Namespace: testNs,
+				},
+			},
+			RetryPolicy: policyv1alpha1.RetryPolicySpec{
+				RetryOn:                  "",
+				NumRetries:               &thresholdUintVal,
+				PerTryTimeout:            &thresholdTimeoutDuration,
+				RetryBackoffBaseInterval: &thresholdBackoffDuration,
+			},
+		},
+	}
+	inMeshResource := &policyv1alpha1.Retry{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "retry-1",
+			Namespace: testNs,
+		},
+		Spec: policyv1alpha1.RetrySpec{
+			Source: policyv1alpha1.RetrySrcDstSpec{
+				Kind:      "ServiceAccount",
+				Name:      "sa-1",
+				Namespace: testNs,
+			},
+			Destinations: []policyv1alpha1.RetrySrcDstSpec{
+				{
+					Kind:      "Service",
+					Name:      "s1",
+					Namespace: testNs,
+				},
+				{
+					Kind:      "Service",
+					Name:      "s2",
+					Namespace: testNs,
+				},
+			},
+			RetryPolicy: policyv1alpha1.RetryPolicySpec{
+				RetryOn:                  "",
+				NumRetries:               &thresholdUintVal,
+				PerTryTimeout:            &thresholdTimeoutDuration,
+				RetryBackoffBaseInterval: &thresholdBackoffDuration,
+			},
+		},
+	}
+
+	testCases := []struct {
+		name            string
+		allRetries      []runtime.Object
+		expectedRetries []*policyv1alpha1.Retry
+	}{
+		{
+			name:            "Only return retry resources for monitored namespaces",
+			allRetries:      []runtime.Object{inMeshResource, outMeshResource},
+			expectedRetries: []*policyv1alpha1.Retry{inMeshResource},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset(tc.allRetries...)
+
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker, WithPolicyClient(fakeClient), WithKubeClient(fake.NewSimpleClientset(policyNsObj), testMeshName))
+			a.NoError(err)
+
+			policies := c.ListRetryPolicies()
+			a.ElementsMatch(tc.expectedRetries, policies)
+		})
+	}
+}
+
+func TestListUpstreamTrafficSetting(t *testing.T) {
+	settingNsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
+		},
+	}
+
+	inMeshResource := &policyv1alpha1.UpstreamTrafficSetting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "u1",
+			Namespace: testNs,
+		},
+		Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+			Host: "s1.ns1.svc.cluster.local",
+		},
+	}
+	outMeshResource := &policyv1alpha1.UpstreamTrafficSetting{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "u1",
+			Namespace: "wrong-ns",
+		},
+		Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+			Host: "s1.ns1.svc.cluster.local",
+		},
+	}
+	testCases := []struct {
+		name         string
+		allResources []runtime.Object
+		expected     []*policyv1alpha1.UpstreamTrafficSetting
+	}{
+		{
+			name:         "Only return upstream traffic settings for monitored namespaces",
+			allResources: []runtime.Object{inMeshResource, outMeshResource},
+			expected:     []*policyv1alpha1.UpstreamTrafficSetting{inMeshResource},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset(tc.allResources...)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithPolicyClient(fakeClient), WithKubeClient(fake.NewSimpleClientset(settingNsObj), testMeshName))
+			a.NoError(err)
+
+			actual := c.ListUpstreamTrafficSettings()
+			a.Equal(tc.expected, actual)
+		})
+	}
+}
+
+func TestGetMeshRootCertificate(t *testing.T) {
+	testCases := []struct {
+		name                string
+		meshRootCertificate *configv1alpha2.MeshRootCertificate
+		mrcName             string
+		expected            bool
+	}{
+		{
+			name: "gets the MRC from the cache given its key",
+			meshRootCertificate: &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mrc",
+					Namespace: "osm-system",
+				},
+			},
+			mrcName:  "mrc",
+			expected: true,
+		},
+		{
+			name: "returns nil if the MRC is not found in the cache",
+			meshRootCertificate: &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mrc",
+					Namespace: "osm-system",
+				},
+			},
+			mrcName:  "mrc2",
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tassert.New(t)
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker, WithConfigClient(fakeConfigClient.NewSimpleClientset(tc.meshRootCertificate)))
+			a.NoError(err)
+
+			actual := c.GetMeshRootCertificate(tc.mrcName)
+			if tc.expected {
+				a.Equal(tc.meshRootCertificate, actual)
+			} else {
+				a.Nil(actual)
+			}
+		})
+	}
+}
+
+func TestListMeshRootCertificates(t *testing.T) {
+	a := assert.New(t)
+
+	mrc := &configv1alpha2.MeshRootCertificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "osm-mesh-root-certificate",
+			Namespace: "osm-system",
+		},
+		Spec: configv1alpha2.MeshRootCertificateSpec{
+			Provider: configv1alpha2.ProviderSpec{
+				Tresor: &configv1alpha2.TresorProviderSpec{
+					CA: configv1alpha2.TresorCASpec{
+						SecretRef: v1.SecretReference{
+							Name:      "osm-ca-bundle",
+							Namespace: "osm-system",
+						},
+					},
+				},
+			},
+		},
+		Status: configv1alpha2.MeshRootCertificateStatus{
+			State: constants.MRCStateActive,
+		},
+	}
+	mrcClient := fakeConfigClient.NewSimpleClientset(mrc)
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+
+	c, err := NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker, WithConfigClient(mrcClient))
+	a.NoError(err)
+
+	mrcList, err := c.ListMeshRootCertificates()
+	a.NoError(err)
+	a.Contains(mrcList, mrc)
+	a.Len(mrcList, 1)
+}
+
+func TestListHTTPTrafficSpecs(t *testing.T) {
+	nsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
+		},
+	}
+
+	obj := &smiSpecs.HTTPRouteGroup{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "HTTPRouteGroup",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNs,
+			Name:      "test-ListHTTPTrafficSpecs",
+		},
+		Spec: smiSpecs.HTTPRouteGroupSpec{
+			Matches: []smiSpecs.HTTPMatch{
+				{
+					Name:      tests.BuyBooksMatchName,
+					PathRegex: tests.BookstoreBuyPath,
+					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
+					},
+				},
+				{
+					Name:      tests.SellBooksMatchName,
+					PathRegex: tests.BookstoreSellPath,
+					Methods:   []string{"GET"},
+				},
+				{
+					Name: tests.WildcardWithHeadersMatchName,
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
+					},
+				},
+			},
+		},
+	}
+	a := assert.New(t)
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset(obj)
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+
+	c, err := NewClient("osm", tests.OsmMeshConfigName, broker,
+		WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		WithKubeClient(fake.NewSimpleClientset(nsObj), testMeshName),
+	)
+	a.NoError(err)
+	// Verify
+	actual := c.ListHTTPTrafficSpecs()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+}
+
+func TestGetHTTPRouteGroup(t *testing.T) {
+	nsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
+		},
+	}
+	obj := &smiSpecs.HTTPRouteGroup{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "HTTPRouteGroup",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNs,
+			Name:      "foo",
+		},
+		Spec: smiSpecs.HTTPRouteGroupSpec{
+			Matches: []smiSpecs.HTTPMatch{
+				{
+					Name:      tests.BuyBooksMatchName,
+					PathRegex: tests.BookstoreBuyPath,
+					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
+					},
+				},
+				{
+					Name:      tests.SellBooksMatchName,
+					PathRegex: tests.BookstoreSellPath,
+					Methods:   []string{"GET"},
+				},
+				{
+					Name: tests.WildcardWithHeadersMatchName,
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
+					},
+				},
+			},
+		},
+	}
+	a := assert.New(t)
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset(obj)
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+
+	c, err := NewClient("osm", tests.OsmMeshConfigName, broker,
+		WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		WithKubeClient(fake.NewSimpleClientset(nsObj), testMeshName),
+	)
+	a.NoError(err)
+	// Verify
+	key, _ := cache.MetaNamespaceKeyFunc(obj)
+	actual := c.GetHTTPRouteGroup(key)
+	a.Equal(obj, actual)
+
+	invalid := c.GetHTTPRouteGroup("invalid")
+	a.Nil(invalid)
+}
+
+func TestListTCPTrafficSpecs(t *testing.T) {
+	nsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
+		},
+	}
+
+	obj := &smiSpecs.TCPRoute{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "TCPRoute",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNs,
+			Name:      "tcp-route",
+		},
+		Spec: smiSpecs.TCPRouteSpec{},
+	}
+	a := assert.New(t)
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset(obj)
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+
+	c, err := NewClient("osm", tests.OsmMeshConfigName, broker,
+		WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		WithKubeClient(fake.NewSimpleClientset(nsObj), testMeshName),
+	)
+	a.NoError(err)
+	// Verify
+	actual := c.ListTCPTrafficSpecs()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+}
+
+func TestGetTCPRoute(t *testing.T) {
+	nsObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNs,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
+		},
+	}
+
+	obj := &smiSpecs.TCPRoute{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "TCPRoute",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNs,
+			Name:      "tcp-route",
+		},
+		Spec: smiSpecs.TCPRouteSpec{},
+	}
+	a := assert.New(t)
+	smiTrafficSplitClientSet := smiSplitClientFake.NewSimpleClientset()
+	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset(obj)
+	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+
+	c, err := NewClient("osm", tests.OsmMeshConfigName, broker, WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
+		WithKubeClient(fake.NewSimpleClientset(nsObj), testMeshName),
+	)
+	a.NoError(err)
+
+	// Verify
+	key, _ := cache.MetaNamespaceKeyFunc(obj)
+	actual := c.GetTCPRoute(key)
+	a.Equal(obj, actual)
+
+	invalid := c.GetTCPRoute("invalid")
+	a.Nil(invalid)
+}
+
+func TestGetTelemetryConfig(t *testing.T) {
+	proxyUUID := uuid.New()
+	appNamespace := "test"
+	osmNamespace := "global"
+
+	globalPolicy := &policyv1alpha1.Telemetry{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: osmNamespace,
+			Name:      "t1",
+		},
+	}
+
+	namespacePolicy := &policyv1alpha1.Telemetry{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: appNamespace,
+			Name:      "t2",
+		},
+	}
+
+	selectorPolicy := &policyv1alpha1.Telemetry{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: appNamespace,
+			Name:      "t3",
+		},
+		Spec: policyv1alpha1.TelemetrySpec{
+			Selector: map[string]string{"app": "foo"},
+		},
+	}
+
+	otelPolicy := &policyv1alpha1.Telemetry{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: appNamespace,
+			Name:      "t2",
+		},
+		Spec: policyv1alpha1.TelemetrySpec{
+			Selector: map[string]string{"app": "foo"},
+			AccessLog: &policyv1alpha1.EnvoyAccessLogConfig{
+				OpenTelemetry: &policyv1alpha1.EnvoyAccessLogOpenTelemetryConfig{
+					ExtensionService: policyv1alpha1.ExtensionServiceRef{
+						Namespace: "otel-ns",
+						Name:      "otel-collector",
+					},
+				},
+			},
+		},
+	}
+
+	otelExtSvc := &configv1alpha2.ExtensionService{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "otel-ns",
+			Name:      "otel-collector",
+		},
+	}
+
+	testCases := []struct {
+		name              string
+		proxy             *models.Proxy
+		pod               *corev1.Pod
+		telemetryPolicies []runtime.Object
+		extensionServices []runtime.Object
+		expected          models.TelemetryConfig
+	}{
+		{
+			name:  "matches global scope policy",
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, "sa-1.test", nil, 1),
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []runtime.Object{
+				globalPolicy,
+			},
+			expected: models.TelemetryConfig{
+				Policy: globalPolicy,
+			},
+		},
+		{
+			name:  "matches namespace scope policy",
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, "sa-1.test", nil, 1),
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []runtime.Object{
+				globalPolicy,
+				namespacePolicy,
+			},
+			expected: models.TelemetryConfig{
+				Policy: namespacePolicy,
+			},
+		},
+		{
+			name:  "matches selector scope policy",
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, "sa-1.test", nil, 1),
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []runtime.Object{
+				globalPolicy,
+				namespacePolicy,
+				selectorPolicy,
+			},
+			expected: models.TelemetryConfig{
+				Policy: selectorPolicy,
+			},
+		},
+		{
+			name:  "matches policy with OpenTelemetry config",
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, "sa-1.test", nil, 1),
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []runtime.Object{
+				otelPolicy,
+			},
+			extensionServices: []runtime.Object{
+				otelExtSvc,
+			},
+			expected: models.TelemetryConfig{
+				Policy:               otelPolicy,
+				OpenTelemetryService: otelExtSvc,
+			},
+		},
+		{
+			name:  "no policy when proxy does not match pod",
+			proxy: models.NewProxy(models.KindSidecar, uuid.New(), "sa-1.test", nil, 1), // new UUID to avoid matching proxyUUID
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []runtime.Object{
+				globalPolicy,
+				namespacePolicy,
+				selectorPolicy,
+			},
+			expected: models.TelemetryConfig{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			stop := make(chan struct{})
+			broker := messaging.NewBroker(stop)
+
+			c, err := NewClient(osmNamespace, testMeshName, broker,
+				WithKubeClient(fake.NewSimpleClientset(monitoredNS(appNamespace), tc.pod), testMeshName),
+				WithPolicyClient(fakePolicyClient.NewSimpleClientset(tc.telemetryPolicies...)),
+				WithConfigClient(fakeConfigClient.NewSimpleClientset(tc.extensionServices...)))
+			a.NoError(err)
+
+			actual := c.GetTelemetryConfig(tc.proxy)
+			a.Equal(tc.expected, actual)
+		})
+	}
+}
+
+func TestListServiceImports(t *testing.T) {
+	a := assert.New(t)
+
+	obj := &mcs.ServiceImport{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNs,
+			Name:      "test-service-import",
+		},
+	}
+
+	mcsClientSet := mcsClientFake.NewSimpleClientset(obj)
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+
+	c, err := NewClient("osm-system", "osm-mesh-config", broker,
+		WithKubeClient(fake.NewSimpleClientset(monitoredNS(testNs)), testMeshName),
+		WithMCSClient(mcsClientSet),
+	)
+	a.NoError(err)
+
+	// Verify
+	actual := c.ListServiceImports()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+}
+
+func TestListServiceExports(t *testing.T) {
+	a := assert.New(t)
+	obj := &mcs.ServiceExport{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNs,
+			Name:      "test-service-export",
+		},
+	}
+	mcsClientSet := mcsClientFake.NewSimpleClientset(obj)
+
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+
+	c, err := NewClient("osm-system", "osm-mesh-config", broker,
+		WithKubeClient(fake.NewSimpleClientset(monitoredNS(testNs)), testMeshName),
+		WithMCSClient(mcsClientSet),
+	)
+	a.NoError(err)
+
+	// Verify
+	actual := c.ListServiceExports()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
 }

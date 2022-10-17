@@ -44,9 +44,9 @@ filter_chains:
           name: local_service
           routes:
           - match:
-              prefix: /osm-readiness-probe
+              prefix: /osm-readiness-probe/my-container
             route:
-              cluster: readiness_cluster
+              cluster: my-container/readiness_cluster
               prefix_rewrite: /readiness
               timeout: 42s
       stat_prefix: health_probes_http

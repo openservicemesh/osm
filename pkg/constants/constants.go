@@ -97,6 +97,9 @@ const (
 	// OSMCertificateValidityPeriod is the TTL of the certificates used in the OSM control plane or for Envoy to xDS communication.
 	OSMCertificateValidityPeriod = 87600 * time.Hour // a decade
 
+	// CertCheckInterval is the period of ticks for a Ticker
+	CertCheckInterval = 5 * time.Second
+
 	// DefaultCABundleSecretName is the default name of the secret for the OSM CA bundle
 	DefaultCABundleSecretName = "osm-ca-bundle" // #nosec G101: Potential hardcoded credentials
 
@@ -147,9 +150,6 @@ const (
 
 	// OSMMeshConfig is the name of the OSM MeshConfig
 	OSMMeshConfig = "osm-mesh-config"
-
-	// CRDConversionWebhookPort is the port of the CRD conversion webhook service
-	CRDConversionWebhookPort = 9443
 )
 
 // HealthProbe constants
@@ -196,6 +196,9 @@ const (
 	// MRCStateIssuingRollout is the issuing rollout status option for the State of the MeshRootCertificate
 	MRCStateIssuingRollout = "issuingRollout"
 
+	// MRCStatePending is the pending status option for the State of the MeshRootCertificate
+	MRCStatePending = "pending"
+
 	// MRCStateActive is the active status option for the State of the MeshRootCertificate
 	MRCStateActive = "active"
 
@@ -210,6 +213,36 @@ const (
 
 	// MRCStateError is the error status option for the State of the MeshRootCertificate
 	MRCStateError = "error"
+
+	// MRCIntentPassive is the passive option for the Intent of the MeshRootCertificate
+	MRCIntentPassive = "passive"
+
+	// MRCIntentActive is the active option for the Intent of the MeshRootCertificate
+	MRCIntentActive = "active"
+
+	// MRCComponentStatusUnknown is the unknown status option for the component status of the MeshRootCertificate
+	MRCComponentStatusUnknown = "Unknown"
+
+	// MRCConditionStatusUnknown is the unknown status option for the condition status of the MeshRootCertificate
+	MRCConditionStatusUnknown = "Unknown"
+
+	// MRCConditionTypeReady is the ready condition type for certificate condition of the MeshRootCertificate
+	MRCConditionTypeReady = "Ready"
+
+	// MRCConditionTypeAccepted is the accepted condition type for certificate condition of the MeshRootCertificate
+	MRCConditionTypeAccepted = "Accepted"
+
+	// MRCConditionTypeIssuingRollout is the issuing rollout condition type for certificate condition of the MeshRootCertificate
+	MRCConditionTypeIssuingRollout = "IssuingRollout"
+
+	// MRCConditionTypeIssuingRollback is the issuing rollback condition type for certificate condition of the MeshRootCertificate
+	MRCConditionTypeIssuingRollback = "IssuingRollback"
+
+	// MRCConditionTypeValidatingRollout is the validating rollout condition type for certificate condition of the MeshRootCertificate
+	MRCConditionTypeValidatingRollout = "ValidatingRollout"
+
+	// MRCConditionTypeValidatingRollback is the validating rollback condition type for certificate condition of the MeshRootCertificate
+	MRCConditionTypeValidatingRollback = "ValidatingRollback"
 )
 
 // Labels used by the control plane

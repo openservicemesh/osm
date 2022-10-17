@@ -55,6 +55,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1alpha1().MeshConfigs().Informer()}, nil
 
 		// Group=config.openservicemesh.io, Version=v1alpha2
+	case v1alpha2.SchemeGroupVersion.WithResource("extensionservices"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1alpha2().ExtensionServices().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("meshconfigs"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1alpha2().MeshConfigs().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("meshrootcertificates"):

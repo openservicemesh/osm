@@ -417,7 +417,7 @@
           "title": "The sidecarImage schema",
           "description": "The proxy side car image to run.",
           "examples": [
-            "envoyproxy/envoy-distroless:v1.22.2@sha256:541d31419b95e3c62d8cc0967db9cdb4ad2782cc08faa6f15f04c081200e324a"
+            "envoyproxy/envoy-distroless:v1.23.1@sha256:293ffbe026e50a9463e909d9114278ca0af076b33d59d77a4a369acc6cbc53a0"
           ]
         },
         "curlImage": {
@@ -435,7 +435,7 @@
           "title": "The sidecarWindowsImage schema",
           "description": "The proxy side car image to run on Windows payloads.",
           "examples": [
-            "envoyproxy/envoy-windows:v1.22.1@sha256:92733f8e5beae5c45df204a0e13edbd29e99adf962d1b1c7869b197d85c64bd0"
+            "envoyproxy/envoy-windows:v1.23.1@sha256:c1da166a272c0ca02a2ffbe568eadef5e373ed4def1cb156b584cefda44be014"
           ]
         },
         "trustDomain": {
@@ -982,7 +982,8 @@
             "enableEnvoyActiveHealthChecks",
             "enableSnapshotCacheMode",
             "enableRetryPolicy",
-            "enableMeshRootCertificate"
+            "enableMeshRootCertificate",
+            "enableSPIFFE"
           ],
           "properties": {
             "enableWASMStats": {
@@ -1053,6 +1054,15 @@
               "type": "boolean",
               "title": "Enable the MeshRootCertificate",
               "description": "Enable the MeshRootCertificate to configure the OSM certificate provider.",
+              "examples": [
+                false
+              ]
+            },
+            "enableSPIFFE": {
+              "$id": "#/properties/osm/properties/featureFlags/properties/enableSPIFFE",
+              "type": "boolean",
+              "title": "Enable adding a SPIFFE ID to the certificates",
+              "description": "Enable adding a SPIFFE ID to the certificates, creating a SPIFFE compatible x509 SVID document",
               "examples": [
                 false
               ]

@@ -33,13 +33,25 @@ var _ = Describe("Test tools", func() {
 
 	Context("Test cert issuance data for request", func() {
 		It("creates a map w/ correct fields", func() {
-			cn := certificate.CommonName("blah.foo.com")
-			actual := getIssuanceData(cn, 8123*time.Minute)
+			options := certificate.NewCertOptionsWithFullName("blah.foo.com", 8123*time.Minute)
+			actual := getIssuanceData(options)
 			expected := map[string]interface{}{
 				"common_name": "blah.foo.com",
 				"ttl":         "135h",
 			}
 			Expect(actual).To(Equal(expected))
 		})
+
+		It("creates a map w/ correct fields when Spiffe Is enabled", func() {
+			options := certificate.NewCertOptionsWithTrustDomain("sa.svc", "foo.com", 8123*time.Minute, true)
+			actual := getIssuanceData(options)
+			expected := map[string]interface{}{
+				"common_name": "sa.svc.foo.com",
+				"ttl":         "135h",
+				"uri_sans":    "spiffe://foo.com/sa/svc",
+			}
+			Expect(actual).To(Equal(expected))
+		})
 	})
+
 })

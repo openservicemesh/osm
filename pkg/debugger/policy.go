@@ -34,7 +34,10 @@ func (ds DebugConfig) getOSMConfigHandler() http.Handler {
 func (ds DebugConfig) getSMIPoliciesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var p policies
-		p.TrafficSplits, p.ServiceAccounts, p.RouteGroups, p.TrafficTargets = ds.meshCatalogDebugger.ListSMIPolicies()
+		p.TrafficSplits = ds.meshCatalog.ListTrafficSplits()
+		p.ServiceAccounts = ds.meshCatalog.ListServiceAccountsFromTrafficTargets()
+		p.RouteGroups = ds.meshCatalog.ListHTTPTrafficSpecs()
+		p.TrafficTargets = ds.meshCatalog.ListTrafficTargets()
 
 		jsonPolicies, err := json.Marshal(p)
 		if err != nil {

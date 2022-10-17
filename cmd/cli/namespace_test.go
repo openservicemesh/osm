@@ -873,18 +873,20 @@ var _ = Describe("Running the namespace ignore command", func() {
 
 func createNamespaceSpec(namespace, meshName string, enableSideCarInjection bool, ignoreNamespace bool, enableMetrics bool) *v1.Namespace {
 	labelMap := make(map[string]string)
+	annotationMap := make(map[string]string)
 	if meshName != "" {
 		labelMap[constants.OSMKubeResourceMonitorAnnotation] = meshName
 	}
 	ns := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   namespace,
-			Labels: labelMap,
+			Name:        namespace,
+			Labels:      labelMap,
+			Annotations: annotationMap,
 		},
 	}
 
 	if enableSideCarInjection {
-		ns.Annotations = map[string]string{constants.SidecarInjectionAnnotation: "enabled"}
+		annotationMap[constants.SidecarInjectionAnnotation] = "enabled"
 	}
 
 	if ignoreNamespace {
@@ -892,7 +894,7 @@ func createNamespaceSpec(namespace, meshName string, enableSideCarInjection bool
 	}
 
 	if enableMetrics {
-		labelMap[constants.MetricsAnnotation] = "enabled"
+		annotationMap[constants.MetricsAnnotation] = "enabled"
 	}
 
 	return ns

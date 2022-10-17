@@ -12,7 +12,6 @@ import (
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -24,11 +23,9 @@ func TestGetRetryPolicy(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockPolicyController := policy.NewMockController(mockCtrl)
 	mockCompute := compute.NewMockInterface(mockCtrl)
 	mc := &MeshCatalog{
-		policyController: mockPolicyController,
-		Interface:        mockCompute,
+		Interface: mockCompute,
 	}
 	retrySrc := identity.ServiceIdentity("sa1.ns")
 
@@ -235,7 +232,7 @@ func TestGetRetryPolicy(t *testing.T) {
 					},
 				},
 			).AnyTimes()
-			mockPolicyController.EXPECT().ListRetryPolicies(gomock.Any()).Return(tc.retryCRDs).Times(1)
+			mockCompute.EXPECT().ListRetryPoliciesForServiceAccount(gomock.Any()).Return(tc.retryCRDs).Times(1)
 
 			res := mc.getRetryPolicy(retrySrc, tc.destSvc)
 			assert.Equal(tc.expectedRetryPolicy, res)

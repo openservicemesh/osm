@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"fmt"
 	"path/filepath"
 
 	xds_accesslog_config "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
@@ -15,6 +16,7 @@ import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -190,7 +192,7 @@ func (b *Builder) Build() (*xds_bootstrap.Bootstrap, error) {
 		Admin: &xds_bootstrap.Admin{
 			AccessLog: []*xds_accesslog_config.AccessLog{
 				{
-					Name: envoy.AccessLoggerName,
+					Name: envoy.StreamAccessLoggerName,
 					ConfigType: &xds_accesslog_config.AccessLog_TypedConfig{
 						TypedConfig: pbAccessLog,
 					},
@@ -277,6 +279,13 @@ func (b *Builder) Build() (*xds_bootstrap.Bootstrap, error) {
 							},
 						},
 					},
+					UpstreamConnectionOptions: &xds_cluster.UpstreamConnectionOptions{
+						TcpKeepalive: &xds_core.TcpKeepalive{
+							KeepaliveProbes:   wrapperspb.UInt32(5),
+							KeepaliveTime:     wrapperspb.UInt32(60),
+							KeepaliveInterval: wrapperspb.UInt32(5),
+						},
+					},
 				},
 			},
 		},
@@ -330,43 +339,79 @@ func GetValidationContextSDSConfigYAML() ([]byte, error) {
 // startup, readiness and liveness probes.
 // These will not change during the lifetime of the Pod.
 // If the original probe defined a TCPSocket action, listener and cluster objects are not configured
-// to serve that probe.
+// to serve that probe since the osm-healthcheck container that does that job is configured separately.
 func (b *Builder) getProbeResources() ([]*xds_listener.Listener, []*xds_cluster.Cluster, error) {
 	// This slice is the list of listeners for liveness, readiness, startup IF these have been configured in the Pod Spec
 	var listeners []*xds_listener.Listener
 	var clusters []*xds_cluster.Cluster
 
-	// Is there a liveness probe in the Pod Spec?
-	if b.OriginalHealthProbes.Liveness != nil && !b.OriginalHealthProbes.Liveness.IsTCPSocket {
-		listener, err := getLivenessListener(b.OriginalHealthProbes.Liveness)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error getting liveness listener")
-			return nil, nil, err
-		}
-		listeners = append(listeners, listener)
-		clusters = append(clusters, getLivenessCluster(b.OriginalHealthProbes.Liveness))
+	livenessListenerBuilder := probeListenerBuilder{
+		listenerName: livenessListener,
+		inboundPort:  constants.LivenessProbePort,
+	}
+	readinessListenerBuilder := probeListenerBuilder{
+		listenerName: readinessListener,
+		inboundPort:  constants.ReadinessProbePort,
+	}
+	startupListenerBuilder := probeListenerBuilder{
+		listenerName: startupListener,
+		inboundPort:  constants.StartupProbePort,
 	}
 
-	// Is there a readiness probe in the Pod Spec?
-	if b.OriginalHealthProbes.Readiness != nil && !b.OriginalHealthProbes.Readiness.IsTCPSocket {
-		listener, err := getReadinessListener(b.OriginalHealthProbes.Readiness)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error getting readiness listener")
-			return nil, nil, err
+	for containerName, probes := range b.OriginalHealthProbes {
+		// Liveness probe listener + cluster
+		livenessClusterName := fmt.Sprintf("%s_%s", containerName, livenessCluster)
+		livenessListenerBuilder.AddProbe(containerName, livenessClusterName, constants.LivenessProbePath, probes.Liveness)
+		livenessCluster := buildProbeCluster(livenessClusterName, probes.Liveness)
+		if livenessCluster != nil {
+			clusters = append(clusters, livenessCluster)
 		}
-		listeners = append(listeners, listener)
-		clusters = append(clusters, getReadinessCluster(b.OriginalHealthProbes.Readiness))
+
+		// Readiness probe listener + cluster
+		readinessClusterName := fmt.Sprintf("%s_%s", containerName, readinessCluster)
+		readinessListenerBuilder.AddProbe(containerName, readinessClusterName, constants.ReadinessProbePath, probes.Readiness)
+		readinessCluster := buildProbeCluster(readinessClusterName, probes.Readiness)
+		if readinessCluster != nil {
+			clusters = append(clusters, readinessCluster)
+		}
+
+		// Startup probe listener + cluster
+		startupClusterName := fmt.Sprintf("%s_%s", containerName, startupCluster)
+		startupListenerBuilder.AddProbe(containerName, startupClusterName, constants.StartupProbePath, probes.Startup)
+		startupCluster := buildProbeCluster(startupClusterName, probes.Startup)
+		if startupCluster != nil {
+			clusters = append(clusters, startupCluster)
+		}
 	}
 
-	// Is there a startup probe in the Pod Spec?
-	if b.OriginalHealthProbes.Startup != nil && !b.OriginalHealthProbes.Startup.IsTCPSocket {
-		listener, err := getStartupListener(b.OriginalHealthProbes.Startup)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error getting startup listener")
-			return nil, nil, err
-		}
-		listeners = append(listeners, listener)
-		clusters = append(clusters, getStartupCluster(b.OriginalHealthProbes.Startup))
+	livenessListener, err := livenessListenerBuilder.Build()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error building liveness listener")
+		return nil, nil, err
+	}
+
+	if livenessListener != nil {
+		listeners = append(listeners, livenessListener)
+	}
+
+	readinessListener, err := readinessListenerBuilder.Build()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error building readiness listener")
+		return nil, nil, err
+	}
+
+	if readinessListener != nil {
+		listeners = append(listeners, readinessListener)
+	}
+
+	startupListener, err := startupListenerBuilder.Build()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error building startup listener")
+		return nil, nil, err
+	}
+
+	if startupListener != nil {
+		listeners = append(listeners, startupListener)
 	}
 
 	return listeners, clusters, nil

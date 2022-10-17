@@ -19,11 +19,6 @@ func (ds DebugConfig) getCertHandler() http.Handler {
 		})
 
 		for idx, cert := range certs {
-			// TODO(5000): remove this check
-			if err := ds.certDebugger.CheckCacheMatch(cert); err != nil {
-				log.Warn().Msg(err.Error()) // don't log as a full error message
-			}
-
 			ca := cert.GetIssuingCA()
 			trustedCAs := cert.GetTrustedCAs()
 			chain := cert.GetCertificateChain()
@@ -51,6 +46,7 @@ func (ds DebugConfig) getCertHandler() http.Handler {
 			_, _ = fmt.Fprintf(w, "\t x509.BasicConstraintsValid: %+v\n", x509.BasicConstraintsValid)
 			_, _ = fmt.Fprintf(w, "\t x509.IsCA: %+v\n", x509.IsCA)
 			_, _ = fmt.Fprintf(w, "\t x509.DNSNames: %+v\n", x509.DNSNames)
+			_, _ = fmt.Fprintf(w, "\t x509.URISANs: %+v\n", x509.URIs)
 
 			_, _ = fmt.Fprintf(w, "\t Cert struct expiration vs. x509.NotAfter: %+v\n", x509.NotAfter.Sub(cert.GetExpiration()))
 

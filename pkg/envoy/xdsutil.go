@@ -1,25 +1,16 @@
 package envoy
 
 import (
-	"fmt"
 	"net"
-	"strings"
 
-	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
-
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
-	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -31,8 +22,8 @@ const (
 	// OutboundPassthroughCluster is the outbound passthrough cluster name
 	OutboundPassthroughCluster = "passthrough-outbound"
 
-	// AccessLoggerName is name used for the envoy access loggers.
-	AccessLoggerName = "envoy.access_loggers.stream"
+	// StreamAccessLoggerName is name used for the envoy stream access logger
+	StreamAccessLoggerName = "envoy.access_loggers.stream"
 )
 
 // ALPNInMesh indicates that the proxy is connecting to an in-mesh destination.
@@ -73,65 +64,6 @@ func GetTLSParams(sidecarSpec configv1alpha2.SidecarSpec) *xds_auth.TlsParameter
 	}
 
 	return tlsParams
-}
-
-// GetAccessLog creates an Envoy AccessLog struct.
-func GetAccessLog() []*xds_accesslog_filter.AccessLog {
-	accessLog, err := anypb.New(getStdoutAccessLog())
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMarshallingXDSResource)).
-			Msgf("Error marshalling AccessLog object")
-		return nil
-	}
-	return []*xds_accesslog_filter.AccessLog{{
-		Name: AccessLoggerName,
-		ConfigType: &xds_accesslog_filter.AccessLog_TypedConfig{
-			TypedConfig: accessLog,
-		}},
-	}
-}
-
-func getStdoutAccessLog() *xds_accesslog.StdoutAccessLog {
-	accessLogger := &xds_accesslog.StdoutAccessLog{
-		AccessLogFormat: &xds_accesslog.StdoutAccessLog_LogFormat{
-			LogFormat: &xds_core.SubstitutionFormatString{
-				Format: &xds_core.SubstitutionFormatString_JsonFormat{
-					JsonFormat: &structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							"start_time":            pbStringValue(`%START_TIME%`),
-							"method":                pbStringValue(`%REQ(:METHOD)%`),
-							"path":                  pbStringValue(`%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%`),
-							"protocol":              pbStringValue(`%PROTOCOL%`),
-							"response_code":         pbStringValue(`%RESPONSE_CODE%`),
-							"response_code_details": pbStringValue(`%RESPONSE_CODE_DETAILS%`),
-							"time_to_first_byte":    pbStringValue(`%RESPONSE_DURATION%`),
-							"upstream_cluster":      pbStringValue(`%UPSTREAM_CLUSTER%`),
-							"response_flags":        pbStringValue(`%RESPONSE_FLAGS%`),
-							"bytes_received":        pbStringValue(`%BYTES_RECEIVED%`),
-							"bytes_sent":            pbStringValue(`%BYTES_SENT%`),
-							"duration":              pbStringValue(`%DURATION%`),
-							"upstream_service_time": pbStringValue(`%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%`),
-							"x_forwarded_for":       pbStringValue(`%REQ(X-FORWARDED-FOR)%`),
-							"user_agent":            pbStringValue(`%REQ(USER-AGENT)%`),
-							"request_id":            pbStringValue(`%REQ(X-REQUEST-ID)%`),
-							"requested_server_name": pbStringValue("%REQUESTED_SERVER_NAME%"),
-							"authority":             pbStringValue(`%REQ(:AUTHORITY)%`),
-							"upstream_host":         pbStringValue(`%UPSTREAM_HOST%`),
-						},
-					},
-				},
-			},
-		},
-	}
-	return accessLogger
-}
-
-func pbStringValue(v string) *structpb.Value {
-	return &structpb.Value{
-		Kind: &structpb.Value_StringValue{
-			StringValue: v,
-		},
-	}
 }
 
 // getCommonTLSContext returns a CommonTlsContext type for a given 'tlsSDSCert' and 'peerValidationSDSCert' pair.
@@ -212,47 +144,6 @@ func GetADSConfigSource() *xds_core.ConfigSource {
 		},
 		ResourceApiVersion: xds_core.ApiVersion_V3,
 	}
-}
-
-// GetEnvoyServiceNodeID creates the string for Envoy's "--service-node" CLI argument for the Kubernetes sidecar container Command/Args
-func GetEnvoyServiceNodeID(nodeID, workloadKind, workloadName string) string {
-	items := []string{
-		"$(POD_UID)",
-		"$(POD_NAMESPACE)",
-		"$(POD_IP)",
-		"$(SERVICE_ACCOUNT)",
-		nodeID,
-		"$(POD_NAME)",
-		workloadKind,
-		workloadName,
-	}
-
-	return strings.Join(items, constants.EnvoyServiceNodeSeparator)
-}
-
-// ParseEnvoyServiceNodeID parses the given Envoy service node ID and returns the encoded metadata
-func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
-	chunks := strings.Split(serviceNodeID, constants.EnvoyServiceNodeSeparator)
-
-	if len(chunks) < 5 {
-		return nil, fmt.Errorf("invalid envoy service node id format")
-	}
-
-	meta := &PodMetadata{
-		UID:            chunks[0],
-		Namespace:      chunks[1],
-		IP:             chunks[2],
-		ServiceAccount: identity.K8sServiceAccount{Name: chunks[3], Namespace: chunks[1]},
-		EnvoyNodeID:    chunks[4],
-	}
-
-	if len(chunks) >= 8 {
-		meta.Name = chunks[5]
-		meta.WorkloadKind = chunks[6]
-		meta.WorkloadName = chunks[7]
-	}
-
-	return meta, nil
 }
 
 // GetCIDRRangeFromStr converts the given CIDR as a string to an XDS CidrRange object

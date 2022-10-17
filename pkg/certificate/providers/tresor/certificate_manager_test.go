@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 )
@@ -37,7 +38,7 @@ var _ = Describe("Test Certificate Manager", func() {
 		)
 		It("should issue a certificate", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
-			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, validity)
+			cert, issueCertificateError := m.IssueCertificate(certificate.NewCertOptionsWithFullName(serviceFQDN, validity))
 			Expect(issueCertificateError).ToNot(HaveOccurred())
 			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN)))
 
@@ -58,6 +59,37 @@ var _ = Describe("Test Certificate Manager", func() {
 			Expect(err).ToNot(HaveOccurred(), string(pemRootCert))
 			Expect(xRootCert.Subject.CommonName).To(Equal(cn.String()))
 		})
+
+		It("should issue a certificate with spiffe enabled and compatible", func() {
+			Expect(newCertError).ToNot(HaveOccurred())
+			options := certificate.NewCertOptionsWithTrustDomain(serviceFQDN, "cluster.local", validity, true)
+			cert, issueCertificateError := m.IssueCertificate(options)
+			Expect(issueCertificateError).ToNot(HaveOccurred())
+			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN + ".cluster.local")))
+
+			x509Cert, err := certificate.DecodePEMCertificate(rootCert.GetCertificateChain())
+			Expect(err).ToNot(HaveOccurred())
+
+			issuingCAPEM, err := certificate.EncodeCertDERtoPEM(x509Cert.Raw)
+			Expect(err).ToNot(HaveOccurred())
+			Expect([]byte(cert.GetIssuingCA())).To(Equal([]byte(issuingCAPEM)))
+
+			pemCert := cert.GetCertificateChain()
+			xCert, err := certificate.DecodePEMCertificate(pemCert)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(xCert.Subject.CommonName).To(Equal(serviceFQDN + ".cluster.local"))
+			Expect(xCert.URIs[0].String()).To(Equal("spiffe://cluster.local/a/b/c"))
+
+			pemRootCert := cert.GetIssuingCA()
+			xRootCert, err := certificate.DecodePEMCertificate(pemRootCert)
+			Expect(err).ToNot(HaveOccurred(), string(pemRootCert))
+			Expect(xRootCert.Subject.CommonName).To(Equal(cn.String()))
+
+			// parse will throw error if it is not a valid x509 SVID
+			svid, err := x509svid.Parse(cert.CertChain, cert.PrivateKey)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(svid.ID.String()).To(Equal("spiffe://cluster.local/a/b/c"))
+		})
 	})
 
 	Context("Test nil certificate issue", func() {
@@ -77,7 +109,7 @@ var _ = Describe("Test Certificate Manager", func() {
 
 		m := &CertManager{}
 		It("should return errNoIssuingCA error", func() {
-			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, validity)
+			cert, issueCertificateError := m.IssueCertificate(certificate.NewCertOptionsWithFullName(serviceFQDN, validity))
 			Expect(cert).To(BeNil())
 			Expect(issueCertificateError).To(Equal(errNoIssuingCA))
 		})

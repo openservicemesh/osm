@@ -13,7 +13,7 @@ if [[ "${CI:-}" == "true" ]]; then
     CTR_REGISTRY_PASSWORD=${DOCKER_PASS:-}
 fi
 
-if [[ "$USE_PRIVATE_REGISTRY" != true ]]; then
+if [[ "${USE_PRIVATE_REGISTRY:-}" != true ]]; then
     exit 0
 fi
 

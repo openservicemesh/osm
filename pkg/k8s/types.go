@@ -3,22 +3,28 @@
 package k8s
 
 import (
+	"context"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
+
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	mcs "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
+	mcsv1alpha1Client "sigs.k8s.io/mcs-api/pkg/client/clientset/versioned"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	configv1alpha2Client "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
-	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 var (
@@ -43,37 +49,13 @@ const (
 	DeleteEvent EventType = "DELETE"
 )
 
-const (
-	// DefaultKubeEventResyncInterval is the default resync interval for k8s events
-	// This is set to 0 because we do not need resyncs from k8s client, and have our
-	// own Ticker to turn on periodic resyncs.
-	DefaultKubeEventResyncInterval = 0 * time.Second
-)
-
-// InformerKey stores the different Informers we keep for K8s resources
-type InformerKey string
-
-const (
-	// Namespaces lookup identifier
-	Namespaces InformerKey = "Namespaces"
-	// Services lookup identifier
-	Services InformerKey = "Services"
-	// Pods lookup identifier
-	Pods InformerKey = "Pods"
-	// Endpoints lookup identifier
-	Endpoints InformerKey = "Endpoints"
-	// ServiceAccounts lookup identifier
-	ServiceAccounts InformerKey = "ServiceAccounts"
-	// MeshConfig lookup identifier
-	MeshConfig InformerKey = "MeshConfig"
-	// MeshRootCertificate lookup identifier
-	MeshRootCertificate InformerKey = "MeshRootCertificate"
-)
-
 // Client is the type used to represent the k8s client for the native k8s resources
 type Client struct {
 	policyClient   policyv1alpha1Client.Interface
-	informers      *informers.InformerCollection
+	configClient   configv1alpha2Client.Interface
+	mcsClient      mcsv1alpha1Client.Interface
+	kubeClient     kubernetes.Interface
+	informers      map[informerKey]cache.SharedIndexInformer
 	msgBroker      *messaging.Broker
 	osmNamespace   string
 	meshConfigName string
@@ -82,6 +64,15 @@ type Client struct {
 // Controller is the controller interface for K8s services
 type Controller interface {
 	PassthroughInterface
+	// GetSecret returns the secret for a given namespace and secret name
+	GetSecret(string, string) *models.Secret
+
+	// ListSecrets returns a list of secrets
+	ListSecrets() []*models.Secret
+
+	// UpdateSecret updates the given secret
+	UpdateSecret(context.Context, *models.Secret) error
+
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service
 
@@ -89,14 +80,10 @@ type Controller interface {
 	ListServiceAccounts() []*corev1.ServiceAccount
 
 	// GetService returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
-	GetService(service.MeshService) *corev1.Service
+	GetService(name, namespace string) *corev1.Service
 
-	// IsMonitoredNamespace returns whether a namespace with the given name is being monitored
-	// by the mesh
-	IsMonitoredNamespace(string) bool
-
-	// ListMonitoredNamespaces returns the namespaces monitored by the mesh
-	ListMonitoredNamespaces() ([]string, error)
+	// ListNamespaces returns the namespaces monitored by the mesh
+	ListNamespaces() ([]*corev1.Namespace, error)
 
 	// GetNamespace returns k8s namespace present in cache
 	GetNamespace(string) *corev1.Namespace
@@ -104,16 +91,11 @@ type Controller interface {
 	// ListPods returns a list of pods part of the mesh
 	ListPods() []*corev1.Pod
 
-	// ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
-	ListServiceIdentitiesForService(service.MeshService) ([]identity.K8sServiceAccount, error)
-
 	// GetEndpoints returns the endpoints for a given service, if found
-	GetEndpoints(service.MeshService) (*corev1.Endpoints, error)
+	GetEndpoints(name, namespace string) (*corev1.Endpoints, error)
 
-	// GetPodForProxy returns the pod for the given proxy
-	GetPodForProxy(*envoy.Proxy) (*v1.Pod, error)
-
-	ServiceToMeshServices(svc corev1.Service) []service.MeshService
+	// GetPodForProxy returns the pod that the given proxy is attached to, based on the UUID and service identity.
+	GetPodForProxy(proxy *models.Proxy) (*corev1.Pod, error)
 }
 
 // PassthroughInterface is the interface for methods that are implemented by the k8s.Client, but are not considered
@@ -125,10 +107,63 @@ type Controller interface {
 // we control the definition it is reasonable to assume a non-k8s implementation would be obligated to implement as
 // well.
 type PassthroughInterface interface {
+	// IsMonitoredNamespace returns whether a namespace with the given name is being monitored
+	// by the mesh
+	IsMonitoredNamespace(string) bool
+
 	GetMeshConfig() configv1alpha2.MeshConfig
+	GetMeshRootCertificate(mrcName string) *configv1alpha2.MeshRootCertificate
+	AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler, resyncInterval time.Duration)
+
+	ListMeshRootCertificates() ([]*configv1alpha2.MeshRootCertificate, error)
+	UpdateMeshRootCertificate(obj *configv1alpha2.MeshRootCertificate) (*configv1alpha2.MeshRootCertificate, error)
+	UpdateMeshRootCertificateStatus(obj *configv1alpha2.MeshRootCertificate) (*configv1alpha2.MeshRootCertificate, error)
 	GetOSMNamespace() string
 	UpdateIngressBackendStatus(obj *policyv1alpha1.IngressBackend) (*policyv1alpha1.IngressBackend, error)
 	UpdateUpstreamTrafficSettingStatus(obj *policyv1alpha1.UpstreamTrafficSetting) (*policyv1alpha1.UpstreamTrafficSetting, error)
 
-	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
+	// ListEgressPolicies lists the all Egress policies
+	ListEgressPolicies() []*policyv1alpha1.Egress
+
+	// ListIngressBackends lists the all IngressBackend policies
+	ListIngressBackendPolicies() []*policyv1alpha1.IngressBackend
+
+	// ListRetryPolicies returns the all retry policies
+	ListRetryPolicies() []*policyv1alpha1.Retry
+
+	// ListUpstreamTrafficSettings returns all UpstreamTrafficSetting resources
+	ListUpstreamTrafficSettings() []*policyv1alpha1.UpstreamTrafficSetting
+
+	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resources with namespaced name
+	GetUpstreamTrafficSetting(*types.NamespacedName) *policyv1alpha1.UpstreamTrafficSetting
+
+	// ListTrafficSplits lists SMI TrafficSplit resources
+	ListTrafficSplits() []*split.TrafficSplit
+
+	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
+	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
+
+	// GetHTTPRouteGroup returns an SMI HTTPRouteGroup resource given its name of the form <namespace>/<name>
+	GetHTTPRouteGroup(string) *spec.HTTPRouteGroup
+
+	// ListTCPTrafficSpecs lists SMI TCPRoute resources
+	ListTCPTrafficSpecs() []*spec.TCPRoute
+
+	// GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>
+	GetTCPRoute(string) *spec.TCPRoute
+
+	// ListTrafficTargets lists SMI TrafficTarget resources. An optional filter can be applied to filter the
+	// returned list
+	ListTrafficTargets() []*access.TrafficTarget
+
+	// ListServiceImports returns all the ServiceImport resources
+	ListServiceImports() []*mcs.ServiceImport
+
+	// ListServiceExports returns all the ServiceExport resources
+	ListServiceExports() []*mcs.ServiceExport
+
+	// GetTelemetryConfig returns the Telemetry config for the given proxy instance.
+	// It returns the most specific match if multiple matching policies exist, in the following
+	// order of preference: 1. selector match, 2. namespace match, 3. global match
+	GetTelemetryConfig(*models.Proxy) models.TelemetryConfig
 }

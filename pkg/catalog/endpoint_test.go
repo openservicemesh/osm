@@ -20,7 +20,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -140,10 +139,8 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			mockProvider := compute.NewMockInterface(mockCtrl)
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 
 			mc := MeshCatalog{
-				meshSpec:  mockMeshSpec,
 				Interface: mockProvider,
 			}
 
@@ -165,12 +162,12 @@ func TestListAllowedUpstreamEndpointsForService(t *testing.T) {
 				return
 			}
 
-			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()
+			mockProvider.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()
 
 			for sa, services := range tc.outboundServices {
 				for _, svc := range services {
 					k8sService := tests.NewServiceFixture(svc.Name, svc.Namespace, map[string]string{})
-					mockKubeController.EXPECT().GetService(svc).Return(k8sService).AnyTimes()
+					mockKubeController.EXPECT().GetService(svc.Name, svc.Namespace).Return(k8sService).AnyTimes()
 				}
 				mockProvider.EXPECT().GetServicesForServiceIdentity(sa).Return(services).AnyTimes()
 			}

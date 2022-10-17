@@ -38,9 +38,10 @@ func getPlatformSpecificSpecComponents(meshConfig v1alpha2.MeshConfig, podOS str
 	return
 }
 
-func getEnvoySidecarContainerSpec(pod *corev1.Pod, meshConfig v1alpha2.MeshConfig, originalHealthProbes models.HealthProbes, podOS string) corev1.Container {
+func getEnvoySidecarContainerSpec(pod *corev1.Pod, namespace string, meshConfig v1alpha2.MeshConfig, originalHealthProbes map[string]models.HealthProbes, podOS string) corev1.Container {
 	// cluster ID will be used as an identifier to the tracing sink
-	clusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, pod.Namespace)
+	// pod.Namespace is unset in the API request to the webhook so namespace is derived from req.Namespace
+	clusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, namespace)
 	securityContext, containerImage := getPlatformSpecificSpecComponents(meshConfig, podOS)
 
 	logLevel := meshConfig.Spec.Sidecar.LogLevel
@@ -110,7 +111,7 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, meshConfig v1alpha2.MeshConfi
 	}
 }
 
-func getEnvoyContainerPorts(originalHealthProbes models.HealthProbes) []corev1.ContainerPort {
+func getEnvoyContainerPorts(originalHealthProbes map[string]models.HealthProbes) []corev1.ContainerPort {
 	containerPorts := []corev1.ContainerPort{
 		{
 			Name:          constants.EnvoyAdminPortName,
@@ -126,7 +127,23 @@ func getEnvoyContainerPorts(originalHealthProbes models.HealthProbes) []corev1.C
 		},
 	}
 
-	if originalHealthProbes.Liveness != nil {
+	var usesLiveness, usesReadiness, usesStartup bool
+
+	for _, probes := range originalHealthProbes {
+		if probes.Liveness != nil {
+			usesLiveness = true
+		}
+
+		if probes.Readiness != nil {
+			usesReadiness = true
+		}
+
+		if probes.Startup != nil {
+			usesStartup = true
+		}
+	}
+
+	if usesLiveness {
 		livenessPort := corev1.ContainerPort{
 			// Name must be no more than 15 characters
 			Name:          "liveness-port",
@@ -135,7 +152,7 @@ func getEnvoyContainerPorts(originalHealthProbes models.HealthProbes) []corev1.C
 		containerPorts = append(containerPorts, livenessPort)
 	}
 
-	if originalHealthProbes.Readiness != nil {
+	if usesReadiness {
 		readinessPort := corev1.ContainerPort{
 			// Name must be no more than 15 characters
 			Name:          "readiness-port",
@@ -144,7 +161,7 @@ func getEnvoyContainerPorts(originalHealthProbes models.HealthProbes) []corev1.C
 		containerPorts = append(containerPorts, readinessPort)
 	}
 
-	if originalHealthProbes.Startup != nil {
+	if usesStartup {
 		startupPort := corev1.ContainerPort{
 			// Name must be no more than 15 characters
 			Name:          "startup-port",

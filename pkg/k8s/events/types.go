@@ -113,6 +113,9 @@ const (
 	// ServiceAccount is the Kind for Kubernetes service account events.
 	ServiceAccount Kind = "serviceaccount"
 
+	// Secret is the Kind for Kubernetes secret events.
+	Secret Kind = "secret"
+
 	// TrafficSplit is the Kind for Kubernetes traffic split events.
 	TrafficSplit Kind = "trafficsplit"
 
@@ -143,8 +146,14 @@ const (
 	// RetryPolicy is the Kind for Kubernetes retry policy events.
 	RetryPolicy Kind = "retry"
 
-	// UpstreamTrafficSetting is the Kind for Kubernetes updstream traffic settings events.
+	// UpstreamTrafficSetting is the Kind for Kubernetes UpstreamTrafficSetting events.
 	UpstreamTrafficSetting Kind = "upstreamtrafficsetting"
+
+	// Telemetry is the Kind for Kubernetes Telemetry events.
+	Telemetry Kind = "telemetry"
+
+	// ExtensionService is the Kind for Kubernetes ExtensionService events.
+	ExtensionService Kind = "extensionservice"
 )
 
 // GetKind returns the Kind for the given k8s object.
@@ -160,6 +169,8 @@ func GetKind(obj interface{}) Kind {
 		return Service
 	case *corev1.ServiceAccount:
 		return ServiceAccount
+	case *corev1.Secret:
+		return Secret
 	case *networkingv1.Ingress:
 		return Ingress
 	case *smiSplit.TrafficSplit:
@@ -182,6 +193,10 @@ func GetKind(obj interface{}) Kind {
 		return RetryPolicy
 	case *policyv1alpha1.UpstreamTrafficSetting:
 		return UpstreamTrafficSetting
+	case *policyv1alpha1.Telemetry:
+		return Telemetry
+	case *configv1alpha2.ExtensionService:
+		return ExtensionService
 	default:
 		log.Error().Msgf("Unknown kind: %v", obj)
 		return ""

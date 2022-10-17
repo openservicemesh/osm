@@ -171,6 +171,19 @@ func (d *uninstallMeshCmd) run() error {
 			}
 
 			if err == nil {
+				namespaces, _ := selectNamespacesMonitoredByMesh(m.name, d.clientSet)
+				for _, ns := range namespaces.Items {
+					removeCmd := &namespaceRemoveCmd{
+						out:       d.out,
+						namespace: ns.Name,
+						meshName:  m.name,
+						clientSet: d.clientSet,
+					}
+
+					if err := removeCmd.run(); err != nil {
+						fmt.Fprintf(d.out, "Could not cleanup OSM mesh [%s] related labels and annotations for namespace  [%s]....", m.name, m.namespace)
+					}
+				}
 				fmt.Fprintf(d.out, "OSM [mesh name: %s] in namespace [%s] uninstalled\n", m.name, m.namespace)
 			}
 

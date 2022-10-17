@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"reflect"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
@@ -15,7 +16,9 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/compute"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/policy"
@@ -65,9 +68,9 @@ func FakeValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionRes
 */
 type validateFunc func(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error)
 
-// policyValidator is a validator that has access to a policy
-type policyValidator struct {
-	policyClient policy.Controller
+// validator is a validator that has access to a compute resources
+type validator struct {
+	computeClient compute.Interface
 }
 
 func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
@@ -85,7 +88,7 @@ func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Adm
 }
 
 // ingressBackendValidator validates the IngressBackend custom resource
-func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+func (kc *validator) ingressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 	ingressBackend := &policyv1alpha1.IngressBackend{}
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(ingressBackend); err != nil {
 		return nil, err
@@ -111,7 +114,7 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 			Protocol:   backend.Port.Protocol,
 		}
 
-		if matchingPolicy := kc.policyClient.GetIngressBackendPolicy(fakeMeshSvc); matchingPolicy != nil && matchingPolicy.Name != ingressBackend.Name {
+		if matchingPolicy := kc.computeClient.GetIngressBackendPolicyForService(fakeMeshSvc); matchingPolicy != nil && matchingPolicy.Name != ingressBackend.Name {
 			// we've found a duplicate
 			if unique := conflictingIngressBackends.Add(matchingPolicy); !unique {
 				// we've already found the conflicts for this resource
@@ -229,7 +232,7 @@ func egressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 }
 
 // upstreamTrafficSettingValidator validates the UpstreamTrafficSetting custom resource
-func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+func (kc *validator) upstreamTrafficSettingValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 	upstreamTrafficSetting := &policyv1alpha1.UpstreamTrafficSetting{}
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(upstreamTrafficSetting); err != nil {
 		return nil, err
@@ -241,8 +244,7 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 		return nil, field.Invalid(field.NewPath("spec").Child("host"), upstreamTrafficSetting.Spec.Host, "invalid FQDN specified as host")
 	}
 
-	opt := policy.UpstreamTrafficSettingGetOpt{Host: upstreamTrafficSetting.Spec.Host}
-	if matchingUpstreamTrafficSetting := kc.policyClient.GetUpstreamTrafficSetting(opt); matchingUpstreamTrafficSetting != nil && matchingUpstreamTrafficSetting.Name != upstreamTrafficSetting.Name {
+	if matchingUpstreamTrafficSetting := kc.computeClient.GetUpstreamTrafficSettingByHost(upstreamTrafficSetting.Spec.Host); matchingUpstreamTrafficSetting != nil && matchingUpstreamTrafficSetting.Name != upstreamTrafficSetting.Name {
 		// duplicate detected
 		return nil, fmt.Errorf("UpstreamTrafficSetting %s/%s conflicts with %s/%s since they have the same host %s", ns, upstreamTrafficSetting.ObjectMeta.GetName(), ns, matchingUpstreamTrafficSetting.ObjectMeta.GetName(), matchingUpstreamTrafficSetting.Spec.Host)
 	}
@@ -265,4 +267,125 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 	}
 
 	return nil, nil
+}
+
+func (kc *validator) meshRootCertificateValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	switch req.Operation {
+	case admissionv1.Create:
+		newMRC := &configv1alpha2.MeshRootCertificate{}
+		if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(newMRC); err != nil {
+			return nil, err
+		}
+
+		err := kc.validateMRCOnCreate(newMRC)
+		return nil, err
+	case admissionv1.Update:
+		newMRC, oldMRC := &configv1alpha2.MeshRootCertificate{}, &configv1alpha2.MeshRootCertificate{}
+		if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(newMRC); err != nil {
+			return nil, err
+		}
+		if err := json.NewDecoder(bytes.NewBuffer(req.OldObject.Raw)).Decode(oldMRC); err != nil {
+			return nil, err
+		}
+
+		err := kc.validateMRCOnUpdate(oldMRC, newMRC)
+		return nil, err
+	}
+	return nil, nil
+}
+
+func (kc *validator) validateMRCOnCreate(mrc *configv1alpha2.MeshRootCertificate) error {
+	if mrc.Spec.TrustDomain == "" {
+		return fmt.Errorf("trustDomain must be non empty for MRC %s", getNamespacedMRC(mrc))
+	}
+
+	if err := validateMRCProvider(mrc); err != nil {
+		return err
+	}
+
+	if mrc.Spec.Intent == constants.MRCIntentActive {
+		foundActive, err := kc.checkForExistingActiveMRC(mrc)
+		if err != nil {
+			return err
+		}
+		if foundActive {
+			return fmt.Errorf("cannot create MRC %s with intent active. An MRC with active intent already exists in the control plane namespace", getNamespacedMRC(mrc))
+		}
+	}
+
+	return nil
+}
+
+func (kc *validator) validateMRCOnUpdate(oldMRC *configv1alpha2.MeshRootCertificate, newMRC *configv1alpha2.MeshRootCertificate) error {
+	if !reflect.DeepEqual(oldMRC.Spec.Provider, newMRC.Spec.Provider) {
+		return fmt.Errorf("cannot update certificate provider settings for MRC %s. Create a new MRC and initiate root certificate rotation to update the provider", getNamespacedMRC(newMRC))
+	}
+
+	if oldMRC.Spec.TrustDomain != newMRC.Spec.TrustDomain {
+		return fmt.Errorf("cannot update trust domain for MRC %s. Create a new MRC and initiate root certificate rotation to update the trust domain", getNamespacedMRC(oldMRC))
+	}
+
+	if oldMRC.Spec.SpiffeEnabled != newMRC.Spec.SpiffeEnabled {
+		return fmt.Errorf("cannot update SpiffeEnabled for MRC %s. Create a new MRC and initiate root certificate rotation to enable SPIFFE certificates", getNamespacedMRC(oldMRC))
+	}
+
+	if oldMRC.Spec.Intent != newMRC.Spec.Intent && newMRC.Spec.Intent == constants.MRCIntentActive {
+		foundActive, err := kc.checkForExistingActiveMRC(newMRC)
+		if err != nil {
+			return err
+		}
+		if foundActive {
+			return fmt.Errorf("cannot update MRC %s to intent active. An MRC with active intent already exists in the control plane namespace", getNamespacedMRC(newMRC))
+		}
+	}
+
+	return nil
+}
+
+func validateMRCProvider(mrc *configv1alpha2.MeshRootCertificate) error {
+	p := mrc.Spec.Provider
+	switch {
+	case p.Tresor != nil:
+		secretRef := p.Tresor.CA.SecretRef
+		if secretRef.Name == "" || secretRef.Namespace == "" {
+			return fmt.Errorf("name and namespace in CA secret reference cannot be set to empty strings for MRC %s", getNamespacedMRC(mrc))
+		}
+	case p.Vault != nil:
+		if p.Vault.Host == "" || p.Vault.Protocol == "" || p.Vault.Role == "" {
+			return fmt.Errorf("host, protocol, and role cannot be set to empty strings for MRC %s", getNamespacedMRC(mrc))
+		}
+
+		tokenSecret := p.Vault.Token.SecretKeyRef
+		if tokenSecret.Key == "" || tokenSecret.Name == "" || tokenSecret.Namespace == "" {
+			return fmt.Errorf("key, name, and namespace for the Vault token secret reference cannot be set to empty strings for MRC %s", getNamespacedMRC(mrc))
+		}
+	case p.CertManager != nil:
+		if p.CertManager.IssuerGroup == "" || p.CertManager.IssuerKind == "" || p.CertManager.IssuerName == "" {
+			return fmt.Errorf("issuerGroup, issuerKind, and issuerName cannot be set to empty strings for MRC %s", getNamespacedMRC(mrc))
+		}
+	}
+
+	return nil
+}
+
+// checkForExistingActiveMRC returns true if there are active MRCs in addition to the specified MRC
+// Returns false if there are no active MRCs or if the specified mrc will be the only active MRC
+func (kc *validator) checkForExistingActiveMRC(mrc *configv1alpha2.MeshRootCertificate) (bool, error) {
+	mrcs, err := kc.computeClient.ListMeshRootCertificates()
+	if err != nil {
+		return false, err
+	}
+
+	for _, m := range mrcs {
+		if m.Spec.Intent == constants.MRCIntentActive && m.Name != mrc.Name {
+			log.Error().Msgf("cannot create MRC %s with intent active. An MRC with active intent already exists in the control plane namespace", getNamespacedMRC(mrc))
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func getNamespacedMRC(mrc *configv1alpha2.MeshRootCertificate) string {
+	return fmt.Sprintf("%s/%s", mrc.Namespace, mrc.Name)
 }

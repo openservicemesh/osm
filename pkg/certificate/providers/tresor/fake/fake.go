@@ -35,7 +35,7 @@ func NewFakeMRC() *fakeMRCClient { //nolint: revive // unexported-return
 }
 
 // NewCertEvent allows pushing MRC events which can trigger cert changes
-func (c *fakeMRCClient) NewCertEvent(name, state string) {
+func (c *fakeMRCClient) NewCertEvent(name, state, trustDomain string) {
 	c.mrcChannel <- certificate.MRCEvent{
 		Type: certificate.MRCEventAdded,
 		MRC: &v1alpha2.MeshRootCertificate{
@@ -44,7 +44,7 @@ func (c *fakeMRCClient) NewCertEvent(name, state string) {
 				Namespace: "osm-system",
 			},
 			Spec: v1alpha2.MeshRootCertificateSpec{
-				TrustDomain: "cluster.local",
+				TrustDomain: trustDomain,
 				Provider: v1alpha2.ProviderSpec{
 					Tresor: &v1alpha2.TresorProviderSpec{
 						CA: v1alpha2.TresorCASpec{
@@ -58,9 +58,40 @@ func (c *fakeMRCClient) NewCertEvent(name, state string) {
 			},
 			Status: v1alpha2.MeshRootCertificateStatus{
 				State: state,
+				Conditions: []v1alpha2.MeshRootCertificateCondition{
+					{
+						Type:   constants.MRCConditionTypeReady,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeAccepted,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeIssuingRollout,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeValidatingRollout,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeIssuingRollback,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+					{
+						Type:   constants.MRCConditionTypeValidatingRollback,
+						Status: constants.MRCConditionStatusUnknown,
+					},
+				},
 			},
 		},
 	}
+}
+
+// UpdateMeshRootCertificate is not implemented on the compat client and always returns an error
+func (c *fakeMRCClient) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) error {
+	return nil
 }
 
 // GetCertIssuerForMRC will return a root cert for testing.
@@ -74,11 +105,19 @@ func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (
 		return nil, nil, err
 	}
 	issuer, err := tresor.New(ca, rootCertOrganization, 2048)
-	return issuer, pem.RootCertificate("rootCA"), err
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cert, err := issuer.IssueCertificate(certificate.NewCertOptionsWithFullName("rootCA", 24*time.Hour))
+	if err != nil {
+		return nil, nil, err
+	}
+	return issuer, cert.GetTrustedCAs(), nil
 }
 
 // List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
-func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
+func (c *fakeMRCClient) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertificate, error) {
 	// return single empty object in the list.
 	return []*v1alpha2.MeshRootCertificate{{Spec: v1alpha2.MeshRootCertificateSpec{TrustDomain: "fake.example.com"}}}, nil
 }
@@ -86,7 +125,7 @@ func (c *fakeMRCClient) List() ([]*v1alpha2.MeshRootCertificate, error) {
 func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
 	// send event for first CA created
 	go func() {
-		c.NewCertEvent(initialRootName, constants.MRCStateActive)
+		c.NewCertEvent(initialRootName, constants.MRCStateActive, "cluster.local")
 	}()
 
 	return c.mrcChannel, nil

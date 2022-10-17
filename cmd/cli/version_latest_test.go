@@ -17,11 +17,11 @@ func TestOutputLatestReleaseVersion(t *testing.T) {
 		output  string
 	}{
 		{
-			name:    "invalid current version",
-			current: "v1.0.0.0",
+			name:    "customized current version",
+			current: "dev",
 			latest:  "v1.0.0",
-			err:     fmt.Errorf("illegal version string \"v1.0.0.0\""),
-			output:  "",
+			err:     nil,
+			output:  "\nOSM in dev version. Latest available version is v1.0.0.\n\n",
 		},
 		{
 			name:    "invalid latest version",

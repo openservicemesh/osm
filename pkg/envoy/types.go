@@ -3,15 +3,13 @@
 package envoy
 
 import (
-	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 )
 
 var (
 	// XDSResponseOrder is the order in which we send xDS responses: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59
 	XDSResponseOrder = []TypeURI{TypeCDS, TypeEDS, TypeLDS, TypeRDS, TypeSDS}
-
-	log = logger.New("envoy")
 )
 
 // TypeURI is a string describing the Envoy xDS payload.
@@ -90,7 +88,8 @@ const (
 // *Note: HTTP typed filters referenced in RDS require a wellknown name
 const (
 	// HTTP filters
-	HTTPConnectionManagerFilterName = "http_connection_manager"
+	// TODO: once https://github.com/envoyproxy/go-control-plane/issues/588, we can use any name we want.
+	HTTPConnectionManagerFilterName = wellknown.HTTPConnectionManager
 	HTTPRouterFilterName            = "http_router"
 	HTTPLuaFilterName               = "http_lua"
 

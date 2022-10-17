@@ -18,7 +18,7 @@ import (
 )
 
 // NewReconcilerClient implements a client to reconcile osm managed resources
-func NewReconcilerClient(kubeClient kubernetes.Interface, apiServerClient clientset.Interface, meshName, osmVersion string, stop chan struct{}, selectInformers ...k8s.InformerKey) error {
+func NewReconcilerClient(kubeClient kubernetes.Interface, apiServerClient clientset.Interface, meshName, osmVersion string, stop chan struct{}, selectInformers ...InformerKey) error {
 	// Initialize client object
 	c := client{
 		kubeClient:      kubeClient,
@@ -29,20 +29,10 @@ func NewReconcilerClient(kubeClient kubernetes.Interface, apiServerClient client
 	}
 
 	// Initialize informers
-	informerInitHandlerMap := map[k8s.InformerKey]func(){
+	informerInitHandlerMap := map[InformerKey]func(){
 		CrdInformerKey:               c.initCustomResourceDefinitionMonitor,
 		MutatingWebhookInformerKey:   c.initMutatingWebhookConfigurationMonitor,
 		ValidatingWebhookInformerKey: c.initValidatingWebhookConfigurationMonitor,
-	}
-
-	// If specific informers are not selected to be initialized, initialize all informers
-	if len(selectInformers) == 0 {
-		informers := []k8s.InformerKey{MutatingWebhookInformerKey, ValidatingWebhookInformerKey}
-		// initialize informer for CRDs only if the apiServerClient is not nil
-		if apiServerClient != nil {
-			informers = append(informers, CrdInformerKey)
-		}
-		selectInformers = informers
 	}
 
 	for _, informer := range selectInformers {
