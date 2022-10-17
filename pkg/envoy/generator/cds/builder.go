@@ -1,6 +1,7 @@
 package cds
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -32,21 +33,15 @@ import (
 )
 
 type clusterBuilder struct {
-	proxyIdentity identity.ServiceIdentity
-
+	proxyIdentity                     identity.ServiceIdentity
 	outboundMeshTrafficClusterConfigs []*trafficpolicy.MeshClusterConfig
-
-	inboundMeshTrafficClusterConfigs []*trafficpolicy.MeshClusterConfig
-
-	egressTrafficClusterConfigs []*trafficpolicy.EgressClusterConfig
-
-	sidecarSpec configv1alpha2.SidecarSpec
-
-	egressEnabled bool
-
-	metricsEnabled bool
-
-	envoyTracingAddress *xds_core.Address
+	inboundMeshTrafficClusterConfigs  []*trafficpolicy.MeshClusterConfig
+	egressTrafficClusterConfigs       []*trafficpolicy.EgressClusterConfig
+	sidecarSpec                       configv1alpha2.SidecarSpec
+	egressEnabled                     bool
+	metricsEnabled                    bool
+	envoyTracingAddress               *xds_core.Address
+	openTelemetryExtSvc               *configv1alpha2.ExtensionService
 }
 
 func NewClusterBuilder() *clusterBuilder { //nolint: revive // unexported-return
@@ -90,6 +85,11 @@ func (b *clusterBuilder) SetMetricsEnabled(metricsEnabled bool) *clusterBuilder 
 
 func (b *clusterBuilder) SetEnvoyTracingAddress(tracingAddress *xds_core.Address) *clusterBuilder {
 	b.envoyTracingAddress = tracingAddress
+	return b
+}
+
+func (b *clusterBuilder) SetOpenTelemetryExtSvc(svc *configv1alpha2.ExtensionService) *clusterBuilder {
+	b.openTelemetryExtSvc = svc
 	return b
 }
 
@@ -137,6 +137,15 @@ func (b *clusterBuilder) Build() ([]types.Resource, error) {
 	// Add an outbound tracing cluster (from localhost to tracing sink)
 	if b.tracingEnabled() {
 		clusters = append(clusters, b.getTracingCluster())
+	}
+
+	if b.openTelemetryExtSvc != nil {
+		if otelCluster, err := getExtensionServiceCluster(b.openTelemetryExtSvc); err != nil {
+			log.Error().Err(err).Msgf("Error building cluster config for OpenTelemetry ExtensionService %s/%s",
+				b.openTelemetryExtSvc.Namespace, b.openTelemetryExtSvc.Name)
+		} else {
+			clusters = append(clusters, otelCluster)
+		}
 	}
 
 	return removeDups(clusters), nil
@@ -570,4 +579,46 @@ func removeDups(clusters []*xds_cluster.Cluster) []types.Resource {
 	}
 
 	return cdsResources
+}
+
+func getExtensionServiceCluster(svc *configv1alpha2.ExtensionService) (*xds_cluster.Cluster, error) {
+	if svc == nil {
+		return nil, errors.New("got nil ExtensionService")
+	}
+
+	typedHTTPProtocolOptions, err := GetTypedHTTPProtocolOptions(GetHTTPProtocolOptions(svc.Spec.Protocol))
+	if err != nil {
+		return nil, err
+	}
+
+	clusterName := fmt.Sprintf("%s.%d", svc.Spec.Host, svc.Spec.Port)
+
+	upstreamCluster := &xds_cluster.Cluster{
+		Name:        clusterName,
+		AltStatName: formatAltStatNameForPrometheus(clusterName),
+		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+			Type: xds_cluster.Cluster_STRICT_DNS,
+		},
+		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
+		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
+			ClusterName: clusterName,
+			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*xds_endpoint.LbEndpoint{{
+						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+							Endpoint: &xds_endpoint.Endpoint{
+								Address: envoy.GetAddress(svc.Spec.Host, svc.Spec.Port),
+							},
+						},
+						LoadBalancingWeight: &wrappers.UInt32Value{
+							Value: constants.ClusterWeightAcceptAll,
+						},
+					}},
+				},
+			},
+		},
+		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
+	}
+
+	return upstreamCluster, nil
 }
