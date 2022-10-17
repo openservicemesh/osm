@@ -3,6 +3,7 @@ package certificate
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -88,6 +89,7 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 				log.Info().Msg("context canceled. stopping MRC watch...")
 				return
 			case event, open := <-mrcEvents:
+				fmt.Println("mrcEvents here")
 				if !open {
 					// channel was closed; return
 					log.Info().Msg("stopping MRC watch...")

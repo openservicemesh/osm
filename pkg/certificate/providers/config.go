@@ -173,30 +173,11 @@ func (c *MRCProviderGenerator) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertifi
 
 // getTresorOSMCertificateManager returns a certificate manager instance with Tresor as the certificate provider
 func (c *MRCProviderGenerator) getTresorOSMCertificateManager(mrc *v1alpha2.MeshRootCertificate) (certificate.Issuer, error) {
-	var err error
-	var rootCert *certificate.Certificate
-
-	// This part synchronizes CA creation using the inherent atomicity of kubernetes API backend
-	// Assuming multiple instances of Tresor are instantiated at the same time, only one of them will
-	// succeed to issue a "Create" of the secret. All other Creates will fail with "AlreadyExists".
-	// Regardless of success or failure, all instances can proceed to load the same CA.
-	rootCert, err = tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootValidityPeriod, rootCertCountry, rootCertLocality, rootCertOrganization)
-	if err != nil {
-		return nil, errors.New("Failed to create new Certificate Authority with cert issuer tresor")
-	}
-
-	if rootCert.GetPrivateKey() == nil {
-		return nil, errors.New("Root cert does not have a private key")
-	}
-
-	rootCert, err = getCertificateFromSecret(mrc.Namespace, mrc.Spec.Provider.Tresor.CA.SecretRef.Name, rootCert, c.Interface)
+	rootCert, err := c.ensureTresorCertificateExists(mrc.Namespace, mrc.Spec.Provider.Tresor.CA.SecretRef.Name)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to synchronize certificate on Secrets API : %w", err)
 	}
 
-	if rootCert.GetPrivateKey() == nil {
-		return nil, fmt.Errorf("Root cert does not have a private key: %w", certificate.ErrInvalidCertSecret)
-	}
 	tresorClient, err := tresor.New(
 		rootCert,
 		rootCertOrganization,
@@ -278,27 +259,20 @@ func (c *MRCProviderGenerator) getCertManagerOSMCertificateManager(mrc *v1alpha2
 }
 
 // getCertFromKubernetes is a helper function that loads a certificate from a models.Secret
-func getCertFromKubernetes(ns string, secretName string, computeClient compute.Interface) (*certificate.Certificate, error) {
-	certSecret := computeClient.GetSecret(secretName, ns)
-	if certSecret == nil {
-		// TODO(#3962): metric might not be scraped before process restart resulting from this error
-		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingCertSecret)).
-			Msgf("Could not retrieve certificate secret %q from namespace %q", secretName, ns)
-		return nil, certificate.ErrSecretNotFound
-	}
-	pemCert, ok := certSecret.Data[constants.KubernetesOpaqueSecretCAKey]
+func extractCertificateFromSecret(secret *models.Secret) (*certificate.Certificate, error) {
+	pemCert, ok := secret.Data[constants.KubernetesOpaqueSecretCAKey]
 	if !ok {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(certificate.ErrInvalidCertSecret).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingCertFromSecret)).
-			Msgf("Opaque k8s secret %s/%s does not have required field %q", ns, secretName, constants.KubernetesOpaqueSecretCAKey)
+			Msgf("Opaque k8s secret %s/%s does not have required field %q", secret.Namespace, secret.Name, constants.KubernetesOpaqueSecretCAKey)
 		return nil, certificate.ErrInvalidCertSecret
 	}
 
-	pemKey, ok := certSecret.Data[constants.KubernetesOpaqueSecretRootPrivateKeyKey]
+	pemKey, ok := secret.Data[constants.KubernetesOpaqueSecretRootPrivateKeyKey]
 	if !ok {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(certificate.ErrInvalidCertSecret).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrObtainingPrivateKeyFromSecret)).
-			Msgf("Opaque k8s secret %s/%s does not have required field %q", ns, secretName, constants.KubernetesOpaqueSecretRootPrivateKeyKey)
+			Msgf("Opaque k8s secret %s/%s does not have required field %q", secret.Namespace, secret.Name, constants.KubernetesOpaqueSecretRootPrivateKeyKey)
 		return nil, certificate.ErrInvalidCertSecret
 	}
 
@@ -313,12 +287,25 @@ func getCertFromKubernetes(ns string, secretName string, computeClient compute.I
 
 // getCertificateFromSecret is a helper function that ensures creation and synchronization of a certificate
 // using Kubernetes Secrets backend and API atomicity.
-func getCertificateFromSecret(ns string, secretName string, cert *certificate.Certificate, computeClient compute.Interface) (*certificate.Certificate, error) {
+func (c *MRCProviderGenerator) ensureTresorCertificateExists(ns string, secretName string) (*certificate.Certificate, error) {
+	// This part synchronizes CA creation using the inherent atomicity of kubernetes API backend
+	// Assuming multiple instances of Tresor are instantiated at the same time, only one of them will
+	// succeed to issue a "Create" of the secret. All other Creates will fail with "AlreadyExists".
+	// Regardless of success or failure, all instances can proceed to load the same CA.
+	rootCert, err := tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootValidityPeriod, rootCertCountry, rootCertLocality, rootCertOrganization)
+	if err != nil {
+		return nil, errors.New("Failed to create new Certificate Authority with cert issuer tresor")
+	}
+
+	if rootCert.GetPrivateKey() == nil {
+		return nil, errors.New("Root cert does not have a private key")
+	}
+
 	// Attempt to create it in Kubernetes. When multiple agents attempt to create, only one of them will succeed.
 	// All others will get "AlreadyExists" error back.
 	secretData := map[string][]byte{
-		constants.KubernetesOpaqueSecretCAKey:             cert.GetCertificateChain(),
-		constants.KubernetesOpaqueSecretRootPrivateKeyKey: cert.GetPrivateKey(),
+		constants.KubernetesOpaqueSecretCAKey:             rootCert.GetCertificateChain(),
+		constants.KubernetesOpaqueSecretRootPrivateKeyKey: rootCert.GetPrivateKey(),
 	}
 
 	secret := &models.Secret{
@@ -330,25 +317,16 @@ func getCertificateFromSecret(ns string, secretName string, cert *certificate.Ce
 		},
 		Data: secretData,
 	}
-
-	if err := computeClient.CreateSecret(secret); err == nil {
-		log.Info().Msgf("Secret %s/%s created in kubernetes", ns, secretName)
-	} else if apierrors.IsAlreadyExists(err) {
-		log.Info().Msgf("Secret %s/%s already exists in kubernetes, loading.", ns, secretName)
-	} else {
+	err = c.Interface.CreateSecret(secret)
+	if err != nil && !apierrors.IsAlreadyExists(err) {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrCreatingCertSecret)).
-			Msgf("Error creating/retrieving certificate secret %s/%s", ns, secretName)
+			Msgf("Error creating certificate secret %s/%s", ns, secretName)
 		return nil, err
+	} else if err == nil {
+		log.Info().Msgf("Secret %s/%s created in kubernetes", ns, secretName)
+		return rootCert, nil
 	}
-
-	// For simplicity, we will load the certificate for all of them, this way the instance which created it
-	// and the ones that didn't share the same code.
-	cert, err := getCertFromKubernetes(ns, secretName, computeClient)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to fetch certificate from Kubernetes")
-		return nil, err
-	}
-
-	return cert, nil
+	secret = c.Interface.GetSecret(secret.Name, secret.Namespace)
+	return extractCertificateFromSecret(secret)
 }

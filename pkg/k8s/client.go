@@ -594,6 +594,7 @@ func (c *Client) ListServiceExports() []*mcs.ServiceExport {
 
 // AddMeshRootCertificateEventHandler adds an event handler specific to mesh root certificiates.
 func (c *Client) AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler, resyncInterval time.Duration) {
+	fmt.Println("addmrchandler")
 	c.informers[informerKeyMeshRootCertificate].AddEventHandlerWithResyncPeriod(handler, resyncInterval)
 }
 
