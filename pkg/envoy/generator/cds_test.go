@@ -407,10 +407,38 @@ func TestNewResponseListServicesError(t *testing.T) {
 	proxy := models.NewProxy(models.KindSidecar, uuid.New(), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
 
 	ctrl := gomock.NewController(t)
-	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	//meshCatalog.EXPECT().GetOutboundMeshClusterConfigs(proxy.Identity).Return(nil).AnyTimes()
-	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
-	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, errors.New("no services found")).AnyTimes()
+	mock := compute.NewMockInterface(ctrl)
+	stop := make(chan struct{})
+	meshCatalog := catalog.NewMeshCatalog(
+		mock,
+		tresorFake.NewFake(time.Hour),
+		stop,
+		messaging.NewBroker(stop),
+	)
+
+	meshConfig := configv1alpha2.MeshConfig{
+		Spec: configv1alpha2.MeshConfigSpec{
+			Traffic: configv1alpha2.TrafficSpec{
+				EnableEgress: true,
+			},
+			Observability: configv1alpha2.ObservabilitySpec{
+				Tracing: configv1alpha2.TracingSpec{
+					Enable: true,
+				},
+			},
+			Sidecar: configv1alpha2.SidecarSpec{
+				TLSMinProtocolVersion: "TLSv1_2",
+				TLSMaxProtocolVersion: "TLSv1_3",
+			},
+		},
+	}
+	mock.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
+	mock.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
+	mock.EXPECT().GetServicesForServiceIdentity(gomock.Any()).Return([]service.MeshService{
+		tests.BookstoreV1Service, tests.BookstoreV2Service,
+	}).AnyTimes()
+	mock.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
+	mock.EXPECT().ListServicesForProxy(proxy).Return(nil, errors.New("no services found")).AnyTimes()
 
 	g := NewEnvoyConfigGenerator(meshCatalog, nil)
 
