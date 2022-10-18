@@ -10,11 +10,6 @@ import (
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
-	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/messaging"
-
-	"github.com/openservicemesh/osm/pkg/compute"
-
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -33,14 +28,16 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/models"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/generator/cds"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -53,7 +50,6 @@ func TestGenerateCDS(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	kubeClient := testclient.NewSimpleClientset()
 	mock := compute.NewMockInterface(mockCtrl)
-	//mock := catalog.NewMockMeshCataloger(mockCtrl)
 	stop := make(chan struct{})
 	meshCatalog := catalog.NewMeshCatalog(
 		mock,
@@ -89,28 +85,6 @@ func TestGenerateCDS(t *testing.T) {
 		},
 	}
 
-	//expectedOutboundMeshClusterConfigs := []*trafficpolicy.MeshClusterConfig{
-	//	{
-	//		Name:    "default/bookstore-v1|80",
-	//		Service: tests.BookstoreV1Service,
-	//	},
-	//	{
-	//		Name:    "default/bookstore-v2|80",
-	//		Service: tests.BookstoreV2Service,
-	//	},
-	//}
-	//expectedInboundMeshClusterConfigs := []*trafficpolicy.MeshClusterConfig{
-	//	{
-	//		Name:    "default/bookbuyer|8080|local",
-	//		Service: testMeshSvc,
-	//		Port:    8080,
-	//		Address: "127.0.0.1",
-	//	},
-	//}
-
-	//mock.EXPECT().GetInboundMeshClusterConfigs(gomock.Any()).Return(expectedInboundMeshClusterConfigs).AnyTimes()
-	//mock.EXPECT().GetOutboundMeshClusterConfigs(tests.BookbuyerServiceIdentity).Return(expectedOutboundMeshClusterConfigs).AnyTimes()
-	//mock.EXPECT().GetEgressClusterConfigs(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
 	mock.EXPECT().IsMetricsEnabled(proxy).Return(true, nil).AnyTimes()
 	mock.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
 	mock.EXPECT().ListServicesForProxy(proxy).Return([]service.MeshService{testMeshSvc}, nil).AnyTimes()
@@ -159,7 +133,6 @@ func TestGenerateCDS(t *testing.T) {
 		cl, ok := resources[idx].(*xds_cluster.Cluster)
 		require.True(ok)
 		actualClusters = append(actualClusters, cl)
-		//fmt.Println("\nresource!!\n\n", resources[idx])
 	}
 
 	typedHTTPProtocolOptions, err := cds.GetTypedHTTPProtocolOptions(cds.GetHTTPProtocolOptions(""))
