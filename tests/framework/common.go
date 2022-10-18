@@ -552,7 +552,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	}
 
 	if err := td.CreateNs(instOpts.ControlPlaneNS, nil); err != nil {
-		return fmt.Errorf("failed to create namespace " + instOpts.ControlPlaneNS)
+		return fmt.Errorf("failed to create namespace %s error:%v", instOpts.ControlPlaneNS, err)
 	}
 
 	var args []string

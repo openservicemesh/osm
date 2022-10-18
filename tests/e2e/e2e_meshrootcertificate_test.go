@@ -121,8 +121,11 @@ func basicCertRotationScenario(installOptions ...InstallOsmOpt) {
 	By("deleting original certificate")
 	err = Td.ConfigClient.ConfigV1alpha2().MeshRootCertificates(Td.OsmNamespace).Delete(context.Background(), constants.DefaultMeshRootCertificateName, metav1.DeleteOptions{})
 	Expect(err).NotTo(HaveOccurred())
-	err = Td.Client.CoreV1().Secrets(Td.OsmNamespace).Delete(context.Background(), OsmCABundleName, metav1.DeleteOptions{})
-	Expect(err).NotTo(HaveOccurred())
+	if installOpts.CertManager != Vault {
+		// no secrets are created in Vault case
+		err = Td.Client.CoreV1().Secrets(Td.OsmNamespace).Delete(context.Background(), OsmCABundleName, metav1.DeleteOptions{})
+		Expect(err).NotTo(HaveOccurred())
+	}
 
 	By("checking HTTP traffic for client -> server pod after deleting original cert")
 	verifyCertRotation(clientPod, serverPod, newCertName, newCertName)

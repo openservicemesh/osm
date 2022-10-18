@@ -2,6 +2,7 @@ package vault
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/vault/api"
@@ -67,13 +68,20 @@ func (cm *CertManager) IssueCertificate(options certificate.IssueOptions) (*cert
 }
 
 func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time) *certificate.Certificate {
+	// Vaults cert don't a have newline which causes issues
+	// when appending them as a secondary cert for rotation.
+	caData := secret.Data[issuingCAField].(string)
+	if !strings.HasSuffix(caData, "\n") {
+		caData = caData + "\n"
+	}
+
 	return &certificate.Certificate{
 		CommonName:   cn,
 		SerialNumber: certificate.SerialNumber(secret.Data[serialNumberField].(string)),
 		Expiration:   expiration,
 		CertChain:    pem.Certificate(secret.Data[certificateField].(string)),
 		PrivateKey:   []byte(secret.Data[privateKeyField].(string)),
-		IssuingCA:    pem.RootCertificate(secret.Data[issuingCAField].(string)),
-		TrustedCAs:   pem.RootCertificate(secret.Data[issuingCAField].(string)),
+		IssuingCA:    pem.RootCertificate(caData),
+		TrustedCAs:   pem.RootCertificate(caData),
 	}
 }
