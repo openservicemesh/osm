@@ -14,9 +14,6 @@ import (
 
 // NewResponse creates a new Secrets Discovery Response.
 func (g *EnvoyConfigGenerator) generateSDS(ctx context.Context, proxy *models.Proxy) ([]types.Resource, error) {
-	log.Info().Str("proxy", proxy.String()).Msg("Composing SDS Discovery Response")
-
-	// sdsBuilder: builds the Secret Discovery Response
 	builder := sds.NewBuilder().SetProxy(proxy).SetTrustDomain(g.certManager.GetTrustDomains())
 
 	// 1. Issue a service certificate for this proxy

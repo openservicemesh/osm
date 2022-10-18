@@ -64,7 +64,6 @@ func NewWorkerPool(nWorkers int) *WorkerPool {
 }
 
 // AddJob posts the job on a worker queue
-// Uses Hash underneath to choose worker to post the job to
 func (wp *WorkerPool) AddJob(f func()) {
 	wp.jobs <- f
 }

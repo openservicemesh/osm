@@ -79,7 +79,7 @@ func logResourceEvent(event string, obj interface{}) {
 	if o.GetNamespace() != "" {
 		name = o.GetNamespace() + "/" + name
 	}
-	log.Debug().Str("resource_name", name).Msg("received kubernetes resource event")
+	log.Trace().Str("resource_name", name).Msg("received kubernetes resource event")
 }
 
 func (c *Client) metricsHandler() cache.ResourceEventHandlerFuncs {
