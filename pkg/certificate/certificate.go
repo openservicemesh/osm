@@ -51,7 +51,7 @@ func (c *Certificate) GetSerialNumber() SerialNumber {
 
 // GetExpiration returns the expiration time of the certificate
 func (c *Certificate) GetExpiration() time.Time {
-	return c.Expiration
+	return c.Expiration.Round(0)
 }
 
 // GetCertificateChain returns the certificate chain of the certificate
