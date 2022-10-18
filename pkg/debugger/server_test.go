@@ -4,6 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openservicemesh/osm/pkg/compute"
+	"github.com/openservicemesh/osm/pkg/messaging"
+
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
@@ -21,14 +24,21 @@ func TestGetHandlers(t *testing.T) {
 
 	cm := tresorFake.NewFake(time.Hour)
 	mockXdsDebugger := NewMockXDSDebugger(mockCtrl)
-	mockCatalogDebugger := catalog.NewMockMeshCataloger(mockCtrl)
 	client := testclient.NewSimpleClientset()
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	proxyRegistry := registry.NewProxyRegistry()
+	mock := compute.NewMockInterface(mockCtrl)
+	stop := make(chan struct{})
+	meshCatalog := catalog.NewMeshCatalog(
+		mock,
+		tresorFake.NewFake(time.Hour),
+		stop,
+		messaging.NewBroker(stop),
+	)
 
 	ds := NewDebugConfig(cm,
 		mockXdsDebugger,
-		mockCatalogDebugger,
+		meshCatalog,
 		proxyRegistry,
 		nil,
 		client,
