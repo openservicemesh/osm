@@ -453,14 +453,20 @@ func TestNewResponseGetEgressClusterConfigsError(t *testing.T) {
 	proxy := models.NewProxy(models.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
 
 	ctrl := gomock.NewController(t)
-	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
+	mock := compute.NewMockInterface(ctrl)
+	stop := make(chan struct{})
+	meshCatalog := catalog.NewMeshCatalog(
+		mock,
+		tresorFake.NewFake(time.Hour),
+		stop,
+		messaging.NewBroker(stop),
+	)
 
-	meshCatalog.EXPECT().GetInboundMeshClusterConfigs(gomock.Any()).Return(nil).Times(1)
-	meshCatalog.EXPECT().GetOutboundMeshClusterConfigs(proxyIdentity).Return(nil).Times(1)
-	meshCatalog.EXPECT().GetEgressClusterConfigs(proxyIdentity).Return(nil, fmt.Errorf("some error")).Times(1)
-	meshCatalog.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
-	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
-	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	mock.EXPECT().GetMeshConfig().AnyTimes()
+	mock.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
+	mock.EXPECT().ListEgressPoliciesForServiceAccount(proxyIdentity.ToK8sServiceAccount()).Return(nil).AnyTimes()
+	mock.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
+	mock.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 
 	g := NewEnvoyConfigGenerator(meshCatalog, nil)
 
