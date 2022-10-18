@@ -4,17 +4,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/compute"
-	"github.com/openservicemesh/osm/pkg/messaging"
-
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
 // Tests GetHandlers returns the expected debug endpoints and non-nil handlers
