@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
@@ -40,7 +42,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
-	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 func TestGenerateCDS(t *testing.T) {
@@ -481,21 +482,82 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	proxy := models.NewProxy(models.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
 
 	ctrl := gomock.NewController(t)
-	meshCatalog := catalog.NewMockMeshCataloger(ctrl)
-	meshCatalog.EXPECT().GetInboundMeshClusterConfigs(gomock.Any()).Return(nil).Times(1)
-	meshCatalog.EXPECT().GetOutboundMeshClusterConfigs(proxyIdentity).Return(nil).Times(1)
-	meshCatalog.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
-	meshCatalog.EXPECT().GetEgressClusterConfigs(proxyIdentity).Return([]*trafficpolicy.EgressClusterConfig{
-		{Name: "my-cluster"},
-		{Name: "my-cluster"}, // the test ensures this duplicate is removed
-	}, nil).Times(1)
-	meshCatalog.EXPECT().GetMeshConfig().AnyTimes()
-	meshCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	mock := compute.NewMockInterface(ctrl)
+	stop := make(chan struct{})
+	meshCatalog := catalog.NewMeshCatalog(
+		mock,
+		tresorFake.NewFake(time.Hour),
+		stop,
+		messaging.NewBroker(stop),
+	)
+
+	egressPolicies := []*policyv1alpha1.Egress{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-cluster",
+				Namespace: "test",
+			},
+			Spec: policyv1alpha1.EgressSpec{
+				Sources: []policyv1alpha1.EgressSourceSpec{
+					{
+						Kind:      "ServiceAccount",
+						Name:      "sa-1",
+						Namespace: "test",
+					},
+					{
+						Kind:      "ServiceAccount",
+						Name:      "sa-2",
+						Namespace: "test",
+					},
+				},
+				Hosts: []string{"my-cluster"},
+				Ports: []policyv1alpha1.PortSpec{
+					{
+						Number:   80,
+						Protocol: "http",
+					},
+				},
+			},
+		},
+		// the test ensures this duplicate is removed
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-cluster",
+				Namespace: "test",
+			},
+			Spec: policyv1alpha1.EgressSpec{
+				Sources: []policyv1alpha1.EgressSourceSpec{
+					{
+						Kind:      "ServiceAccount",
+						Name:      "sa-1",
+						Namespace: "test",
+					},
+					{
+						Kind:      "ServiceAccount",
+						Name:      "sa-2",
+						Namespace: "test",
+					},
+				},
+				Hosts: []string{"my-cluster"},
+				Ports: []policyv1alpha1.PortSpec{
+					{
+						Number:   80,
+						Protocol: "http",
+					},
+				},
+			},
+		},
+	}
+	mock.EXPECT().GetMeshConfig().AnyTimes()
+	mock.EXPECT().ListTrafficTargets().Return(nil).AnyTimes()
+	mock.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	mock.EXPECT().ListEgressPoliciesForServiceAccount(proxyIdentity.ToK8sServiceAccount()).Return(egressPolicies).AnyTimes()
+	mock.EXPECT().IsMetricsEnabled(proxy).Return(false, nil).AnyTimes()
 
 	g := NewEnvoyConfigGenerator(meshCatalog, nil)
 
 	resources, err := g.generateCDS(context.Background(), proxy)
 	tassert.NoError(t, err)
 	tassert.Len(t, resources, 1)
-	tassert.Equal(t, resources[0].(*xds_cluster.Cluster).Name, "my-cluster")
+	tassert.Equal(t, resources[0].(*xds_cluster.Cluster).Name, "my-cluster:80")
 }
