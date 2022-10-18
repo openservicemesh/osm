@@ -42,6 +42,9 @@ type MetricsStore struct {
 	// ProxyConfigUpdateTime is the histogram to track time spent for proxy configuration and its occurrences
 	ProxyConfigUpdateTime *prometheus.HistogramVec
 
+	// ProxyTimeSinceLastUpdate is the time passed since a proxy has last updated its configuration.
+	ProxyTimeSinceLastUpdate *prometheus.HistogramVec
+
 	// ProxyBroadcastEventCounter is the metric for the total number of ProxyBroadcast events published
 	ProxyBroadcastEventCount prometheus.Counter
 
@@ -177,6 +180,16 @@ func init() {
 			"resource_type", // identifies a typeURI resource
 			"success",       // further labels if the operation succeeded or not
 		})
+
+	defaultMetricsStore.ProxyTimeSinceLastUpdate = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: metricsRootNamespace,
+			Subsystem: "proxy",
+			Name:      "time_since_last_update",
+			Buckets:   []float64{.1, .25, .5, 1, 2.5, 5, 10, 20, 40, 90},
+			Help:      "Histogram to track time spent for proxy configuration",
+		},
+		[]string{"proxy_uuid"})
 
 	defaultMetricsStore.ProxyBroadcastEventCount = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,

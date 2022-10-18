@@ -29,16 +29,19 @@ func (b *Broker) Done() <-chan struct{} {
 	return b.stop
 }
 
-// GetProxyUpdatePubSub returns the PubSub instance corresponding to proxy update events
-func (b *Broker) GetProxyUpdatePubSub() *pubsub.PubSub {
-	return b.proxyUpdatePubSub
+// SubscribeProxyUpdates subscribes to proxy update topics, and returns an unsubscribe function.
+func (b *Broker) SubscribeProxyUpdates(topics ...string) (chan interface{}, func()) {
+	ch := b.proxyUpdatePubSub.Sub(topics...)
+	return ch, func() {
+		b.unsub(b.proxyUpdatePubSub, ch)
+	}
 }
 
 // SubscribeKubeEvents subscribes to kubernetes events, along with an unsubscribe function.
 func (b *Broker) SubscribeKubeEvents(topics ...string) (chan interface{}, func()) {
 	ch := b.kubeEventPubSub.Sub(topics...)
 	return ch, func() {
-		b.Unsub(b.kubeEventPubSub, ch)
+		b.unsub(b.kubeEventPubSub, ch)
 	}
 }
 
@@ -110,8 +113,8 @@ func updateMetric(msg events.PubSubMessage) {
 	}
 }
 
-// Unsub unsubscribes the given channel from the PubSub instance
-func (b *Broker) Unsub(pubSub *pubsub.PubSub, ch chan interface{}) {
+// unsub unsubscribes the given channel from the PubSub instance
+func (b *Broker) unsub(pubSub *pubsub.PubSub, ch chan interface{}) {
 	// Unsubscription should be performed from a different goroutine and
 	// existing messages on the subscribed channel must be drained as noted
 	// in https://github.com/cskr/pubsub/blob/v1.0.2/pubsub.go#L95.

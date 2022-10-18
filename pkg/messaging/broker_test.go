@@ -23,8 +23,8 @@ func TestAllEvents(t *testing.T) {
 
 	c := NewBroker(stopCh)
 
-	proxyUpdateChan := c.GetProxyUpdatePubSub().Sub(ProxyUpdateTopic)
-	defer c.Unsub(c.proxyUpdatePubSub, proxyUpdateChan)
+	proxyUpdateChan, unsub := c.SubscribeProxyUpdates(ProxyUpdateTopic)
+	defer unsub()
 
 	podChan, unsubPodCH := c.SubscribeKubeEvents(
 		events.Pod.Added(),

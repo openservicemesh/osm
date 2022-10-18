@@ -4,26 +4,17 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
-	"go.uber.org/atomic"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/utils"
-)
-
-const (
-	// Schedule a proxy every 5 minutes at minimum.
-	minProxyUpdateTime = time.Minute * 5
 )
 
 // ProxyConnected is called on stream open
@@ -56,91 +47,8 @@ func (cp *ControlPlane[T]) ProxyConnected(ctx context.Context, connectionID int6
 	}
 
 	cp.proxyRegistry.RegisterProxy(proxy)
-	go func() {
-		// Register for proxy config updates broadcasted by the message broker
-		proxyUpdatePubSub := cp.msgBroker.GetProxyUpdatePubSub()
-		proxyUpdateChan := proxyUpdatePubSub.Sub(messaging.ProxyUpdateTopic, messaging.GetPubSubTopicForProxyUUID(proxy.UUID.String()))
-		defer cp.msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
-
-		certRotations, unsubRotations := cp.certManager.SubscribeRotations(proxy.Identity.String())
-		defer unsubRotations()
-
-		var mu sync.Mutex
-		mu.Lock()
-		// schedule one update for this proxy initially.
-		cp.scheduleUpdate(ctx, proxy, mu.Unlock)
-		// Needs to be of size one since we add to it on the same routine we listen on.
-		updateChan := make(chan any, 1)
-		timer := time.NewTimer(minProxyUpdateTime)
-		var needsUpdate atomic.Bool
-		for {
-			select {
-			case <-timer.C:
-				log.Debug().Str("proxy", proxy.String()).Msgf("haven't updated the proxy in over %s, sending a new update.", minProxyUpdateTime)
-				updateChan <- struct{}{}
-			case <-proxyUpdateChan:
-				log.Debug().Str("proxy", proxy.String()).Msg("Broadcast update received")
-				updateChan <- struct{}{}
-			case <-certRotations:
-				log.Debug().Str("proxy", proxy.String()).Msg("Certificate has been updated for proxy")
-				updateChan <- struct{}{}
-			case <-updateChan:
-				// This attempts to grab the lock. If it can't, that means that another update is processing, but that prior
-				// update may have missed some new resources that determine that proxy config state. So we set needsUpdate to
-				// true. It's possible that it didn't, but and the next update is redundant, but it's the safe choice.
-				// If it does grab the lock, it schedules an update with a close func, that resets the timer, schedules a new
-				// update if any new data may have come in during the prior update, and sets shouldUpdate to false.
-				if mu.TryLock() {
-					cp.scheduleUpdate(ctx, proxy, func() {
-						// Update to false while holding this lock, to not erase a reset to true.
-						// It could later incorrectly get over written to true before we release the lock, which would schedule a
-						// second, and potentially redundant update, but this is better than getting incorrectly overwritten to false.
-						shouldUpdate := needsUpdate.Swap(false)
-						if !timer.Stop() {
-							<-timer.C
-						}
-						timer.Reset(minProxyUpdateTime)
-						mu.Unlock()
-						if shouldUpdate {
-							updateChan <- struct{}{}
-						}
-					})
-				} else {
-					needsUpdate.Store(true)
-					log.Debug().Str("proxy", proxy.String()).Msg("skipping update due to in process update")
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-	return nil
-}
-
-func (cp *ControlPlane[T]) scheduleUpdate(ctx context.Context, proxy *models.Proxy, done func()) {
-	// AddJob can block, so we call it on a goroutine
-	go cp.workqueues.AddJob(
-		func() {
-			t := time.Now()
-			log.Debug().Str("proxy", proxy.String()).Msg("Starting update for proxy")
-
-			if err := cp.update(ctx, proxy); err != nil {
-				log.Error().Err(err).Str("proxy", proxy.String()).Msg("Error generating resources for proxy")
-			}
-			log.Debug().Msgf("Update for proxy %s took took %v", proxy.String(), time.Since(t))
-			done()
-		})
-}
-
-func (cp *ControlPlane[T]) update(ctx context.Context, proxy *models.Proxy) error {
-	resources, err := cp.configGenerator.GenerateConfig(ctx, proxy)
-	if err != nil {
-		return err
-	}
-	if err := cp.configServer.UpdateProxy(ctx, proxy, resources); err != nil {
-		return err
-	}
-	log.Debug().Str("proxy", proxy.String()).Msg("successfully updated resources for proxy")
+	updater := newUpdateScheduler(proxy, cp.configServer, cp.configGenerator, cp.certManager, cp.workqueues, cp.msgBroker)
+	go updater.start(ctx)
 	return nil
 }
 
