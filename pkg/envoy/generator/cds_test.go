@@ -8,6 +8,7 @@ import (
 	"time"
 
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -66,7 +67,7 @@ func TestGenerateCDS(t *testing.T) {
 
 	testMeshSvc := service.MeshService{
 		Namespace:  tests.BookbuyerService.Namespace,
-		Name:       tests.BookbuyerService.Namespace,
+		Name:       tests.BookbuyerService.Name,
 		Port:       80,
 		TargetPort: 8080,
 	}
@@ -112,10 +113,18 @@ func TestGenerateCDS(t *testing.T) {
 	//mock.EXPECT().GetEgressClusterConfigs(tests.BookbuyerServiceIdentity).Return(nil, nil).AnyTimes()
 	mock.EXPECT().IsMetricsEnabled(proxy).Return(true, nil).AnyTimes()
 	mock.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
-	mock.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
+	mock.EXPECT().ListServicesForProxy(proxy).Return([]service.MeshService{testMeshSvc}, nil).AnyTimes()
+	mock.EXPECT().ListTrafficSplits().Return(
+		[]*split.TrafficSplit{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "bar",
+				}},
+		})
 	mock.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
 	mock.EXPECT().GetServicesForServiceIdentity(gomock.Any()).Return([]service.MeshService{
-		tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService,
+		tests.BookstoreV1Service, tests.BookstoreV2Service,
 	}).AnyTimes()
 	mock.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
 
@@ -150,6 +159,7 @@ func TestGenerateCDS(t *testing.T) {
 		cl, ok := resources[idx].(*xds_cluster.Cluster)
 		require.True(ok)
 		actualClusters = append(actualClusters, cl)
+		//fmt.Println("\nresource!!\n\n", resources[idx])
 	}
 
 	typedHTTPProtocolOptions, err := cds.GetTypedHTTPProtocolOptions(cds.GetHTTPProtocolOptions(""))
@@ -201,7 +211,7 @@ func TestGenerateCDS(t *testing.T) {
 
 	expectedBookstoreV1Cluster := &xds_cluster.Cluster{
 		TransportSocketMatches:        nil,
-		Name:                          "default/bookstore-v1|80",
+		Name:                          "default/bookstore-v1|8888",
 		AltStatName:                   "",
 		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
 		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
@@ -215,7 +225,7 @@ func TestGenerateCDS(t *testing.T) {
 			ServiceName: "",
 		},
 		TransportSocket: &xds_core.TransportSocket{
-			Name: "default/bookstore-v1|80",
+			Name: "default/bookstore-v1|8888",
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: string(envoy.TypeUpstreamTLSContext),
@@ -232,7 +242,7 @@ func TestGenerateCDS(t *testing.T) {
 	require.Nil(err)
 	expectedBookstoreV2Cluster := &xds_cluster.Cluster{
 		TransportSocketMatches:        nil,
-		Name:                          "default/bookstore-v2|80",
+		Name:                          "default/bookstore-v2|8888",
 		AltStatName:                   "",
 		ClusterDiscoveryType:          &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
 		TypedExtensionProtocolOptions: typedHTTPProtocolOptions,
@@ -246,7 +256,7 @@ func TestGenerateCDS(t *testing.T) {
 			ServiceName: "",
 		},
 		TransportSocket: &xds_core.TransportSocket{
-			Name: "default/bookstore-v2|80",
+			Name: "default/bookstore-v2|8888",
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: &any.Any{
 					TypeUrl: string(envoy.TypeUpstreamTLSContext),
@@ -354,8 +364,8 @@ func TestGenerateCDS(t *testing.T) {
 	}
 
 	expectedClusters := []string{
-		"default/bookstore-v1|80",
-		"default/bookstore-v2|80",
+		"default/bookstore-v1|8888",
+		"default/bookstore-v2|8888",
 		"default/bookbuyer|8080|local",
 		"passthrough-outbound",
 		"envoy-metrics-cluster",
@@ -370,7 +380,7 @@ func TestGenerateCDS(t *testing.T) {
 			foundClusters = append(foundClusters, "default/bookbuyer|8080|local")
 			continue
 		}
-		if a.Name == "default/bookstore-v1|80" {
+		if a.Name == "default/bookstore-v1|8888" {
 			assert.Truef(cmp.Equal(expectedBookstoreV1Cluster, a, protocmp.Transform()), cmp.Diff(expectedBookstoreV1Cluster, a, protocmp.Transform()))
 
 			upstreamTLSContext := xds_auth.UpstreamTlsContext{}
@@ -381,11 +391,11 @@ func TestGenerateCDS(t *testing.T) {
 			assert.Equal("bookstore-v1.default.svc.cluster.local", upstreamTLSContext.Sni)
 			assert.Nil(a.LoadAssignment) //ClusterLoadAssignment setting for non EDS clusters
 
-			foundClusters = append(foundClusters, "default/bookstore-v1|80")
+			foundClusters = append(foundClusters, "default/bookstore-v1|8888")
 			continue
 		}
 
-		if a.Name == "default/bookstore-v2|80" {
+		if a.Name == "default/bookstore-v2|8888" {
 			assert.Truef(cmp.Equal(expectedBookstoreV2Cluster, a, protocmp.Transform()), cmp.Diff(expectedBookstoreV1Cluster, a, protocmp.Transform()))
 
 			upstreamTLSContext := xds_auth.UpstreamTlsContext{}
@@ -396,7 +406,7 @@ func TestGenerateCDS(t *testing.T) {
 			assert.Equal("bookstore-v2.default.svc.cluster.local", upstreamTLSContext.Sni)
 			assert.Nil(a.LoadAssignment) //ClusterLoadAssignment setting for non EDS clusters
 
-			foundClusters = append(foundClusters, "default/bookstore-v2|80")
+			foundClusters = append(foundClusters, "default/bookstore-v2|8888")
 			continue
 		}
 
