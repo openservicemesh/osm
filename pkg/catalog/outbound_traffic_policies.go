@@ -1,6 +1,8 @@
 package catalog
 
 import (
+	"fmt"
+
 	mapset "github.com/deckarep/golang-set"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -72,7 +74,9 @@ func (mc *MeshCatalog) GetOutboundMeshHTTPRouteConfigsPerPort(downstreamIdentity
 
 	// For each service, build the traffic policies required to access it.
 	// It is important to aggregate HTTP route configs by the service's port.
+	fmt.Println("ListOutboundServicesForIdentity returns: ", mc.ListOutboundServicesForIdentity(downstreamIdentity))
 	for _, meshSvc := range mc.ListOutboundServicesForIdentity(downstreamIdentity) {
+		fmt.Println("i am in the OUTBOUND!!!! for loop")
 		meshSvc := meshSvc // To prevent loop variable memory aliasing in for loop
 		upstreamClusters := mc.getUpstreamClusters(meshSvc)
 		retryPolicy := mc.getRetryPolicy(downstreamIdentity, meshSvc)
@@ -149,11 +153,11 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 
 	for _, t := range mc.ListTrafficTargetsByOptions() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
+			fmt.Println("source name is ", source.Name)
 			if source.Name != svcAccount.Name || source.Namespace != svcAccount.Namespace {
 				// Source doesn't match the downstream's service identity
 				continue
 			}
-
 			sa := identity.K8sServiceAccount{
 				Name:      t.Spec.Destination.Name,
 				Namespace: t.Spec.Destination.Namespace,
