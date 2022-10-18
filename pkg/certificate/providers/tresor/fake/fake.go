@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -69,10 +70,16 @@ func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (
 // List returns the single, pre-generated MRC. It is intended to implement the certificate.MRCClient interface.
 func (c *fakeMRCClient) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertificate, error) {
 	// return single empty object in the list.
-	return []*v1alpha2.MeshRootCertificate{{Spec: v1alpha2.MeshRootCertificateSpec{
-		TrustDomain: "fake.example.com",
-		Intent:      v1alpha2.ActiveIntent,
-	}}}, nil
+	return []*v1alpha2.MeshRootCertificate{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "osm-mesh-root-certificate",
+			},
+			Spec: v1alpha2.MeshRootCertificateSpec{
+				TrustDomain: "fake.example.com",
+				Intent:      v1alpha2.ActiveIntent,
+			},
+		}}, nil
 }
 
 func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
