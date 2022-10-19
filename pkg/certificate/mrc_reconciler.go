@@ -47,24 +47,16 @@ var validMRCIntentCombinations = map[v1alpha2.MeshRootCertificateIntent][]v1alph
 	},
 }
 
-// ValidateMRCIntents validates the intent combination of MRCs
-func ValidateMRCIntents(mrc1, mrc2 *v1alpha2.MeshRootCertificate) error {
+// validateMRCIntents validates the intent combination of MRCs
+func validateMRCIntents(mrc1, mrc2 *v1alpha2.MeshRootCertificate) error {
 	if mrc1 == nil || mrc2 == nil {
 		log.Error().Err(ErrUnexpectedNilMRC).Msg("unexpected nil MRC provided when validating MRC intents")
 		return ErrUnexpectedNilMRC
 	}
-	if mrc1 == mrc2 {
-		if mrc1.Spec.Intent != v1alpha2.ActiveIntent {
-			log.Error().Err(ErrExpectedActiveMRC).Msgf("expected single MRC with %s intent, found %s", v1alpha2.ActiveIntent, mrc1.Spec.Intent)
-			return ErrExpectedActiveMRC
-		}
-
-		return nil
-	}
 
 	intent1 := mrc1.Spec.Intent
 	intent2 := mrc2.Spec.Intent
-
+	log.Debug().Msgf("verifying intent combination of %s and %s", intent1, intent2)
 	validIntents, ok := validMRCIntentCombinations[intent1]
 	if !ok {
 		log.Error().Err(ErrUnknownMRCIntent).Msgf("unable to find %s intent in set of valid intents. Invalid combination of %s intent and %s intent", intent1, intent1, intent2)
@@ -73,9 +65,14 @@ func ValidateMRCIntents(mrc1, mrc2 *v1alpha2.MeshRootCertificate) error {
 
 	for _, intent := range validIntents {
 		if intent2 == intent {
-			log.Debug().Msgf("verified valid intent combination of %s intent and %s intent", intent1, intent2)
+			log.Debug().Msgf("verified valid intent combination of %s and %s", intent1, intent2)
 			return nil
 		}
+	}
+
+	if mrc1 == mrc2 && intent1 != v1alpha2.ActiveIntent {
+		log.Error().Err(ErrExpectedActiveMRC).Msgf("expected single MRC with %s intent, found %s", v1alpha2.ActiveIntent, mrc1.Spec.Intent)
+		return ErrExpectedActiveMRC
 	}
 
 	log.Error().Err(ErrInvalidMRCIntentCombination).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidMRCIntentCombination)).
@@ -105,11 +102,6 @@ func getSigningAndValidatingMRCs(mrcList []*v1alpha2.MeshRootCertificate) (*v1al
 		mrc2 = mrc1
 	}
 
-	log.Debug().Msg("validating MRC intent combination")
-	if err := ValidateMRCIntents(mrc1, mrc2); err != nil {
-		return nil, nil, err
-	}
-
 	if mrc1 == nil || mrc2 == nil {
 		log.Error().Err(ErrUnexpectedNilMRC).Msg("unexpected nil MRC provided when validating MRC intents")
 		return nil, nil, ErrUnexpectedNilMRC
@@ -117,6 +109,11 @@ func getSigningAndValidatingMRCs(mrcList []*v1alpha2.MeshRootCertificate) (*v1al
 
 	intent1 := mrc1.Spec.Intent
 	intent2 := mrc2.Spec.Intent
+
+	log.Debug().Msg("validating MRC intent combination")
+	if err := validateMRCIntents(mrc1, mrc2); err != nil {
+		return nil, nil, err
+	}
 
 	switch intent1 {
 	case v1alpha2.ActiveIntent:

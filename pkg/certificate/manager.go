@@ -101,6 +101,7 @@ func (m *Manager) start(ctx context.Context, mrcClient MRCClient) error {
 			}
 
 			if m.signingIssuer != nil && m.validatingIssuer != nil {
+				log.Debug().Msg("successfully initialized certificate manager")
 				once.Do(func() {
 					wg.Done()
 				})

@@ -9,10 +9,11 @@ import (
 	"github.com/cskr/pubsub"
 	tassert "github.com/stretchr/testify/assert"
 	trequire "github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/constants"
+	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
 )
 
@@ -85,7 +86,8 @@ func TestRotor(t *testing.T) {
 
 	stop := make(chan struct{})
 	defer close(stop)
-	certManager, err := NewManager(context.Background(), &fakeMRCClient{mrcList: []*v1alpha2.MeshRootCertificate{activeMRC1}},
+	configClient := configFake.NewSimpleClientset([]runtime.Object{activeMRC1}...)
+	certManager, err := NewManager(context.Background(), &fakeMRCClient{configClient: configClient},
 		getServiceCertValidityPeriod, getIngressGatewayCertValidityPeriod, 5*time.Second)
 	require.NoError(err)
 

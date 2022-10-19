@@ -39,8 +39,8 @@ var _ = Describe("Test client helpers", func() {
 			actual := newCert(cn, secret, expiration)
 
 			expected := &certificate.Certificate{
-				IssuingCA:    pem.RootCertificate("zz"),
-				TrustedCAs:   pem.RootCertificate("zz"),
+				IssuingCA:    pem.RootCertificate("zz\n"),
+				TrustedCAs:   pem.RootCertificate("zz\n"),
 				PrivateKey:   pem.PrivateKey("yy"),
 				CertChain:    pem.Certificate("xx"),
 				Expiration:   expiration,

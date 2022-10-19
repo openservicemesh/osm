@@ -3,15 +3,17 @@ package webhook
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"testing"
 	"time"
 
 	tassert "github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/constants"
+	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 )
 
 func TestCertRotation(t *testing.T) {
@@ -22,31 +24,36 @@ func TestCertRotation(t *testing.T) {
 		checkInterval     time.Duration
 		waitForRotation   bool
 	}{
-		{name: "should rotate certificate",
+		{
+			name:              "should rotate certificate",
 			rotations:         1,
 			rotationsExpected: 1,
 			checkInterval:     10 * time.Millisecond,
 			waitForRotation:   true,
 		},
-		{name: "should rotate certificate if CA changes multiple times",
+		{
+			name:              "should rotate certificate if CA changes multiple times",
 			rotations:         2,
 			rotationsExpected: 2,
 			checkInterval:     10 * time.Millisecond,
 			waitForRotation:   true,
 		},
-		{name: "should not rotate certificate if no changes",
+		{
+			name:              "should not rotate certificate if no changes",
 			rotations:         0,
 			rotationsExpected: 0,
 			checkInterval:     10 * time.Millisecond,
 			waitForRotation:   true,
 		},
-		{name: "should not rotate certificate if checkInterval is longer than rotation check interval",
+		{
+			name:              "should not rotate certificate if checkInterval is longer than rotation check interval",
 			rotations:         1,
 			rotationsExpected: 0,
 			checkInterval:     1 * time.Hour,
 			waitForRotation:   false,
 		},
-		{name: "should not rotate certificate if checkInterval is longer than rotation check interval with multiple rotations",
+		{
+			name:              "should not rotate certificate if checkInterval is longer than rotation check interval with multiple rotations",
 			rotations:         2,
 			rotationsExpected: 0,
 			checkInterval:     1 * time.Hour,
@@ -58,8 +65,32 @@ func TestCertRotation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			mrc := tresorFake.NewFakeMRC()
-			cm := tresorFake.NewFakeWithMRC(mrc, tc.checkInterval)
+			mrc1 := &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "fake.example.com",
+					Intent:      configv1alpha2.ActiveIntent,
+				},
+			}
+
+			mrc2 := &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate-2",
+					Namespace: "osm-system",
+				},
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "fake.example.com",
+					Intent:      configv1alpha2.ActiveIntent,
+				},
+			}
+
+			configClient := configFake.NewSimpleClientset([]runtime.Object{mrc1}...)
+			mrcClient := tresorFake.NewFakeMRCWithConfig(configClient)
+			cm := tresorFake.NewFakeWithMRCClient(mrcClient, tc.checkInterval)
+			assert.NotNil(cm)
 
 			count := 0
 			wait := make(chan struct{})
@@ -76,9 +107,9 @@ func TestCertRotation(t *testing.T) {
 
 			// create a cert before we start the server
 			// Allows us to test there was a change in certs
-			firstCert, _ := cm.IssueCertificate(certificate.ForCommonName("testhook.ns.svc"))
+			firstCert, _ := cm.IssueCertificate(certificate.ForCommonName("testhook.osm-system.svc"))
 
-			server := NewServer("testhook", "ns", 6000, cm, nil, onCertChange)
+			server := NewServer("testhook", "osm-system", 6000, cm, nil, onCertChange)
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			err := server.Run(ctx)
@@ -87,8 +118,29 @@ func TestCertRotation(t *testing.T) {
 			// wait for the first cert to be issued
 			<-wait
 
-			for i := 0; i < tc.rotations; i++ {
-				mrc.NewCertEvent(fmt.Sprintf("newcert-%d", i), constants.MRCStateIssuingRollout, "cluster.local")
+			if tc.rotations >= 1 {
+				// create mrc2 with passive intent
+				_, err := configClient.ConfigV1alpha2().MeshRootCertificates("osm-system").Create(context.Background(), mrc2, metav1.CreateOptions{})
+				assert.NoError(err)
+				// trigger an MRCEvent to update the issuers and trigger a rotation
+				mrcClient.NewCertEvent(mrc2.Name)
+				if tc.waitForRotation {
+					<-wait
+				}
+			}
+			if tc.rotations == 2 {
+				// set intent of mrc2 to active. This update will not trigger a rotation
+				// do not wait on rotation
+				mrc2.Spec.Intent = configv1alpha2.ActiveIntent
+				_, err := configClient.ConfigV1alpha2().MeshRootCertificates("osm-system").Update(context.Background(), mrc2, metav1.UpdateOptions{})
+				assert.NoError(err)
+
+				// set intent of mrc1 to passive
+				mrc1.Spec.Intent = configv1alpha2.PassiveIntent
+				_, err = configClient.ConfigV1alpha2().MeshRootCertificates("osm-system").Update(context.Background(), mrc1, metav1.UpdateOptions{})
+				// trigger an MRCEvent to update the issuers and trigger a rotation
+				mrcClient.NewCertEvent(mrc1.Name)
+				assert.NoError(err)
 				if tc.waitForRotation {
 					<-wait
 				}
