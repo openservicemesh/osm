@@ -174,10 +174,14 @@ func (m *Manager) shouldRotate(c *Certificate) bool {
 	intNoise := rand.Intn(noiseSeconds) // #nosec G404
 	secondsNoise := time.Duration(intNoise) * time.Second
 	renewBefore := RenewBeforeCertExpires + secondsNoise
-	if time.Until(c.GetExpiration()) <= renewBefore {
+	// Round is called to truncate monotonic clock to the nearest second. This is done to avoid environments where the
+	// CPU clock may stop, resulting in a time measurement that differs significantly from the x509 timestamp.
+	// See https://github.com/openservicemesh/osm/issues/5000#issuecomment-1218539412 for more details.
+	expiration := c.GetExpiration().Round(0)
+	if time.Until(expiration) <= renewBefore {
 		log.Info().Msgf("Cert %s should be rotated; expires in %+v; renewBefore is %+v",
 			c.GetCommonName(),
-			time.Until(c.GetExpiration()),
+			time.Until(expiration),
 			renewBefore)
 		return true
 	}

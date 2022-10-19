@@ -29,7 +29,7 @@ func (ds DebugConfig) getCertHandler() http.Handler {
 
 			_, _ = fmt.Fprintf(w, "---[ %d ]---\n", idx)
 			_, _ = fmt.Fprintf(w, "\t Common Name: %q\n", cert.GetCommonName())
-			_, _ = fmt.Fprintf(w, "\t Valid Until: %+v (%+v remaining)\n", cert.GetExpiration(), time.Until(cert.GetExpiration()))
+			_, _ = fmt.Fprintf(w, "\t Valid Until: %+v (%+v remaining)\n", cert.GetExpiration(), time.Until(cert.GetExpiration().Round(0)))
 			_, _ = fmt.Fprintf(w, "\t Issuing CA (SHA256): %x\n", sha256.Sum256(ca))
 			_, _ = fmt.Fprintf(w, "\t Trusted CAs (SHA256): %x\n", sha256.Sum256(trustedCAs))
 			_, _ = fmt.Fprintf(w, "\t Cert Chain (SHA256): %x\n", sha256.Sum256(chain))
@@ -38,7 +38,7 @@ func (ds DebugConfig) getCertHandler() http.Handler {
 			_, _ = fmt.Fprintf(w, "\t x509.SignatureAlgorithm: %+v\n", x509.SignatureAlgorithm)
 			_, _ = fmt.Fprintf(w, "\t x509.PublicKeyAlgorithm: %+v\n", x509.PublicKeyAlgorithm)
 			_, _ = fmt.Fprintf(w, "\t x509.Version: %+v\n", x509.Version)
-			_, _ = fmt.Fprintf(w, "\t x509.SerialNumber: %x\n", x509.SerialNumber)
+			_, _ = fmt.Fprintf(w, "\t x509.SerialNumber: %s\n", x509.SerialNumber)
 			_, _ = fmt.Fprintf(w, "\t x509.Issuer: %+v\n", x509.Issuer)
 			_, _ = fmt.Fprintf(w, "\t x509.Subject: %+v\n", x509.Subject)
 			_, _ = fmt.Fprintf(w, "\t x509.NotBefore (begin): %+v (%+v ago)\n", x509.NotBefore, time.Since(x509.NotBefore))
