@@ -529,15 +529,13 @@ func (c *client) getPodForProxy(proxy *models.Proxy) (*v1.Pod, error) {
 
 // ConfigFromProxy takes the given proxy, port forwards to the pod from this proxy, and returns the envoy config
 func (c *client) ConfigFromProxy(proxy *models.Proxy, configType string, kubeConfig *rest.Config) (string, error) {
-	var envoyConfig string
-
 	pod, err := c.getPodForProxy(proxy)
 	if err != nil {
 		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy)
 		log.Error().Err(err).Msg(msg)
-		return envoyConfig, err
+		return "", err
 	}
-	envoyConfig = c.getEnvoyConfig(pod, configType, kubeConfig)
+	envoyConfig := c.getEnvoyConfig(pod, configType, kubeConfig)
 	return envoyConfig, nil
 }
 
