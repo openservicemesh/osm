@@ -74,7 +74,7 @@ func (ds DebugConfig) getConfigDump(streamID int64, w http.ResponseWriter) {
 		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
-	envoyConfig, err := ds.computeClient.ConfigFromProxy(proxy, "config_dump", ds.kubeConfig)
+	envoyConfig, err := ds.computeClient.GetProxyConfig(proxy, "config_dump", ds.kubeConfig)
 	if err != nil {
 		msg := fmt.Sprintf("Error getting envoy config from proxy %s", proxy)
 		log.Error().Err(err).Msg(msg)
@@ -93,7 +93,7 @@ func (ds DebugConfig) getProxy(streamID int64, w http.ResponseWriter) {
 		http.Error(w, msg, http.StatusNotFound)
 		return
 	}
-	envoyConfig, err := ds.computeClient.ConfigFromProxy(proxy, "certs", ds.kubeConfig)
+	envoyConfig, err := ds.computeClient.GetProxyConfig(proxy, "certs", ds.kubeConfig)
 	if err != nil {
 		msg := fmt.Sprintf("Error getting envoy config from proxy %s", proxy)
 		log.Error().Err(err).Msg(msg)

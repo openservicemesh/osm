@@ -26,52 +26,52 @@ import (
 	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
 )
 
-// informerKeystores the different Informers we keep for K8s resources
+// informerKey stores the different Informers we keep for K8s resources
 type informerKey string
 
 const (
-	// informerKeyNamespace is the informerKeyfor a Namespace informer
+	// informerKeyNamespace is the informerKey for a Namespace informer
 	informerKeyNamespace informerKey = "Namespace"
-	// informerKeyService is the informerKeyfor a Service informer
+	// informerKeyService is the informerKey for a Service informer
 	informerKeyService informerKey = "Service"
-	// informerKeyPod is the informerKeyfor a Pod informer
+	// informerKeyPod is the informerKey for a Pod informer
 	informerKeyPod informerKey = "Pod"
-	// informerKeyEndpoints is the informerKeyfor a Endpoints informer
+	// informerKeyEndpoints is the informerKey for a Endpoints informer
 	informerKeyEndpoints informerKey = "Endpoints"
-	// informerKeyServiceAccount is the informerKeyfor a ServiceAccount informer
+	// informerKeyServiceAccount is the informerKey for a ServiceAccount informer
 	informerKeyServiceAccount informerKey = "ServiceAccount"
-	// informerKeySecret is the informerKeyfor a Secret informer
+	// informerKeySecret is the informerKey for a Secret informer
 	informerKeySecret informerKey = "Secret"
 
-	// informerKeyTrafficSplit is the informerKeyfor a TrafficSplit informer
+	// informerKeyTrafficSplit is the informerKey for a TrafficSplit informer
 	informerKeyTrafficSplit informerKey = "TrafficSplit"
-	// informerKeyTrafficTarget is the informerKeyfor a TrafficTarget informer
+	// informerKeyTrafficTarget is the informerKey for a TrafficTarget informer
 	informerKeyTrafficTarget informerKey = "TrafficTarget"
-	// informerKeyHTTPRouteGroup is the informerKeyfor a HTTPRouteGroup informer
+	// informerKeyHTTPRouteGroup is the informerKey for a HTTPRouteGroup informer
 	informerKeyHTTPRouteGroup informerKey = "HTTPRouteGroup"
-	// informerKeyTCPRoute is the informerKeyfor a TCPRoute informer
+	// informerKeyTCPRoute is the informerKey for a TCPRoute informer
 	informerKeyTCPRoute informerKey = "TCPRoute"
 
-	// informerKeyMeshConfig is the informerKeyfor a MeshConfig informer
+	// informerKeyMeshConfig is the informerKey for a MeshConfig informer
 	informerKeyMeshConfig informerKey = "MeshConfig"
-	// informerKeyMeshRootCertificate is the informerKeyfor a MeshRootCertificate informer
+	// informerKeyMeshRootCertificate is the informerKey for a MeshRootCertificate informer
 	informerKeyMeshRootCertificate informerKey = "MeshRootCertificate"
 
-	// informerKeyEgress is the informerKeyfor a Egress informer
+	// informerKeyEgress is the informerKey for a Egress informer
 	informerKeyEgress informerKey = "Egress"
-	// informerKeyIngressBackend is the informerKeyfor a IngressBackend informer
+	// informerKeyIngressBackend is the informerKey for a IngressBackend informer
 	informerKeyIngressBackend informerKey = "IngressBackend"
-	// informerKeyUpstreamTrafficSetting is the informerKeyfor a UpstreamTrafficSetting informer
+	// informerKeyUpstreamTrafficSetting is the informerKey for a UpstreamTrafficSetting informer
 	informerKeyUpstreamTrafficSetting informerKey = "UpstreamTrafficSetting"
-	// informerKeyRetry is the informerKeyfor a Retry informer
+	// informerKeyRetry is the informerKey for a Retry informer
 	informerKeyRetry informerKey = "Retry"
 	// informerKeyTelemetry lookup identifier
 	informerKeyTelemetry informerKey = "Telemetry"
-	// informerKeyExtensionService is the informerKeyfor an ExtensionService informer
+	// informerKeyExtensionService is the informerKey for an ExtensionService informer
 	informerKeyExtensionService informerKey = "ExtensionService"
-	// informerKeyServiceImport is the informerKeyfor a ServiceImport informer
+	// informerKeyServiceImport is the informerKey for a ServiceImport informer
 	informerKeyServiceImport informerKey = "ServiceImport"
-	// informerKeyServiceExport is the informerKeyfor a ServiceExport informer
+	// informerKeyServiceExport is the informerKey for a ServiceExport informer
 	informerKeyServiceExport informerKey = "ServiceExport"
 )
 

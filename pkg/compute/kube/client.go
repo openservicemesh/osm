@@ -527,8 +527,8 @@ func (c *client) getPodForProxy(proxy *models.Proxy) (*v1.Pod, error) {
 	return &pod, nil
 }
 
-// ConfigFromProxy takes the given proxy, port forwards to the pod from this proxy, and returns the envoy config
-func (c *client) ConfigFromProxy(proxy *models.Proxy, configType string, kubeConfig *rest.Config) (string, error) {
+// GetProxyConfig takes the given proxy, port forwards to the pod from this proxy, and returns the envoy config
+func (c *client) GetProxyConfig(proxy *models.Proxy, configType string, kubeConfig *rest.Config) (string, error) {
 	pod, err := c.getPodForProxy(proxy)
 	if err != nil {
 		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy)

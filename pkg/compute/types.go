@@ -78,8 +78,8 @@ type Interface interface {
 
 	GetProxyStatsHeaders(p *models.Proxy) (map[string]string, error)
 
-	// ConfigFromProxy takes the given proxy, port forwards to the pod from this proxy, and returns the envoy config
-	ConfigFromProxy(proxy *models.Proxy, configType string, kubeConfig *rest.Config) (string, error)
+	// GetProxyConfig takes the given proxy, port forwards to the pod from this proxy, and returns the envoy config
+	GetProxyConfig(proxy *models.Proxy, configType string, kubeConfig *rest.Config) (string, error)
 
 	// VerifyProxy attempts to lookup a pod that matches the given proxy instance by service identity, namespace, and UUID
 	VerifyProxy(proxy *models.Proxy) error

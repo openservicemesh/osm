@@ -59,21 +59,6 @@ func (mr *MockInterfaceMockRecorder) AddMeshRootCertificateEventHandler(arg0 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMeshRootCertificateEventHandler", reflect.TypeOf((*MockInterface)(nil).AddMeshRootCertificateEventHandler), arg0)
 }
 
-// ConfigFromProxy mocks base method.
-func (m *MockInterface) ConfigFromProxy(arg0 *models.Proxy, arg1 string, arg2 *rest.Config) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ConfigFromProxy", arg0, arg1, arg2)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ConfigFromProxy indicates an expected call of ConfigFromProxy.
-func (mr *MockInterfaceMockRecorder) ConfigFromProxy(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFromProxy", reflect.TypeOf((*MockInterface)(nil).ConfigFromProxy), arg0, arg1, arg2)
-}
-
 // GetHTTPRouteGroup mocks base method.
 func (m *MockInterface) GetHTTPRouteGroup(arg0 string) *v1alpha4.HTTPRouteGroup {
 	m.ctrl.T.Helper()
@@ -171,6 +156,21 @@ func (m *MockInterface) GetOSMNamespace() string {
 func (mr *MockInterfaceMockRecorder) GetOSMNamespace() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOSMNamespace", reflect.TypeOf((*MockInterface)(nil).GetOSMNamespace))
+}
+
+// GetProxyConfig mocks base method.
+func (m *MockInterface) GetProxyConfig(arg0 *models.Proxy, arg1 string, arg2 *rest.Config) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProxyConfig", arg0, arg1, arg2)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetProxyConfig indicates an expected call of GetProxyConfig.
+func (mr *MockInterfaceMockRecorder) GetProxyConfig(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProxyConfig", reflect.TypeOf((*MockInterface)(nil).GetProxyConfig), arg0, arg1, arg2)
 }
 
 // GetProxyStatsHeaders mocks base method.
