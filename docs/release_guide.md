@@ -13,6 +13,7 @@ This guide describes the process to create a GitHub Release for this project.
 Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the following steps.
 
 - [Release Guide](#release-guide)
+  - [Release candidates](#release-candidates)
   - [Create a release branch](#create-a-release-branch)
   - [Add changes to be backported](#add-changes-to-be-backported)
   - [Create and push the pre-release Git tag](#create-and-push-the-pre-release-git-tag)
@@ -28,6 +29,9 @@ Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the 
   - [Announce the new release](#announce-the-new-release)
   - [Make version changes on main branch](#make-version-changes-on-main-branch)
   - [Workflow Diagram](#workflow-diagram)
+
+## Release candidates
+Release candidates (RCs) should be created before each significant release so final testing can be performed. RCs are tagged as `vX.Y.Z-rc.W`. See [here](release_process.md#release-candidates) for additional information.
 
 ## Create a release branch
 
@@ -47,8 +51,23 @@ $ git push upstream release-<version> # ex: git push upstream release-v0.4
 ## Add changes to be backported
 
 Create a new branch off of the release branch to maintain updates specific to the new version. Let's call it the patch branch. The patch branch should not be created in the upstream repo.
-
+```console
+$ git checkout upstream/release-<version> # ex: git checkout upstream/release-v1.2
+$ git switch -c <patch-branch-name> # Create the patch branch in your repo 
+```
 If there are other commits on the `main` branch to be included in the release (such as for successive release candidates or patch releases), cherry-pick those onto the patch branch.
+```console
+$ git cherry-pick <commit-id> # ex: git cherry-pick 1bdc75a
+```
+Fix any merge conflicts and change the commit message to begin with [backport]:
+```bash
+[backport] allow exporting access log to OTEL collector # previously - telemetry: allow exporting access log to OTEL collector
+```
+Push your changes to your branch.
+```console
+$ git push <local-repo> <patch-branch-name>
+```
+ Create a pull request to backport the changes to the release branch, see [example PR](https://github.com/openservicemesh/osm/pull/5210). Use a merge commit instead of a squash commit when merging to preserve the original commits.
 
 ## Create and push the pre-release Git tag
 
@@ -90,7 +109,7 @@ Create a new commit on the patch branch to update the hardcoded version informat
 
 Once patches and version information have been updated on the patch branch off of the release branch, create a pull request from the patch branch to the release branch. When creating your pull request, generate the release checklist for the description by adding the following to the PR URL: `?expand=1&template=release_pull_request_template.md`. Alternatively, copy the raw template from [release_pull_request_template.md](/.github/PULL_REQUEST_TEMPLATE/release_pull_request_template.md).
 
-Proceed to the next step once the pull request is approved and merged.
+Proceed to the next step once the pull request is approved and merged, see [example PR](https://github.com/openservicemesh/osm/pull/5215).
 
 ## Create and push the release Git tag
 
