@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"fmt"
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
@@ -103,6 +104,16 @@ static_resources:
         '@type': type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
         explicit_http_config:
           http2_protocol_options: {}
+    upstream_connection_options:
+      tcp_keepalive:
+        keepalive_interval: 5
+        keepalive_probes: 5
+        keepalive_time: 60
 `
-	assert.Equal(expectedYAML, string(actualYAML))
+	// Because OriginalHealthProbes is a map and not a slice, it's unordered, so we need to use a more complex assertion here
+	assert.Conditionf(func() (success bool) {
+		return tassert.ObjectsAreEqual(expectedYAML, string(actualYAML))
+	}, fmt.Sprintf("Not equal: \n"+
+		"expected:\n%s\n"+
+		"actual  :\n%s\n", expectedYAML, actualYAML))
 }
