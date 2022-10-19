@@ -1,10 +1,19 @@
 # Release Notes
 
+## Release v1.1.3
+
+### Notable changes
+- Certificate rotation now ignores monotonic clock readings when checking expiration
+- Add keep-alive time to detect sidecar disconnections
+
+## Release v1.1.2
+
+### Notable changes
+- Remove CRD conversion webhook (the webhook does not act differently than how if the CRD conversion strategy was set to `None`)
+
 ## Release v1.1.0
 
 ### Notable changes
-
-- Remove CRD conversion webhook (the webhook does not act differently than how if the CRD conversion strategy was set to `None`)
 - Circuit breaking support for traffic directed to in-mesh and external destinations
 
 ### Breaking changes
