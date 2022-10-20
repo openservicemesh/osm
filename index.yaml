@@ -50,6 +50,22 @@ entries:
     - https://openservicemesh.github.io/osm/osm-1.2.0-rc.1.tgz
     version: 1.2.0-rc.1
   - apiVersion: v2
+    appVersion: v1.1.3
+    created: "2022-10-20T16:58:46.5462-05:00"
+    dependencies:
+    - condition: contour.enabled
+      name: contour
+      repository: https://charts.bitnami.com/bitnami
+      version: 5.1.0
+    description: A Helm chart to install the OSM control plane on Kubernetes
+    digest: b6c9b26c6cccb51422947dcbc455bb3b9a86aa15e84a443de20a6913799f15bb
+    kubeVersion: '>= 1.20.0-0'
+    name: osm
+    type: application
+    urls:
+    - https://openservicemesh.github.io/osm/osm-1.1.3.tgz
+    version: 1.1.3
+  - apiVersion: v2
     appVersion: v1.1.2
     created: "2022-09-07T13:45:33.749454-05:00"
     dependencies:
@@ -588,4 +604,4 @@ entries:
     urls:
     - https://openservicemesh.github.io/osm/osm-0.4.1.tgz
     version: 0.4.1
-generated: "2022-09-07T13:45:33.735437-05:00"
+generated: "2022-10-20T16:58:46.53856-05:00"
