@@ -423,20 +423,11 @@ func (b *bootstrap) createMeshRootCertificate() error {
 	if err != nil {
 		return err
 	}
-	createdMRC, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshRootCertificate, metav1.CreateOptions{})
+	_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshRootCertificate, metav1.CreateOptions{})
 	if apierrors.IsAlreadyExists(err) {
 		log.Info().Msgf("MeshRootCertificate already exists in %s. Skip creating.", b.namespace)
 		return nil
 	}
-	if err != nil {
-		return err
-	}
-
-	_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).UpdateStatus(context.Background(), createdMRC, metav1.UpdateOptions{})
-	if apierrors.IsAlreadyExists(err) {
-		log.Info().Msgf("MeshRootCertificate status already exists in %s. Skip creating.", b.namespace)
-	}
-
 	if err != nil {
 		return err
 	}

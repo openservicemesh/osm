@@ -7,6 +7,7 @@ import (
 
 func (m *Manager) handleMRCEvent(event MRCEvent) error {
 	log.Debug().Msgf("handling MRC event for MRC %s", event.MRCName)
+	// TODO(#5226): optimize event handling to reduce cost of listing all MRCs for each event
 	mrcList, err := m.mrcClient.ListMeshRootCertificates()
 	if err != nil {
 		return err
@@ -35,47 +36,21 @@ func (m *Manager) handleMRCEvent(event MRCEvent) error {
 	return m.updateIssuers(desiredSigningIssuer, desiredValidatingIssuer)
 }
 
-var validMRCIntentCombinations = map[v1alpha2.MeshRootCertificateIntent][]v1alpha2.MeshRootCertificateIntent{
-	v1alpha2.ActiveIntent: {
-		v1alpha2.PassiveIntent,
-		v1alpha2.ActiveIntent,
-	},
-	v1alpha2.PassiveIntent: {
-		v1alpha2.ActiveIntent,
-	},
+var validMRCIntents = map[v1alpha2.MeshRootCertificateIntent]struct{}{
+	v1alpha2.ActiveIntent:  {},
+	v1alpha2.PassiveIntent: {},
 }
 
-// validateMRCIntents validates the intent combination of MRCs
-func validateMRCIntents(mrc1, mrc2 *v1alpha2.MeshRootCertificate) error {
-	if mrc1 == nil || mrc2 == nil {
-		log.Error().Err(ErrUnexpectedNilMRC).Msg("unexpected nil MRC provided when validating MRC intents")
-		return ErrUnexpectedNilMRC
-	}
-
-	intent1 := mrc1.Spec.Intent
-	intent2 := mrc2.Spec.Intent
-	log.Debug().Msgf("verifying intent combination of %s and %s", intent1, intent2)
-	validIntents, ok := validMRCIntentCombinations[intent1]
+// validateMRCIntents validates the inte MRCs
+func validateMRCIntent(intent v1alpha2.MeshRootCertificateIntent) error {
+	_, ok := validMRCIntents[intent]
 	if !ok {
-		log.Error().Err(ErrUnknownMRCIntent).Msgf("unable to find %s intent in set of valid intents. Invalid combination of %s intent and %s intent", intent1, intent1, intent2)
-		return ErrUnknownMRCIntent
+		log.Error().Err(ErrUnexpectedMRCIntent).Msgf("unable to find %s intent in set of valid intents", intent)
+		return ErrUnexpectedMRCIntent
 	}
 
-	for _, intent := range validIntents {
-		if intent2 == intent {
-			log.Debug().Msgf("verified valid intent combination of %s and %s", intent1, intent2)
-			return nil
-		}
-	}
-
-	if mrc1 == mrc2 && intent1 != v1alpha2.ActiveIntent {
-		log.Error().Err(ErrExpectedActiveMRC).Msgf("expected single MRC with %s intent, found %s", v1alpha2.ActiveIntent, mrc1.Spec.Intent)
-		return ErrExpectedActiveMRC
-	}
-
-	log.Error().Err(ErrInvalidMRCIntentCombination).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidMRCIntentCombination)).
-		Msgf("invalid combination of %s intent and %s intent", intent1, intent2)
-	return ErrInvalidMRCIntentCombination
+	log.Debug().Msgf("validated MRC intent %s", intent)
+	return nil
 }
 
 // getSigningAndValidatingMRCs returns the signing and validating MRCs from a list of MRCs
@@ -108,34 +83,42 @@ func getSigningAndValidatingMRCs(mrcList []*v1alpha2.MeshRootCertificate) (*v1al
 	intent1 := mrc1.Spec.Intent
 	intent2 := mrc2.Spec.Intent
 
-	log.Debug().Msg("validating MRC intent combination")
-	if err := validateMRCIntents(mrc1, mrc2); err != nil {
+	if err := validateMRCIntent(intent1); err != nil {
+		return nil, nil, err
+	}
+	if err := validateMRCIntent(intent2); err != nil {
 		return nil, nil, err
 	}
 
-	switch intent1 {
-	case v1alpha2.ActiveIntent:
-		switch intent2 {
-		case v1alpha2.PassiveIntent, v1alpha2.ActiveIntent:
+	log.Debug().Msgf("validating intent combination of %s and %s", intent1, intent2)
+	if mrc1 == mrc2 {
+		// if the MRCs are equal then there is only 1 MRC in the mesh
+		// and it must have an active intent
+		if intent1 == v1alpha2.ActiveIntent {
+			// since there is only 1 MRC, it is the signing and validating MRC
 			return mrc1, mrc2, nil
-		default:
-			log.Error().Err(ErrInvalidMRCIntentCombination).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidMRCIntentCombination)).
-				Msgf("invalid combination of %s intent and %s intent", intent1, intent2)
-			return nil, nil, ErrInvalidMRCIntentCombination
 		}
-	case v1alpha2.PassiveIntent:
-		switch intent2 {
-		case v1alpha2.ActiveIntent:
-			return mrc2, mrc1, nil
-		default:
-			log.Error().Err(ErrInvalidMRCIntentCombination).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidMRCIntentCombination)).
-				Msgf("invalid combination of %s intent and %s intent", intent1, intent2)
-			return nil, nil, ErrInvalidMRCIntentCombination
-		}
-	default:
-		log.Error().Err(ErrUnknownMRCIntent).Msgf("invalid combination of %s intent and %s intent", intent1, intent2)
-		return nil, nil, ErrUnknownMRCIntent
+
+		log.Error().Err(ErrExpectedActiveMRC).Msgf("expected single MRC with %s intent, found %s", v1alpha2.ActiveIntent, mrc1.Spec.Intent)
+		return nil, nil, ErrExpectedActiveMRC
 	}
+
+	// the combination of active and passive intents is deterministic
+	// regardless of MRC ordering, the passive MRC is the validating MRC and
+	// the active MRC is the signing MRC
+	// the combination of active and active intents is non-deterministic
+	// depending on the MRC ordering, either MRC could be the validating or
+	// signing MRC
+	if intent1 == v1alpha2.ActiveIntent && (intent2 == v1alpha2.PassiveIntent || intent2 == v1alpha2.ActiveIntent) {
+		return mrc1, mrc2, nil
+	}
+	if intent1 == v1alpha2.PassiveIntent && intent2 == v1alpha2.ActiveIntent {
+		return mrc2, mrc1, nil
+	}
+
+	log.Error().Err(ErrInvalidMRCIntentCombination).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidMRCIntentCombination)).
+		Msgf("invalid intent combination of %s and %s", intent1, intent2)
+	return nil, nil, ErrInvalidMRCIntentCombination
 }
 
 func (m *Manager) shouldUpdateIssuers(desiredSigningMRC, desiredValidatingMRC *v1alpha2.MeshRootCertificate) (bool, error) {

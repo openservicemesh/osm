@@ -158,92 +158,35 @@ func TestHandleMRCEvent(t *testing.T) {
 	}
 }
 
-func TestValidateMRCIntents(t *testing.T) {
+func TestValidateMRCIntent(t *testing.T) {
 	tests := []struct {
 		name   string
-		mrc1   *v1alpha2.MeshRootCertificate
-		mrc2   *v1alpha2.MeshRootCertificate
+		intent v1alpha2.MeshRootCertificateIntent
 		result error
 	}{
 		{
-			name:   "two nil mrcs",
-			mrc1:   nil,
-			mrc2:   nil,
-			result: ErrUnexpectedNilMRC,
+			name:   "valid active intent",
+			intent: v1alpha2.ActiveIntent,
 		},
 		{
-			name:   "single invalid mrc intent passive",
-			mrc1:   passiveMRC1,
-			mrc2:   passiveMRC1,
-			result: ErrExpectedActiveMRC,
+			name:   "valid passive intent",
+			intent: v1alpha2.PassiveIntent,
 		},
 		{
-			name: "invalid mrc intent foo",
-			mrc1: &v1alpha2.MeshRootCertificate{
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: "foo",
-				},
-			},
-			mrc2: &v1alpha2.MeshRootCertificate{
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.ActiveIntent,
-				},
-			},
-			result: ErrUnknownMRCIntent,
+			name:   "invalid unknown intent",
+			intent: "foo",
+			result: ErrUnexpectedMRCIntent,
 		},
 		{
-			name: "invalid mrc intent combination of passive and passive",
-			mrc1: &v1alpha2.MeshRootCertificate{
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.PassiveIntent,
-				},
-			},
-			mrc2: &v1alpha2.MeshRootCertificate{
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.PassiveIntent,
-				},
-			},
-			result: ErrInvalidMRCIntentCombination,
-		},
-		{
-			name: "valid mrc intent combination of active and active",
-			mrc1: &v1alpha2.MeshRootCertificate{
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.ActiveIntent,
-				},
-			},
-			mrc2: &v1alpha2.MeshRootCertificate{
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.ActiveIntent,
-				},
-			},
-			result: nil,
-		},
-		{
-			name: "valid mrc intent combination of active and passive",
-			mrc1: &v1alpha2.MeshRootCertificate{
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.ActiveIntent,
-				},
-			},
-			mrc2: &v1alpha2.MeshRootCertificate{
-				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.PassiveIntent,
-				},
-			},
-			result: nil,
-		},
-		{
-			name:   "single valid mrc intent active",
-			mrc1:   activeMRC1,
-			mrc2:   activeMRC1,
-			result: nil,
+			name:   "invalid empty intent",
+			intent: "",
+			result: ErrUnexpectedMRCIntent,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			err := validateMRCIntents(tt.mrc1, tt.mrc2)
+			err := validateMRCIntent(tt.intent)
 			assert.Equal(tt.result, err)
 		})
 	}
@@ -263,7 +206,7 @@ func TestGetSigningAndValidatingMRCs(t *testing.T) {
 			expectedError: ErrNoMRCsFound,
 		},
 		{
-			name: "more than 2 active and passive MRCs",
+			name: "more than 2 active and passive mrcs",
 			mrcList: []*v1alpha2.MeshRootCertificate{
 				activeMRC1,
 				passiveMRC2,
@@ -280,7 +223,7 @@ func TestGetSigningAndValidatingMRCs(t *testing.T) {
 			expectedValidatingMRC: activeMRC1,
 		},
 		{
-			name: "single mrc is passive, expect err, validateMRCIntent fails",
+			name: "single mrc is passive, expect err",
 			mrcList: []*v1alpha2.MeshRootCertificate{
 				passiveMRC1,
 			},

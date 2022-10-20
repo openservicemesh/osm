@@ -48,12 +48,12 @@ var _ = OSMDescribe("MeshRootCertificate",
 // basicCerRotationScenario rotates a new cert in through the follow pattern:
 // | Step  | MRC1 old   | MRC2 new     | signer    | validator |
 // | ----- | ---------- | ------------ | --------- | --------- |
-// | 1     | active     |              | mcr1      | mcr1      |
-// | 2     | active     | passive      | mcr1      | mcr2      |
-// | 3     | active     | active       | mcr2/mrc1 | mcr1/mrc2 |
-// | 4     | passive    | active       | mcr2      | mcr1      |
-// | 5     | inactive   | active       | mcr2      | mcr2 	   |
-// | 5     |            | active       | mcr2      | mcr2      |
+// | 1     | active     |              | mrc1      | mrc1      |
+// | 2     | active     | passive      | mrc1      | mrc2      |
+// | 3     | active     | active       | mrc2/mrc1 | mrc1/mrc2 |
+// | 4     | passive    | active       | mrc2      | mrc1      |
+// | 5     | inactive   | active       | mrc2      | mrc2 	   |
+// | 5     |            | active       | mrc2      | mrc2      |
 func basicCertRotationScenario(installOptions ...InstallOsmOpt) {
 	By("installing with MRC enabled")
 	installOptions = append(installOptions, WithMeshRootCertificateEnabled())
@@ -301,18 +301,6 @@ func createVaultMRC(name string, intent v1alpha2.MeshRootCertificateIntent) (*v1
 		}, metav1.CreateOptions{})
 }
 
-/*func verifiyUpdatedPodCert(pod *v1.Pod) {
-	By("Verifying pod has updated certificates")
-
-	// It can take a moment for envoy to load the certs
-	Eventually(func() (string, error) {
-		args := []string{"proxy", "get", "certs", pod.Name, fmt.Sprintf("-n=%s", pod.Namespace)}
-		stdout, _, err := Td.RunLocal(filepath.FromSlash("../../bin/osm"), args...)
-		Td.T.Logf("stdout:\n%s", stdout)
-		return stdout.String(), err
-	}, 10*time.Second).Should(ContainSubstring(fmt.Sprintf("\"uri\": \"spiffe://cluster.local/%s/%s", pod.Spec.ServiceAccountName, pod.Namespace)))
-}*/
-
 func verifySuccessfulPodConnection(srcPod, dstPod *v1.Pod, serverSvc *v1.Service) {
 	By("Waiting for repeated request success")
 	cond := Td.WaitForRepeatedSuccess(func() bool {
@@ -357,22 +345,11 @@ func verifyCertRotation(clientPodDef, serverPodDef *v1.Pod, signingCertName, val
 	srvSecretName := fmt.Sprintf("envoy-bootstrap-config-%s", srvPodUUID)
 	clientSecretName := fmt.Sprintf("envoy-bootstrap-config-%s", clientPodUUID)
 
-	// TODO(jaellio): add a time.wait instead of waiting so long in call
 	err = Td.WaitForBootstrapSecretUpdate(serverPodDef.Namespace, srvSecretName, signingCertName, validatingCertName, time.Second*30)
 	Expect(err).NotTo(HaveOccurred())
 	err = Td.WaitForBootstrapSecretUpdate(clientPodDef.Namespace, clientSecretName, signingCertName, validatingCertName, time.Second*30)
 	Expect(err).NotTo(HaveOccurred())
 }
-
-// func getCertificateModulus(pod *v1.Pod) string {
-// 	// It can take a moment for envoy to load the certs
-// 	Eventually(func() (string, error) {
-// 		args := []string{"proxy", "get", "config_dump", pod.Name, fmt.Sprintf("-n=%s", pod.Namespace)}
-// 		stdout, _, err := Td.RunOsmCli(args...)
-
-// 		return stdout.String(), err
-// 	}, 10*time.Second).Should(ContainSubstring(fmt.Sprintf("\"uri\": \"spiffe://cluster.local/%s/%s", pod.Spec.ServiceAccountName, pod.Namespace)))
-// }
 
 func deployTestWorkload() (*v1.Pod, *v1.Pod, *v1.Service) {
 	var (

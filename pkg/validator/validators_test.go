@@ -1928,9 +1928,6 @@ func TestCheckForExistingActiveMRC(t *testing.T) {
 						},
 					},
 				},
-				Status: configv1alpha2.MeshRootCertificateStatus{
-					State: constants.MRCStateActive,
-				},
 			},
 			mrcList: []runtime.Object{
 				&configv1alpha2.MeshRootCertificate{

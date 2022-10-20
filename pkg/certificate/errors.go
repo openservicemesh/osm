@@ -23,8 +23,10 @@ var ErrNumMRCExceedsMaxSupported = errors.New("found more than the max number of
 // have an active intent.
 var ErrExpectedActiveMRC = errors.New("found single MRC with non active intent")
 
-// ErrUnknownMRCIntent is the error that should be returned if the intent value is not passive, active, or inactive.
-var ErrUnknownMRCIntent = errors.New("found single MRC with non active intent")
+// ErrUnexpectedMRCIntent is the error that should be returned if the intent value is not passive or active.
+// The MRC reconciler should only consider MRCs with passive or active intents for the validating and signing
+// issuers.
+var ErrUnexpectedMRCIntent = errors.New("found unexpected MRC intent. Expected passive or active")
 
 // ErrUnexpectedNilMRC is the the error that should be returned if the MRC is nil.
 var ErrUnexpectedNilMRC = errors.New("received nil MRC")

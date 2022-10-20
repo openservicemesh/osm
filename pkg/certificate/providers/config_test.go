@@ -18,7 +18,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
-	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	fakeConfigClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -176,7 +175,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentActive,
+					Intent:      v1alpha2.ActiveIntent,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{

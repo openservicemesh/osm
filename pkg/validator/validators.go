@@ -16,6 +16,7 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/compute"
@@ -303,7 +304,7 @@ func (kc *validator) validateMRCOnCreate(mrc *configv1alpha2.MeshRootCertificate
 		return err
 	}
 
-	if mrc.Spec.Intent == constants.MRCIntentActive {
+	if mrc.Spec.Intent == v1alpha2.ActiveIntent {
 		foundActive, err := kc.checkForExistingActiveMRC(mrc)
 		if err != nil {
 			return err
@@ -368,7 +369,7 @@ func (kc *validator) checkForExistingActiveMRC(mrc *configv1alpha2.MeshRootCerti
 	}
 
 	for _, m := range mrcs {
-		if m.Spec.Intent == constants.MRCIntentActive && m.Name != mrc.Name {
+		if m.Spec.Intent == v1alpha2.ActiveIntent && m.Name != mrc.Name {
 			log.Error().Msgf("cannot create MRC %s with intent active. An MRC with active intent already exists in the control plane namespace", getNamespacedMRC(mrc))
 			return true, nil
 		}
