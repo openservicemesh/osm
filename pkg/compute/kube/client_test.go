@@ -438,7 +438,11 @@ func TestGetServicesForServiceIdentity(t *testing.T) {
 						Selector: map[string]string{
 							"k1": "v1", // matches labels on pod ns1/p1
 						},
-						Ports: []corev1.ServicePort{{}},
+						Ports: []corev1.ServicePort{
+							{
+								Protocol: corev1.ProtocolTCP,
+							},
+						},
 					},
 				},
 				{
@@ -960,7 +964,11 @@ func TestListServicesForProxy(t *testing.T) {
 						Selector: map[string]string{
 							"k1": "v1",
 						},
-						Ports: []corev1.ServicePort{{}},
+						Ports: []corev1.ServicePort{
+							{
+								Protocol: corev1.ProtocolTCP,
+							},
+						},
 					},
 				},
 				{
@@ -972,7 +980,11 @@ func TestListServicesForProxy(t *testing.T) {
 						Selector: map[string]string{
 							"k2": "v2", // does not match labels on pod ns1/p1
 						},
-						Ports: []corev1.ServicePort{{}},
+						Ports: []corev1.ServicePort{
+							{
+								Protocol: corev1.ProtocolTCP,
+							},
+						},
 					},
 				},
 			},
@@ -2197,7 +2209,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 	}
 }
 
-func TestK8sServicesToMeshServices(t *testing.T) {
+func TestServiceToMeshServices(t *testing.T) {
 	testCases := []struct {
 		name         string
 		svc          corev1.Service
@@ -2217,8 +2229,9 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 				Spec: corev1.ServiceSpec{
 					Ports: []corev1.ServicePort{
 						{
-							Name: "p1",
-							Port: 80,
+							Name:     "p1",
+							Port:     80,
+							Protocol: corev1.ProtocolTCP,
 						},
 					},
 					ClusterIP: "10.0.0.1",
@@ -2315,8 +2328,9 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 				Spec: corev1.ServiceSpec{
 					Ports: []corev1.ServicePort{
 						{
-							Name: "p1",
-							Port: 80,
+							Name:     "p1",
+							Port:     80,
+							Protocol: corev1.ProtocolTCP,
 						},
 					},
 					ClusterIP: corev1.ClusterIPNone,
@@ -2497,6 +2511,71 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 					Port:       90,
 					TargetPort: 9090,
 					Protocol:   "tcp",
+				},
+			},
+		},
+		{
+			name: "duplicate ports on k8s service with different protocols",
+			svc: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+				Spec: corev1.ServiceSpec{
+					ClusterIP: "10.0.0.1",
+					Ports: []corev1.ServicePort{
+						{
+							Name:     "p1",
+							Port:     80,
+							Protocol: corev1.ProtocolTCP,
+						},
+						{
+							Name:     "p2",
+							Port:     80,
+							Protocol: corev1.ProtocolUDP,
+						},
+					},
+				},
+			},
+			svcEndpoints: []runtime.Object{
+				&corev1.Endpoints{
+					ObjectMeta: metav1.ObjectMeta{
+						// Should match svc.Name and svc.Namespace
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Ports: []corev1.EndpointPort{
+								{
+									// Must match the port of 'svc.Spec.Ports[0]'
+									Name: "p1",
+									Port: 8080, // TargetPort
+								},
+								{
+									// Must match the port of 'svc.Spec.Ports[1]'
+									Name: "p2",
+									Port: 8080, // TargetPort
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{
+					Namespace:  "ns1",
+					Name:       "s1",
+					Port:       80,
+					TargetPort: 8080,
+					Protocol:   "http",
+				},
+				{
+					Namespace:  "ns1",
+					Name:       "s1",
+					Port:       80,
+					TargetPort: 8080,
+					Protocol:   "",
 				},
 			},
 		},
