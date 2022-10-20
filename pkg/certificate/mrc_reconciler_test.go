@@ -459,3 +459,93 @@ func TestFilterOutInactiveMRCs(t *testing.T) {
 		})
 	}
 }
+
+func TestShouldUpdateIssuers(t *testing.T) {
+	mrc1Name := "mrc1"
+	mrc2Name := "mrc2"
+	tests := []struct {
+		name                      string
+		expectedError             error
+		expectedUpdate            bool
+		signingMRC                *v1alpha2.MeshRootCertificate
+		validatingMRC             *v1alpha2.MeshRootCertificate
+		currentSigningIssuerID    string
+		currentValidatingIssuerID string
+	}{
+		{
+			name:          "nil MRC, expect error",
+			expectedError: ErrUnexpectedNilMRC,
+			signingMRC:    nil,
+			validatingMRC: activeMRC1,
+		},
+		{
+			name:           "2 MRCs in with active intents and issuers are not already set",
+			expectedUpdate: true,
+			signingMRC:     activeMRC2,
+			validatingMRC:  activeMRC1,
+		},
+		{
+			name:                      "2 MRCs with active intents and issuers are already set",
+			expectedUpdate:            false,
+			signingMRC:                activeMRC2,
+			validatingMRC:             activeMRC1,
+			currentSigningIssuerID:    mrc1Name,
+			currentValidatingIssuerID: mrc2Name,
+		},
+		{
+			name:                      "2 MRCs with active intents and issuers are already set to expected values",
+			expectedUpdate:            false,
+			signingMRC:                activeMRC2,
+			validatingMRC:             activeMRC1,
+			currentSigningIssuerID:    mrc2Name,
+			currentValidatingIssuerID: mrc1Name,
+		},
+		{
+			name:                      "1 active MRC and 1 passive MRC and issuers are already set to expected values",
+			expectedUpdate:            false,
+			signingMRC:                activeMRC2,
+			validatingMRC:             passiveMRC1,
+			currentSigningIssuerID:    mrc2Name,
+			currentValidatingIssuerID: mrc1Name,
+		},
+		{
+			name:                      "1 active MRC and issuers are already set to expected values",
+			expectedUpdate:            false,
+			signingMRC:                activeMRC1,
+			validatingMRC:             activeMRC1,
+			currentSigningIssuerID:    mrc1Name,
+			currentValidatingIssuerID: mrc1Name,
+		},
+		{
+			name:                      "1 active MRC and issuers are not set to expected values",
+			expectedUpdate:            true,
+			signingMRC:                activeMRC1,
+			validatingMRC:             activeMRC1,
+			currentSigningIssuerID:    mrc1Name,
+			currentValidatingIssuerID: mrc2Name,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			m := &Manager{mrcClient: &fakeMRCClient{}}
+
+			if tt.currentSigningIssuerID != "" {
+				m.signingIssuer = &issuer{ID: tt.currentSigningIssuerID}
+			}
+			if tt.currentValidatingIssuerID != "" {
+				m.validatingIssuer = &issuer{ID: tt.currentValidatingIssuerID}
+			}
+
+			shouldUpdate, err := m.shouldUpdateIssuers(tt.signingMRC, tt.validatingMRC)
+			if tt.expectedError != nil {
+				assert.ErrorIs(err, tt.expectedError)
+			} else {
+				assert.NoError(err)
+			}
+
+			assert.Equal(tt.expectedUpdate, shouldUpdate)
+		})
+	}
+}
