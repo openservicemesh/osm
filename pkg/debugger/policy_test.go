@@ -4,49 +4,15 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	tassert "github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 // Tests TestGetSMIPolicies through HTTP handler returns the list of SMI policies extracted from MeshCatalog
 // in string format
 func TestGetSMIPolicies(t *testing.T) {
 	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	mock := catalog.NewMockMeshCataloger(mockCtrl)
 
-	ds := DebugConfig{
-		meshCatalog: mock,
-	}
-
-	mock.EXPECT().ListTrafficSplits().Return(
-		[]*split.TrafficSplit{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				}},
-		})
-	mock.EXPECT().ListServiceAccountsFromTrafficTargets().Return(
-		[]identity.K8sServiceAccount{
-			tests.BookbuyerServiceAccount,
-		})
-	mock.EXPECT().ListHTTPTrafficSpecs().Return(
-		[]*spec.HTTPRouteGroup{
-			&tests.HTTPRouteGroup,
-		})
-	mock.EXPECT().ListTrafficTargets().Return(
-		[]*access.TrafficTarget{
-			&tests.TrafficTarget,
-		})
+	ds := DebugConfig{}
 
 	smiPoliciesHandler := ds.getSMIPoliciesHandler()
 	responseRecorder := httptest.NewRecorder()
