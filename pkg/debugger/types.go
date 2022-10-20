@@ -9,9 +9,9 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
@@ -20,14 +20,14 @@ var log = logger.New("debugger")
 
 // DebugConfig implements the DebugServer interface.
 type DebugConfig struct {
-	certDebugger   *certificate.Manager
-	xdsDebugger    XDSDebugger
-	meshCatalog    catalog.MeshCataloger
-	proxyRegistry  *registry.ProxyRegistry
-	kubeConfig     *rest.Config
-	kubeClient     kubernetes.Interface
-	kubeController k8s.Controller
-	msgBroker      *messaging.Broker
+	certDebugger  *certificate.Manager
+	xdsDebugger   XDSDebugger
+	meshCatalog   catalog.MeshCataloger
+	proxyRegistry *registry.ProxyRegistry
+	kubeConfig    *rest.Config
+	kubeClient    kubernetes.Interface
+	computeClient compute.Interface
+	msgBroker     *messaging.Broker
 }
 
 // XDSDebugger is an interface providing debugging server with methods introspecting XDS.

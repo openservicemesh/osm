@@ -2,6 +2,7 @@ package kube
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -9,20 +10,38 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 
 	"k8s.io/utils/pointer"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
+)
+
+var (
+	// errDidNotFindPodForUUID is an error for when OSM cannot not find a pod for the given xDS certificate.
+	errDidNotFindPodForUUID = errors.New("did not find pod for uuid")
+
+	// errServiceAccountDoesNotMatchProxy is an error for when the service account of a Pod does not match the xDS certificate.
+	errServiceAccountDoesNotMatchProxy = errors.New("service account does not match proxy")
+
+	// errMoreThanOnePodForUUID is an error for when OSM finds more than one pod for a given xDS certificate. There should always be exactly one Pod for a given xDS certificate.
+	errMoreThanOnePodForUUID = errors.New("found more than one pod for xDS uuid")
+
+	// errNamespaceDoesNotMatchProxy is an error for when the namespace of the Pod does not match the xDS certificate.
+	errNamespaceDoesNotMatchProxy = errors.New("namespace does not match proxy")
 )
 
 // NewClient returns a client that has all components necessary to connect to and maintain state of a Kubernetes cluster.
@@ -136,7 +155,7 @@ func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 
 // ListServicesForProxy maps an Envoy instance to a number of Kubernetes services.
 func (c *client) ListServicesForProxy(p *models.Proxy) ([]service.MeshService, error) {
-	pod, err := c.kubeController.GetPodForProxy(p)
+	pod, err := c.getPodForProxy(p)
 	if err != nil {
 		return nil, err
 	}
@@ -182,6 +201,11 @@ func (c *client) getServicesByLabels(podLabels map[string]string, targetNamespac
 	}
 
 	return finalList
+}
+
+// GetMeshConfig returns the current MeshConfig
+func (c *client) GetMeshConfig() configv1alpha2.MeshConfig {
+	return c.kubeController.GetMeshConfig()
 }
 
 // GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service
@@ -248,7 +272,7 @@ func (c *client) ListServices() []service.MeshService {
 
 // IsMetricsEnabled checks if prometheus metrics scraping are enabled on this pod.
 func (c *client) IsMetricsEnabled(proxy *models.Proxy) (bool, error) {
-	pod, err := c.kubeController.GetPodForProxy(proxy)
+	pod, err := c.getPodForProxy(proxy)
 	if err != nil {
 		return false, err
 	}
@@ -410,7 +434,7 @@ func DetectIngressBackendConflicts(x policyv1alpha1.IngressBackend, y policyv1al
 
 // GetProxyStatsHeaders returns stats headers for the given proxy.
 func (c *client) GetProxyStatsHeaders(p *models.Proxy) (map[string]string, error) {
-	pod, err := c.kubeController.GetPodForProxy(p)
+	pod, err := c.getPodForProxy(p)
 	if err != nil {
 		log.Warn().Str("proxy", p.String()).Msg("Could not find pod for connecting proxy. No metadata was recorded.")
 		return nil, err
@@ -444,8 +468,133 @@ func (c *client) GetProxyStatsHeaders(p *models.Proxy) (map[string]string, error
 
 // VerifyProxy attempts to lookup a pod that matches the given proxy instance by service identity, namespace, and UUID.
 func (c *client) VerifyProxy(proxy *models.Proxy) error {
-	_, err := c.kubeController.GetPodForProxy(proxy)
+	_, err := c.getPodForProxy(proxy)
 	return err
+}
+
+// GetPodForProxy returns the pod that the given proxy is attached to, based on the UUID and service identity.
+func (c *client) getPodForProxy(proxy *models.Proxy) (*v1.Pod, error) {
+	proxyUUID, svcAccount := proxy.UUID.String(), proxy.Identity.ToK8sServiceAccount()
+	log.Trace().Msgf("Looking for pod with label %q=%q", constants.EnvoyUniqueIDLabelName, proxyUUID)
+	podList := c.kubeController.ListPods()
+	var pods []v1.Pod
+
+	for _, pod := range podList {
+		if uuid, labelFound := pod.Labels[constants.EnvoyUniqueIDLabelName]; labelFound && uuid == proxyUUID {
+			pods = append(pods, *pod)
+		}
+	}
+
+	if len(pods) == 0 {
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
+			Msgf("Did not find Pod with label %s = %s in namespace %s",
+				constants.EnvoyUniqueIDLabelName, proxyUUID, svcAccount.Namespace)
+		return nil, errDidNotFindPodForUUID
+	}
+
+	// Each pod is assigned a unique UUID at the time of sidecar injection.
+	// The certificate's CommonName encodes this UUID, and we lookup the pod
+	// whose label matches this UUID.
+	// Only 1 pod must match the UUID encoded in the given certificate. If multiple
+	// pods match, it is an error.
+	if len(pods) > 1 {
+		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrPodBelongsToMultipleServices)).
+			Msgf("Found more than one pod with label %s = %s in namespace %s. There can be only one!",
+				constants.EnvoyUniqueIDLabelName, proxyUUID, svcAccount.Namespace)
+		return nil, errMoreThanOnePodForUUID
+	}
+
+	pod := pods[0]
+	log.Trace().Msgf("Found Pod with UID=%s for proxyID %s", pod.ObjectMeta.UID, proxyUUID)
+
+	if pod.Namespace != svcAccount.Namespace {
+		log.Warn().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
+			Msgf("Pod with UID=%s belongs to Namespace %s. The pod's xDS certificate was issued for Namespace %s",
+				pod.ObjectMeta.UID, pod.Namespace, svcAccount.Namespace)
+		return nil, errNamespaceDoesNotMatchProxy
+	}
+
+	// Ensure the Name encoded in the certificate matches that of the Pod
+	// TODO(draychev): check that the Kind matches too! [https://github.com/openservicemesh/osm/issues/3173]
+	if pod.Spec.ServiceAccountName != svcAccount.Name {
+		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always match.
+		log.Warn().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
+			Msgf("Pod with UID=%s belongs to ServiceAccount=%s. The pod's xDS certificate was issued for ServiceAccount=%s",
+				pod.ObjectMeta.UID, pod.Spec.ServiceAccountName, svcAccount)
+		return nil, errServiceAccountDoesNotMatchProxy
+	}
+
+	return &pod, nil
+}
+
+// GetProxyConfig takes the given proxy, port forwards to the pod from this proxy, and returns the envoy config
+func (c *client) GetProxyConfig(proxy *models.Proxy, configType string, kubeConfig *rest.Config) (string, error) {
+	pod, err := c.getPodForProxy(proxy)
+	if err != nil {
+		msg := fmt.Sprintf("Error getting Pod from proxy %s", proxy)
+		log.Error().Err(err).Msg(msg)
+		return "", err
+	}
+	envoyConfig := c.getEnvoyConfig(pod, configType, kubeConfig)
+	return envoyConfig, nil
+}
+
+// getTelemetryPolicy returns the Telemetry policy for the given proxy instance.
+// It returns the most specific match if multiple matching policies exist, in the following
+// order of preference: 1. selector match, 2. namespace match, 3. global match
+func (c *client) getTelemetryPolicy(proxy *models.Proxy) *policyv1alpha1.Telemetry {
+	pod, _ := c.getPodForProxy(proxy)
+	if pod == nil {
+		return nil
+	}
+
+	var policy *policyv1alpha1.Telemetry
+
+	for _, t := range c.kubeController.ListTelemetryPolicies() {
+		// If there is a global policy and a more specific policy hasn't been
+		// found yet, consider the global policy as a candidate
+		if policy == nil && t.Namespace == c.kubeController.GetOSMNamespace() {
+			policy = t
+			continue
+		}
+
+		// If the policy matches the namespace of the proxy's pod,
+		// consider this policy to be a candidate, but continue
+		// to look for a more specific policy that matches the pod
+		// based on a selector
+		if t.Namespace == pod.Namespace {
+			policy = t
+		}
+
+		// Look for a more specific match based on pod selector on the Telemetry resource.
+		// If we find a Telemetry resource that matches the pod's selector, this is
+		// the best match for this proxy.
+		selector := t.Spec.Selector
+		if len(selector) == 0 {
+			continue
+		}
+		sel := labels.Set(selector).AsSelector()
+		if sel.Matches(labels.Set(pod.Labels)) {
+			return t
+		}
+	}
+
+	return policy
+}
+
+// GetTelemetryConfig returns the Telemetry config for the given proxy instance.
+// It returns the most specific match if multiple matching policies exist, in the following
+// order of preference: 1. selector match, 2. namespace match, 3. global match
+func (c *client) GetTelemetryConfig(proxy *models.Proxy) models.TelemetryConfig {
+	var config models.TelemetryConfig
+
+	config.Policy = c.getTelemetryPolicy(proxy)
+
+	if config.Policy != nil && config.Policy.Spec.AccessLog != nil && config.Policy.Spec.AccessLog.OpenTelemetry != nil {
+		config.OpenTelemetryService = c.kubeController.GetExtensionService(config.Policy.Spec.AccessLog.OpenTelemetry.ExtensionService)
+	}
+
+	return config
 }
 
 // ListServiceIdentitiesForService lists ServiceAccounts associated with the given service

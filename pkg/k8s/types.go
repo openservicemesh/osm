@@ -82,6 +82,9 @@ type Controller interface {
 	// GetService returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
 	GetService(name, namespace string) *corev1.Service
 
+	// GetExtensionService returns the extension service for the given service ref
+	GetExtensionService(svc policyv1alpha1.ExtensionServiceRef) *configv1alpha2.ExtensionService
+
 	// ListNamespaces returns the namespaces monitored by the mesh
 	ListNamespaces() ([]*corev1.Namespace, error)
 
@@ -94,8 +97,8 @@ type Controller interface {
 	// GetEndpoints returns the endpoints for a given service, if found
 	GetEndpoints(name, namespace string) (*corev1.Endpoints, error)
 
-	// GetPodForProxy returns the pod that the given proxy is attached to, based on the UUID and service identity.
-	GetPodForProxy(proxy *models.Proxy) (*corev1.Pod, error)
+	// ListTelemetryPolices returns all the telemetry policies.
+	ListTelemetryPolicies() []*policyv1alpha1.Telemetry
 }
 
 // PassthroughInterface is the interface for methods that are implemented by the k8s.Client, but are not considered
@@ -161,9 +164,4 @@ type PassthroughInterface interface {
 
 	// ListServiceExports returns all the ServiceExport resources
 	ListServiceExports() []*mcs.ServiceExport
-
-	// GetTelemetryConfig returns the Telemetry config for the given proxy instance.
-	// It returns the most specific match if multiple matching policies exist, in the following
-	// order of preference: 1. selector match, 2. namespace match, 3. global match
-	GetTelemetryConfig(*models.Proxy) models.TelemetryConfig
 }

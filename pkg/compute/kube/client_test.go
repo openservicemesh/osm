@@ -2,7 +2,6 @@ package kube
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"testing"
@@ -24,7 +23,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/models"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -34,6 +35,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
+)
+
+var (
+	testMeshName = "mesh"
 )
 
 var _ = Describe("Test Kube client Provider (w/o kubecontroller)", func() {
@@ -551,6 +556,12 @@ func TestGetHostnamesForServicePort(t *testing.T) {
 }
 
 func TestIsMetricsEnabled(t *testing.T) {
+	proxyUUID := uuid.New()
+	podlabels := map[string]string{
+		constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+	}
+	serviceAccountName := tests.BookstoreServiceAccountName
+	namespace := tests.BookstoreServiceAccount.Namespace
 	testCases := []struct {
 		name string
 
@@ -563,6 +574,11 @@ func TestIsMetricsEnabled(t *testing.T) {
 			pod: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: nil,
+					Labels:      podlabels,
+					Namespace:   namespace,
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: serviceAccountName,
 				},
 			},
 			expectEnabled: false,
@@ -574,6 +590,11 @@ func TestIsMetricsEnabled(t *testing.T) {
 					Annotations: map[string]string{
 						constants.PrometheusScrapeAnnotation: "true",
 					},
+					Labels:    podlabels,
+					Namespace: namespace,
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: serviceAccountName,
 				},
 			},
 			expectEnabled: true,
@@ -585,6 +606,11 @@ func TestIsMetricsEnabled(t *testing.T) {
 					Annotations: map[string]string{
 						constants.PrometheusScrapeAnnotation: "false",
 					},
+					Labels:    podlabels,
+					Namespace: namespace,
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: serviceAccountName,
 				},
 			},
 			expectEnabled: false,
@@ -596,6 +622,11 @@ func TestIsMetricsEnabled(t *testing.T) {
 					Annotations: map[string]string{
 						constants.PrometheusScrapeAnnotation: "no",
 					},
+					Labels:    podlabels,
+					Namespace: namespace,
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: serviceAccountName,
 				},
 			},
 			expectEnabled: false,
@@ -608,20 +639,270 @@ func TestIsMetricsEnabled(t *testing.T) {
 			assert := tassert.New(t)
 			mockCtrl := gomock.NewController(t)
 			k := k8s.NewMockController(mockCtrl)
-			if tc.pod != nil {
-				k.EXPECT().GetPodForProxy(gomock.Any()).Return(tc.pod, nil)
-			} else {
-				k.EXPECT().GetPodForProxy(gomock.Any()).Return(nil, errors.New("not found"))
-			}
+			podArr := []*corev1.Pod{tc.pod}
+			k.EXPECT().ListPods().Return(podArr).AnyTimes()
 			c := NewClient(k)
 
-			actual, err := c.IsMetricsEnabled(&models.Proxy{})
+			actual, err := c.IsMetricsEnabled(&models.Proxy{UUID: proxyUUID, Identity: tests.BookstoreServiceIdentity})
 			assert.Equal(tc.expectEnabled, actual)
 			if tc.expectErr {
 				assert.Error(err)
 			} else {
 				assert.NoError(err)
 			}
+		})
+	}
+}
+
+func monitoredNS(name string) *corev1.Namespace {
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				constants.OSMKubeResourceMonitorAnnotation: testMeshName,
+			},
+		},
+	}
+}
+
+func TestGetPodForProxy(t *testing.T) {
+	assert := tassert.New(t)
+	stop := make(chan struct{})
+	defer close(stop)
+
+	proxyUUID := uuid.New()
+	someOtherEnvoyUID := uuid.New()
+	namespace := tests.BookstoreServiceAccount.Namespace
+
+	podlabels := map[string]string{
+		constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+	}
+
+	pod := tests.NewPodFixture(namespace, "pod-1", tests.BookstoreServiceAccountName, podlabels)
+	someOthePodLabels := map[string]string{
+		constants.AppLabel:               tests.SelectorValue,
+		constants.EnvoyUniqueIDLabelName: someOtherEnvoyUID.String(),
+	}
+
+	kubeClient := fake.NewSimpleClientset(
+		monitoredNS(namespace),
+		monitoredNS("bad-namespace"),
+		tests.NewPodFixture(namespace, "pod-0", tests.BookstoreServiceAccountName, someOthePodLabels),
+		pod,
+		tests.NewPodFixture(namespace, "pod-2", tests.BookstoreServiceAccountName, someOthePodLabels),
+	)
+
+	broker := messaging.NewBroker(stop)
+
+	k8sClient, err := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker, k8s.WithKubeClient(kubeClient, testMeshName))
+	assert.NoError(err)
+
+	testCases := []struct {
+		name  string
+		pod   *corev1.Pod
+		proxy *models.Proxy
+		err   error
+	}{
+		{
+			name:  "fails when UUID does not match",
+			proxy: models.NewProxy(models.KindSidecar, uuid.New(), tests.BookstoreServiceIdentity, nil, 1),
+			err:   errDidNotFindPodForUUID,
+		},
+		{
+			name:  "fails when service account does not match certificate",
+			proxy: &models.Proxy{UUID: proxyUUID, Identity: identity.New("bad-name", namespace)},
+			err:   errServiceAccountDoesNotMatchProxy,
+		},
+		{
+			name:  "2 pods with same uuid",
+			proxy: models.NewProxy(models.KindSidecar, someOtherEnvoyUID, tests.BookstoreServiceIdentity, nil, 1),
+			err:   errMoreThanOnePodForUUID,
+		},
+		{
+			name:  "fails when namespace does not match certificate",
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, "bad-namespace"), nil, 1),
+			err:   errNamespaceDoesNotMatchProxy,
+		},
+		{
+			name:  "works as expected",
+			pod:   pod,
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, tests.BookstoreServiceIdentity, nil, 1),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			c := NewClient(k8sClient)
+			pod, err := c.getPodForProxy(tc.proxy)
+
+			assert.Equal(tc.pod, pod)
+			assert.Equal(tc.err, err)
+		})
+	}
+}
+
+func TestGetTelemetryConfig(t *testing.T) {
+	proxyUUID := uuid.New()
+	appNamespace := "test"
+	osmNamespace := "global"
+
+	globalPolicy := &policyv1alpha1.Telemetry{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: osmNamespace,
+			Name:      "t1",
+		},
+	}
+
+	namespacePolicy := &policyv1alpha1.Telemetry{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: appNamespace,
+			Name:      "t2",
+		},
+	}
+
+	selectorPolicy := &policyv1alpha1.Telemetry{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: appNamespace,
+			Name:      "t3",
+		},
+		Spec: policyv1alpha1.TelemetrySpec{
+			Selector: map[string]string{"app": "foo"},
+		},
+	}
+
+	otelPolicy := &policyv1alpha1.Telemetry{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: appNamespace,
+			Name:      "t2",
+		},
+		Spec: policyv1alpha1.TelemetrySpec{
+			Selector: map[string]string{"app": "foo"},
+			AccessLog: &policyv1alpha1.EnvoyAccessLogConfig{
+				OpenTelemetry: &policyv1alpha1.EnvoyAccessLogOpenTelemetryConfig{
+					ExtensionService: policyv1alpha1.ExtensionServiceRef{
+						Namespace: "otel-ns",
+						Name:      "otel-collector",
+					},
+				},
+			},
+		},
+	}
+
+	otelExtSvc := &configv1alpha2.ExtensionService{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "otel-ns",
+			Name:      "otel-collector",
+		},
+	}
+
+	testCases := []struct {
+		name              string
+		proxy             *models.Proxy
+		pod               *corev1.Pod
+		telemetryPolicies []*policyv1alpha1.Telemetry
+		extensionServices []runtime.Object
+		expected          models.TelemetryConfig
+	}{
+		{
+			name:  "matches global scope policy",
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, "sa-1.test", nil, 1),
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []*policyv1alpha1.Telemetry{
+				globalPolicy,
+			},
+			expected: models.TelemetryConfig{
+				Policy: globalPolicy,
+			},
+		},
+		{
+			name:  "matches namespace scope policy",
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, "sa-1.test", nil, 1),
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []*policyv1alpha1.Telemetry{
+				globalPolicy,
+				namespacePolicy,
+			},
+			expected: models.TelemetryConfig{
+				Policy: namespacePolicy,
+			},
+		},
+		{
+			name:  "matches selector scope policy",
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, "sa-1.test", nil, 1),
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []*policyv1alpha1.Telemetry{
+				globalPolicy,
+				namespacePolicy,
+				selectorPolicy,
+			},
+			expected: models.TelemetryConfig{
+				Policy: selectorPolicy,
+			},
+		},
+		{
+			name:  "matches policy with OpenTelemetry config",
+			proxy: models.NewProxy(models.KindSidecar, proxyUUID, "sa-1.test", nil, 1),
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []*policyv1alpha1.Telemetry{
+				otelPolicy,
+			},
+			extensionServices: []runtime.Object{
+				otelExtSvc,
+			},
+			expected: models.TelemetryConfig{
+				Policy:               otelPolicy,
+				OpenTelemetryService: otelExtSvc,
+			},
+		},
+		{
+			name:  "no policy when proxy does not match pod",
+			proxy: models.NewProxy(models.KindSidecar, uuid.New(), "sa-1.test", nil, 1), // new UUID to avoid matching proxyUUID
+			pod: tests.NewPodFixture(appNamespace, "pod-1", "sa-1",
+				map[string]string{
+					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+					"app":                            "foo",
+				}),
+			telemetryPolicies: []*policyv1alpha1.Telemetry{
+				globalPolicy,
+				namespacePolicy,
+				selectorPolicy,
+			},
+			expected: models.TelemetryConfig{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			mockCtrl := gomock.NewController(t)
+			k := k8s.NewMockController(mockCtrl)
+			podArr := []*corev1.Pod{tc.pod}
+			k.EXPECT().ListPods().Return(podArr).AnyTimes()
+			k.EXPECT().ListTelemetryPolicies().Return(tc.telemetryPolicies).AnyTimes()
+			k.EXPECT().GetOSMNamespace().Return(osmNamespace).AnyTimes()
+			k.EXPECT().GetExtensionService(otelPolicy.Spec.AccessLog.OpenTelemetry.ExtensionService).Return(otelExtSvc).AnyTimes()
+			c := NewClient(k)
+
+			actual := c.GetTelemetryConfig(tc.proxy)
+			a.Equal(tc.expected, actual)
 		})
 	}
 }

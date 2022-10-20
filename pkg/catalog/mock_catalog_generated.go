@@ -21,6 +21,7 @@ import (
 	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	types "k8s.io/apimachinery/pkg/types"
+	rest "k8s.io/client-go/rest"
 	cache "k8s.io/client-go/tools/cache"
 	v1alpha10 "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
 )
@@ -342,6 +343,21 @@ func (m *MockMeshCataloger) GetOutboundMeshTrafficMatches(arg0 identity.ServiceI
 func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshTrafficMatches(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundMeshTrafficMatches", reflect.TypeOf((*MockMeshCataloger)(nil).GetOutboundMeshTrafficMatches), arg0)
+}
+
+// GetProxyConfig mocks base method.
+func (m *MockMeshCataloger) GetProxyConfig(arg0 *models.Proxy, arg1 string, arg2 *rest.Config) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProxyConfig", arg0, arg1, arg2)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetProxyConfig indicates an expected call of GetProxyConfig.
+func (mr *MockMeshCatalogerMockRecorder) GetProxyConfig(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProxyConfig", reflect.TypeOf((*MockMeshCataloger)(nil).GetProxyConfig), arg0, arg1, arg2)
 }
 
 // GetProxyStatsHeaders mocks base method.

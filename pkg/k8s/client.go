@@ -8,9 +8,7 @@ import (
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 	mcs "sigs.k8s.io/mcs-api/pkg/apis/v1alpha1"
@@ -18,7 +16,6 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/models"
@@ -229,62 +226,6 @@ func (c *Client) GetMeshConfig() configv1alpha2.MeshConfig {
 	return configv1alpha2.MeshConfig{}
 }
 
-// GetPodForProxy returns the pod that the given proxy is attached to, based on the UUID and service identity.
-// TODO(4863): move this to kube/client.go
-func (c *Client) GetPodForProxy(proxy *models.Proxy) (*v1.Pod, error) {
-	proxyUUID, svcAccount := proxy.UUID.String(), proxy.Identity.ToK8sServiceAccount()
-	log.Trace().Msgf("Looking for pod with label %q=%q", constants.EnvoyUniqueIDLabelName, proxyUUID)
-	podList := c.ListPods()
-	var pods []v1.Pod
-
-	for _, pod := range podList {
-		if uuid, labelFound := pod.Labels[constants.EnvoyUniqueIDLabelName]; labelFound && uuid == proxyUUID {
-			pods = append(pods, *pod)
-		}
-	}
-
-	if len(pods) == 0 {
-		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
-			Msgf("Did not find Pod with label %s = %s in namespace %s",
-				constants.EnvoyUniqueIDLabelName, proxyUUID, svcAccount.Namespace)
-		return nil, errDidNotFindPodForUUID
-	}
-
-	// Each pod is assigned a unique UUID at the time of sidecar injection.
-	// The certificate's CommonName encodes this UUID, and we lookup the pod
-	// whose label matches this UUID.
-	// Only 1 pod must match the UUID encoded in the given certificate. If multiple
-	// pods match, it is an error.
-	if len(pods) > 1 {
-		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrPodBelongsToMultipleServices)).
-			Msgf("Found more than one pod with label %s = %s in namespace %s. There can be only one!",
-				constants.EnvoyUniqueIDLabelName, proxyUUID, svcAccount.Namespace)
-		return nil, errMoreThanOnePodForUUID
-	}
-
-	pod := pods[0]
-	log.Trace().Msgf("Found Pod with UID=%s for proxyID %s", pod.ObjectMeta.UID, proxyUUID)
-
-	if pod.Namespace != svcAccount.Namespace {
-		log.Warn().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
-			Msgf("Pod with UID=%s belongs to Namespace %s. The pod's xDS certificate was issued for Namespace %s",
-				pod.ObjectMeta.UID, pod.Namespace, svcAccount.Namespace)
-		return nil, errNamespaceDoesNotMatchProxy
-	}
-
-	// Ensure the Name encoded in the certificate matches that of the Pod
-	// TODO(draychev): check that the Kind matches too! [https://github.com/openservicemesh/osm/issues/3173]
-	if pod.Spec.ServiceAccountName != svcAccount.Name {
-		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always match.
-		log.Warn().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
-			Msgf("Pod with UID=%s belongs to ServiceAccount=%s. The pod's xDS certificate was issued for ServiceAccount=%s",
-				pod.ObjectMeta.UID, pod.Spec.ServiceAccountName, svcAccount)
-		return nil, errServiceAccountDoesNotMatchProxy
-	}
-
-	return &pod, nil
-}
-
 // GetOSMNamespace returns the namespace in which the OSM controller pod resides.
 func (c *Client) GetOSMNamespace() string {
 	return c.osmNamespace
@@ -322,6 +263,15 @@ func (c *Client) ListIngressBackendPolicies() []*policyv1alpha1.IngressBackend {
 	return backends
 }
 
+// GetExtensionService returns the extension service for the given service ref
+func (c *Client) GetExtensionService(svc policyv1alpha1.ExtensionServiceRef) *configv1alpha2.ExtensionService {
+	resource, exists, err := c.getByKey(informerKeyExtensionService, key(svc.Name, svc.Namespace))
+	if exists && err == nil {
+		return resource.(*configv1alpha2.ExtensionService)
+	}
+	return nil
+}
+
 // ListRetryPolicies returns the retry policies for the given source identity based on service accounts.
 func (c *Client) ListRetryPolicies() []*policyv1alpha1.Retry {
 	var retries []*policyv1alpha1.Retry
@@ -336,6 +286,23 @@ func (c *Client) ListRetryPolicies() []*policyv1alpha1.Retry {
 	}
 
 	return retries
+}
+
+// ListTelemetryPolicies returns all the telemetry policies.
+func (c *Client) ListTelemetryPolicies() []*policyv1alpha1.Telemetry {
+	var telemetryPolicies []*policyv1alpha1.Telemetry
+
+	for _, resource := range c.list(informerKeyTelemetry) {
+		t := resource.(*policyv1alpha1.Telemetry)
+
+		if !c.IsMonitoredNamespace(t.Namespace) {
+			continue
+		}
+
+		telemetryPolicies = append(telemetryPolicies, t)
+	}
+
+	return telemetryPolicies
 }
 
 // ListUpstreamTrafficSettings returns the all UpstreamTrafficSetting resources
@@ -491,55 +458,6 @@ func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
 	return trafficTargets
 }
 
-// getTelemetryPolicy returns the Telemetry policy for the given proxy instance.
-// It returns the most specific match if multiple matching policies exist, in the following
-// order of preference: 1. selector match, 2. namespace match, 3. global match
-func (c *Client) getTelemetryPolicy(proxy *models.Proxy) *policyv1alpha1.Telemetry {
-	pod, _ := c.GetPodForProxy(proxy)
-	if pod == nil {
-		return nil
-	}
-
-	var policy *policyv1alpha1.Telemetry
-
-	for _, resource := range c.list(informerKeyTelemetry) {
-		t := resource.(*policyv1alpha1.Telemetry)
-
-		// If there is a global policy and a more specific policy hasn't been
-		// found yet, consider the global policy as a candidate
-		if policy == nil && t.Namespace == c.osmNamespace {
-			policy = t
-			continue
-		}
-
-		if !c.IsMonitoredNamespace(t.Namespace) {
-			continue
-		}
-
-		// If the policy matches the namespace of the proxy's pod,
-		// consider this policy to be a candidate, but continue
-		// to look for a more specific policy that matches the pod
-		// based on a selector
-		if t.Namespace == pod.Namespace {
-			policy = t
-		}
-
-		// Look for a more specific match based on pod selector on the Telemetry resource.
-		// If we find a Telemetry resource that matches the pod's selector, this is
-		// the best match for this proxy.
-		selector := t.Spec.Selector
-		if len(selector) == 0 {
-			continue
-		}
-		sel := labels.Set(selector).AsSelector()
-		if sel.Matches(labels.Set(pod.Labels)) {
-			return t
-		}
-	}
-
-	return policy
-}
-
 // ListServiceImports returns all ServiceImport resources
 func (c *Client) ListServiceImports() []*mcs.ServiceImport {
 	var serviceImports []*mcs.ServiceImport
@@ -573,27 +491,4 @@ func (c *Client) ListServiceExports() []*mcs.ServiceExport {
 // AddMeshRootCertificateEventHandler adds an event handler specific to mesh root certificiates.
 func (c *Client) AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler, resyncInterval time.Duration) {
 	c.informers[informerKeyMeshRootCertificate].AddEventHandlerWithResyncPeriod(handler, resyncInterval)
-}
-
-func (c *Client) getExtensionService(svc policyv1alpha1.ExtensionServiceRef) *configv1alpha2.ExtensionService {
-	resource, exists, err := c.getByKey(informerKeyExtensionService, key(svc.Name, svc.Namespace))
-	if exists && err == nil {
-		return resource.(*configv1alpha2.ExtensionService)
-	}
-	return nil
-}
-
-// GetTelemetryConfig returns the Telemetry config for the given proxy instance.
-// It returns the most specific match if multiple matching policies exist, in the following
-// order of preference: 1. selector match, 2. namespace match, 3. global match
-func (c *Client) GetTelemetryConfig(proxy *models.Proxy) models.TelemetryConfig {
-	var config models.TelemetryConfig
-
-	config.Policy = c.getTelemetryPolicy(proxy)
-
-	if config.Policy != nil && config.Policy.Spec.AccessLog != nil && config.Policy.Spec.AccessLog.OpenTelemetry != nil {
-		config.OpenTelemetryService = c.getExtensionService(config.Policy.Spec.AccessLog.OpenTelemetry.ExtensionService)
-	}
-
-	return config
 }
