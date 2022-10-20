@@ -220,37 +220,3 @@ func (mc *MeshCatalog) ListTrafficTargetsByOptions(options ...smi.TrafficTargetL
 	}
 	return trafficTargets
 }
-
-// ListServiceAccountsFromTrafficTargets lists ServiceAccounts specified in SMI TrafficTarget resources
-func (mc *MeshCatalog) ListServiceAccountsFromTrafficTargets() []identity.K8sServiceAccount {
-	var serviceAccounts []identity.K8sServiceAccount
-	for _, trafficTarget := range mc.ListTrafficTargets() {
-		if !mc.IsMonitoredNamespace(trafficTarget.Namespace) {
-			continue
-		}
-
-		if !smi.IsValidTrafficTarget(trafficTarget) {
-			continue
-		}
-
-		for _, sources := range trafficTarget.Spec.Sources {
-			// Only monitor sources in namespaces OSM is observing
-			if !mc.IsMonitoredNamespace(sources.Namespace) {
-				// Doesn't belong to namespaces we are observing
-				continue
-			}
-			namespacedServiceAccount := identity.K8sServiceAccount{
-				Namespace: sources.Namespace,
-				Name:      sources.Name,
-			}
-			serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
-		}
-
-		namespacedServiceAccount := identity.K8sServiceAccount{
-			Namespace: trafficTarget.Spec.Destination.Namespace,
-			Name:      trafficTarget.Spec.Destination.Name,
-		}
-		serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
-	}
-	return serviceAccounts
-}

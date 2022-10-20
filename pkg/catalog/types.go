@@ -82,8 +82,6 @@ type MeshCataloger interface {
 
 	// GetIngressHTTPRoutePolicies returns the ingress traffic matches for the ingress traffic policy for the given mesh service
 	GetIngressTrafficMatches([]service.MeshService) [][]*trafficpolicy.IngressTrafficMatch
-
-	ListServiceAccountsFromTrafficTargets() []identity.K8sServiceAccount
 }
 
 type trafficDirection string

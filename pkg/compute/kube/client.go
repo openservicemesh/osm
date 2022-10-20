@@ -28,6 +28,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/smi"
 )
 
 var (
@@ -125,6 +126,40 @@ func (c *client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 	log.Trace().Msgf("[ListEndpointsForIdentity] Endpoints for service identity (serviceAccount=%s) %s: %+v", serviceIdentity, sa, endpoints)
 
 	return endpoints
+}
+
+// ListServiceAccountsFromTrafficTargets lists ServiceAccounts specified in SMI TrafficTarget resources
+func (c *client) ListServiceAccountsFromTrafficTargets() []identity.K8sServiceAccount {
+	var serviceAccounts []identity.K8sServiceAccount
+	for _, trafficTarget := range c.kubeController.ListTrafficTargets() {
+		if !c.kubeController.IsMonitoredNamespace(trafficTarget.Namespace) {
+			continue
+		}
+
+		if !smi.IsValidTrafficTarget(trafficTarget) {
+			continue
+		}
+
+		for _, sources := range trafficTarget.Spec.Sources {
+			// Only monitor sources in namespaces OSM is observing
+			if !c.kubeController.IsMonitoredNamespace(sources.Namespace) {
+				// Doesn't belong to namespaces we are observing
+				continue
+			}
+			namespacedServiceAccount := identity.K8sServiceAccount{
+				Namespace: sources.Namespace,
+				Name:      sources.Name,
+			}
+			serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
+		}
+
+		namespacedServiceAccount := identity.K8sServiceAccount{
+			Namespace: trafficTarget.Spec.Destination.Namespace,
+			Name:      trafficTarget.Spec.Destination.Name,
+		}
+		serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
+	}
+	return serviceAccounts
 }
 
 // GetServicesForServiceIdentity retrieves a list of services for the given service identity.

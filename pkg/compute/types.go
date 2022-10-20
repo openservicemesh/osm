@@ -61,6 +61,9 @@ type Interface interface {
 	// ListEgressPoliciesForServiceAccount lists the Egress policies for the given source identity based on service accounts
 	ListEgressPoliciesForServiceAccount(sa identity.K8sServiceAccount) []*policyv1alpha1.Egress
 
+	// ListServiceAccountsFromTrafficTargets lists ServiceAccounts specified in SMI TrafficTarget resources
+	ListServiceAccountsFromTrafficTargets() []identity.K8sServiceAccount
+
 	// GetIngressBackendPolicyForService returns the IngressBackend policy for the given backend MeshService
 	GetIngressBackendPolicyForService(svc service.MeshService) *policyv1alpha1.IngressBackend
 
