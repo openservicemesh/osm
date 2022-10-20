@@ -7,7 +7,6 @@ package k8s
 import (
 	context "context"
 	reflect "reflect"
-	time "time"
 
 	gomock "github.com/golang/mock/gomock"
 	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
@@ -46,15 +45,15 @@ func (m *MockController) EXPECT() *MockControllerMockRecorder {
 }
 
 // AddMeshRootCertificateEventHandler mocks base method.
-func (m *MockController) AddMeshRootCertificateEventHandler(arg0 cache.ResourceEventHandler, arg1 time.Duration) {
+func (m *MockController) AddMeshRootCertificateEventHandler(arg0 cache.ResourceEventHandler) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddMeshRootCertificateEventHandler", arg0, arg1)
+	m.ctrl.Call(m, "AddMeshRootCertificateEventHandler", arg0)
 }
 
 // AddMeshRootCertificateEventHandler indicates an expected call of AddMeshRootCertificateEventHandler.
-func (mr *MockControllerMockRecorder) AddMeshRootCertificateEventHandler(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockControllerMockRecorder) AddMeshRootCertificateEventHandler(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMeshRootCertificateEventHandler", reflect.TypeOf((*MockController)(nil).AddMeshRootCertificateEventHandler), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMeshRootCertificateEventHandler", reflect.TypeOf((*MockController)(nil).AddMeshRootCertificateEventHandler), arg0)
 }
 
 // GetEndpoints mocks base method.

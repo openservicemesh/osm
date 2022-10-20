@@ -10,10 +10,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/compute"
 )
 
-// MRCResyncInterval is the resync interval to provide a retry mechanism for MRC event handlers
-// It is half of the MrcDurationPerStage (the amount of time we leave each MRC in a stage before moving to the next stage)
-const MRCResyncInterval = certificate.MrcDurationPerStage / 2
-
 // MRCComposer is a composer object that allows consumers
 // to observe MRCs (via List() and Watch()) as well as generate
 // `certificate.Provider`s from those MRCs
@@ -51,7 +47,7 @@ func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, e
 		// happen come from the control plane cleaning up an old MRC. Our
 		// ValdatingWebhookConfiguration should prevent deletes from users
 		DeleteFunc: func(obj interface{}) {},
-	}, MRCResyncInterval)
+	})
 
 	return eventChan, nil
 }

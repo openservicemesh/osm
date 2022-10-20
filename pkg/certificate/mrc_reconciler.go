@@ -169,7 +169,7 @@ func (m *Manager) updateMRCState(mrc *v1alpha2.MeshRootCertificate) error {
 	if isTerminal(mrc) {
 		mrc.Status.TransitionAfter = nil
 	} else {
-		mrc.Status.TransitionAfter = &metav1.Time{Time: time.Now().Add(MrcDurationPerStage)}
+		mrc.Status.TransitionAfter = &metav1.Time{Time: time.Now().Add(mrcDurationPerStage)}
 	}
 
 	// TODO(5046): add the retry loop.

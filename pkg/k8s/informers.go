@@ -77,8 +77,8 @@ const (
 
 const (
 	// DefaultKubeEventResyncInterval is the default resync interval for k8s events
-	// This is set to 0 because we do not need resyncs from k8s client.
-	// For the MeshConfig resource, we have our own Ticker to turn on periodic resyncs.
+	// This is set to 0 because we do not need resyncs from k8s client, and have our
+	// own Ticker to turn on periodic resyncs.
 	DefaultKubeEventResyncInterval = 0 * time.Second
 )
 
