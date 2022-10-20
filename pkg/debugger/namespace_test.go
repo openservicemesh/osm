@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
+
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 // Tests getMonitoredNamespaces through HTTP handler returns a the list of monitored namespaces
@@ -13,6 +15,11 @@ func TestMonitoredNamespaceHandler(t *testing.T) {
 
 	ds := DebugConfig{}
 	monitoredNamespacesHandler := ds.getMonitoredNamespacesHandler()
+
+	tests.GetUnique([]string{
+		tests.BookbuyerService.Namespace,   // default
+		tests.BookstoreV1Service.Namespace, // default
+	})
 
 	responseRecorder := httptest.NewRecorder()
 	monitoredNamespacesHandler.ServeHTTP(responseRecorder, nil)
