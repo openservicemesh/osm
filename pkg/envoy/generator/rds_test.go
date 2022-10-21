@@ -790,7 +790,7 @@ func TestRDSResponse(t *testing.T) {
 
 			mock.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 			mock.EXPECT().GetMeshConfig().AnyTimes()
-			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
+			trafficTarget := tests.NewSMITrafficTarget(tc.upstreamSA, tc.downstreamSA)
 			mock.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 			mock.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
 

@@ -146,12 +146,15 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	if mc.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode {
 		return mc.ListServices()
 	}
-
+	fmt.Println("Proxy service identity: ", serviceIdentity)
 	svcAccount := serviceIdentity.ToK8sServiceAccount()
+	fmt.Println("\nsvc account being checked is: ", svcAccount.Name, svcAccount.Namespace)
 	serviceSet := mapset.NewSet()
 	var allowedServices []service.MeshService
 
 	for _, t := range mc.ListTrafficTargetsByOptions() { // loop through all traffic targets
+		fmt.Println("\ntraffic target being checked rn is: ", t)
+		fmt.Println("\nsources for tt are: ", t.Spec.Sources)
 		for _, source := range t.Spec.Sources {
 			fmt.Println("source name is ", source.Name)
 			if source.Name != svcAccount.Name || source.Namespace != svcAccount.Namespace {
@@ -162,7 +165,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 				Name:      t.Spec.Destination.Name,
 				Namespace: t.Spec.Destination.Namespace,
 			}
-
+			fmt.Println("\nI am reaching here so I have found a match")
 			for _, destService := range mc.GetServicesForServiceIdentity(sa.ToServiceIdentity()) {
 				if added := serviceSet.Add(destService); added {
 					allowedServices = append(allowedServices, destService)
