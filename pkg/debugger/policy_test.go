@@ -4,15 +4,46 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	gomock "github.com/golang/mock/gomock"
+	"github.com/openservicemesh/osm/pkg/compute/kube"
+	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/tests"
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	tassert "github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Tests TestGetSMIPolicies through HTTP handler returns the list of SMI policies extracted from MeshCatalog
 // in string format
 func TestGetSMIPolicies(t *testing.T) {
 	assert := tassert.New(t)
+	mockCtrl := gomock.NewController(t)
+	mockK8s := k8s.NewMockController(mockCtrl)
+	computeClient := kube.NewClient(mockK8s)
 
-	ds := DebugConfig{}
+	ds := DebugConfig{
+		computeClient: computeClient,
+	}
+
+	mockK8s.EXPECT().ListTrafficSplits().Return(
+		[]*split.TrafficSplit{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "bar",
+				}},
+		})
+	mockK8s.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true).AnyTimes()
+	mockK8s.EXPECT().ListHTTPTrafficSpecs().Return(
+		[]*spec.HTTPRouteGroup{
+			&tests.HTTPRouteGroup,
+		})
+	mockK8s.EXPECT().ListTrafficTargets().Return(
+		[]*access.TrafficTarget{
+			&tests.TrafficTarget,
+		}).AnyTimes()
 
 	smiPoliciesHandler := ds.getSMIPoliciesHandler()
 	responseRecorder := httptest.NewRecorder()

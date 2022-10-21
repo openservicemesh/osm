@@ -1027,7 +1027,7 @@ func TestListSMIPolicies(t *testing.T) {
 	mockCompute.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true).AnyTimes()
 	mockCompute.EXPECT().ListTrafficSplits().Return(splits).AnyTimes()
 	mockCompute.EXPECT().ListTrafficTargets().Return(targets).AnyTimes()
-	mockCompute.EXPECT().ListServiceAccountsFromTrafficTargets().Return(targets).AnyTimes()
+	mockCompute.EXPECT().ListServiceAccountsFromTrafficTargets().Return(svcAccounts).AnyTimes()
 	mockCompute.EXPECT().ListHTTPTrafficSpecs().Return(httpRoutes).AnyTimes()
 
 	mc := &MeshCatalog{
