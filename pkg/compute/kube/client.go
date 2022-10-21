@@ -661,8 +661,8 @@ func (c *client) serviceToMeshServices(svc corev1.Service) []service.MeshService
 		// Order of Preference is:
 		// 1. port.appProtocol field
 		// 2. protocol prefixed to port name (e.g. tcp-my-port)
-		// 3. default to http
-		protocol := constants.ProtocolHTTP
+		// 3. default to http for TCP ports
+		var protocol string
 		for _, p := range constants.SupportedProtocolsInMesh {
 			if strings.HasPrefix(portSpec.Name, p+"-") {
 				protocol = p
@@ -672,6 +672,22 @@ func (c *client) serviceToMeshServices(svc corev1.Service) []service.MeshService
 
 		// use port.appProtocol if specified, else use port protocol
 		meshSvc.Protocol = pointer.StringDeref(portSpec.AppProtocol, protocol)
+
+		// If app protocol was not detected and the protocol is TCP, use HTTP
+		// as the default app protocol.
+		// This is required for backward compatibility where users may be relying
+		// on implicit HTTP protocol selection.
+		//
+		// Note: it's possible for MeshService.Protocol to be unset for
+		// non TCP ports (eg. UDP) if we could not infer the corresponding
+		// app protocol via the appProtocol field or the port name.
+		// This will result in an error log for the specific port when the
+		// Envoy config is built for that port.
+		if meshSvc.Protocol == "" && portSpec.Protocol == corev1.ProtocolTCP {
+			log.Warn().Msgf("Did not detect app protocol for TCP port name=%s number=%d for service %s/%s, defaulting to http",
+				portSpec.Name, portSpec.Port, svc.Namespace, svc.Name)
+			meshSvc.Protocol = constants.ProtocolHTTP
+		}
 
 		// The endpoints for the kubernetes service carry information that allows
 		// us to retrieve the TargetPort for the MeshService.
