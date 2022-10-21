@@ -49,14 +49,15 @@ func TestGenerateRDS(t *testing.T) {
 		meshServices             []service.MeshService
 		trafficSpec              spec.HTTPRouteGroup
 		trafficSplit             split.TrafficSplit
+		upstreamTrafficSetting   []policyv1alpha1.UpstreamTrafficSetting
 		ingressInboundPolicies   []*trafficpolicy.InboundTrafficPolicy
 		expectedInboundPolicies  map[int][]*trafficpolicy.InboundTrafficPolicy
 		expectedOutboundPolicies map[int][]*trafficpolicy.OutboundTrafficPolicy
 	}{
 		{
 			name:             "Test RDS NewResponse",
-			downstreamSA:     tests.BookbuyerServiceIdentity,
-			upstreamSA:       tests.BookstoreServiceIdentity,
+			upstreamSA:       tests.BookbuyerServiceIdentity,
+			downstreamSA:     tests.BookstoreServiceIdentity,
 			upstreamServices: []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
 			meshServices:     []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService},
 			trafficSpec: spec.HTTPRouteGroup{
@@ -107,6 +108,28 @@ func TestGenerateRDS(t *testing.T) {
 					},
 				},
 			},
+			//upstreamTrafficSetting: []policyv1alpha1.UpstreamTrafficSetting{
+			//	{
+			//		ObjectMeta: v1.ObjectMeta{
+			//			Name:      "u1",
+			//			Namespace: "ns1",
+			//		},
+			//		Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+			//			ConnectionSettings: &policyv1alpha1.ConnectionSettingsSpec{
+			//				TCP: &policyv1alpha1.TCPConnectionSettings{
+			//					MaxConnections: &thresholdUintVal,
+			//					ConnectTimeout: thresholdDuration,
+			//				},
+			//				HTTP: &policyv1alpha1.HTTPConnectionSettings{
+			//					MaxRequests:              &thresholdUintVal,
+			//					MaxPendingRequests:       &thresholdUintVal,
+			//					MaxRetries:               &thresholdUintVal,
+			//					MaxRequestsPerConnection: &thresholdUintVal,
+			//				},
+			//			},
+			//		},
+			//	},
+			//},
 			//ingressInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 			//	{
 			//		Name:      "bookstore-v1-default-bookstore-v1.default.svc.cluster.local",
@@ -261,6 +284,7 @@ func TestGenerateRDS(t *testing.T) {
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
 			mock := compute.NewMockInterface(mockCtrl)
 			stop := make(chan struct{})
+
 			meshCatalog := catalog.NewMeshCatalog(
 				mock,
 				tresorFake.NewFake(time.Hour),
@@ -278,7 +302,7 @@ func TestGenerateRDS(t *testing.T) {
 
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 
-			mock.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
+			//mock.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 			mock.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
@@ -293,7 +317,7 @@ func TestGenerateRDS(t *testing.T) {
 
 			ingressBackend := policyv1alpha1.IngressBackend{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bookstore-v1",
+					Name:      "bookstore-v1.default.svc.cluster.local",
 					Namespace: "default",
 				},
 				Spec: policyv1alpha1.IngressBackendSpec{
@@ -308,8 +332,8 @@ func TestGenerateRDS(t *testing.T) {
 					},
 					Sources: []policyv1alpha1.IngressSourceSpec{
 						{
-							Kind:      "Service",
-							Name:      "client",
+							Kind:      "AuthenticatedPrincipal",
+							Name:      "cluster.local",
 							Namespace: "foo",
 						},
 					},
@@ -317,6 +341,7 @@ func TestGenerateRDS(t *testing.T) {
 			}
 			mock.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(&ingressBackend).AnyTimes()
 			mock.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
+			mock.EXPECT().GetServicesForServiceIdentity(gomock.Any()).Return(tc.upstreamServices).AnyTimes()
 
 			for _, svc := range tc.meshServices {
 				mock.EXPECT().GetHostnamesForService(svc, true).Return(kube.NewClient(nil).GetHostnamesForService(svc, true)).AnyTimes()
@@ -340,13 +365,13 @@ func TestGenerateRDS(t *testing.T) {
 			routeConfig, ok := resources[0].(*xds_route.RouteConfiguration)
 			assert.True(ok)
 
-			// The rds-inbound will have the following virtual hosts :
-			// inbound_virtual-host|bookstore-v1.default
-			// inbound_virtual-host|bookstore-apex
+			// The rds-inbound will have the following virtual hosts:
+			// inbound_virtual-host|bookstore-v1.default.default.svc.cluster.local
+			// inbound_virtual-host|bookstore-apex.default.svc.cluster.local
 			assert.Equal("rds-inbound.8888", routeConfig.Name)
 			assert.Equal(2, len(routeConfig.VirtualHosts))
 
-			//assert.Equal("inbound_virtual-host|bookstore-v1.default", routeConfig.VirtualHosts[0].Name)
+			assert.Equal("inbound_virtual-host|bookstore-v1.default.svc.cluster.local", routeConfig.VirtualHosts[0].Name)
 			assert.ElementsMatch(tests.BookstoreV1Hostnames, routeConfig.VirtualHosts[0].Domains)
 			assert.Equal(2, len(routeConfig.VirtualHosts[0].Routes))
 			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
@@ -356,11 +381,7 @@ func TestGenerateRDS(t *testing.T) {
 			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes[1].GetRoute().GetWeightedClusters().Clusters))
 			assert.Equal(routeConfig.VirtualHosts[0].Routes[1].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
 
-			//for _, vh := range routeConfig.VirtualHosts {
-			//	fmt.Println("virtual host name:", vh.Name)
-			//}
-
-			//assert.Equal("inbound_virtual-host|bookstore-apex", routeConfig.VirtualHosts[1].Name)
+			assert.Equal("inbound_virtual-host|bookstore-apex.default.svc.cluster.local", routeConfig.VirtualHosts[1].Name)
 			assert.ElementsMatch(tests.BookstoreApexHostnames, routeConfig.VirtualHosts[1].Domains)
 			assert.Equal(2, len(routeConfig.VirtualHosts[1].Routes))
 			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[1].Routes[0].GetMatch().GetSafeRegex().Regex)
@@ -379,19 +400,19 @@ func TestGenerateRDS(t *testing.T) {
 			assert.Equal("rds-outbound.80", routeConfig.Name)
 			assert.Equal(1, len(routeConfig.VirtualHosts))
 			//
-			//assert.Equal("outbound_virtual-host|bookstore-apex", routeConfig.VirtualHosts[0].Name)
-			//assert.Equal(tests.BookstoreApexHostnames, routeConfig.VirtualHosts[0].Domains)
-			//assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes))
-			//assert.Equal(tests.WildCardRouteMatch.Path, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
-			//assert.Equal(2, len(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().Clusters))
-			//assert.Equal(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
+			assert.Equal("outbound_virtual-host|bookstore-apex", routeConfig.VirtualHosts[0].Name)
+			assert.Equal(tests.BookstoreApexHostnames, routeConfig.VirtualHosts[0].Domains)
+			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes))
+			assert.Equal(tests.WildCardRouteMatch.Path, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
+			assert.Equal(2, len(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().Clusters))
+			assert.Equal(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
 
 			// Check the ingress route configuration
-			//routeConfig, ok = resources[2].(*xds_route.RouteConfiguration)
-			//assert.True(ok)
+			routeConfig, ok = resources[2].(*xds_route.RouteConfiguration)
+			assert.True(ok)
 
 			// ingress_virtual-host|bookstore-v1-default-bookstore-v1.default.svc.cluster.local
-			assert.Equal("ingress_virtual-host|bookstore-v1-default-bookstore-v1.default.svc.cluster.local", routeConfig.VirtualHosts[0].Name)
+			assert.Equal("ingress_virtual-host|default/bookstore-v1_from_bookstore-v1.default.svc.cluster.local", routeConfig.VirtualHosts[0].Name)
 			assert.Equal([]string{"bookstore-v1.default.svc.cluster.local"}, routeConfig.VirtualHosts[0].Domains)
 			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes))
 			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
@@ -614,7 +635,7 @@ func TestRDSResponse(t *testing.T) {
 			name:             "Test RDS response with a traffic split having zero weight",
 			downstreamSA:     tests.BookbuyerServiceIdentity,
 			upstreamSA:       tests.BookstoreServiceIdentity,
-			upstreamServices: []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
+			upstreamServices: []service.MeshService{tests.BookbuyerService},
 			meshServices:     []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
@@ -790,7 +811,7 @@ func TestRDSResponse(t *testing.T) {
 
 			mock.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
 			mock.EXPECT().GetMeshConfig().AnyTimes()
-			trafficTarget := tests.NewSMITrafficTarget(tc.upstreamSA, tc.downstreamSA)
+			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
 			mock.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 			mock.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
 

@@ -74,9 +74,7 @@ func (mc *MeshCatalog) GetOutboundMeshHTTPRouteConfigsPerPort(downstreamIdentity
 
 	// For each service, build the traffic policies required to access it.
 	// It is important to aggregate HTTP route configs by the service's port.
-	fmt.Println("ListOutboundServicesForIdentity returns: ", mc.ListOutboundServicesForIdentity(downstreamIdentity))
 	for _, meshSvc := range mc.ListOutboundServicesForIdentity(downstreamIdentity) {
-		fmt.Println("i am in the OUTBOUND!!!! for loop")
 		meshSvc := meshSvc // To prevent loop variable memory aliasing in for loop
 		upstreamClusters := mc.getUpstreamClusters(meshSvc)
 		retryPolicy := mc.getRetryPolicy(downstreamIdentity, meshSvc)
@@ -96,7 +94,6 @@ func (mc *MeshCatalog) GetOutboundMeshHTTPRouteConfigsPerPort(downstreamIdentity
 		}
 		routeConfigPerPort[int(meshSvc.Port)] = append(routeConfigPerPort[int(meshSvc.Port)], outboundTrafficPolicy)
 	}
-
 	return routeConfigPerPort
 }
 
@@ -146,17 +143,13 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	if mc.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode {
 		return mc.ListServices()
 	}
-	fmt.Println("Proxy service identity: ", serviceIdentity)
 	svcAccount := serviceIdentity.ToK8sServiceAccount()
-	fmt.Println("\nsvc account being checked is: ", svcAccount.Name, svcAccount.Namespace)
 	serviceSet := mapset.NewSet()
 	var allowedServices []service.MeshService
 
+	fmt.Println("\n------listing tt by options for outbound------")
 	for _, t := range mc.ListTrafficTargetsByOptions() { // loop through all traffic targets
-		fmt.Println("\ntraffic target being checked rn is: ", t)
-		fmt.Println("\nsources for tt are: ", t.Spec.Sources)
 		for _, source := range t.Spec.Sources {
-			fmt.Println("source name is ", source.Name)
 			if source.Name != svcAccount.Name || source.Namespace != svcAccount.Namespace {
 				// Source doesn't match the downstream's service identity
 				continue
@@ -165,7 +158,6 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 				Name:      t.Spec.Destination.Name,
 				Namespace: t.Spec.Destination.Namespace,
 			}
-			fmt.Println("\nI am reaching here so I have found a match")
 			for _, destService := range mc.GetServicesForServiceIdentity(sa.ToServiceIdentity()) {
 				if added := serviceSet.Add(destService); added {
 					allowedServices = append(allowedServices, destService)
