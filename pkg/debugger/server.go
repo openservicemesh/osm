@@ -19,7 +19,6 @@ func (ds DebugConfig) GetHandlers() map[string]http.Handler {
 		"/debug/certs":         ds.getCertHandler(),
 		"/debug/xds":           ds.getXDSHandler(),
 		"/debug/proxy":         ds.getProxies(),
-		"/debug/policies":      ds.getSMIPoliciesHandler(),
 		"/debug/config":        ds.getOSMConfigHandler(),
 		"/debug/namespaces":    ds.getMonitoredNamespacesHandler(),
 		"/debug/feature-flags": ds.getFeatureFlags(),

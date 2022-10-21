@@ -38,7 +38,6 @@ func TestGetHandlers(t *testing.T) {
 		"/debug/certs",
 		"/debug/xds",
 		"/debug/proxy",
-		"/debug/policies",
 		"/debug/config",
 		"/debug/namespaces",
 		// Pprof handlers

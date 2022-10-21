@@ -757,20 +757,6 @@ func (mr *MockMeshCatalogerMockRecorder) ListSecrets() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSecrets", reflect.TypeOf((*MockMeshCataloger)(nil).ListSecrets))
 }
 
-// ListServiceAccountsFromTrafficTargets mocks base method.
-func (m *MockMeshCataloger) ListServiceAccountsFromTrafficTargets() []identity.K8sServiceAccount {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServiceAccountsFromTrafficTargets")
-	ret0, _ := ret[0].([]identity.K8sServiceAccount)
-	return ret0
-}
-
-// ListServiceAccountsFromTrafficTargets indicates an expected call of ListServiceAccountsFromTrafficTargets.
-func (mr *MockMeshCatalogerMockRecorder) ListServiceAccountsFromTrafficTargets() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccountsFromTrafficTargets", reflect.TypeOf((*MockMeshCataloger)(nil).ListServiceAccountsFromTrafficTargets))
-}
-
 // ListServiceExports mocks base method.
 func (m *MockMeshCataloger) ListServiceExports() []*v1alpha10.ServiceExport {
 	m.ctrl.T.Helper()
