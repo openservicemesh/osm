@@ -2220,7 +2220,7 @@ func TestServiceToMeshServices(t *testing.T) {
 			name: "k8s service with single port and endpoint, no appProtocol set",
 			// Single port on the service maps to a single MeshService.
 			// Since no appProtocol is specified, MeshService.Protocol should default
-			// to http.
+			// to http since Port.Protocol=TCP.
 			svc: corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1",
@@ -2319,7 +2319,7 @@ func TestServiceToMeshServices(t *testing.T) {
 			name: "k8s headless service with single port and endpoint, no appProtocol set",
 			// Single port on the service maps to a single MeshService.
 			// Since no appProtocol is specified, MeshService.Protocol should default
-			// to http.
+			// to http because Port.Protocol=TCP
 			svc: corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1",
