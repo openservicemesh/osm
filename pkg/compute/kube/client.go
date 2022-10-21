@@ -661,7 +661,7 @@ func (c *client) serviceToMeshServices(svc corev1.Service) []service.MeshService
 		// Order of Preference is:
 		// 1. port.appProtocol field
 		// 2. protocol prefixed to port name (e.g. tcp-my-port)
-		// 3. default to http for for TCP ports
+		// 3. default to http for TCP ports
 		var protocol string
 		for _, p := range constants.SupportedProtocolsInMesh {
 			if strings.HasPrefix(portSpec.Name, p+"-") {
