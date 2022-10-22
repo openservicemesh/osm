@@ -29,7 +29,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -422,7 +421,7 @@ func TestGenerateRDSWithTrafficSplit(t *testing.T) {
 	}
 }
 
-func TestRDSRespose(t *testing.T) {
+func TestRDSResponse(t *testing.T) {
 	assert := tassert.New(t)
 
 	testCases := []struct {
@@ -599,41 +598,37 @@ func TestRDSRespose(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
+			mock := compute.NewMockInterface(mockCtrl)
+			stop := make(chan struct{})
+			meshCatalog := catalog.NewMeshCatalog(
+				mock,
+				tresorFake.NewFake(time.Hour),
+				stop,
+				messaging.NewBroker(stop),
+			)
 
-			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 			kubeClient := testclient.NewSimpleClientset()
 			proxy, err := getBookstoreV1Proxy(kubeClient)
 			assert.Nil(err)
 
-			for _, meshSvc := range tc.meshServices {
-				k8sService := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, map[string]string{})
-				mockKubeController.EXPECT().GetService(meshSvc.Name, meshSvc.Namespace).Return(k8sService).AnyTimes()
-			}
-
-			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-
-			mockKubeController.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
-			mockKubeController.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()
-			trafficTarget := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
-			mockKubeController.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
-
-			outboundTestPort := 8888 // Port used for the outbound services in this test
-			inboundTestPort := 80    // Port used for the inbound services in this test
-			expectedInboundMeshHTTPRouteConfigsPerPort := map[int][]*trafficpolicy.InboundTrafficPolicy{inboundTestPort: tc.expectedInboundPolicies}
-			expectedOutboundMeshHTTPRouteConfigsPerPort := map[int][]*trafficpolicy.OutboundTrafficPolicy{outboundTestPort: tc.expectedOutboundPolicies}
-			mockCatalog.EXPECT().GetInboundMeshHTTPRouteConfigsPerPort(gomock.Any(), gomock.Any()).Return(expectedInboundMeshHTTPRouteConfigsPerPort).AnyTimes()
-			mockCatalog.EXPECT().GetOutboundMeshHTTPRouteConfigsPerPort(gomock.Any()).Return(expectedOutboundMeshHTTPRouteConfigsPerPort).AnyTimes()
-			mockCatalog.EXPECT().GetIngressHTTPRoutePoliciesForSvc(gomock.Any()).Return(nil).AnyTimes()
-			mockCatalog.EXPECT().GetEgressHTTPRouteConfigsPerPort(gomock.Any()).Return(nil).AnyTimes()
-			mockCatalog.EXPECT().GetMeshConfig().AnyTimes()
-			mockCatalog.EXPECT().ListServicesForProxy(proxy).Return(nil, nil).AnyTimes()
-			mockCatalog.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
+			mock.EXPECT().ListServicesForProxy(proxy).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
+			mock.EXPECT().GetMeshConfig().AnyTimes()
+			trafficTargetFromBookbuyer := tests.NewSMITrafficTarget(tc.downstreamSA, tc.upstreamSA)
+			trafficTargetFromBookstore := tests.NewSMITrafficTarget(tc.upstreamSA, tests.BookstoreServiceIdentity)
+			mock.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTargetFromBookbuyer, &trafficTargetFromBookstore}).AnyTimes()
+			mock.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
+			mock.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()
+			mock.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
+			mock.EXPECT().GetHostnamesForService(tests.BookstoreV1Service, true).Return(kube.NewClient(nil).GetHostnamesForService(tests.BookstoreV1Service, true)).AnyTimes()
+			mock.EXPECT().GetHostnamesForService(tests.BookstoreApexService, true).Return(kube.NewClient(nil).GetHostnamesForService(tests.BookstoreApexService, true)).AnyTimes()
+			mock.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
+			mock.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(nil).AnyTimes()
+			mock.EXPECT().GetServicesForServiceIdentity(gomock.Any()).Return([]service.MeshService{tests.BookstoreApexService}).AnyTimes()
+			mock.EXPECT().GetMeshService(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, tests.BookstoreV1Service.Port).Return(tests.BookstoreV1Service, nil).AnyTimes()
+			mock.EXPECT().GetMeshService(tests.BookstoreV2Service.Name, tests.BookstoreV2Service.Namespace, tests.BookstoreV2Service.Port).Return(tests.BookstoreV2Service, nil).AnyTimes()
 
 			cm := tresorFake.NewFake(1 * time.Hour)
-
-			g := NewEnvoyConfigGenerator(mockCatalog, cm)
+			g := NewEnvoyConfigGenerator(meshCatalog, cm)
 			resources, err := g.generateRDS(context.Background(), proxy)
 			assert.Nil(err)
 			assert.NotNil(resources)
@@ -650,11 +645,11 @@ func TestRDSRespose(t *testing.T) {
 			// The rds-inbound will have the following virtual hosts :
 			// inbound_virtual-host|bookstore-v1.default
 			// inbound_virtual-host|bookstore-apex
-			assert.Equal("rds-inbound.80", routeConfig.Name)
+			assert.Equal("rds-inbound.8888", routeConfig.Name)
 			assert.Equal(2, len(routeConfig.VirtualHosts))
 
 			assert.Equal("inbound_virtual-host|bookstore-v1.default.svc.cluster.local", routeConfig.VirtualHosts[0].Name)
-			assert.Equal(tests.BookstoreV1Hostnames, routeConfig.VirtualHosts[0].Domains)
+			assert.ElementsMatch(tests.BookstoreV1Hostnames, routeConfig.VirtualHosts[0].Domains)
 			assert.Equal(2, len(routeConfig.VirtualHosts[0].Routes))
 			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
 			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().Clusters))
@@ -664,7 +659,7 @@ func TestRDSRespose(t *testing.T) {
 			assert.Equal(routeConfig.VirtualHosts[0].Routes[1].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
 
 			assert.Equal("inbound_virtual-host|bookstore-apex.default.svc.cluster.local", routeConfig.VirtualHosts[1].Name)
-			assert.Equal(tests.BookstoreApexHostnames, routeConfig.VirtualHosts[1].Domains)
+			assert.ElementsMatch(tests.BookstoreApexHostnames, routeConfig.VirtualHosts[1].Domains)
 			assert.Equal(2, len(routeConfig.VirtualHosts[1].Routes))
 			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[1].Routes[0].GetMatch().GetSafeRegex().Regex)
 			assert.Equal(1, len(routeConfig.VirtualHosts[1].Routes[0].GetRoute().GetWeightedClusters().Clusters))
@@ -683,7 +678,7 @@ func TestRDSRespose(t *testing.T) {
 			assert.Equal(1, len(routeConfig.VirtualHosts))
 
 			assert.Equal("outbound_virtual-host|bookstore-apex.default.svc.cluster.local", routeConfig.VirtualHosts[0].Name)
-			assert.Equal(tests.BookstoreApexHostnames, routeConfig.VirtualHosts[0].Domains)
+			assert.ElementsMatch(tests.BookstoreApexHostnames, routeConfig.VirtualHosts[0].Domains)
 			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes))
 			assert.Equal(tests.WildCardRouteMatch.Path, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
 			assert.Equal(2, len(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().Clusters))
