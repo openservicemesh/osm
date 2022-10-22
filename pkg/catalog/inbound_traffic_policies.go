@@ -105,11 +105,8 @@ func (mc *MeshCatalog) GetInboundMeshHTTPRouteConfigsPerPort(upstreamIdentity id
 	if !permissiveMode {
 		// Pre-computing the list of TrafficTarget optimizes to avoid repeated
 		// cache lookups for each upstream service.
-		fmt.Println("\nupstream identity as service account: ", upstreamIdentity.ToK8sServiceAccount())
-		fmt.Println("\n-----listing tt by options for inbound------")
 		destinationFilter := smi.WithTrafficTargetDestination(upstreamIdentity.ToK8sServiceAccount())
 		trafficTargets = mc.ListTrafficTargetsByOptions(destinationFilter)
-		fmt.Println("\ninbound tt's matched by options: ", trafficTargets)
 	}
 
 	// Build configurations per upstream service
@@ -139,6 +136,7 @@ func (mc *MeshCatalog) GetInboundMeshHTTPRouteConfigsPerPort(upstreamIdentity id
 func (mc *MeshCatalog) getInboundTrafficPoliciesForUpstream(upstreamSvc service.MeshService, permissiveMode bool,
 	trafficTargets []*access.TrafficTarget, upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) *trafficpolicy.InboundTrafficPolicy {
 	var inboundPolicyForUpstreamSvc *trafficpolicy.InboundTrafficPolicy
+
 	if permissiveMode {
 		// Add a wildcard HTTP route that allows any downstream client to access the upstream service
 		hostnames := mc.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
@@ -158,6 +156,7 @@ func (mc *MeshCatalog) getInboundTrafficPoliciesForUpstream(upstreamSvc service.
 		// Build the HTTP routes from SMI TrafficTarget and HTTPRouteGroup configurations
 		inboundPolicyForUpstreamSvc = mc.buildInboundHTTPPolicyFromTrafficTarget(upstreamSvc, trafficTargets, upstreamTrafficSetting)
 	}
+
 	return inboundPolicyForUpstreamSvc
 }
 
@@ -165,10 +164,12 @@ func (mc *MeshCatalog) buildInboundHTTPPolicyFromTrafficTarget(upstreamSvc servi
 	upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) *trafficpolicy.InboundTrafficPolicy {
 	hostnames := mc.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
 	inboundPolicy := trafficpolicy.NewInboundTrafficPolicy(upstreamSvc.FQDN(), hostnames, upstreamTrafficSetting)
+
 	localCluster := service.WeightedCluster{
 		ClusterName: service.ClusterName(upstreamSvc.EnvoyLocalClusterName()),
 		Weight:      constants.ClusterWeightAcceptAll,
 	}
+
 	var routingRules []*trafficpolicy.Rule
 	// From each TrafficTarget and HTTPRouteGroup configuration associated with this service, build routes for it.
 	for _, trafficTarget := range trafficTargets {

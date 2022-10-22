@@ -1,8 +1,6 @@
 package catalog
 
 import (
-	"fmt"
-
 	mapset "github.com/deckarep/golang-set"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -147,7 +145,6 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	serviceSet := mapset.NewSet()
 	var allowedServices []service.MeshService
 
-	fmt.Println("\n------listing tt by options for outbound------")
 	for _, t := range mc.ListTrafficTargetsByOptions() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
 			if source.Name != svcAccount.Name || source.Namespace != svcAccount.Namespace {

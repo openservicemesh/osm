@@ -5,10 +5,6 @@ import (
 	"testing"
 	"time"
 
-	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-
-	"github.com/openservicemesh/osm/pkg/messaging"
-
 	mapset "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/mock/gomock"
@@ -44,7 +40,6 @@ func TestGenerateRDS(t *testing.T) {
 	assert := tassert.New(t)
 
 	testCases := []struct {
-
 		name           string
 		downstreamSA   identity.ServiceIdentity
 		upstreamSA     identity.ServiceIdentity
@@ -181,7 +176,6 @@ func TestGenerateRDS(t *testing.T) {
 			routeConfig, ok := resources[0].(*xds_route.RouteConfiguration)
 			assert.True(ok)
 
-
 			// The rds-inbound will have the following virtual hosts :
 			// inbound_virtual-host|bookstore-v1.default.svc.cluster.local
 			// inbound_virtual-host|bookstore-apex.default.svc.cluster.local
@@ -228,7 +222,6 @@ func TestGenerateRDS(t *testing.T) {
 			// Check the ingress route configuration
 			routeConfig, ok = resources[2].(*xds_route.RouteConfiguration)
 			assert.True(ok)
-
 
 			// "ingress_virtual-host|default/bookstore-v1_from_bookstore-v1-default-bookstore-v1.default.svc.cluster.local"
 			assert.Equal("ingress_virtual-host|default/bookstore-v1_from_bookstore-v1-default-bookstore-v1.default.svc.cluster.local", routeConfig.VirtualHosts[0].Name)
