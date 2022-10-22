@@ -32,6 +32,7 @@ func NewRouteWeightedCluster(route HTTPRouteMatch, weightedClusters []service.We
 		HTTPRouteMatch:   route,
 		WeightedClusters: weightedClusterSet,
 	}
+
 	if upstreamTrafficSetting == nil {
 		return routeWC
 	}

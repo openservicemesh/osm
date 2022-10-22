@@ -207,6 +207,7 @@ func (mc *MeshCatalog) ListTrafficSplitsByOptions(options ...smi.TrafficSplitLis
 // ListTrafficTargetsByOptions returns a list of traffic targets that match the given options.
 func (mc *MeshCatalog) ListTrafficTargetsByOptions(options ...smi.TrafficTargetListOption) []*smiAccess.TrafficTarget {
 	var trafficTargets []*smiAccess.TrafficTarget
+
 	for _, trafficTarget := range mc.ListTrafficTargets() {
 		if !smi.IsValidTrafficTarget(trafficTarget) {
 			continue

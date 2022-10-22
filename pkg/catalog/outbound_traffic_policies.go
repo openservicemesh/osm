@@ -92,6 +92,7 @@ func (mc *MeshCatalog) GetOutboundMeshHTTPRouteConfigsPerPort(downstreamIdentity
 		}
 		routeConfigPerPort[int(meshSvc.Port)] = append(routeConfigPerPort[int(meshSvc.Port)], outboundTrafficPolicy)
 	}
+
 	return routeConfigPerPort
 }
 
@@ -141,6 +142,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	if mc.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode {
 		return mc.ListServices()
 	}
+
 	svcAccount := serviceIdentity.ToK8sServiceAccount()
 	serviceSet := mapset.NewSet()
 	var allowedServices []service.MeshService
@@ -151,10 +153,12 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 				// Source doesn't match the downstream's service identity
 				continue
 			}
+
 			sa := identity.K8sServiceAccount{
 				Name:      t.Spec.Destination.Name,
 				Namespace: t.Spec.Destination.Namespace,
 			}
+
 			for _, destService := range mc.GetServicesForServiceIdentity(sa.ToServiceIdentity()) {
 				if added := serviceSet.Add(destService); added {
 					allowedServices = append(allowedServices, destService)

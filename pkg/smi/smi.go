@@ -53,6 +53,7 @@ func FilterTrafficTarget(trafficTarget *smiAccess.TrafficTarget, options ...Traf
 	for _, opt := range options {
 		opt(o)
 	}
+
 	if o.Destination.Name != "" && (o.Destination.Namespace != trafficTarget.Spec.Destination.Namespace ||
 		o.Destination.Name != trafficTarget.Spec.Destination.Name) {
 		return nil
