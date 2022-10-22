@@ -2,7 +2,6 @@ package generator
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
@@ -15,7 +14,6 @@ import (
 // generateRDS creates a new Route Discovery Response.
 func (g *EnvoyConfigGenerator) generateRDS(ctx context.Context, proxy *models.Proxy) ([]types.Resource, error) {
 	proxyServices, err := g.catalog.ListServicesForProxy(proxy)
-	fmt.Println("\nGenerateRDS called, proxyservices: ", proxyServices)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
 			Msgf("Error looking up services for Envoy with name=%s", proxy)
