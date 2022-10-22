@@ -1,6 +1,8 @@
 package catalog
 
 import (
+	"fmt"
+
 	mapset "github.com/deckarep/golang-set"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -144,10 +146,12 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	}
 
 	svcAccount := serviceIdentity.ToK8sServiceAccount()
+	fmt.Println("List outbound's service account: ", svcAccount) // default/bookstore
 	serviceSet := mapset.NewSet()
 	var allowedServices []service.MeshService
-
 	for _, t := range mc.ListTrafficTargetsByOptions() { // loop through all traffic targets
+		fmt.Println("Traffic target name: ", t.ObjectMeta.Name)
+		fmt.Println("t spec sources", t.Spec.Sources)
 		for _, source := range t.Spec.Sources {
 			if source.Name != svcAccount.Name || source.Namespace != svcAccount.Namespace {
 				// Source doesn't match the downstream's service identity
@@ -158,7 +162,7 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 				Name:      t.Spec.Destination.Name,
 				Namespace: t.Spec.Destination.Namespace,
 			}
-
+			fmt.Println("getting services for service identity ", sa.Name)
 			for _, destService := range mc.GetServicesForServiceIdentity(sa.ToServiceIdentity()) {
 				if added := serviceSet.Add(destService); added {
 					allowedServices = append(allowedServices, destService)
