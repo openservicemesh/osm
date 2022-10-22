@@ -155,6 +155,8 @@ func (mc *MeshCatalog) GetIngressHTTPRoutePoliciesForSvc(svc service.MeshService
 	sourcePrincipals := mapset.NewSet()
 	for _, backend := range ingressBackendPolicy.Spec.Backends {
 		if backend.Name != svc.Name || backend.Port.Number != int(svc.TargetPort) {
+			fmt.Println("\nbreaking out of backend loop")
+			fmt.Println("svc name: ", svc.Name)
 			continue
 		}
 

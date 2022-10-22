@@ -295,6 +295,30 @@ func TestGenerateRDS(t *testing.T) {
 			mock.EXPECT().GetHostnamesForService(tests.BookstoreApexService, true).Return(kube.NewClient(nil).GetHostnamesForService(tests.BookstoreApexService, true)).AnyTimes()
 			mock.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			//----------end of mocks needed for inbound; begin ingress----------------
+			//ingressBackend := policyv1alpha1.IngressBackend{
+			//	ObjectMeta: metav1.ObjectMeta{
+			//		Name:      "bookstore-v1.default.svc.cluster.local",
+			//		Namespace: "default",
+			//	},
+			//	Spec: policyv1alpha1.IngressBackendSpec{
+			//		Backends: []policyv1alpha1.BackendSpec{
+			//			{
+			//				Name: "bookstore-v1",
+			//				Port: policyv1alpha1.PortSpec{
+			//					Number:   8888,
+			//					Protocol: "http",
+			//				},
+			//			},
+			//		},
+			//		Sources: []policyv1alpha1.IngressSourceSpec{
+			//			{
+			//				Kind:      "AuthenticatedPrincipal",
+			//				Name:      "cluster.local",
+			//				Namespace: "foo",
+			//			},
+			//		},
+			//	},
+			//}
 			mock.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(
 				&policyv1alpha1.IngressBackend{
 					ObjectMeta: metav1.ObjectMeta{
@@ -309,9 +333,10 @@ func TestGenerateRDS(t *testing.T) {
 						},
 						Backends: []policyv1alpha1.BackendSpec{
 							{
-								Name: "bookbuyer",
+								Name: "bookstore-v1",
 								Port: policyv1alpha1.PortSpec{
-									Number: int(tests.BookbuyerService.TargetPort),
+									Number:   int(tests.BookstoreV1Service.TargetPort),
+									Protocol: "http",
 								},
 							},
 						},
@@ -393,17 +418,20 @@ func TestGenerateRDS(t *testing.T) {
 			assert.Equal("ingress_virtual-host|default/bookstore-v1_from_bookstore-v1-default-bookstore-v1.default.svc.cluster.local", routeConfig.VirtualHosts[0].Name)
 			assert.Equal([]string{"*"}, routeConfig.VirtualHosts[0].Domains)
 			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes))
-			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
+			// Currently IngressBackend only supports a wildcard HTTP route, for which the regex is hardcoded to RegexMatchAll
+			assert.Equal(".*", routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
 			assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().Clusters))
 			assert.Equal(routeConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
 
+			// There can be multiple traffic routing rules but only one ingress policy is returned (ingress.go: line 206)
+			// so only one virtual host is created (builder.go: line 113)
 			// inbound_virtual-host|bookstore-v1.default|*
-			assert.Equal("ingress_virtual-host|bookstore-v1.default|*", routeConfig.VirtualHosts[1].Name)
-			assert.Equal([]string{"*"}, routeConfig.VirtualHosts[1].Domains)
-			assert.Equal(1, len(routeConfig.VirtualHosts[1].Routes))
-			assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[1].Routes[0].GetMatch().GetSafeRegex().Regex)
-			assert.Equal(1, len(routeConfig.VirtualHosts[1].Routes[0].GetRoute().GetWeightedClusters().Clusters))
-			assert.Equal(routeConfig.VirtualHosts[1].Routes[0].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
+			//assert.Equal("ingress_virtual-host|bookstore-v1.default|*", routeConfig.VirtualHosts[1].Name)
+			//assert.Equal([]string{"*"}, routeConfig.VirtualHosts[1].Domains)
+			//assert.Equal(1, len(routeConfig.VirtualHosts[1].Routes))
+			//assert.Equal(tests.BookstoreBuyHTTPRoute.Path, routeConfig.VirtualHosts[1].Routes[0].GetMatch().GetSafeRegex().Regex)
+			//assert.Equal(1, len(routeConfig.VirtualHosts[1].Routes[0].GetRoute().GetWeightedClusters().Clusters))
+			//assert.Equal(routeConfig.VirtualHosts[1].Routes[0].GetRoute().GetWeightedClusters().TotalWeight, &wrappers.UInt32Value{Value: uint32(100)})
 		})
 	}
 }

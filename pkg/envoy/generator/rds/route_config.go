@@ -362,7 +362,6 @@ func buildEgressRoutes(routingRules []*trafficpolicy.EgressHTTPRoutingRule) []*x
 		// For a given route path, sanitize the methods in case there
 		// is wildcard or if there are duplicates
 		allowedHTTPMethods := sanitizeHTTPMethods(rule.Route.HTTPRouteMatch.Methods)
-
 		// Build the route for the given egress routing rule and method
 		// Each HTTP method corresponds to a separate route
 		for _, httpMethod := range allowedHTTPMethods {
