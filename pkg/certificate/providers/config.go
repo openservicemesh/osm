@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	cmversionedclient "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
