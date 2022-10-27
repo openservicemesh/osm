@@ -7,10 +7,13 @@ import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/generator/lds"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/models"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -84,6 +87,19 @@ func (g *EnvoyConfigGenerator) generateLDS(ctx context.Context, proxy *models.Pr
 		ldsResources = append(ldsResources, outboundListener)
 	}
 
+	inboundTPBuilder := trafficpolicy.InboundTrafficPolicyBuilder()
+	inboundTPBuilder.UpstreamServices(svcList)
+	allUpstreamSvcIncludeApex := g.catalog.GetUpstreamServicesIncludeApex(svcList)
+	inboundTPBuilder.UpstreamServicesIncludeApex(allUpstreamSvcIncludeApex)
+	var upstreamTrafficSettingsPerService map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting
+
+	for _, upstreamSvc := range allUpstreamSvcIncludeApex {
+		upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop
+		upstreamTrafficSettingsPerService[&upstreamSvc] = g.catalog.GetUpstreamTrafficSettingByService(&upstreamSvc)
+	}
+
+	inboundTPBuilder.UpstreamTrafficSettingsPerService(upstreamTrafficSettingsPerService)
+
 	// --- INBOUND -------------------
 	inboundLis := lds.ListenerBuilder().
 		Name(lds.InboundListenerName).
@@ -93,7 +109,7 @@ func (g *EnvoyConfigGenerator) generateLDS(ctx context.Context, proxy *models.Pr
 		TrafficDirection(xds_core.TrafficDirection_INBOUND).
 		DefaultInboundListenerFilters().
 		PermissiveMesh(meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode).
-		InboundMeshTrafficMatches(g.catalog.GetInboundMeshTrafficMatches(svcList)).
+		InboundMeshTrafficMatches(inboundTPBuilder.GetInboundMeshTrafficMatches()).
 		ActiveHealthCheck(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks).
 		SidecarSpec(meshConfig.Spec.Sidecar).
 		AccessLogs(accessLogs)

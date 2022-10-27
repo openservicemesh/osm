@@ -5,10 +5,13 @@ import (
 
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/generator/cds"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/models"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -27,7 +30,20 @@ func (g *EnvoyConfigGenerator) generateCDS(ctx context.Context, proxy *models.Pr
 		return nil, err
 	}
 
-	inboundMeshClusterConfigs := g.catalog.GetInboundMeshClusterConfigs(proxyServices)
+	inboundTPBuilder := trafficpolicy.InboundTrafficPolicyBuilder()
+	inboundTPBuilder.UpstreamServices(proxyServices)
+	allUpstreamSvcIncludeApex := g.catalog.GetUpstreamServicesIncludeApex(proxyServices)
+	inboundTPBuilder.UpstreamServicesIncludeApex(allUpstreamSvcIncludeApex)
+	var upstreamTrafficSettingsPerService map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting
+
+	for _, upstreamSvc := range allUpstreamSvcIncludeApex {
+		upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop
+		upstreamTrafficSettingsPerService[&upstreamSvc] = g.catalog.GetUpstreamTrafficSettingByService(&upstreamSvc)
+	}
+
+	inboundTPBuilder.UpstreamTrafficSettingsPerService(upstreamTrafficSettingsPerService)
+
+	inboundMeshClusterConfigs := inboundTPBuilder.GetInboundMeshClusterConfigs()
 	cb.SetInboundMeshTrafficClusterConfigs(inboundMeshClusterConfigs)
 
 	if egressClusterConfigs, err := g.catalog.GetEgressClusterConfigs(proxy.Identity); err != nil {

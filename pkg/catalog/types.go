@@ -11,7 +11,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 )
 
 var (
@@ -44,15 +46,6 @@ type MeshCataloger interface {
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service identity
 	ListInboundTrafficTargetsWithRoutes(identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error)
 
-	// GetInboundMeshClusterConfigs returns the cluster configs for the inbound mesh traffic policy for the given upstream services
-	GetInboundMeshClusterConfigs([]service.MeshService) []*trafficpolicy.MeshClusterConfig
-
-	// GetInboundMeshTrafficMatches returns the traffic matches for the inbound mesh traffic policy for the given upstream services
-	GetInboundMeshTrafficMatches([]service.MeshService) []*trafficpolicy.TrafficMatch
-
-	// GetInboundMeshHTTPRouteConfigsPerPort returns a map of the given inbound traffic policy per port for the given upstream identity and services
-	GetInboundMeshHTTPRouteConfigsPerPort(identity.ServiceIdentity, []service.MeshService) map[int][]*trafficpolicy.InboundTrafficPolicy
-
 	// GetOutboundMeshClusterConfigs returns the cluster configs for the outbound mesh traffic policy for the given downstream identity
 	GetOutboundMeshClusterConfigs(identity.ServiceIdentity) []*trafficpolicy.MeshClusterConfig
 
@@ -82,6 +75,17 @@ type MeshCataloger interface {
 
 	// GetIngressHTTPRoutePolicies returns the ingress traffic matches for the ingress traffic policy for the given mesh service
 	GetIngressTrafficMatches([]service.MeshService) [][]*trafficpolicy.IngressTrafficMatch
+
+	ListServiceAccountsFromTrafficTargets() []identity.K8sServiceAccount
+
+	// GetUpstreamServicesIncludeApex returns a list of all upstream services associated with the given list
+	// of services. An upstream service is associated with another service if it is a backend for an apex/root service
+	// in a TrafficSplit config. This function returns a list consisting of the given upstream services and all apex
+	// services associated with each of those services.
+	GetUpstreamServicesIncludeApex(upstreamServices []service.MeshService) []service.MeshService
+
+	// ListTrafficTargetsByOptions returns a list of traffic targets that match the given options.
+	ListTrafficTargetsByOptions(options ...smi.TrafficTargetListOption) []*smiAccess.TrafficTarget
 }
 
 type trafficDirection string

@@ -3,7 +3,7 @@ package catalog
 import (
 	"context"
 	"fmt"
-	"reflect"
+	reflect "reflect"
 	"testing"
 	"time"
 
@@ -26,7 +26,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -2449,9 +2448,33 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				}, 2*time.Second, 100*time.Millisecond)
 			}
 
-			actualClusterConfigs := mc.GetInboundMeshClusterConfigs(tc.upstreamServices)
-			actualHTTPRouteConfigsPerPort := mc.GetInboundMeshHTTPRouteConfigsPerPort(tc.upstreamIdentity, tc.upstreamServices)
-			actualTrafficMatches := mc.GetInboundMeshTrafficMatches(tc.upstreamServices)
+			destinationFilter := smi.WithTrafficTargetDestination(tc.upstreamIdentity.ToK8sServiceAccount())
+			inboundTPBuilder := trafficpolicy.InboundTrafficPolicyBuilder()
+
+			allUpstreamSvcIncludeApex := mc.GetUpstreamServicesIncludeApex(tc.upstreamServices)
+
+			var upstreamTrafficSettingsPerService map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting
+			var hostnamesPerService map[*service.MeshService][]string
+
+			for _, upstreamSvc := range allUpstreamSvcIncludeApex {
+				upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop
+				upstreamTrafficSettingsPerService[&upstreamSvc] = mc.GetUpstreamTrafficSettingByService(&upstreamSvc)
+				hostnamesPerService[&upstreamSvc] = mc.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
+			}
+
+			inboundTPBuilder.UpstreamServices(tc.upstreamServices)
+			inboundTPBuilder.UpstreamIdentity(tc.upstreamIdentity)
+			inboundTPBuilder.UpstreamServicesIncludeApex(allUpstreamSvcIncludeApex)
+			inboundTPBuilder.UpstreamTrafficSettingsPerService(upstreamTrafficSettingsPerService)
+			inboundTPBuilder.HostnamesPerService(hostnamesPerService)
+			inboundTPBuilder.TrafficTargetsByOptions(mc.ListTrafficTargetsByOptions(destinationFilter))
+			inboundTPBuilder.EnablePermissiveTrafficPolicyMode(tc.permissiveMode)
+			inboundTPBuilder.TrustDomain(mc.certManager.GetTrustDomains())
+			inboundTPBuilder.HttpTrafficSpecsList(mc.ListHTTPTrafficSpecs())
+
+			actualClusterConfigs := inboundTPBuilder.GetInboundMeshClusterConfigs()
+			actualHTTPRouteConfigsPerPort := inboundTPBuilder.GetInboundMeshHTTPRouteConfigsPerPort()
+			actualTrafficMatches := inboundTPBuilder.GetInboundMeshTrafficMatches()
 
 			// Verify expected fields
 			assert.ElementsMatch(tc.expectedInboundMeshClusterConfigs, actualClusterConfigs)
@@ -2473,9 +2496,11 @@ func TestRoutesFromRules(t *testing.T) {
 	mockK8s := k8s.NewMockController(mockCtrl)
 	provider := kube.NewClient(mockK8s)
 
-	mockK8s.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
+	mc := MeshCatalog{
+		Interface: provider,
+	}
 
-	mc := MeshCatalog{Interface: provider}
+	mockK8s.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
 
 	testCases := []struct {
 		name           string
@@ -2511,7 +2536,9 @@ func TestRoutesFromRules(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing routesFromRules where %s", tc.name), func(t *testing.T) {
-			routes, err := mc.routesFromRules(tc.rules, tc.namespace)
+			inboundTPBuilder := trafficpolicy.InboundTrafficPolicyBuilder()
+			inboundTPBuilder.HttpTrafficSpecsList(mc.ListHTTPTrafficSpecs())
+			routes, err := inboundTPBuilder.RoutesFromRules(tc.rules, tc.namespace)
 			assert.Nil(err)
 			assert.EqualValues(tc.expectedRoutes, routes)
 		})
@@ -2529,11 +2556,11 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 		{
 			name: "HTTP route with path, method and headers",
 			trafficSpec: spec.HTTPRouteGroup{
-				TypeMeta: v1.TypeMeta{
+				TypeMeta: metav1.TypeMeta{
 					APIVersion: "specs.smi-spec.io/v1alpha4",
 					Kind:       "HTTPRouteGroup",
 				},
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      tests.RouteGroupName,
 				},
@@ -2583,11 +2610,11 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 		{
 			name: "HTTP route with only path",
 			trafficSpec: spec.HTTPRouteGroup{
-				TypeMeta: v1.TypeMeta{
+				TypeMeta: metav1.TypeMeta{
 					APIVersion: "specs.smi-spec.io/v1alpha4",
 					Kind:       "HTTPRouteGroup",
 				},
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      tests.RouteGroupName,
 				},
@@ -2624,11 +2651,11 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 		{
 			name: "HTTP route with only method",
 			trafficSpec: spec.HTTPRouteGroup{
-				TypeMeta: v1.TypeMeta{
+				TypeMeta: metav1.TypeMeta{
 					APIVersion: "specs.smi-spec.io/v1alpha4",
 					Kind:       "HTTPRouteGroup",
 				},
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      tests.RouteGroupName,
 				},
@@ -2654,11 +2681,11 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 		{
 			name: "HTTP route with only headers",
 			trafficSpec: spec.HTTPRouteGroup{
-				TypeMeta: v1.TypeMeta{
+				TypeMeta: metav1.TypeMeta{
 					APIVersion: "specs.smi-spec.io/v1alpha4",
 					Kind:       "HTTPRouteGroup",
 				},
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      tests.RouteGroupName,
 				},
@@ -2691,17 +2718,9 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
-			mockK8s := k8s.NewMockController(mockCtrl)
-			provider := kube.NewClient(mockK8s)
-
-			mc := MeshCatalog{
-				Interface: provider,
-			}
-
-			mockK8s.EXPECT().ListHTTPTrafficSpecs().Return([]*spec.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
-			actual, err := mc.getHTTPPathsPerRoute()
+			inboundTPBuilder := trafficpolicy.InboundTrafficPolicyBuilder()
+			inboundTPBuilder.HttpTrafficSpecsList([]*spec.HTTPRouteGroup{&tc.trafficSpec})
+			actual, err := inboundTPBuilder.GetHTTPPathsPerRoute()
 			assert.Nil(err)
 			assert.True(reflect.DeepEqual(actual, tc.expectedHTTPPathsPerRoute))
 		})
@@ -2710,8 +2729,7 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 
 func TestGetTrafficSpecName(t *testing.T) {
 	assert := tassert.New(t)
-
-	actual := getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
+	actual := trafficpolicy.GetTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
 	expected := trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName))
 	assert.Equal(actual, expected)
 }

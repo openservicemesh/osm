@@ -5,9 +5,12 @@ import (
 
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/envoy/generator/rds"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/models"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -32,8 +35,33 @@ func (g *EnvoyConfigGenerator) generateRDS(ctx context.Context, proxy *models.Pr
 		Proxy(proxy).
 		StatsHeaders(statsHeaders)
 
+	inboundTPBuilder := trafficpolicy.InboundTrafficPolicyBuilder()
+	inboundTPBuilder.UpstreamServices(proxyServices)
+	inboundTPBuilder.UpstreamIdentity(proxy.Identity)
+	inboundTPBuilder.EnablePermissiveTrafficPolicyMode(g.catalog.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode)
+	inboundTPBuilder.TrustDomain(g.certManager.GetTrustDomains())
+	inboundTPBuilder.HttpTrafficSpecsList(g.catalog.ListHTTPTrafficSpecs())
+
+	destinationFilter := smi.WithTrafficTargetDestination(proxy.Identity.ToK8sServiceAccount())
+	inboundTPBuilder.TrafficTargetsByOptions(g.catalog.ListTrafficTargetsByOptions(destinationFilter))
+
+	allUpstreamSvcIncludeApex := g.catalog.GetUpstreamServicesIncludeApex(proxyServices)
+	inboundTPBuilder.UpstreamServicesIncludeApex(allUpstreamSvcIncludeApex)
+
+	var upstreamTrafficSettingsPerService map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting
+	var hostnamesPerService map[*service.MeshService][]string
+
+	for _, upstreamSvc := range allUpstreamSvcIncludeApex {
+		upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop
+		upstreamTrafficSettingsPerService[&upstreamSvc] = g.catalog.GetUpstreamTrafficSettingByService(&upstreamSvc)
+		hostnamesPerService[&upstreamSvc] = g.catalog.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
+	}
+
+	inboundTPBuilder.UpstreamTrafficSettingsPerService(upstreamTrafficSettingsPerService)
+	inboundTPBuilder.HostnamesPerService(hostnamesPerService)
+
 	// Get HTTP route configs per port from inbound mesh traffic policy and pass to builder
-	routesBuilder.InboundPortSpecificRouteConfigs(g.catalog.GetInboundMeshHTTPRouteConfigsPerPort(proxy.Identity, proxyServices))
+	routesBuilder.InboundPortSpecificRouteConfigs(inboundTPBuilder.GetInboundMeshHTTPRouteConfigsPerPort())
 
 	// Get HTTP route configs per port from outbound mesh traffic policy and pass to builder
 	routesBuilder.OutboundPortSpecificRouteConfigs(g.catalog.GetOutboundMeshHTTPRouteConfigsPerPort(proxy.Identity))
