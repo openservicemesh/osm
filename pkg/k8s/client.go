@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"fmt"
 
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
@@ -477,6 +478,7 @@ func (c *Client) GetTCPRoute(namespacedName string) *smiSpecs.TCPRoute {
 
 // ListTrafficTargets returns the list of traffic targets.
 func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
+	fmt.Println("I am inside list TrafficTargets")
 	var trafficTargets []*smiAccess.TrafficTarget
 
 	for _, targetIface := range c.list(informerKeyTrafficTarget) {
