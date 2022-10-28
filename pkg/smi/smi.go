@@ -1,8 +1,6 @@
 package smi
 
 import (
-	"fmt"
-
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 )
@@ -55,11 +53,9 @@ func FilterTrafficTarget(trafficTarget *smiAccess.TrafficTarget, options ...Traf
 	for _, opt := range options {
 		opt(o)
 	}
-	fmt.Println("\nTrafficTargetListOpt is:", o)
+
 	if o.Destination.Name != "" && (o.Destination.Namespace != trafficTarget.Spec.Destination.Namespace ||
 		o.Destination.Name != trafficTarget.Spec.Destination.Name) {
-		fmt.Println("options' Destination name:", o.Destination.Name)
-		fmt.Println("tt spec Destination name:", trafficTarget.Spec.Destination.Name)
 		return nil
 	}
 

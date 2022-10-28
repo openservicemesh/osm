@@ -1,8 +1,6 @@
 package catalog
 
 import (
-	"fmt"
-
 	mapset "github.com/deckarep/golang-set"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -94,6 +92,7 @@ func (mc *MeshCatalog) GetOutboundMeshHTTPRouteConfigsPerPort(downstreamIdentity
 		}
 		routeConfigPerPort[int(meshSvc.Port)] = append(routeConfigPerPort[int(meshSvc.Port)], outboundTrafficPolicy)
 	}
+
 	return routeConfigPerPort
 }
 
@@ -143,21 +142,23 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	if mc.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode {
 		return mc.ListServices()
 	}
+
 	svcAccount := serviceIdentity.ToK8sServiceAccount()
 	serviceSet := mapset.NewSet()
 	var allowedServices []service.MeshService
 
-	fmt.Println("\n------listing tt by options for outbound------")
 	for _, t := range mc.ListTrafficTargetsByOptions() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
 			if source.Name != svcAccount.Name || source.Namespace != svcAccount.Namespace {
 				// Source doesn't match the downstream's service identity
 				continue
 			}
+
 			sa := identity.K8sServiceAccount{
 				Name:      t.Spec.Destination.Name,
 				Namespace: t.Spec.Destination.Namespace,
 			}
+
 			for _, destService := range mc.GetServicesForServiceIdentity(sa.ToServiceIdentity()) {
 				if added := serviceSet.Add(destService); added {
 					allowedServices = append(allowedServices, destService)
