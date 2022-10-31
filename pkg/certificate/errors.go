@@ -19,9 +19,8 @@ var ErrInvalidMRCIntentCombination = errors.New("invalid mrc intent combination"
 // and/or passive intent in the mesh.
 var ErrNumMRCExceedsMaxSupported = errors.New("found more than the max number of MRCs supported in the control plane namespace")
 
-// ErrExpectedActiveMRC is the error that should be returned when there is only 1 MRC in the mesh and it does not
-// have an active intent.
-var ErrExpectedActiveMRC = errors.New("found single MRC with non active intent")
+// ErrExpectedActiveMRC is the error that should be returned when no active MRCs are present in the mesh.
+var ErrExpectedActiveMRC = errors.New("found no active MRCs")
 
 // ErrUnexpectedMRCIntent is the error that should be returned if the intent value is not passive or active.
 // The MRC reconciler should only consider MRCs with passive or active intents for the validating and signing

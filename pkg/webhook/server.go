@@ -63,7 +63,6 @@ func NewServer(name, namespace string, port int, cm *certificate.Manager, handle
 // Run actually starts the server.
 func (s *Server) Run(ctx context.Context) error {
 	if err := s.configureCertificateRotation(ctx); err != nil {
-		log.Error().Err(err).Msg("failed to configure cert rotation")
 		return err
 	}
 

@@ -158,40 +158,6 @@ func TestHandleMRCEvent(t *testing.T) {
 	}
 }
 
-func TestValidateMRCIntent(t *testing.T) {
-	tests := []struct {
-		name   string
-		intent v1alpha2.MeshRootCertificateIntent
-		result error
-	}{
-		{
-			name:   "valid active intent",
-			intent: v1alpha2.ActiveIntent,
-		},
-		{
-			name:   "valid passive intent",
-			intent: v1alpha2.PassiveIntent,
-		},
-		{
-			name:   "invalid unknown intent",
-			intent: "foo",
-			result: ErrUnexpectedMRCIntent,
-		},
-		{
-			name:   "invalid empty intent",
-			intent: "",
-			result: ErrUnexpectedMRCIntent,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert := tassert.New(t)
-			err := validateMRCIntent(tt.intent)
-			assert.Equal(tt.result, err)
-		})
-	}
-}
-
 func TestGetSigningAndValidatingMRCs(t *testing.T) {
 	tests := []struct {
 		name                  string
@@ -226,6 +192,14 @@ func TestGetSigningAndValidatingMRCs(t *testing.T) {
 			name: "single mrc is passive, expect err",
 			mrcList: []*v1alpha2.MeshRootCertificate{
 				passiveMRC1,
+			},
+			expectedError: ErrExpectedActiveMRC,
+		},
+		{
+			name: "mrc1 is passive and mrc2 is passive, expect err",
+			mrcList: []*v1alpha2.MeshRootCertificate{
+				passiveMRC1,
+				passiveMRC2,
 			},
 			expectedError: ErrExpectedActiveMRC,
 		},
@@ -286,12 +260,6 @@ func TestGetCertIssuers(t *testing.T) {
 		currentValidatingIssuerID  string
 		expectedError              error
 	}{
-		{
-			name:          "mrcs are nil",
-			signingMRC:    nil,
-			validatingMRC: nil,
-			expectedError: ErrUnexpectedNilMRC,
-		},
 		{
 			name:                       "same mrcs for signing and validating, issuer does not exist",
 			signingMRC:                 activeMRC1,
@@ -415,12 +383,6 @@ func TestShouldUpdateIssuers(t *testing.T) {
 		currentSigningIssuerID    string
 		currentValidatingIssuerID string
 	}{
-		{
-			name:          "nil MRC, expect error",
-			expectedError: ErrUnexpectedNilMRC,
-			signingMRC:    nil,
-			validatingMRC: activeMRC1,
-		},
 		{
 			name:           "2 MRCs in with active intents and issuers are not already set",
 			expectedUpdate: true,
