@@ -14,11 +14,13 @@ import (
 
 // fakeMRCClient implements the MRCClient interface
 type fakeMRCClient struct {
-	configClient osmConfigClient.Interface
+	configClient             osmConfigClient.Interface
+	countGetCertIssuerForMRC int
 }
 
 // GetCertIssuerForMRC returns a fakeIssuer and pre-generated RootCertificate. It is intended to implement the certificate.MRCClient interface.
 func (c *fakeMRCClient) GetCertIssuerForMRC(mrc *v1alpha2.MeshRootCertificate) (Issuer, pem.RootCertificate, error) {
+	c.countGetCertIssuerForMRC++
 	return &fakeIssuer{id: mrc.Name}, pem.RootCertificate("rootCA"), nil
 }
 

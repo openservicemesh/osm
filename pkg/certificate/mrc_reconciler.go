@@ -127,9 +127,13 @@ func (m *Manager) getCertIssuers(desiredSigningMRC, desiredValidatingMRC *v1alph
 		return nil, nil, err
 	}
 
-	desiredValidatingIssuer, err = m.getCertIssuer(desiredValidatingMRC)
-	if err != nil {
-		return nil, nil, err
+	if desiredSigningMRC == desiredValidatingMRC {
+		desiredValidatingIssuer = desiredSigningIssuer
+	} else {
+		desiredValidatingIssuer, err = m.getCertIssuer(desiredValidatingMRC)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	return desiredSigningIssuer, desiredValidatingIssuer, nil

@@ -251,21 +251,23 @@ func TestGetCertIssuers(t *testing.T) {
 	mrc1Name := "mrc1"
 	mrc2Name := "mrc2"
 	tests := []struct {
-		name                       string
-		signingMRC                 *v1alpha2.MeshRootCertificate
-		validatingMRC              *v1alpha2.MeshRootCertificate
-		expectedSigningIssuerID    string
-		expectedValidatingIssuerID string
-		currentSigningIssuerID     string
-		currentValidatingIssuerID  string
-		expectedError              error
+		name                             string
+		signingMRC                       *v1alpha2.MeshRootCertificate
+		validatingMRC                    *v1alpha2.MeshRootCertificate
+		expectedSigningIssuerID          string
+		expectedValidatingIssuerID       string
+		currentSigningIssuerID           string
+		currentValidatingIssuerID        string
+		expectedCountGetCertIssuerForMRC int
+		expectedError                    error
 	}{
 		{
-			name:                       "same mrcs for signing and validating, issuer does not exist",
-			signingMRC:                 activeMRC1,
-			validatingMRC:              activeMRC1,
-			expectedSigningIssuerID:    mrc1Name,
-			expectedValidatingIssuerID: mrc1Name,
+			name:                             "same mrcs for signing and validating, issuer does not exist",
+			signingMRC:                       activeMRC1,
+			validatingMRC:                    activeMRC1,
+			expectedSigningIssuerID:          mrc1Name,
+			expectedValidatingIssuerID:       mrc1Name,
+			expectedCountGetCertIssuerForMRC: 1,
 		},
 		{
 			name:                       "same mrcs for signing and validating, issuer does exist as signingIssuer",
@@ -277,13 +279,14 @@ func TestGetCertIssuers(t *testing.T) {
 			expectedValidatingIssuerID: mrc1Name,
 		},
 		{
-			name:                       "mrc1 is active and mrc2 is passive and issuer for mrc2 does not exist",
-			signingMRC:                 activeMRC1,
-			validatingMRC:              passiveMRC2,
-			currentSigningIssuerID:     mrc1Name,
-			currentValidatingIssuerID:  mrc1Name,
-			expectedSigningIssuerID:    mrc1Name,
-			expectedValidatingIssuerID: mrc2Name,
+			name:                             "mrc1 is active and mrc2 is passive and issuer for mrc2 does not exist",
+			signingMRC:                       activeMRC1,
+			validatingMRC:                    passiveMRC2,
+			currentSigningIssuerID:           mrc1Name,
+			currentValidatingIssuerID:        mrc1Name,
+			expectedSigningIssuerID:          mrc1Name,
+			expectedValidatingIssuerID:       mrc2Name,
+			expectedCountGetCertIssuerForMRC: 1,
 		},
 		{
 			name:                       "mrc1 is active and mrc2 is passive and issuers exist",
@@ -294,12 +297,21 @@ func TestGetCertIssuers(t *testing.T) {
 			expectedSigningIssuerID:    mrc1Name,
 			expectedValidatingIssuerID: mrc2Name,
 		},
+		{
+			name:                             "mrc1 is active and mrc2 is passive and issuers do not exist",
+			signingMRC:                       activeMRC1,
+			validatingMRC:                    passiveMRC2,
+			expectedSigningIssuerID:          mrc1Name,
+			expectedValidatingIssuerID:       mrc2Name,
+			expectedCountGetCertIssuerForMRC: 2,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert := tassert.New(t)
 
-			m := &Manager{mrcClient: &fakeMRCClient{}}
+			mrcClient := &fakeMRCClient{}
+			m := &Manager{mrcClient: mrcClient}
 			if tt.currentSigningIssuerID != "" {
 				m.signingIssuer = &issuer{ID: tt.currentSigningIssuerID}
 			}
@@ -317,6 +329,8 @@ func TestGetCertIssuers(t *testing.T) {
 				assert.NotNil(validatingIssuer)
 				assert.Equal(tt.expectedValidatingIssuerID, validatingIssuer.ID)
 			}
+
+			assert.Equal(tt.expectedCountGetCertIssuerForMRC, mrcClient.countGetCertIssuerForMRC)
 		})
 	}
 }
