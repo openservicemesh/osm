@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"context"
-	"time"
 
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
@@ -489,6 +488,6 @@ func (c *Client) ListServiceExports() []*mcs.ServiceExport {
 }
 
 // AddMeshRootCertificateEventHandler adds an event handler specific to mesh root certificiates.
-func (c *Client) AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler, resyncInterval time.Duration) {
-	c.informers[informerKeyMeshRootCertificate].AddEventHandlerWithResyncPeriod(handler, resyncInterval)
+func (c *Client) AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler) {
+	c.informers[informerKeyMeshRootCertificate].AddEventHandler(handler)
 }

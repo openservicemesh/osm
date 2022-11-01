@@ -7,7 +7,6 @@ package catalog
 import (
 	context "context"
 	reflect "reflect"
-	time "time"
 
 	gomock "github.com/golang/mock/gomock"
 	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
@@ -50,15 +49,15 @@ func (m *MockMeshCataloger) EXPECT() *MockMeshCatalogerMockRecorder {
 }
 
 // AddMeshRootCertificateEventHandler mocks base method.
-func (m *MockMeshCataloger) AddMeshRootCertificateEventHandler(arg0 cache.ResourceEventHandler, arg1 time.Duration) {
+func (m *MockMeshCataloger) AddMeshRootCertificateEventHandler(arg0 cache.ResourceEventHandler) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddMeshRootCertificateEventHandler", arg0, arg1)
+	m.ctrl.Call(m, "AddMeshRootCertificateEventHandler", arg0)
 }
 
 // AddMeshRootCertificateEventHandler indicates an expected call of AddMeshRootCertificateEventHandler.
-func (mr *MockMeshCatalogerMockRecorder) AddMeshRootCertificateEventHandler(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockMeshCatalogerMockRecorder) AddMeshRootCertificateEventHandler(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMeshRootCertificateEventHandler", reflect.TypeOf((*MockMeshCataloger)(nil).AddMeshRootCertificateEventHandler), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMeshRootCertificateEventHandler", reflect.TypeOf((*MockMeshCataloger)(nil).AddMeshRootCertificateEventHandler), arg0)
 }
 
 // GetEgressClusterConfigs mocks base method.
