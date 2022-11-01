@@ -344,7 +344,7 @@ osm:
     # -- Tracing collector's API path where the spans will be sent to
     endpoint: "/api/v2/spans"
     # -- Image used for tracing
-    image: jaegertracing/all-in-one
+    image: jaegertracing/all-in-one:1.39
 
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
