@@ -262,7 +262,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.tracing.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[3] | string | `"s390x"` |  |
 | osm.tracing.enable | bool | `false` | Toggles Envoy's tracing functionality on/off for all sidecar proxies in the mesh |
 | osm.tracing.endpoint | string | `"/api/v2/spans"` | Tracing collector's API path where the spans will be sent to |
-| osm.tracing.image | string | `"jaegertracing/all-in-one"` | Image used for tracing |
+| osm.tracing.image | string | `"jaegertracing/all-in-one:1.39"` | Image used for tracing |
 | osm.tracing.nodeSelector | object | `{}` |  |
 | osm.tracing.port | int | `9411` | Port of the tracing collector service |
 | osm.tracing.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
