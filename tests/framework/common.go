@@ -23,11 +23,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	certman "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	"github.com/docker/docker/client"
 	"github.com/fatih/color"
-	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	certman "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -911,7 +911,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 	install.RepoURL = "https://charts.jetstack.io"
 	install.Namespace = td.OsmNamespace
 	install.ReleaseName = "certmanager"
-	install.Version = "v1.3.1"
+	install.Version = "v1.10.0"
 
 	chartPath, err := install.LocateChart("cert-manager", helmcli.New())
 	if err != nil {
