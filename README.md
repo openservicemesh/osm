@@ -82,7 +82,7 @@ Read more about [OSM's high level goals, design, and architecture](DESIGN.md).
 ## Install
 
 ### Prerequisites
-- Kubernetes cluster running Kubernetes v1.22.9 or greater
+- Kubernetes cluster running an [active Kubernetes releases](https://kubernetes.io/releases/). The range of supported Kubernetes versions is defined in the [OSM Helm chart](https://github.com/openservicemesh/osm/blob/main/charts/osm/Chart.yaml#L24).
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
 
