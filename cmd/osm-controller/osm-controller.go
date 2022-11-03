@@ -253,7 +253,7 @@ func main() {
 
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
-	debugConfig := debugger.NewDebugConfig(certManager, xdsGenerator, meshCatalog, proxyRegistry, kubeConfig, kubeClient, computeClient, msgBroker)
+	debugConfig := debugger.NewDebugConfig(certManager, xdsGenerator, proxyRegistry, kubeConfig, kubeClient, computeClient, msgBroker)
 	go debugConfig.StartDebugServerConfigListener(stop)
 
 	// Start the k8s pod watcher that updates corresponding k8s secrets

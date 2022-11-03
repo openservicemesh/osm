@@ -7,7 +7,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -22,7 +21,6 @@ var log = logger.New("debugger")
 type DebugConfig struct {
 	certDebugger  *certificate.Manager
 	xdsDebugger   XDSDebugger
-	meshCatalog   catalog.MeshCataloger
 	proxyRegistry *registry.ProxyRegistry
 	kubeConfig    *rest.Config
 	kubeClient    kubernetes.Interface

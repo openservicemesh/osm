@@ -1022,7 +1022,6 @@ func TestListSMIPolicies(t *testing.T) {
 	splits := []*smiSplit.TrafficSplit{&tests.TrafficSplit}
 	targets := []*smiAccess.TrafficTarget{&tests.TrafficTarget}
 	httpRoutes := []*smiSpecs.HTTPRouteGroup{&tests.HTTPRouteGroup}
-	svcAccounts := []identity.K8sServiceAccount{tests.BookbuyerServiceAccount, tests.BookstoreServiceAccount}
 
 	mockCompute.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true).AnyTimes()
 	mockCompute.EXPECT().ListTrafficSplits().Return(splits).AnyTimes()
@@ -1036,12 +1035,10 @@ func TestListSMIPolicies(t *testing.T) {
 	a := assert.New(t)
 
 	trafficSplits := mc.ListTrafficSplits()
-	serviceAccounts := mc.ListServiceAccountsFromTrafficTargets()
 	routeGroups := mc.ListHTTPTrafficSpecs()
 	trafficTargets := mc.ListTrafficTargets()
 
 	a.ElementsMatch(trafficSplits, splits)
 	a.ElementsMatch(targets, trafficTargets)
 	a.ElementsMatch(httpRoutes, routeGroups)
-	a.ElementsMatch(svcAccounts, serviceAccounts)
 }
