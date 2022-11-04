@@ -4,17 +4,22 @@ import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/ticker"
 )
 
+// MeshCatalog is the struct for the service catalog
+type MeshCatalog struct {
+	Interface
+	certManager *certificate.Manager
+}
+
 // NewMeshCatalog creates a new service catalog
-func NewMeshCatalog(computeInterface compute.Interface, certManager *certificate.Manager,
+func NewMeshCatalog(catalogInterface Interface, certManager *certificate.Manager,
 	stop <-chan struct{},
 	msgBroker *messaging.Broker) *MeshCatalog {
 	mc := &MeshCatalog{
-		Interface:   computeInterface,
+		Interface:   catalogInterface,
 		certManager: certManager,
 	}
 

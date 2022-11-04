@@ -7,8 +7,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -24,7 +24,7 @@ type DebugConfig struct {
 	proxyRegistry *registry.ProxyRegistry
 	kubeConfig    *rest.Config
 	kubeClient    kubernetes.Interface
-	computeClient compute.Interface
+	computeClient catalog.Interface
 	msgBroker     *messaging.Broker
 }
 

@@ -21,7 +21,7 @@ var (
 
 // EnvoyConfigGenerator is used to generate all xDS response types per proxy.
 type EnvoyConfigGenerator struct {
-	catalog        catalog.MeshCataloger
+	catalog        *catalog.MeshCatalog
 	generators     map[envoy.TypeURI]func(context.Context, *models.Proxy) ([]types.Resource, error)
 	certManager    *certificate.Manager
 	xdsMapLogMutex sync.Mutex
@@ -29,7 +29,7 @@ type EnvoyConfigGenerator struct {
 }
 
 // NewEnvoyConfigGenerator creates a new instance of EnvoyConfigGenerator.
-func NewEnvoyConfigGenerator(catalog catalog.MeshCataloger, certManager *certificate.Manager) *EnvoyConfigGenerator {
+func NewEnvoyConfigGenerator(catalog *catalog.MeshCatalog, certManager *certificate.Manager) *EnvoyConfigGenerator {
 	g := &EnvoyConfigGenerator{
 		catalog:     catalog,
 		certManager: certManager,

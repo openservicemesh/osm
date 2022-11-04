@@ -1,88 +1,28 @@
-// Package catalog implements the MeshCataloger interface, which forms the central component in OSM that transforms
+// Package catalog implements the MeshCatalog, which forms the central component in OSM that transforms
 // outputs from all other components (SMI policies, Kubernetes services, endpoints etc.) into configuration that is
 // consumed by the the proxy control plane component to program sidecar proxies.
 // Reference: https://github.com/openservicemesh/osm/blob/main/DESIGN.md#5-mesh-catalog
 package catalog
 
 import (
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/compute"
+	"context"
+
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
+
+	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 var (
 	log = logger.New("mesh-catalog")
 )
-
-// MeshCatalog is the struct for the service catalog
-type MeshCatalog struct {
-	compute.Interface
-	certManager *certificate.Manager
-}
-
-// MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
-type MeshCataloger interface {
-	compute.Interface
-
-	// ListOutboundServicesForIdentity list the services the given service identity is allowed to initiate outbound connections to
-	ListOutboundServicesForIdentity(identity.ServiceIdentity) []service.MeshService
-
-	// ListInboundServiceIdentities lists the downstream service identities that are allowed to connect to the given service identity
-	ListInboundServiceIdentities(identity.ServiceIdentity) []identity.ServiceIdentity
-
-	// ListOutboundServiceIdentities lists the upstream service identities the given service identity are allowed to connect to
-	ListOutboundServiceIdentities(identity.ServiceIdentity) []identity.ServiceIdentity
-
-	// ListAllowedUpstreamEndpointsForService returns the list of endpoints over which the downstream client identity
-	// is allowed access the upstream service
-	ListAllowedUpstreamEndpointsForService(identity.ServiceIdentity, service.MeshService) []endpoint.Endpoint
-
-	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service identity
-	ListInboundTrafficTargetsWithRoutes(identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error)
-
-	// GetInboundMeshClusterConfigs returns the cluster configs for the inbound mesh traffic policy for the given upstream services
-	GetInboundMeshClusterConfigs([]service.MeshService) []*trafficpolicy.MeshClusterConfig
-
-	// GetInboundMeshTrafficMatches returns the traffic matches for the inbound mesh traffic policy for the given upstream services
-	GetInboundMeshTrafficMatches([]service.MeshService) []*trafficpolicy.TrafficMatch
-
-	// GetInboundMeshHTTPRouteConfigsPerPort returns a map of the given inbound traffic policy per port for the given upstream identity and services
-	GetInboundMeshHTTPRouteConfigsPerPort(identity.ServiceIdentity, []service.MeshService) map[int][]*trafficpolicy.InboundTrafficPolicy
-
-	// GetOutboundMeshClusterConfigs returns the cluster configs for the outbound mesh traffic policy for the given downstream identity
-	GetOutboundMeshClusterConfigs(identity.ServiceIdentity) []*trafficpolicy.MeshClusterConfig
-
-	// GetOutboundMeshTrafficMatches returns the traffic matches for the outbound mesh traffic policy for the given downstream identity
-	GetOutboundMeshTrafficMatches(identity.ServiceIdentity) []*trafficpolicy.TrafficMatch
-
-	// GetOutboundMeshHTTPRouteConfigsPerPort returns a map of the given outbound traffic policy per port for the given downstream identity
-	GetOutboundMeshHTTPRouteConfigsPerPort(identity.ServiceIdentity) map[int][]*trafficpolicy.OutboundTrafficPolicy
-
-	// GetEgressClusterConfigs returns the cluster configs for the egress traffic policy associated with the given service identity.
-	GetEgressClusterConfigs(identity.ServiceIdentity) ([]*trafficpolicy.EgressClusterConfig, error)
-
-	// GetEgressTrafficMatches returns the traffic matches for the egress traffic policy associated with the given service identity.
-	GetEgressTrafficMatches(identity.ServiceIdentity) ([]*trafficpolicy.TrafficMatch, error)
-
-	// GetEgressHTTPRouteConfigsPerPort returns a map of the given egress http route config per port for the egress traffic policy associated with the given service identity.
-	GetEgressHTTPRouteConfigsPerPort(identity.ServiceIdentity) map[int][]*trafficpolicy.EgressHTTPRouteConfig
-
-	// GetIngressHTTPRoutePolicies returns the HTTP route policies for the ingress traffic policy for all mesh services
-	GetIngressHTTPRoutePolicies([]service.MeshService) [][]*trafficpolicy.InboundTrafficPolicy
-
-	// GetIngressHTTPRoutePoliciesForSvc returns the HTTP route policies for the ingress traffic policy for the given mesh service
-	GetIngressHTTPRoutePoliciesForSvc(service.MeshService) []*trafficpolicy.InboundTrafficPolicy
-
-	// GetIngressTrafficMatchesForSvc returns the traffic matches for the ingress traffic policy for the given mesh service
-	GetIngressTrafficMatchesForSvc(service.MeshService) ([]*trafficpolicy.IngressTrafficMatch, error)
-
-	// GetIngressHTTPRoutePolicies returns the ingress traffic matches for the ingress traffic policy for the given mesh service
-	GetIngressTrafficMatches([]service.MeshService) [][]*trafficpolicy.IngressTrafficMatch
-}
 
 type trafficDirection string
 
@@ -90,3 +30,83 @@ const (
 	inbound  trafficDirection = "inbound"
 	outbound trafficDirection = "outbound"
 )
+
+// Interface is an interface to be implemented by components abstracting Kubernetes, and other compute/cluster providers
+type Interface interface {
+	k8s.PassthroughInterface
+	// GetSecret returns the secret for a given namespace and secret name
+	GetSecret(string, string) *models.Secret
+
+	// ListSecrets returns a list of secrets
+	ListSecrets() []*models.Secret
+
+	// UpdateSecret updates the given secret
+	UpdateSecret(context.Context, *models.Secret) error
+
+	// GetMeshService returns the service.MeshService corresponding to the Port used by clients
+	// to communicate with it
+	GetMeshService(name, namespace string, port uint16) (service.MeshService, error)
+
+	// GetServicesForServiceIdentity retrieves the namespaced services for a given service identity
+	GetServicesForServiceIdentity(identity.ServiceIdentity) []service.MeshService
+
+	// ListServices returns a list of services that are part of monitored namespaces
+	ListServices() []service.MeshService
+
+	// ListServiceIdentitiesForService returns service identities for given service
+	ListServiceIdentitiesForService(name, namespace string) ([]identity.ServiceIdentity, error)
+
+	// ListEndpointsForService retrieves the IP addresses comprising the given service.
+	ListEndpointsForService(service.MeshService) []endpoint.Endpoint
+
+	// ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
+	ListEndpointsForIdentity(identity.ServiceIdentity) []endpoint.Endpoint
+
+	// GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service FQDN is resolved under
+	// the scope of the provider
+	GetResolvableEndpointsForService(service.MeshService) []endpoint.Endpoint
+
+	IsMetricsEnabled(*models.Proxy) (bool, error)
+
+	GetHostnamesForService(svc service.MeshService, localNamespace bool) []string
+
+	// ListServicesForProxy gets the services that map to the given proxy.
+	ListServicesForProxy(p *models.Proxy) ([]service.MeshService, error)
+
+	// ListEgressPoliciesForServiceAccount lists the Egress policies for the given source identity based on service accounts
+	ListEgressPoliciesForServiceAccount(sa identity.K8sServiceAccount) []*v1alpha1.Egress
+
+	// GetIngressBackendPolicyForService returns the IngressBackend policy for the given backend MeshService
+	GetIngressBackendPolicyForService(svc service.MeshService) *v1alpha1.IngressBackend
+
+	// ListRetryPoliciesForServiceAccount returns the retry policies for the given source identity based on service accounts.
+	ListRetryPoliciesForServiceAccount(source identity.K8sServiceAccount) []*v1alpha1.Retry
+
+	// GetUpstreamTrafficSettingByNamespace returns the UpstreamTrafficSetting resource that matches the namespace
+	GetUpstreamTrafficSettingByNamespace(ns *types.NamespacedName) *v1alpha1.UpstreamTrafficSetting
+
+	// GetUpstreamTrafficSettingByService returns the UpstreamTrafficSetting resource that matches the given service
+	GetUpstreamTrafficSettingByService(meshService *service.MeshService) *v1alpha1.UpstreamTrafficSetting
+
+	// GetUpstreamTrafficSettingByHost returns the UpstreamTrafficSetting resource that matches the host
+	GetUpstreamTrafficSettingByHost(host string) *v1alpha1.UpstreamTrafficSetting
+
+	GetProxyStatsHeaders(p *models.Proxy) (map[string]string, error)
+
+	// GetProxyConfig takes the given proxy, port forwards to the pod from this proxy, and returns the envoy config
+	GetProxyConfig(proxy *models.Proxy, configType string, kubeConfig *rest.Config) (string, error)
+
+	// VerifyProxy attempts to lookup a pod that matches the given proxy instance by service identity, namespace, and UUID
+	VerifyProxy(proxy *models.Proxy) error
+
+	// ListNamespaces returns the namespaces monitored by the mesh
+	ListNamespaces() ([]string, error)
+
+	// GetTelemetryConfig returns the Telemetry config for the given proxy instance.
+	// It returns the most specific match if multiple matching policies exist, in the following
+	// order of preference: 1. selector match, 2. namespace match, 3. global match
+	GetTelemetryConfig(*models.Proxy) models.TelemetryConfig
+
+	// GetMeshConfig returns the current MeshConfig
+	GetMeshConfig() v1alpha2.MeshConfig
+}

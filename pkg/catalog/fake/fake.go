@@ -3,15 +3,13 @@ package fake
 import (
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/compute"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-// NewFakeMeshCatalog creates a new struct implementing catalog.MeshCataloger interface used for testing.
-func NewFakeMeshCatalog(provider compute.Interface) *catalog.MeshCatalog {
+// NewFakeMeshCatalog creates a new catalog.MeshCatalog struct used for testing.
+func NewFakeMeshCatalog(provider catalog.Interface) *catalog.MeshCatalog {
 	stop := make(<-chan struct{})
 
 	certManager := tresorFake.NewFake(1 * time.Hour)

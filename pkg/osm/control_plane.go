@@ -33,7 +33,7 @@ type ControlPlane[T any] struct {
 	configServer    ProxyUpdater[T]
 	configGenerator ProxyConfigGenerator[T]
 
-	catalog       catalog.MeshCataloger
+	catalog       *catalog.MeshCatalog
 	proxyRegistry *registry.ProxyRegistry
 	certManager   *certificate.Manager
 	workqueues    *workerpool.WorkerPool
@@ -43,7 +43,7 @@ type ControlPlane[T any] struct {
 // NewControlPlane creates a new instance of ControlPlane with the given config type T.
 func NewControlPlane[T any](server ProxyUpdater[T],
 	generator ProxyConfigGenerator[T],
-	catalog catalog.MeshCataloger,
+	catalog *catalog.MeshCatalog,
 	proxyRegistry *registry.ProxyRegistry,
 	certManager *certificate.Manager,
 	msgBroker *messaging.Broker,

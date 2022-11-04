@@ -14,13 +14,13 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	k8storage "github.com/openservicemesh/osm/pkg/certificate/castorage/k8s"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
-	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
@@ -44,7 +44,7 @@ var getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
 // NewCertificateManager returns a new certificate manager with a MRC compat client.
 // TODO(4713): Remove and use NewCertificateManagerFromMRC
 func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config,
-	providerNamespace string, option Options, computeClient compute.Interface, checkInterval time.Duration, trustDomain string) (*certificate.Manager, error) {
+	providerNamespace string, option Options, computeClient catalog.Interface, checkInterval time.Duration, trustDomain string) (*certificate.Manager, error) {
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 
 // NewCertificateManagerFromMRC returns a new certificate manager.
 func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config,
-	providerNamespace string, option Options, computeClient compute.Interface, checkInterval time.Duration) (*certificate.Manager, error) {
+	providerNamespace string, option Options, computeClient catalog.Interface, checkInterval time.Duration) (*certificate.Manager, error) {
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}
