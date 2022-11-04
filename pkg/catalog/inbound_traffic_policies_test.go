@@ -2453,8 +2453,8 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 
 			allUpstreamSvcIncludeApex := mc.GetUpstreamServicesIncludeApex(tc.upstreamServices)
 
-			var upstreamTrafficSettingsPerService map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting
-			var hostnamesPerService map[*service.MeshService][]string
+			upstreamTrafficSettingsPerService := make(map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting)
+			hostnamesPerService := make(map[*service.MeshService][]string)
 
 			for _, upstreamSvc := range allUpstreamSvcIncludeApex {
 				upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop

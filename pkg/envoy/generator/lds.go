@@ -91,7 +91,7 @@ func (g *EnvoyConfigGenerator) generateLDS(ctx context.Context, proxy *models.Pr
 	inboundTPBuilder.UpstreamServices(svcList)
 	allUpstreamSvcIncludeApex := g.catalog.GetUpstreamServicesIncludeApex(svcList)
 	inboundTPBuilder.UpstreamServicesIncludeApex(allUpstreamSvcIncludeApex)
-	var upstreamTrafficSettingsPerService map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting
+	upstreamTrafficSettingsPerService := make(map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting)
 
 	for _, upstreamSvc := range allUpstreamSvcIncludeApex {
 		upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop

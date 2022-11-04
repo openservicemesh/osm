@@ -48,8 +48,8 @@ func (g *EnvoyConfigGenerator) generateRDS(ctx context.Context, proxy *models.Pr
 	allUpstreamSvcIncludeApex := g.catalog.GetUpstreamServicesIncludeApex(proxyServices)
 	inboundTPBuilder.UpstreamServicesIncludeApex(allUpstreamSvcIncludeApex)
 
-	var upstreamTrafficSettingsPerService map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting
-	var hostnamesPerService map[*service.MeshService][]string
+	upstreamTrafficSettingsPerService := make(map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting)
+	hostnamesPerService := make(map[*service.MeshService][]string)
 
 	for _, upstreamSvc := range allUpstreamSvcIncludeApex {
 		upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop

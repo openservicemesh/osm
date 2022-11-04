@@ -5,6 +5,8 @@
 package catalog
 
 import (
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -13,7 +15,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
-	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 )
 
 var (
@@ -75,8 +76,6 @@ type MeshCataloger interface {
 
 	// GetIngressHTTPRoutePolicies returns the ingress traffic matches for the ingress traffic policy for the given mesh service
 	GetIngressTrafficMatches([]service.MeshService) [][]*trafficpolicy.IngressTrafficMatch
-
-	ListServiceAccountsFromTrafficTargets() []identity.K8sServiceAccount
 
 	// GetUpstreamServicesIncludeApex returns a list of all upstream services associated with the given list
 	// of services. An upstream service is associated with another service if it is a backend for an apex/root service

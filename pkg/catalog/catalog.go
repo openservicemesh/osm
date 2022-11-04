@@ -4,6 +4,7 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/messaging"
