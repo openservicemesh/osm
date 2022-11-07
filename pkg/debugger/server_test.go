@@ -21,7 +21,7 @@ func TestGetHandlers(t *testing.T) {
 	cm := tresorFake.NewFake(time.Hour)
 	mockXdsDebugger := NewMockXDSDebugger(mockCtrl)
 	client := testclient.NewSimpleClientset()
-	mockCompute := compute.NewMockInterface(mockCtrl)
+	mockComputeInterface := compute.NewMockInterface(mockCtrl)
 	proxyRegistry := registry.NewProxyRegistry()
 
 	ds := NewDebugConfig(cm,
@@ -29,7 +29,7 @@ func TestGetHandlers(t *testing.T) {
 		proxyRegistry,
 		nil,
 		client,
-		mockCompute,
+		mockComputeInterface,
 		nil)
 
 	handlers := ds.GetHandlers()
