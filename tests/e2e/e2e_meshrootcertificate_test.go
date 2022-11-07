@@ -16,12 +16,8 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/tests/framework"
 	. "github.com/openservicemesh/osm/tests/framework"
-)
-
-var (
-	ActiveIntent  = v1alpha2.MeshRootCertificateIntent("active")
-	PassiveIntent = v1alpha2.MeshRootCertificateIntent("passive")
 )
 
 var _ = OSMDescribe("MeshRootCertificate",
@@ -49,38 +45,106 @@ var _ = OSMDescribe("MeshRootCertificate",
 		})
 	})
 
+// basicCerRotationScenario rotates a new cert in through the follow pattern:
+// | Step  | MRC1 old   | MRC2 new     | signer    | validator |
+// | ----- | ---------- | ------------ | --------- | --------- |
+// | 1     | active     |              | mrc1      | mrc1      |
+// | 2     | active     | passive      | mrc1      | mrc2      |
+// | 3     | active     | active       | mrc2/mrc1 | mrc1/mrc2 |
+// | 4     | passive    | active       | mrc2      | mrc1      |
+// | 5     | inactive   | active       | mrc2      | mrc2 	   |
+// | 5     |            | active       | mrc2      | mrc2      |
 func basicCertRotationScenario(installOptions ...InstallOsmOpt) {
 	By("installing with MRC enabled")
 	installOptions = append(installOptions, WithMeshRootCertificateEnabled())
 	installOpts := Td.GetOSMInstallOpts(installOptions...)
 	Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
-	// no secrets are created in Vault case
+	By("checking the certificate exists")
 	if installOpts.CertManager != Vault {
-		By("checking the certificate exists")
+		// no secrets are created in Vault case
 		err := Td.WaitForCABundleSecret(Td.OsmNamespace, OsmCABundleName, time.Second*5)
 		Expect(err).NotTo(HaveOccurred())
 	}
 
-	By("checking that an active cert cannot be created")
+	By("checking HTTP traffic for client -> server pod after initial MRC creation")
+	clientPod, serverPod, serverSvc := deployTestWorkload()
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+
+	By("checking that another cert with active intent cannot be created")
 	time.Sleep(time.Second * 10)
 	activeNotAllowed := "not-allowed"
-	_, err := createMeshRootCertificate(activeNotAllowed, ActiveIntent, installOpts.CertManager)
+	_, err := createMeshRootCertificate(activeNotAllowed, v1alpha2.ActiveIntent, installOpts.CertManager)
 	Expect(err).Should(HaveOccurred())
 	Expect(err.Error()).Should(ContainSubstring("cannot create MRC %s/%s with intent active. An MRC with active intent already exists in the control plane namespace", Td.OsmNamespace, activeNotAllowed))
 
-	By("creating a second certificate in passive state")
+	By("creating a second certificate with passive intent")
 	newCertName := "osm-mrc-2"
-	_, err = createMeshRootCertificate(newCertName, PassiveIntent, installOpts.CertManager)
+	_, err = createMeshRootCertificate(newCertName, v1alpha2.PassiveIntent, installOpts.CertManager)
 	Expect(err).NotTo(HaveOccurred())
 
-	// no secrets are created in Vault case
+	By("ensuring the new CA secret exists")
 	if installOpts.CertManager != Vault {
-		By("ensuring the new CA secret exists")
+		// no secrets are created in Vault case
 		err = Td.WaitForCABundleSecret(Td.OsmNamespace, newCertName, time.Second*90)
 		Expect(err).NotTo(HaveOccurred())
 	}
-	// TODO(#4835) add checks for the correct statuses for the two certificates and complete cert rotation
+
+	By("checking HTTP traffic for client -> server pod after new cert is rotated in")
+	verifyCertRotation(clientPod, serverPod, constants.DefaultMeshRootCertificateName, newCertName)
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+
+	By("moving new cert from Passive to Active")
+	updateCertificate(newCertName, v1alpha2.ActiveIntent)
+
+	By("checking HTTP traffic for client -> server pod after new cert is rotated in for validation")
+	// At this stage when they are both same intent it isn't deterministic which is validating and signing
+	// skip the verification for now. We check it again later.
+	// verifyCertRotation(clientPod, serverPod, newCertName, constants.DefaultMeshRootCertificateName)
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+
+	By("moving original cert from Active to Passive")
+	updateCertificate(constants.DefaultMeshRootCertificateName, v1alpha2.PassiveIntent)
+
+	By("checking HTTP traffic for client -> server pod after new cert is rotated in for signing")
+	verifyCertRotation(clientPod, serverPod, newCertName, constants.DefaultMeshRootCertificateName)
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+
+	By("moving original cert from passive to inactive")
+	updateCertificate(constants.DefaultMeshRootCertificateName, v1alpha2.InactiveIntent)
+
+	By("checking HTTP traffic for client -> server pod after removing original cert")
+	verifyCertRotation(clientPod, serverPod, newCertName, newCertName)
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+
+	// Success! the new certificate is in use; lets go nuclear and make sure
+	By("deleting original certificate")
+	err = Td.ConfigClient.ConfigV1alpha2().MeshRootCertificates(Td.OsmNamespace).Delete(context.Background(), constants.DefaultMeshRootCertificateName, metav1.DeleteOptions{})
+	Expect(err).NotTo(HaveOccurred())
+	if installOpts.CertManager != Vault {
+		// no secrets are created in Vault case
+		err = Td.Client.CoreV1().Secrets(Td.OsmNamespace).Delete(context.Background(), OsmCABundleName, metav1.DeleteOptions{})
+		Expect(err).NotTo(HaveOccurred())
+	}
+
+	By("checking HTTP traffic for client -> server pod after deleting original cert")
+	verifyCertRotation(clientPod, serverPod, newCertName, newCertName)
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+
+	By("restarting osm controller")
+	// If anything got stuck in above rotation this will ensure things are indeed working
+	stdout, stderr, err := Td.RunLocal("kubectl", "rollout", "restart", "deployment", "osm-controller", "-n", Td.OsmNamespace)
+	Td.T.Logf("stderr:\n%s\n", stderr)
+	Td.T.Logf("stdout:\n%s\n", stdout)
+	Expect(err).NotTo(HaveOccurred())
+	time.Sleep(5 * time.Second)
+	Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 1, nil)).To(Succeed())
+
+	By("checking HTTP traffic for client -> server pod after restarting")
+	verifyCertRotation(clientPod, serverPod, newCertName, newCertName)
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+
+	// todo maybe check that cert modules are different?
 }
 
 func createMeshRootCertificate(name string, intent v1alpha2.MeshRootCertificateIntent, certificateManagerType string) (*v1alpha2.MeshRootCertificate, error) {
@@ -118,6 +182,16 @@ func createTressorMRC(name string, intent v1alpha2.MeshRootCertificateIntent) (*
 				},
 			},
 		}, metav1.CreateOptions{})
+}
+
+func updateCertificate(name string, intent v1alpha2.MeshRootCertificateIntent) {
+	mrc, err := Td.ConfigClient.ConfigV1alpha2().MeshRootCertificates(Td.OsmNamespace).Get(context.Background(), name, metav1.GetOptions{})
+	Expect(err).NotTo(HaveOccurred())
+
+	mrc.Spec.Intent = intent
+
+	_, err = Td.ConfigClient.ConfigV1alpha2().MeshRootCertificates(Td.OsmNamespace).Update(context.Background(), mrc, metav1.UpdateOptions{})
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func createCertManagerMRC(name string, intent v1alpha2.MeshRootCertificateIntent) (*v1alpha2.MeshRootCertificate, error) {
@@ -225,4 +299,133 @@ func createVaultMRC(name string, intent v1alpha2.MeshRootCertificateIntent) (*v1
 				},
 			},
 		}, metav1.CreateOptions{})
+}
+
+func verifySuccessfulPodConnection(srcPod, dstPod *v1.Pod, serverSvc *v1.Service) {
+	By("Waiting for repeated request success")
+	cond := Td.WaitForRepeatedSuccess(func() bool {
+		result :=
+			Td.FortioHTTPLoadTest(FortioHTTPLoadTestDef{
+				HTTPRequestDef: HTTPRequestDef{
+					SourceNs:        srcPod.Namespace,
+					SourcePod:       srcPod.Name,
+					SourceContainer: srcPod.Name,
+
+					Destination: fmt.Sprintf("%s.%s:%d", serverSvc.Name, dstPod.Namespace, fortioHTTPPort),
+				},
+			})
+
+		if result.Err != nil || result.HasFailedHTTPRequests() {
+			Td.T.Logf("> REST req has failed requests: %v", result.Err)
+			return false
+		}
+		Td.T.Logf("> REST req succeeded. Status codes: %v", result.AllReturnCodes())
+		return true
+	}, 2 /*runs the load test this many times successfully*/, 90*time.Second /*timeout*/)
+	Expect(cond).To(BeTrue())
+}
+
+// verifyCertRotation ensure the certificates have been rotated properly across all components:
+// 1. Verify service certs were updated (todo)
+// 2. Verify webhooks were updated (todo)
+// 3. Verify bootstrap certs updated (todo)
+// 4. verify xds cert updated (todo)
+func verifyCertRotation(clientPodDef, serverPodDef *v1.Pod, signingCertName, validatingCertName string) {
+	By("checking bootstrap secrets are updated after creating MRC with passive intent")
+	podSelector := constants.EnvoyUniqueIDLabelName
+	srvPod, err := Td.Client.CoreV1().Pods(serverPodDef.Namespace).Get(context.Background(), serverPodDef.Name, metav1.GetOptions{})
+	Expect(err).To(BeNil())
+
+	clientPod, err := Td.Client.CoreV1().Pods(clientPodDef.Namespace).Get(context.Background(), clientPodDef.Name, metav1.GetOptions{})
+	Expect(err).To(BeNil())
+
+	srvPodUUID := srvPod.GetLabels()[podSelector]
+	clientPodUUID := clientPod.GetLabels()[podSelector]
+
+	srvSecretName := fmt.Sprintf("envoy-bootstrap-config-%s", srvPodUUID)
+	clientSecretName := fmt.Sprintf("envoy-bootstrap-config-%s", clientPodUUID)
+
+	err = Td.WaitForBootstrapSecretUpdate(serverPodDef.Namespace, srvSecretName, signingCertName, validatingCertName, time.Second*30)
+	Expect(err).NotTo(HaveOccurred())
+	err = Td.WaitForBootstrapSecretUpdate(clientPodDef.Namespace, clientSecretName, signingCertName, validatingCertName, time.Second*30)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func deployTestWorkload() (*v1.Pod, *v1.Pod, *v1.Service) {
+	var (
+		clientNamespace = framework.RandomNameWithPrefix("client")
+		serverNamespace = framework.RandomNameWithPrefix("server")
+		ns              = []string{clientNamespace, serverNamespace}
+	)
+
+	By("Deploying client -> server workload")
+	// Create namespaces
+	for _, n := range ns {
+		Expect(Td.CreateNs(n, nil)).To(Succeed())
+		Expect(Td.AddNsToMesh(true, n)).To(Succeed())
+	}
+
+	// Get simple pod definitions for the HTTP server
+	serverSvcAccDef, serverPodDef, serverSvcDef, err := Td.SimplePodApp(
+		SimplePodAppDef{
+			PodName:   framework.RandomNameWithPrefix("pod"),
+			Namespace: serverNamespace,
+			Image:     fortioImageName,
+			Ports:     []int{fortioHTTPPort},
+			OS:        Td.ClusterOS,
+		})
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = Td.CreateServiceAccount(serverNamespace, &serverSvcAccDef)
+	Expect(err).NotTo(HaveOccurred())
+	serverPod, err := Td.CreatePod(serverNamespace, serverPodDef)
+	Expect(err).NotTo(HaveOccurred())
+	serverSvc, err := Td.CreateService(serverNamespace, serverSvcDef)
+	Expect(err).NotTo(HaveOccurred())
+
+	// Expect it to be up and running in it's receiver namespace
+	Expect(Td.WaitForPodsRunningReady(serverNamespace, 60*time.Second, 1, nil)).To(Succeed())
+
+	// Get simple Pod definitions for the client
+	podName := framework.RandomNameWithPrefix("pod")
+	clientSvcAccDef, clientPodDef, clientSvcDef, err := Td.SimplePodApp(SimplePodAppDef{
+		PodName:       podName,
+		Namespace:     clientNamespace,
+		ContainerName: podName,
+		Image:         fortioImageName,
+		Ports:         []int{fortioHTTPPort},
+		OS:            Td.ClusterOS,
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = Td.CreateServiceAccount(clientNamespace, &clientSvcAccDef)
+	Expect(err).NotTo(HaveOccurred())
+	clientPod, err := Td.CreatePod(clientNamespace, clientPodDef)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = Td.CreateService(clientNamespace, clientSvcDef)
+	Expect(err).NotTo(HaveOccurred())
+
+	// Expect it to be up and running in it's receiver namespace
+	Expect(Td.WaitForPodsRunningReady(clientNamespace, 60*time.Second, 1, nil)).To(Succeed())
+
+	// Deploy allow rule client->server
+	httpRG, trafficTarget := Td.CreateSimpleAllowPolicy(
+		SimpleAllowPolicy{
+			RouteGroupName:    "routes",
+			TrafficTargetName: "target",
+
+			SourceNamespace:      clientNamespace,
+			SourceSVCAccountName: clientSvcAccDef.Name,
+
+			DestinationNamespace:      serverNamespace,
+			DestinationSvcAccountName: serverSvcAccDef.Name,
+		})
+
+	// Configs have to be put into a monitored NS, and osm-system can't be by cli
+	_, err = Td.CreateHTTPRouteGroup(serverNamespace, httpRG)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = Td.CreateTrafficTarget(serverNamespace, trafficTarget)
+	Expect(err).NotTo(HaveOccurred())
+
+	return clientPod, serverPod, serverSvc
 }

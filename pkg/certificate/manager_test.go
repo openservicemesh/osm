@@ -9,11 +9,11 @@ import (
 	"github.com/cskr/pubsub"
 	tassert "github.com/stretchr/testify/assert"
 	trequire "github.com/stretchr/testify/require"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/constants"
+	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
 )
 
@@ -86,7 +86,9 @@ func TestRotor(t *testing.T) {
 
 	stop := make(chan struct{})
 	defer close(stop)
-	certManager, err := NewManager(context.Background(), &fakeMRCClient{}, getServiceCertValidityPeriod, getIngressGatewayCertValidityPeriod, 5*time.Second)
+	configClient := configFake.NewSimpleClientset([]runtime.Object{activeMRC1}...)
+	certManager, err := NewManager(context.Background(), &fakeMRCClient{configClient: configClient},
+		getServiceCertValidityPeriod, getIngressGatewayCertValidityPeriod, 5*time.Second)
 	require.NoError(err)
 
 	certA, err := certManager.IssueCertificate(ForServiceIdentity(identity.ServiceIdentity(cnPrefix)))
@@ -315,82 +317,6 @@ func TestIssueCertificate(t *testing.T) {
 		assert.EqualError(err, "id1 failed")
 		assert.Nil(cert)
 	})
-}
-
-func TestHandleMRCEvent(t *testing.T) {
-	testCases := []struct {
-		name                 string
-		mrcEvent             MRCEvent
-		wantErr              bool
-		wantSigningIssuer    issuer
-		wantValidatingIssuer issuer
-	}{
-		{
-			name: "success",
-			mrcEvent: MRCEvent{
-				Type: MRCEventAdded,
-				MRC: &v1alpha2.MeshRootCertificate{
-					ObjectMeta: v1.ObjectMeta{
-						Name: "my-mrc",
-					},
-					Spec: v1alpha2.MeshRootCertificateSpec{
-						TrustDomain: "foo.bar.com",
-					},
-					Status: v1alpha2.MeshRootCertificateStatus{
-						State: constants.MRCStateActive,
-						// unspecified component status will be unknown.
-						Conditions: []v1alpha2.MeshRootCertificateCondition{
-							{
-								Type:   constants.MRCConditionTypeReady,
-								Status: constants.MRCConditionStatusUnknown,
-							},
-							{
-								Type:   constants.MRCConditionTypeAccepted,
-								Status: constants.MRCConditionStatusUnknown,
-							},
-							{
-								Type:   constants.MRCConditionTypeIssuingRollout,
-								Status: constants.MRCConditionStatusUnknown,
-							},
-							{
-								Type:   constants.MRCConditionTypeValidatingRollout,
-								Status: constants.MRCConditionStatusUnknown,
-							},
-							{
-								Type:   constants.MRCConditionTypeIssuingRollback,
-								Status: constants.MRCConditionStatusUnknown,
-							},
-							{
-								Type:   constants.MRCConditionTypeValidatingRollback,
-								Status: constants.MRCConditionStatusUnknown,
-							},
-						},
-					},
-				},
-			},
-			wantSigningIssuer:    issuer{Issuer: &fakeIssuer{}, ID: "my-mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
-			wantValidatingIssuer: issuer{Issuer: &fakeIssuer{}, ID: "my-mrc", TrustDomain: "foo.bar.com", CertificateAuthority: pem.RootCertificate("rootCA")},
-		},
-	}
-
-	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
-			assert := tassert.New(t)
-			m := &Manager{
-				mrcClient: &fakeMRCClient{},
-			}
-
-			err := m.handleMRCEvent(tt.mrcEvent)
-			if !tt.wantErr {
-				assert.NoError(err)
-			} else {
-				assert.Error(err)
-			}
-
-			assert.Equal(tt.wantSigningIssuer, *m.signingIssuer)
-			assert.Equal(tt.wantValidatingIssuer, *m.validatingIssuer)
-		})
-	}
 }
 
 func TestSubscribeRotations(t *testing.T) {

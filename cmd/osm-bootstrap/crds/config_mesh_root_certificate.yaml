@@ -37,9 +37,9 @@ spec:
       served: true
       storage: true
       additionalPrinterColumns:
-        - description: Current state of the MeshRootCertificate config
-          jsonPath: .status.state
-          name: State
+        - description: Intent for the MeshRootCertificate
+          jsonPath: .spec.intent
+          name: Intent
           type: string
       schema:
         openAPIV3Schema:
@@ -48,6 +48,7 @@ spec:
             spec:
               type: object
               required:
+                - intent
                 - provider
               properties:
                 trustDomain:
@@ -55,12 +56,12 @@ spec:
                   type: string
                   default: cluster.local
                 intent:
-                  description: Intent specifies the role of the MeshRootCertificate, can be active or passive
+                  description: Intent specifies the role of the MeshRootCertificate, can be active, passive
                   type: string
                   enum:
                     - passive
                     - active
-                  default: passive
+                    - inactive
                 spiffeEnabled:
                   description: Adds a SPIFFE ID to the certificates, creating a SPIFFE compatible x509 SVID document
                   type: boolean

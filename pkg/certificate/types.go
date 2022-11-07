@@ -105,8 +105,7 @@ type issuer struct {
 type Manager struct {
 	// cache for all the certificates issued
 	// Types: map[certificate.CommonName]*certificate.Certificate
-	cache         sync.Map
-	ownedUseCases []UseCase
+	cache sync.Map
 
 	mrcClient MRCClient
 
@@ -139,18 +138,9 @@ type MRCEventType string
 
 // MRCEvent describes a change event on a given MRC
 type MRCEvent struct {
-	Type MRCEventType
-	// The last observed version of the MRC as of the time of this event
-	MRC *v1alpha2.MeshRootCertificate
+	// The name of the MRC generating the event
+	MRCName string
 }
-
-var (
-	// MRCEventAdded is the type of announcement emitted when we observe an addition of a Kubernetes MeshRootCertificate
-	MRCEventAdded MRCEventType = "meshrootcertificate-added"
-
-	// MRCEventUpdated is the type of announcement emitted when we observe an update to a Kubernetes MeshRootCertificate
-	MRCEventUpdated MRCEventType = "meshrootcertificate-updated"
-)
 
 // MRCEventBroker describes any type that allows the caller to Watch() MRCEvents
 type MRCEventBroker interface {

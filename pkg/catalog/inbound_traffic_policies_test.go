@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
@@ -14,15 +15,16 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/k8s"
-
+	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -2388,10 +2390,24 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			mrc := tresorFake.NewFakeMRC()
-			fakeCertManager := tresorFake.NewFakeWithMRC(mrc, 1*time.Hour)
+			mrc1 := &v1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: v1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
+					Intent:      v1alpha2.ActiveIntent,
+				},
+			}
+
+			configClient := configFake.NewSimpleClientset([]runtime.Object{mrc1}...)
+			mrcClient := tresorFake.NewFakeMRCWithConfig(configClient)
+			fakeCertManager := tresorFake.NewFakeWithMRCClient(mrcClient, 1*time.Hour)
 			mockK8s := k8s.NewMockController(mockCtrl)
 			computeClient := kube.NewClient(mockK8s)
+
+			mrcClient.NewCertEvent(mrc1.Name)
 
 			mc := MeshCatalog{
 				certManager: fakeCertManager,
@@ -2412,8 +2428,22 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			tc.prepare(mockK8s, tc.trafficSplits, tc.trafficTargets, tc.upstreamTrafficSettings)
 
 			if tc.newTrustDomain != "" {
-				// rotate a cert in and give it a moment to settle
-				mrc.NewCertEvent("new-trust-domain-cert", constants.MRCStateIssuingRollout, tc.newTrustDomain)
+				// create a new MRC with the newTrustDomain
+				mrc2 := &v1alpha2.MeshRootCertificate{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "osm-mesh-root-certificate-2",
+						Namespace: "osm-system",
+					},
+					Spec: v1alpha2.MeshRootCertificateSpec{
+						TrustDomain: tc.newTrustDomain,
+						Intent:      v1alpha2.ActiveIntent,
+					},
+				}
+				_, err := configClient.ConfigV1alpha2().MeshRootCertificates("osm-system").Create(context.Background(), mrc2, metav1.CreateOptions{})
+				assert.NoError(err)
+
+				// generate an MRCEvent for the new MRC to update the issuers and trigger a rotation
+				mrcClient.NewCertEvent(mrc2.Name)
 				assert.Eventually(func() bool {
 					return fakeCertManager.GetTrustDomains().AreDifferent()
 				}, 2*time.Second, 100*time.Millisecond)

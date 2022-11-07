@@ -552,7 +552,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	}
 
 	if err := td.CreateNs(instOpts.ControlPlaneNS, nil); err != nil {
-		return fmt.Errorf("failed to create namespace " + instOpts.ControlPlaneNS)
+		return fmt.Errorf("failed to create namespace %s error:%v", instOpts.ControlPlaneNS, err)
 	}
 
 	var args []string
@@ -1456,6 +1456,46 @@ func (td *OsmTestData) WaitForCABundleSecret(ns, name string, timeout time.Durat
 	}
 
 	return fmt.Errorf("CA bundle secret  [%s] not ready in NS %s after %s", name, ns, timeout)
+}
+
+const (
+	signingIssuerIDKey    = "signing_issuer_id"
+	validatingIssuerIDKey = "validating_issuer_id"
+)
+
+// WaitForBootstrapSecretUpdate waits for the CA bundle secret to be updated
+func (td *OsmTestData) WaitForBootstrapSecretUpdate(ns, name, expectedSigningIssuerID, expectedValidatingIssuerID string, timeout time.Duration) error {
+	td.T.Logf("Wait up to %s for %s secret to be ready in NS [%s]...", timeout, ns)
+	for start := time.Now(); time.Since(start) < timeout; time.Sleep(5 * time.Second) {
+		secret, err := td.Client.CoreV1().Secrets(ns).Get(context.TODO(), name, metav1.GetOptions{})
+		if err != nil {
+			td.T.Logf("bootstrap secret [%s] not ready in NS [%s]", name, ns)
+			continue // retry
+		}
+		signingIssuerID, ok := secret.Data[signingIssuerIDKey]
+		if !ok {
+			td.T.Logf("bootstrap secret [%s] does not have field [%s] in NS [%s]", name, signingIssuerIDKey, ns)
+			continue
+		}
+		if string(signingIssuerID) != expectedSigningIssuerID {
+			td.T.Logf("bootstrap secret [%s] does not have expected signingIssuerID [%q] in NS [%s]", name, signingIssuerID, ns)
+			continue
+		}
+
+		validatingIssuerID, ok := secret.Data[validatingIssuerIDKey]
+		if !ok {
+			td.T.Logf("bootstrap secret [%s] does not have field [%s] in NS [%s]", name, validatingIssuerIDKey, ns)
+			continue
+		}
+		if string(validatingIssuerID) != expectedValidatingIssuerID {
+			td.T.Logf("bootstrap secret [%s] does not have expected validatingIssuerID [%q] in NS [%s]", name, signingIssuerID, ns)
+			continue
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("bootstrap secret [%s] not updated in NS %s after %s", name, ns, timeout)
 }
 
 // VerifyRestarts ensure no crashes on osm-namespace instances for OSM CTL processes

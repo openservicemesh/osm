@@ -18,7 +18,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
-	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	fakeConfigClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -176,7 +175,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      constants.MRCIntentPassive,
+					Intent:      v1alpha2.ActiveIntent,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -185,36 +184,6 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 									Namespace: "osm-system",
 								},
 							},
-						},
-					},
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					State: constants.MRCStateActive,
-					// unspecified component status will be unknown.
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
 						},
 					},
 				},
@@ -232,6 +201,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
+					Intent: v1alpha2.ActiveIntent,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -240,36 +210,6 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 									Namespace: "",
 								},
 							},
-						},
-					},
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					State: constants.MRCStateActive,
-					// unspecified component status will be unknown.
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
 						},
 					},
 				},
@@ -287,41 +227,12 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
+					Intent: v1alpha2.ActiveIntent,
 					Provider: v1alpha2.ProviderSpec{
 						CertManager: &v1alpha2.CertManagerProviderSpec{
 							IssuerName:  "test-name",
 							IssuerKind:  "ClusterIssuer",
 							IssuerGroup: "cert-manager.io",
-						},
-					},
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					State: constants.MRCStateActive,
-					// unspecified component status will be unknown.
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
 						},
 					},
 				},
@@ -338,42 +249,13 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
+					Intent: v1alpha2.ActiveIntent,
 					Provider: v1alpha2.ProviderSpec{
 						Vault: &v1alpha2.VaultProviderSpec{
 							Host:     "",
 							Port:     0,
 							Role:     "",
 							Protocol: "",
-						},
-					},
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					State: constants.MRCStateActive,
-					// unspecified component status will be unknown.
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
 						},
 					},
 				},
@@ -395,42 +277,13 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
+					Intent: v1alpha2.ActiveIntent,
 					Provider: v1alpha2.ProviderSpec{
 						Vault: &v1alpha2.VaultProviderSpec{
 							Host:     "vault.default.svs.cluster.local",
 							Port:     8200,
 							Role:     "role",
 							Protocol: "http",
-						},
-					},
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					State: constants.MRCStateActive,
-					// unspecified component status will be unknown.
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
 						},
 					},
 				},
@@ -462,6 +315,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
+					Intent: v1alpha2.ActiveIntent,
 					Provider: v1alpha2.ProviderSpec{
 						Vault: &v1alpha2.VaultProviderSpec{
 							Host:     "vault.default.svc.cluster.local",
@@ -475,36 +329,6 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 									Key:       "token",
 								},
 							},
-						},
-					},
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					State: constants.MRCStateActive,
-					// unspecified component status will be unknown.
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
 						},
 					},
 				},
@@ -527,42 +351,13 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
+					Intent: v1alpha2.ActiveIntent,
 					Provider: v1alpha2.ProviderSpec{
 						Vault: &v1alpha2.VaultProviderSpec{
 							Host:     "vault.default.svs.cluster.local",
 							Port:     8200,
 							Role:     "role",
 							Protocol: "hi",
-						},
-					},
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					State: constants.MRCStateActive,
-					// unspecified component status will be unknown.
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
 						},
 					},
 				},
@@ -581,41 +376,12 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
+					Intent: v1alpha2.ActiveIntent,
 					Provider: v1alpha2.ProviderSpec{
 						CertManager: &v1alpha2.CertManagerProviderSpec{
 							IssuerName:  "",
 							IssuerKind:  "test-kind",
 							IssuerGroup: "cert-manager.io",
-						},
-					},
-				},
-				Status: v1alpha2.MeshRootCertificateStatus{
-					State: constants.MRCStateActive,
-					// unspecified component status will be unknown.
-					Conditions: []v1alpha2.MeshRootCertificateCondition{
-						{
-							Type:   constants.MRCConditionTypeReady,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeAccepted,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollout,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeIssuingRollback,
-							Status: constants.MRCConditionStatusUnknown,
-						},
-						{
-							Type:   constants.MRCConditionTypeValidatingRollback,
-							Status: constants.MRCConditionStatusUnknown,
 						},
 					},
 				},
@@ -648,10 +414,10 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 
 			manager, err := NewCertificateManagerFromMRC(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, computeClient, 1*time.Hour)
 			if tc.expectError {
-				assert.Empty(manager)
+				assert.Nil(manager)
 				assert.Error(err)
 			} else {
-				assert.NotEmpty(manager)
+				assert.NotNil(manager)
 				assert.NoError(err)
 			}
 

@@ -150,6 +150,14 @@ const (
 
 	// ErrUpdatingBootstrapSecret indicates a bootstrap secret could not be updated
 	ErrUpdatingBootstrapSecret
+
+	// ErrInvalidMRCIntentCombination indicates the combination of MRC intent values during root certificate rotation
+	// is invalid
+	ErrInvalidMRCIntentCombination
+
+	// ErrNumMRCExceedsMaxSupported indicated there are more MRCs in the control plane namespace than the max
+	// supported value
+	ErrNumMRCExceedsMaxSupported
 )
 
 // Range 4100-4150 reserved for PubSub system
@@ -565,11 +573,19 @@ An error occurred when creating a certificate to issue from the certificate mana
 `,
 
 	ErrInvalidCA: `
-The certificate authority privided when issuing a certificate was invalid.
+The certificate authority provided when issuing a certificate was invalid.
 `,
 
 	ErrRotatingCert: `
 The specified certificate could not be rotated.
+`,
+
+	ErrUpdatingBootstrapSecret: `
+The specified bootstrap secret could not be updated.
+`,
+
+	ErrInvalidMRCIntentCombination: `
+The combination of MRC Intent values is invalid.
 `,
 
 	//

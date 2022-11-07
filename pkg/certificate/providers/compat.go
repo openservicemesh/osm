@@ -20,8 +20,7 @@ func (c *MRCCompatClient) Watch(ctx context.Context) (<-chan certificate.MRCEven
 	ch := make(chan certificate.MRCEvent)
 	go func() {
 		ch <- certificate.MRCEvent{
-			Type: certificate.MRCEventAdded,
-			MRC:  c.mrc,
+			MRCName: c.mrc.Name,
 		}
 		close(ch)
 	}()
