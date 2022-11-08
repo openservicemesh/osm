@@ -337,7 +337,7 @@ func (b *inboundTrafficPolicyBuilder) GetHTTPPathsPerRoute() (map[TrafficSpecNam
 	return routePolicies, nil
 }
 
-// GetTrafficSpectName returns the formatted TrafficSpecName from the Traffic Spec kind, namespace, name.
+// GetTrafficSpecName returns the formatted TrafficSpecName from the Traffic Spec kind, namespace, name.
 func GetTrafficSpecName(trafficSpecKind string, trafficSpecNamespace string, trafficSpecName string) TrafficSpecName {
 	specKey := fmt.Sprintf("%s/%s/%s", trafficSpecKind, trafficSpecNamespace, trafficSpecName)
 	return TrafficSpecName(specKey)
