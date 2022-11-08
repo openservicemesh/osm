@@ -62,8 +62,7 @@ var (
 	osmVersion         string
 	trustDomain        string
 
-	certProviderKind          string
-	enableMeshRootCertificate bool
+	certProviderKind string
 
 	vaultOptions       providers.VaultOptions
 	certManagerOptions providers.CertManagerOptions
@@ -93,7 +92,6 @@ func init() {
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
-	flags.BoolVar(&enableMeshRootCertificate, "enable-mesh-root-certificate", false, "Enable unsupported MeshRootCertificate to create the OSM Certificate Manager")
 	flags.StringVar(&caBundleSecretName, "ca-bundle-secret-name", "", "Name of the Kubernetes Secret for the OSM CA bundle")
 
 	// TODO (#4502): Remove when we add full MRC support
@@ -164,7 +162,7 @@ func main() {
 		return
 	}
 
-	if enableMeshRootCertificate {
+	if bootstrap.shouldCreateMeshRootCertificate() {
 		err = bootstrap.ensureMeshRootCertificate()
 		if err != nil {
 			log.Fatal().Err(err).Msgf("Error setting up default MeshRootCertificate %s from ConfigMap %s", constants.DefaultMeshRootCertificateName, presetMeshRootCertificateName)
@@ -172,7 +170,7 @@ func main() {
 		}
 	}
 
-	err = bootstrap.initiatilizeKubernetesEventsRecorder()
+	err = bootstrap.initializeKubernetesEventsRecorder()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error initializing Kubernetes events recorder")
 	}
@@ -328,13 +326,24 @@ func (b *bootstrap) ensureMeshConfig() error {
 	return nil
 }
 
-// initiatilizeKubernetesEventsRecorder initializes the generic Kubernetes event recorder and associates it with
+// shouldCreateMeshRootCertificate gets the MeshConfig and returns the values of the enableMeshRootCertificate
+// feature flag
+func (b *bootstrap) shouldCreateMeshRootCertificate() bool {
+	config, err := b.configClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get MeshConfig when attempting to check enableMeshRootCertificate feature flag")
+	}
+
+	return config.Spec.FeatureFlags.EnableMeshRootCertificate
+}
+
+// initializeKubernetesEventsRecorder initializes the generic Kubernetes event recorder and associates it with
 // the osm-bootstrap pod resource. The events recorder allows the osm-bootstap to publish Kubernets events to
 // report fatal errors with initializing this application. These events will show up in the output of `kubectl get events`
-func (b *bootstrap) initiatilizeKubernetesEventsRecorder() error {
+func (b *bootstrap) initializeKubernetesEventsRecorder() error {
 	bootstrapPod, err := b.getBootstrapPod()
 	if err != nil {
-		return fmt.Errorf("Error fetching osm-bootstrap pod: %w", err)
+		return fmt.Errorf("error fetching osm-bootstrap pod: %w", err)
 	}
 	eventRecorder := events.GenericEventRecorder()
 	return eventRecorder.Initialize(bootstrapPod, b.kubeClient, osmNamespace)

@@ -197,9 +197,10 @@ func enablingMRCAfterInstallScenario(installOptions ...InstallOsmOpt) {
 	Expect(err).NotTo(HaveOccurred())
 	err = Td.RestartOSMControlPlaneComponent(constants.OSMInjectorName, installOpts)
 	Expect(err).NotTo(HaveOccurred())
+	time.Sleep(time.Second * 5)
+	Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 3, nil)).To(Succeed())
 
 	By("checking that an active MRC was created")
-	time.Sleep(time.Second * 10)
 	mrc, err := Td.ConfigClient.ConfigV1alpha2().MeshRootCertificates(Td.OsmNamespace).Get(
 		context.Background(), constants.DefaultMeshRootCertificateName, metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred())
