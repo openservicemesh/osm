@@ -88,12 +88,44 @@ var testPresetMeshConfigMap = &corev1.ConfigMap{
 	},
 }
 
-var testMeshRootCertificate = &configv1alpha2.MeshRootCertificate{
+var testActiveNonDefaultMeshRootCertificate = &configv1alpha2.MeshRootCertificate{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: testNamespace,
+		Name:      "nondefaultmrc",
+	},
+	Spec: configv1alpha2.MeshRootCertificateSpec{
+		Intent: configv1alpha2.ActiveIntent,
+	},
+}
+
+var testPassiveNonDefaultMeshRootCertificate = &configv1alpha2.MeshRootCertificate{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: testNamespace,
+		Name:      "nondefaultmrc",
+	},
+	Spec: configv1alpha2.MeshRootCertificateSpec{
+		Intent: configv1alpha2.PassiveIntent,
+	},
+}
+
+var testActiveDefaultMeshRootCertificate = &configv1alpha2.MeshRootCertificate{
 	ObjectMeta: metav1.ObjectMeta{
 		Namespace: testNamespace,
 		Name:      constants.DefaultMeshRootCertificateName,
 	},
-	Spec: configv1alpha2.MeshRootCertificateSpec{},
+	Spec: configv1alpha2.MeshRootCertificateSpec{
+		Intent: configv1alpha2.ActiveIntent,
+	},
+}
+
+var testPassiveDefaultMeshRootCertificate = &configv1alpha2.MeshRootCertificate{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: testNamespace,
+		Name:      constants.DefaultMeshRootCertificateName,
+	},
+	Spec: configv1alpha2.MeshRootCertificateSpec{
+		Intent: configv1alpha2.PassiveIntent,
+	},
 }
 
 var testPresetMeshRootCertificate = &corev1.ConfigMap{
@@ -338,7 +370,7 @@ func TestCreateMeshRootCertificate(t *testing.T) {
 			name:                             "MeshRootCertificate already exists",
 			namespace:                        testNamespace,
 			kubeClient:                       fakeKube.NewSimpleClientset([]runtime.Object{testPresetMeshRootCertificate}...),
-			configClient:                     fakeConfig.NewSimpleClientset([]runtime.Object{testMeshRootCertificate}...),
+			configClient:                     fakeConfig.NewSimpleClientset([]runtime.Object{testActiveDefaultMeshRootCertificate}...),
 			expectDefaultMeshRootCertificate: true,
 			expectErr:                        false,
 		},
@@ -372,32 +404,60 @@ func TestCreateMeshRootCertificate(t *testing.T) {
 
 func TestEnsureMeshRootCertificate(t *testing.T) {
 	tests := []struct {
-		name         string
-		namespace    string
-		kubeClient   kubernetes.Interface
-		configClient configClientset.Interface
-		expectErr    bool
+		name                             string
+		namespace                        string
+		kubeClient                       kubernetes.Interface
+		configClient                     configClientset.Interface
+		expectDefaultMeshRootCertificate bool
+		expectErr                        bool
 	}{
 		{
-			name:         "MeshRootCertificate found",
-			namespace:    testNamespace,
-			kubeClient:   fakeKube.NewSimpleClientset(),
-			configClient: fakeConfig.NewSimpleClientset([]runtime.Object{testMeshRootCertificate}...),
-			expectErr:    false,
+			name:                             "active default MeshRootCertificate found",
+			namespace:                        testNamespace,
+			kubeClient:                       fakeKube.NewSimpleClientset(),
+			configClient:                     fakeConfig.NewSimpleClientset([]runtime.Object{testActiveDefaultMeshRootCertificate}...),
+			expectDefaultMeshRootCertificate: true,
+			expectErr:                        false,
 		},
 		{
-			name:         "MeshRootCertificate not found but successfully created",
-			namespace:    testNamespace,
-			kubeClient:   fakeKube.NewSimpleClientset([]runtime.Object{testPresetMeshRootCertificate}...),
-			configClient: fakeConfig.NewSimpleClientset(),
-			expectErr:    false,
+			name:                             "active non default MeshRootCertificate found",
+			namespace:                        testNamespace,
+			kubeClient:                       fakeKube.NewSimpleClientset(),
+			configClient:                     fakeConfig.NewSimpleClientset([]runtime.Object{testActiveNonDefaultMeshRootCertificate}...),
+			expectDefaultMeshRootCertificate: false,
+			expectErr:                        false,
 		},
 		{
-			name:         "MeshRootCertificate not found and error creating it",
-			namespace:    testNamespace,
-			kubeClient:   fakeKube.NewSimpleClientset(),
-			configClient: fakeConfig.NewSimpleClientset(),
-			expectErr:    true,
+			name:                             "MeshRootCertificate not found but successfully created",
+			namespace:                        testNamespace,
+			kubeClient:                       fakeKube.NewSimpleClientset([]runtime.Object{testPresetMeshRootCertificate}...),
+			configClient:                     fakeConfig.NewSimpleClientset(),
+			expectDefaultMeshRootCertificate: true,
+			expectErr:                        false,
+		},
+		{
+			name:                             "active MeshRootCertificate not found (passive non default MRC exists) but successfully created",
+			namespace:                        testNamespace,
+			kubeClient:                       fakeKube.NewSimpleClientset([]runtime.Object{testPresetMeshRootCertificate}...),
+			configClient:                     fakeConfig.NewSimpleClientset([]runtime.Object{testPassiveNonDefaultMeshRootCertificate}...),
+			expectDefaultMeshRootCertificate: true,
+			expectErr:                        false,
+		},
+		{
+			name:                             "active MeshRootCertificate not found (passive default MRC exists) and no active MeshRootCertificate created",
+			namespace:                        testNamespace,
+			kubeClient:                       fakeKube.NewSimpleClientset([]runtime.Object{testPresetMeshRootCertificate}...),
+			configClient:                     fakeConfig.NewSimpleClientset([]runtime.Object{testPassiveDefaultMeshRootCertificate}...),
+			expectDefaultMeshRootCertificate: true,
+			expectErr:                        false,
+		},
+		{
+			name:                             "MeshRootCertificate not found and error creating it",
+			namespace:                        testNamespace,
+			kubeClient:                       fakeKube.NewSimpleClientset(),
+			configClient:                     fakeConfig.NewSimpleClientset(),
+			expectDefaultMeshRootCertificate: false,
+			expectErr:                        true,
 		},
 	}
 
@@ -411,10 +471,18 @@ func TestEnsureMeshRootCertificate(t *testing.T) {
 			}
 
 			err := b.ensureMeshRootCertificate()
-			assert.Equal(tc.expectErr, err != nil)
+			if tc.expectErr {
+				assert.Error(err)
+			} else {
+				assert.NoError(err)
+			}
 
 			_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), constants.DefaultMeshRootCertificateName, metav1.GetOptions{})
-			assert.Equal(tc.expectErr, err != nil)
+			if tc.expectDefaultMeshRootCertificate {
+				assert.NoError(err)
+			} else {
+				assert.Error(err)
+			}
 		})
 	}
 }
