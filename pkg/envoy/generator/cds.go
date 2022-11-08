@@ -34,11 +34,11 @@ func (g *EnvoyConfigGenerator) generateCDS(ctx context.Context, proxy *models.Pr
 	inboundTPBuilder.UpstreamServices(proxyServices)
 	allUpstreamSvcIncludeApex := g.catalog.GetUpstreamServicesIncludeApex(proxyServices)
 	inboundTPBuilder.UpstreamServicesIncludeApex(allUpstreamSvcIncludeApex)
-	upstreamTrafficSettingsPerService := make(map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting)
+	upstreamTrafficSettingsPerService := make(map[service.MeshService]*policyv1alpha1.UpstreamTrafficSetting)
 
 	for _, upstreamSvc := range allUpstreamSvcIncludeApex {
 		upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop
-		upstreamTrafficSettingsPerService[&upstreamSvc] = g.catalog.GetUpstreamTrafficSettingByService(&upstreamSvc)
+		upstreamTrafficSettingsPerService[upstreamSvc] = g.catalog.GetUpstreamTrafficSettingByService(&upstreamSvc)
 	}
 
 	inboundTPBuilder.UpstreamTrafficSettingsPerService(upstreamTrafficSettingsPerService)

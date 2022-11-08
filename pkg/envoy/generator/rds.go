@@ -40,7 +40,7 @@ func (g *EnvoyConfigGenerator) generateRDS(ctx context.Context, proxy *models.Pr
 	inboundTPBuilder.UpstreamIdentity(proxy.Identity)
 	inboundTPBuilder.EnablePermissiveTrafficPolicyMode(g.catalog.GetMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode)
 	inboundTPBuilder.TrustDomain(g.certManager.GetTrustDomains())
-	inboundTPBuilder.HttpTrafficSpecsList(g.catalog.ListHTTPTrafficSpecs())
+	inboundTPBuilder.HTTPTrafficSpecsList(g.catalog.ListHTTPTrafficSpecs())
 
 	destinationFilter := smi.WithTrafficTargetDestination(proxy.Identity.ToK8sServiceAccount())
 	inboundTPBuilder.TrafficTargetsByOptions(g.catalog.ListTrafficTargetsByOptions(destinationFilter))
@@ -48,13 +48,13 @@ func (g *EnvoyConfigGenerator) generateRDS(ctx context.Context, proxy *models.Pr
 	allUpstreamSvcIncludeApex := g.catalog.GetUpstreamServicesIncludeApex(proxyServices)
 	inboundTPBuilder.UpstreamServicesIncludeApex(allUpstreamSvcIncludeApex)
 
-	upstreamTrafficSettingsPerService := make(map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting)
-	hostnamesPerService := make(map[*service.MeshService][]string)
+	upstreamTrafficSettingsPerService := make(map[service.MeshService]*policyv1alpha1.UpstreamTrafficSetting)
+	hostnamesPerService := make(map[service.MeshService][]string)
 
 	for _, upstreamSvc := range allUpstreamSvcIncludeApex {
 		upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop
-		upstreamTrafficSettingsPerService[&upstreamSvc] = g.catalog.GetUpstreamTrafficSettingByService(&upstreamSvc)
-		hostnamesPerService[&upstreamSvc] = g.catalog.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
+		upstreamTrafficSettingsPerService[upstreamSvc] = g.catalog.GetUpstreamTrafficSettingByService(&upstreamSvc)
+		hostnamesPerService[upstreamSvc] = g.catalog.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
 	}
 
 	inboundTPBuilder.UpstreamTrafficSettingsPerService(upstreamTrafficSettingsPerService)

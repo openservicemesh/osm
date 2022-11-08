@@ -2453,13 +2453,13 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 
 			allUpstreamSvcIncludeApex := mc.GetUpstreamServicesIncludeApex(tc.upstreamServices)
 
-			upstreamTrafficSettingsPerService := make(map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting)
-			hostnamesPerService := make(map[*service.MeshService][]string)
+			upstreamTrafficSettingsPerService := make(map[service.MeshService]*policyv1alpha1.UpstreamTrafficSetting)
+			hostnamesPerService := make(map[service.MeshService][]string)
 
 			for _, upstreamSvc := range allUpstreamSvcIncludeApex {
 				upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop
-				upstreamTrafficSettingsPerService[&upstreamSvc] = mc.GetUpstreamTrafficSettingByService(&upstreamSvc)
-				hostnamesPerService[&upstreamSvc] = mc.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
+				upstreamTrafficSettingsPerService[upstreamSvc] = mc.GetUpstreamTrafficSettingByService(&upstreamSvc)
+				hostnamesPerService[upstreamSvc] = mc.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
 			}
 
 			inboundTPBuilder.UpstreamServices(tc.upstreamServices)
@@ -2470,7 +2470,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			inboundTPBuilder.TrafficTargetsByOptions(mc.ListTrafficTargetsByOptions(destinationFilter))
 			inboundTPBuilder.EnablePermissiveTrafficPolicyMode(tc.permissiveMode)
 			inboundTPBuilder.TrustDomain(mc.certManager.GetTrustDomains())
-			inboundTPBuilder.HttpTrafficSpecsList(mc.ListHTTPTrafficSpecs())
+			inboundTPBuilder.HTTPTrafficSpecsList(mc.ListHTTPTrafficSpecs())
 
 			actualClusterConfigs := inboundTPBuilder.GetInboundMeshClusterConfigs()
 			actualHTTPRouteConfigsPerPort := inboundTPBuilder.GetInboundMeshHTTPRouteConfigsPerPort()
@@ -2537,7 +2537,7 @@ func TestRoutesFromRules(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing routesFromRules where %s", tc.name), func(t *testing.T) {
 			inboundTPBuilder := trafficpolicy.InboundTrafficPolicyBuilder()
-			inboundTPBuilder.HttpTrafficSpecsList(mc.ListHTTPTrafficSpecs())
+			inboundTPBuilder.HTTPTrafficSpecsList(mc.ListHTTPTrafficSpecs())
 			routes, err := inboundTPBuilder.RoutesFromRules(tc.rules, tc.namespace)
 			assert.Nil(err)
 			assert.EqualValues(tc.expectedRoutes, routes)
@@ -2719,7 +2719,7 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			inboundTPBuilder := trafficpolicy.InboundTrafficPolicyBuilder()
-			inboundTPBuilder.HttpTrafficSpecsList([]*spec.HTTPRouteGroup{&tc.trafficSpec})
+			inboundTPBuilder.HTTPTrafficSpecsList([]*spec.HTTPRouteGroup{&tc.trafficSpec})
 			actual, err := inboundTPBuilder.GetHTTPPathsPerRoute()
 			assert.Nil(err)
 			assert.True(reflect.DeepEqual(actual, tc.expectedHTTPPathsPerRoute))

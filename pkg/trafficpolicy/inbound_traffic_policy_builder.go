@@ -22,8 +22,8 @@ type inboundTrafficPolicyBuilder struct {
 	upstreamServices                  []service.MeshService
 	upstreamIdentity                  identity.ServiceIdentity
 	upstreamServicesIncludeApex       []service.MeshService
-	upstreamTrafficSettingsPerService map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting
-	hostnamesPerService               map[*service.MeshService][]string
+	upstreamTrafficSettingsPerService map[service.MeshService]*policyv1alpha1.UpstreamTrafficSetting
+	hostnamesPerService               map[service.MeshService][]string
 	trafficTargetsByOptions           []*smiAccess.TrafficTarget
 	httpTrafficSpecsList              []*smiSpec.HTTPRouteGroup
 	enablePermissiveTrafficPolicyMode bool
@@ -49,12 +49,12 @@ func (b *inboundTrafficPolicyBuilder) UpstreamServicesIncludeApex(upstreamServic
 	return b
 }
 
-func (b *inboundTrafficPolicyBuilder) UpstreamTrafficSettingsPerService(upstreamTrafficSettingsPerService map[*service.MeshService]*policyv1alpha1.UpstreamTrafficSetting) *inboundTrafficPolicyBuilder {
+func (b *inboundTrafficPolicyBuilder) UpstreamTrafficSettingsPerService(upstreamTrafficSettingsPerService map[service.MeshService]*policyv1alpha1.UpstreamTrafficSetting) *inboundTrafficPolicyBuilder {
 	b.upstreamTrafficSettingsPerService = upstreamTrafficSettingsPerService
 	return b
 }
 
-func (b *inboundTrafficPolicyBuilder) HostnamesPerService(hostnamesPerService map[*service.MeshService][]string) *inboundTrafficPolicyBuilder {
+func (b *inboundTrafficPolicyBuilder) HostnamesPerService(hostnamesPerService map[service.MeshService][]string) *inboundTrafficPolicyBuilder {
 	b.hostnamesPerService = hostnamesPerService
 	return b
 }
@@ -64,7 +64,7 @@ func (b *inboundTrafficPolicyBuilder) TrafficTargetsByOptions(trafficTargetsByOp
 	return b
 }
 
-func (b *inboundTrafficPolicyBuilder) HttpTrafficSpecsList(httpTrafficSpecsList []*smiSpec.HTTPRouteGroup) *inboundTrafficPolicyBuilder {
+func (b *inboundTrafficPolicyBuilder) HTTPTrafficSpecsList(httpTrafficSpecsList []*smiSpec.HTTPRouteGroup) *inboundTrafficPolicyBuilder {
 	b.httpTrafficSpecsList = httpTrafficSpecsList
 	return b
 }
@@ -101,7 +101,7 @@ func (b *inboundTrafficPolicyBuilder) GetInboundMeshClusterConfigs() []*MeshClus
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfigForSvc)
 
-		upstreamTrafficSetting := b.upstreamTrafficSettingsPerService[&upstreamSvc]
+		upstreamTrafficSetting := b.upstreamTrafficSettingsPerService[upstreamSvc]
 		clusterConfigs = append(clusterConfigs, getRateLimitServiceClusters(upstreamTrafficSetting, rlsClusterSet)...)
 	}
 
@@ -116,7 +116,7 @@ func (b *inboundTrafficPolicyBuilder) GetInboundMeshTrafficMatches() []*TrafficM
 	for _, upstreamSvc := range b.upstreamServices {
 		upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop
 
-		upstreamTrafficSetting := b.upstreamTrafficSettingsPerService[&upstreamSvc]
+		upstreamTrafficSetting := b.upstreamTrafficSettingsPerService[upstreamSvc]
 
 		// ---
 		// Create a TrafficMatch for this upstream servic.
@@ -162,7 +162,7 @@ func (b *inboundTrafficPolicyBuilder) GetInboundMeshHTTPRouteConfigsPerPort() ma
 	for _, upstreamSvc := range b.upstreamServicesIncludeApex {
 		upstreamSvc := upstreamSvc // To prevent loop variable memory aliasing in for loop
 
-		upstreamTrafficSetting := b.upstreamTrafficSettingsPerService[&upstreamSvc]
+		upstreamTrafficSetting := b.upstreamTrafficSettingsPerService[upstreamSvc]
 
 		// Build the HTTP route configs for this service and port combination.
 		// If the port's protocol corresponds to TCP, we can skip this step
@@ -188,7 +188,7 @@ func (b *inboundTrafficPolicyBuilder) getInboundTrafficPoliciesForUpstream(upstr
 
 	if b.enablePermissiveTrafficPolicyMode {
 		// Add a wildcard HTTP route that allows any downstream client to access the upstream service
-		hostnames := b.hostnamesPerService[&upstreamSvc]
+		hostnames := b.hostnamesPerService[upstreamSvc]
 		inboundPolicyForUpstreamSvc = NewInboundTrafficPolicy(upstreamSvc.FQDN(), hostnames, upstreamTrafficSetting)
 		localCluster := service.WeightedCluster{
 			ClusterName: service.ClusterName(upstreamSvc.EnvoyLocalClusterName()),
@@ -211,7 +211,7 @@ func (b *inboundTrafficPolicyBuilder) getInboundTrafficPoliciesForUpstream(upstr
 
 func (b *inboundTrafficPolicyBuilder) buildInboundHTTPPolicyFromTrafficTarget(upstreamSvc service.MeshService, trafficTargets []*smiAccess.TrafficTarget,
 	upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) *InboundTrafficPolicy {
-	hostnames := b.hostnamesPerService[&upstreamSvc]
+	hostnames := b.hostnamesPerService[upstreamSvc]
 	inboundPolicy := NewInboundTrafficPolicy(upstreamSvc.FQDN(), hostnames, upstreamTrafficSetting)
 
 	localCluster := service.WeightedCluster{
@@ -337,6 +337,7 @@ func (b *inboundTrafficPolicyBuilder) GetHTTPPathsPerRoute() (map[TrafficSpecNam
 	return routePolicies, nil
 }
 
+// GetTrafficSpectName returns the formatted TrafficSpecName from the Traffic Spec kind, namespace, name.
 func GetTrafficSpecName(trafficSpecKind string, trafficSpecNamespace string, trafficSpecName string) TrafficSpecName {
 	specKey := fmt.Sprintf("%s/%s/%s", trafficSpecKind, trafficSpecNamespace, trafficSpecName)
 	return TrafficSpecName(specKey)
