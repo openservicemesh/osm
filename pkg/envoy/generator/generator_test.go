@@ -48,6 +48,7 @@ func TestGenerateConfig(t *testing.T) {
 	provider.EXPECT().ListServices().Return([]service.MeshService{tests.BookstoreApexService, tests.BookbuyerService}).AnyTimes()
 	provider.EXPECT().ListServicesForProxy(proxy).Return([]service.MeshService{tests.BookbuyerService}, nil).AnyTimes()
 	provider.EXPECT().ListHTTPTrafficSpecs().Return(nil).AnyTimes()
+	provider.EXPECT().ListTrafficTargets().Return(nil).AnyTimes()
 	provider.EXPECT().GetHostnamesForService(gomock.Any(), gomock.Any()).Return([]string{"fake.hostname.cluster.local"}).AnyTimes()
 	provider.EXPECT().GetServicesForServiceIdentity(tests.BookstoreServiceIdentity).Return([]service.MeshService{tests.BookstoreApexService}).AnyTimes()
 	provider.EXPECT().GetServicesForServiceIdentity(tests.BookbuyerServiceIdentity).Return([]service.MeshService{tests.BookbuyerService}).AnyTimes()

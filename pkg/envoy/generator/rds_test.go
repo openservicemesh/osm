@@ -244,7 +244,7 @@ func TestGenerateRDSWithTrafficSplit(t *testing.T) {
 	mockComputeInterface.EXPECT().ListServicesForProxy(gomock.Any()).Return(nil, nil).AnyTimes()
 	mockComputeInterface.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
 	mockComputeInterface.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tests.TrafficSplit}).AnyTimes()
-
+	mockComputeInterface.EXPECT().ListHTTPTrafficSpecs().Return(nil).AnyTimes()
 	mockComputeInterface.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
 	mockComputeInterface.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(nil).AnyTimes()
 	mockComputeInterface.EXPECT().GetUpstreamTrafficSettingByService(gomock.Any()).Return(nil).AnyTimes()
