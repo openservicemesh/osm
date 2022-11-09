@@ -37,8 +37,11 @@ const (
 )
 
 const (
-	// DefaultCertManager is Tressor
-	DefaultCertManager = "tresor"
+	// DefaultCertManager is Tresor
+	DefaultCertManager = TresorCertManager
+
+	// TresorCertManager for Tresor
+	TresorCertManager = "tresor"
 
 	// CertManager for cert-manager.io
 	CertManager = "cert-manager"

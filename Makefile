@@ -42,6 +42,7 @@ endif
 LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w"
 
 # These two values are combined and passed to go test
+GO_TEST_FLAGS ?= 
 E2E_FLAGS ?= -installType=KindCluster
 E2E_FLAGS_DEFAULT := -test.v -ginkgo.v -ginkgo.progress -ctrRegistry $(CTR_REGISTRY) -osmImageTag $(CTR_TAG)
 
@@ -152,7 +153,7 @@ kind-reset:
 .PHONY: test-e2e
 test-e2e: DOCKER_BUILDX_OUTPUT=type=docker
 test-e2e: docker-build-osm build-osm docker-build-tcp-echo-server
-	go test ./tests/e2e $(E2E_FLAGS_DEFAULT) $(E2E_FLAGS)
+	go test $(GO_TEST_FLAGS) ./tests/e2e $(E2E_FLAGS_DEFAULT) $(E2E_FLAGS)
 
 .env:
 	cp .env.example .env
