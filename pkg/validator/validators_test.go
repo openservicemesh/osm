@@ -20,9 +20,8 @@ import (
 	fakeConfigClient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
 	fakePolicyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
-	"github.com/openservicemesh/osm/pkg/tests"
-
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 func newNsK8sObj(ns string) *corev1.Namespace {
@@ -1791,6 +1790,21 @@ func TestValidateMRCProvider(t *testing.T) {
 			},
 			expErrStr: "key, name, and namespace for the Vault token secret reference cannot be set to empty strings for MRC osm-system/osm-mesh-root-certificate",
 		},
+		{
+			name: "MeshRootCertificate with no certificate provider ",
+			mrc: &configv1alpha2.MeshRootCertificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-mesh-root-certificate",
+					Namespace: "osm-system",
+				},
+				Spec: configv1alpha2.MeshRootCertificateSpec{
+					TrustDomain: "cluster.local",
+					Intent:      configv1alpha2.ActiveIntent,
+					Provider:    configv1alpha2.ProviderSpec{},
+				},
+			},
+			expErrStr: "must provide at least one provider for MRC osm-system/osm-mesh-root-certificate",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1808,172 +1822,298 @@ func TestValidateMRCProvider(t *testing.T) {
 	}
 }
 
-func TestCheckForExistingActiveMRC(t *testing.T) {
-	testCases := []struct {
-		name      string
-		mrc       *configv1alpha2.MeshRootCertificate
-		mrcList   []runtime.Object
-		expReturn bool
+func TestValidateMRCOnCreate(t *testing.T) {
+	tests := []struct {
+		name         string
+		mrc          *configv1alpha2.MeshRootCertificate
+		existingMrcs []runtime.Object
+		wantErr      bool
 	}{
+
 		{
-			name: "new active MRC, no existing active MRCs",
-			mrc: &configv1alpha2.MeshRootCertificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
-					Namespace: "osm-system",
-				},
-				Spec: configv1alpha2.MeshRootCertificateSpec{
-					TrustDomain: "cluster.local",
-					Intent:      configv1alpha2.ActiveIntent,
-					Provider: configv1alpha2.ProviderSpec{
-						Tresor: &configv1alpha2.TresorProviderSpec{
-							CA: configv1alpha2.TresorCASpec{
-								SecretRef: v1.SecretReference{
-									Name:      "osm-ca-bundle",
-									Namespace: "osm-system",
-								},
-							},
-						},
-					},
-				},
+			name: "create Passive MRC if already present fails",
+			mrc:  createTestMrc("osm-mesh-root-certificate", configv1alpha2.PassiveIntent),
+			existingMrcs: []runtime.Object{
+				createTestMrc("existing", configv1alpha2.PassiveIntent),
 			},
-			mrcList: []runtime.Object{
-				&configv1alpha2.MeshRootCertificate{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "osm-mesh-root-certificate-2",
-						Namespace: "osm-system",
-					},
-					Spec: configv1alpha2.MeshRootCertificateSpec{
-						TrustDomain: "cluster.local",
-						Intent:      configv1alpha2.PassiveIntent,
-						Provider: configv1alpha2.ProviderSpec{
-							Tresor: &configv1alpha2.TresorProviderSpec{
-								CA: configv1alpha2.TresorCASpec{
-									SecretRef: v1.SecretReference{
-										Name:      "osm-ca-bundle",
-										Namespace: "osm-system",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			expReturn: false,
+			wantErr: true,
 		},
 		{
-			name: "new active MRC, existing active MRCs",
-			mrc: &configv1alpha2.MeshRootCertificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
-					Namespace: "osm-system",
-				},
-				Spec: configv1alpha2.MeshRootCertificateSpec{
-					TrustDomain: "cluster.local",
-					Intent:      configv1alpha2.ActiveIntent,
-					Provider: configv1alpha2.ProviderSpec{
-						Tresor: &configv1alpha2.TresorProviderSpec{
-							CA: configv1alpha2.TresorCASpec{
-								SecretRef: v1.SecretReference{
-									Name:      "osm-ca-bundle",
-									Namespace: "osm-system",
-								},
-							},
-						},
-					},
-				},
+			name: "create Passive MRC if active already present works",
+			mrc:  createTestMrc("osm-mesh-root-certificate", configv1alpha2.PassiveIntent),
+			existingMrcs: []runtime.Object{
+				createTestMrc("existing", configv1alpha2.ActiveIntent),
 			},
-			mrcList: []runtime.Object{
-				&configv1alpha2.MeshRootCertificate{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "osm-mesh-root-certificate-2",
-						Namespace: "osm-system",
-					},
-					Spec: configv1alpha2.MeshRootCertificateSpec{
-						TrustDomain: "cluster.local",
-						Intent:      configv1alpha2.ActiveIntent,
-						Provider: configv1alpha2.ProviderSpec{
-							Tresor: &configv1alpha2.TresorProviderSpec{
-								CA: configv1alpha2.TresorCASpec{
-									SecretRef: v1.SecretReference{
-										Name:      "osm-ca-bundle",
-										Namespace: "osm-system",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			expReturn: true,
+			wantErr: false,
 		},
 		{
-			name: "updated active MRC",
-			mrc: &configv1alpha2.MeshRootCertificate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "osm-mesh-root-certificate",
-					Namespace: "osm-system",
-				},
-				Spec: configv1alpha2.MeshRootCertificateSpec{
-					TrustDomain: "cluster.local",
-					Intent:      configv1alpha2.ActiveIntent,
-					Provider: configv1alpha2.ProviderSpec{
-						Tresor: &configv1alpha2.TresorProviderSpec{
-							CA: configv1alpha2.TresorCASpec{
-								SecretRef: v1.SecretReference{
-									Name:      "osm-ca-bundle",
-									Namespace: "osm-system",
-								},
-							},
-						},
-					},
-				},
+			name: "create Passive MRC if inactive present works",
+			mrc:  createTestMrc("osm-mesh-root-certificate", configv1alpha2.PassiveIntent),
+			existingMrcs: []runtime.Object{
+				createTestMrc("existing", configv1alpha2.InactiveIntent),
 			},
-			mrcList: []runtime.Object{
-				&configv1alpha2.MeshRootCertificate{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "osm-mesh-root-certificate",
-						Namespace: "osm-system",
-					},
-					Spec: configv1alpha2.MeshRootCertificateSpec{
-						TrustDomain: "cluster.local",
-						Intent:      configv1alpha2.ActiveIntent,
-						Provider: configv1alpha2.ProviderSpec{
-							Tresor: &configv1alpha2.TresorProviderSpec{
-								CA: configv1alpha2.TresorCASpec{
-									SecretRef: v1.SecretReference{
-										Name:      "osm-ca-bundle",
-										Namespace: "osm-system",
-									},
-								},
-							},
-						},
-					},
-				},
+			wantErr: false,
+		},
+		{
+			name:         "create Passive MRC if none works",
+			mrc:          createTestMrc("osm-mesh-root-certificate", configv1alpha2.PassiveIntent),
+			existingMrcs: []runtime.Object{},
+			wantErr:      false,
+		},
+		{
+			name: "create Passive MRC if two Active fails",
+			mrc:  createTestMrc("osm-mesh-root-certificate", configv1alpha2.PassiveIntent),
+			existingMrcs: []runtime.Object{
+				createTestMrc("active1", configv1alpha2.ActiveIntent),
+				createTestMrc("active2", configv1alpha2.ActiveIntent),
 			},
-			expReturn: false,
+			wantErr: true,
+		},
+		{
+			name: "create Active MRC if already present fails",
+			mrc:  createTestMrc("osm-mesh-root-certificate", configv1alpha2.ActiveIntent),
+			existingMrcs: []runtime.Object{
+				createTestMrc("existing", configv1alpha2.ActiveIntent),
+			},
+			wantErr: true,
+		},
+		{
+			name:         "create Active MRC if none works",
+			mrc:          createTestMrc("osm-mesh-root-certificate", configv1alpha2.ActiveIntent),
+			existingMrcs: []runtime.Object{},
+			wantErr:      false,
+		},
+		{
+			name: "create Active MRC if passive present works",
+			mrc:  createTestMrc("osm-mesh-root-certificate", configv1alpha2.ActiveIntent),
+			existingMrcs: []runtime.Object{
+				createTestMrc("osm-mesh-root-certificate-passive", configv1alpha2.PassiveIntent),
+			},
+			wantErr: false,
+		},
+
+		{
+			name: "create Active MRC if two Active fails",
+			mrc:  createTestMrc("osm-mesh-root-certificate", configv1alpha2.ActiveIntent),
+			existingMrcs: []runtime.Object{
+				createTestMrc("active1", configv1alpha2.ActiveIntent),
+				createTestMrc("active2", configv1alpha2.ActiveIntent),
+			},
+			wantErr: true,
+		},
+		{
+			name: "create inactive MRC when active and passive present works",
+			mrc:  createTestMrc("osm-mesh-root-certificate", configv1alpha2.InactiveIntent),
+			existingMrcs: []runtime.Object{
+				createTestMrc("existingpassive", configv1alpha2.PassiveIntent),
+				createTestMrc("existingactive", configv1alpha2.ActiveIntent),
+			},
+			wantErr: false,
+		},
+		{
+			name:         "create Inactive MRC if none works",
+			mrc:          createTestMrc("osm-mesh-root-certificate", configv1alpha2.InactiveIntent),
+			existingMrcs: []runtime.Object{},
+			wantErr:      false,
 		},
 	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			a := tassert.New(t)
-
-			mrcClient := fakeConfigClient.NewSimpleClientset(tc.mrcList...)
-			stop := make(chan struct{})
-			broker := messaging.NewBroker(stop)
-			k8sClient, err := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker,
-				k8s.WithConfigClient(mrcClient),
-				k8s.WithKubeClient(testclient.NewSimpleClientset(), "osm"),
-			)
-			a.NoError(err)
-			computeClient := kube.NewClient(k8sClient)
-
-			v := validator{computeClient: computeClient}
-
-			foundActive, err := v.checkForExistingActiveMRC(tc.mrc)
-			a.NoError(err)
-			a.Equal(tc.expReturn, foundActive)
+			v := createValidator(tt.existingMrcs)
+			err := v.validateMRCOnCreate(tt.mrc)
+			if tt.wantErr {
+				a.Error(err)
+			} else {
+				a.NoError(err)
+			}
 		})
 	}
+}
+
+func TestValidateMRCOnUpdate(t *testing.T) {
+	tests := []struct {
+		name      string
+		mrcName   string
+		oldIntent configv1alpha2.MeshRootCertificateIntent
+		newIntent configv1alpha2.MeshRootCertificateIntent
+		otherMrcs []runtime.Object
+		wantErr   bool
+	}{
+		{
+			name:      "Active to inactive fails",
+			mrcName:   "osm-mesh-root-certificate",
+			oldIntent: configv1alpha2.ActiveIntent,
+			newIntent: configv1alpha2.InactiveIntent,
+			otherMrcs: []runtime.Object{},
+			wantErr:   true,
+		},
+		{
+			name:      "Inactive to active fails",
+			oldIntent: configv1alpha2.InactiveIntent,
+			newIntent: configv1alpha2.ActiveIntent,
+			otherMrcs: []runtime.Object{},
+			wantErr:   true,
+		},
+		{
+			name:      "inactive to passive if no current passive works",
+			mrcName:   "osm-mesh-root-certificate",
+			oldIntent: configv1alpha2.InactiveIntent,
+			newIntent: configv1alpha2.PassiveIntent,
+			otherMrcs: []runtime.Object{
+				createTestMrc("osm-mesh-root-certificate-active", configv1alpha2.ActiveIntent),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "inactive to passive if already Active and Passive fails (rotation in progress)",
+			mrcName:   "osm-mesh-root-certificate",
+			oldIntent: configv1alpha2.InactiveIntent,
+			newIntent: configv1alpha2.PassiveIntent,
+			otherMrcs: []runtime.Object{
+				createTestMrc("osm-mesh-root-certificate-active", configv1alpha2.ActiveIntent),
+				createTestMrc("osm-mesh-root-certificate-passive", configv1alpha2.PassiveIntent),
+			},
+			wantErr: true,
+		},
+		{
+			name:      "inactive to passive if already Active and Active fails (rotation in progress)",
+			mrcName:   "osm-mesh-root-certificate",
+			oldIntent: configv1alpha2.InactiveIntent,
+			newIntent: configv1alpha2.PassiveIntent,
+			otherMrcs: []runtime.Object{
+				createTestMrc("osm-mesh-root-certificate-active", configv1alpha2.ActiveIntent),
+				createTestMrc("osm-mesh-root-certificate-active2", configv1alpha2.ActiveIntent),
+			},
+			wantErr: true,
+		},
+		{
+			name:      "Passive to inactive works",
+			mrcName:   "osm-mesh-root-certificate",
+			oldIntent: configv1alpha2.PassiveIntent,
+			newIntent: configv1alpha2.InactiveIntent,
+			otherMrcs: []runtime.Object{
+				createTestMrc("osm-mesh-root-certificate-active", configv1alpha2.ActiveIntent),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "Passive to inactive with many inactive works",
+			mrcName:   "osm-mesh-root-certificate",
+			oldIntent: configv1alpha2.PassiveIntent,
+			newIntent: configv1alpha2.InactiveIntent,
+			otherMrcs: []runtime.Object{
+				createTestMrc("osm-mesh-root-certificate-active", configv1alpha2.ActiveIntent),
+				createTestMrc("osm-mesh-root-certificate-inactive1", configv1alpha2.InactiveIntent),
+				createTestMrc("osm-mesh-root-certificate-inactive2", configv1alpha2.InactiveIntent),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "Passive to Active when no Active works",
+			mrcName:   "osm-mesh-root-certificate",
+			oldIntent: configv1alpha2.PassiveIntent,
+			newIntent: configv1alpha2.ActiveIntent,
+			otherMrcs: []runtime.Object{
+				createTestMrc("osm-mesh-root-certificate-inactive1", configv1alpha2.InactiveIntent),
+				createTestMrc("osm-mesh-root-certificate-inactive2", configv1alpha2.InactiveIntent),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "Passive to Active when one Active works",
+			mrcName:   "osm-mesh-root-certificate",
+			oldIntent: configv1alpha2.PassiveIntent,
+			newIntent: configv1alpha2.ActiveIntent,
+			otherMrcs: []runtime.Object{
+				createTestMrc("osm-mesh-root-certificate-active", configv1alpha2.ActiveIntent),
+				createTestMrc("osm-mesh-root-certificate-inactive", configv1alpha2.InactiveIntent),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "Passive to Active when two Active fails (should not be able to get to this state)",
+			mrcName:   "osm-mesh-root-certificate",
+			oldIntent: configv1alpha2.PassiveIntent,
+			newIntent: configv1alpha2.ActiveIntent,
+			otherMrcs: []runtime.Object{
+				createTestMrc("osm-mesh-root-certificate-active", configv1alpha2.ActiveIntent),
+				createTestMrc("osm-mesh-root-certificate-active2", configv1alpha2.ActiveIntent),
+			},
+			wantErr: true,
+		},
+		{
+			name:      "Active to passive if passive already fails",
+			mrcName:   "osm-mesh-root-certificate-active",
+			oldIntent: configv1alpha2.ActiveIntent,
+			newIntent: configv1alpha2.PassiveIntent,
+			otherMrcs: []runtime.Object{
+				createTestMrc("osm-mesh-root-certificate-passive", configv1alpha2.PassiveIntent),
+			},
+			wantErr: true,
+		},
+		{
+			name:      "Active to passive if no other mrcs fails",
+			mrcName:   "osm-mesh-root-certificate-active",
+			oldIntent: configv1alpha2.ActiveIntent,
+			newIntent: configv1alpha2.PassiveIntent,
+			otherMrcs: []runtime.Object{},
+			wantErr:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := tassert.New(t)
+			old := createTestMrc(tt.mrcName, tt.oldIntent)
+			new := createTestMrc(tt.mrcName, tt.newIntent)
+			// add the old to the list
+			tt.otherMrcs = append(tt.otherMrcs, old)
+			v := createValidator(tt.otherMrcs)
+			err := v.validateMRCOnUpdate(old, new)
+			if tt.wantErr {
+				a.Error(err)
+			} else {
+				a.NoError(err)
+			}
+		})
+	}
+}
+
+func createTestMrc(name string, intent configv1alpha2.MeshRootCertificateIntent) *configv1alpha2.MeshRootCertificate {
+	return &configv1alpha2.MeshRootCertificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "osm-system",
+		},
+		Spec: configv1alpha2.MeshRootCertificateSpec{
+			TrustDomain: "cluster.local",
+			Intent:      intent,
+			Provider: configv1alpha2.ProviderSpec{
+				Tresor: &configv1alpha2.TresorProviderSpec{
+					CA: configv1alpha2.TresorCASpec{
+						SecretRef: v1.SecretReference{
+							Name:      "osm-ca-bundle",
+							Namespace: "osm-system",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func createValidator(mrclist []runtime.Object) *validator {
+	mrcClient := fakeConfigClient.NewSimpleClientset(mrclist...)
+	stop := make(chan struct{})
+	broker := messaging.NewBroker(stop)
+	k8sClient, err := k8s.NewClient(tests.OsmNamespace, tests.OsmMeshConfigName, broker,
+		k8s.WithConfigClient(mrcClient),
+		k8s.WithKubeClient(testclient.NewSimpleClientset(), "osm"),
+	)
+	if err != nil {
+		panic("not able to create client for tests")
+	}
+	computeClient := kube.NewClient(k8sClient)
+
+	return &validator{computeClient: computeClient}
 }

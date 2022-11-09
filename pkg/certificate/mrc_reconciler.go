@@ -38,25 +38,9 @@ func (m *Manager) handleMRCEvent(event MRCEvent) error {
 
 // getSigningAndValidatingMRCs returns the signing and validating MRCs from a list of MRCs
 func getSigningAndValidatingMRCs(mrcList []*v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, *v1alpha2.MeshRootCertificate, error) {
-	if len(mrcList) == 0 {
-		log.Error().Err(ErrNoMRCsFound).Msg("when handling MRC event, found no MRCs in OSM control plane namespace")
-		return nil, nil, ErrNoMRCsFound
-	}
-
-	if len(mrcList) > 2 {
-		log.Error().Err(ErrNumMRCExceedsMaxSupported).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrNumMRCExceedsMaxSupported)).
-			Msgf("expected 2 or less MRCs in the OSM control plane namespace, found %d", len(mrcList))
-		return nil, nil, ErrNumMRCExceedsMaxSupported
-	}
-
-	if len(mrcList) == 1 && mrcList[0].Spec.Intent != v1alpha2.ActiveIntent {
-		log.Error().Err(ErrExpectedActiveMRC).Msgf("expected single MRC with %s intent, found %s", v1alpha2.ActiveIntent, mrcList[0].Spec.Intent)
-		return nil, nil, ErrExpectedActiveMRC
-	}
-
-	// check if there are 2 passive MRCs. This is not allowed, must have an active MRC
-	if len(mrcList) == 2 && mrcList[0].Spec.Intent == v1alpha2.PassiveIntent && mrcList[1].Spec.Intent == v1alpha2.PassiveIntent {
-		return nil, nil, ErrExpectedActiveMRC
+	err := ValidateMRCCombination(mrcList)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	// single active MRC
@@ -78,6 +62,32 @@ func getSigningAndValidatingMRCs(mrcList []*v1alpha2.MeshRootCertificate) (*v1al
 	// signing MRC. Not swapping them indefinitely if the list order changes
 	// on updates is handled later on
 	return mrcList[0], mrcList[1], nil
+}
+
+// ValidateMRCCombination takes a list of MRCs and ensures that the MRC combination is valid
+func ValidateMRCCombination(mrcList []*v1alpha2.MeshRootCertificate) error {
+	if len(mrcList) == 0 {
+		log.Error().Err(ErrNoMRCsFound).Msg("when handling MRC event, found no MRCs in OSM control plane namespace")
+		return ErrNoMRCsFound
+	}
+
+	if len(mrcList) > 2 {
+		log.Error().Err(ErrNumMRCExceedsMaxSupported).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrNumMRCExceedsMaxSupported)).
+			Msgf("expected 2 or less MRCs in the OSM control plane namespace, found %d", len(mrcList))
+		return ErrNumMRCExceedsMaxSupported
+	}
+
+	if len(mrcList) == 1 && mrcList[0].Spec.Intent != v1alpha2.ActiveIntent {
+		log.Error().Err(ErrExpectedActiveMRC).Msgf("expected single MRC with %s intent, found %s", v1alpha2.ActiveIntent, mrcList[0].Spec.Intent)
+		return ErrExpectedActiveMRC
+	}
+
+	// check if there are 2 passive MRCs. This is not allowed, must have an active MRC
+	if len(mrcList) == 2 && mrcList[0].Spec.Intent == v1alpha2.PassiveIntent && mrcList[1].Spec.Intent == v1alpha2.PassiveIntent {
+		return ErrExpectedActiveMRC
+	}
+
+	return nil
 }
 
 func (m *Manager) shouldUpdateIssuers(desiredSigningMRC, desiredValidatingMRC *v1alpha2.MeshRootCertificate) (bool, error) {
