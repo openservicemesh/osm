@@ -27,7 +27,7 @@ var _ = OSMDescribe("MeshRootCertificate",
 		Bucket: 11,
 	},
 	func() {
-		Context("with Tressor", func() {
+		Context("with Tresor", func() {
 			It("rotates certificates", func() {
 				basicCertRotationScenario()
 			})
@@ -168,7 +168,6 @@ func enablingMRCAfterInstallScenario(installOptions ...InstallOsmOpt) {
 	By("checking the certificate exists")
 	if installOpts.CertManager != Vault {
 		// no secrets are created in Vault case
-		By("checking the certificate exists")
 		err := Td.WaitForCABundleSecret(Td.OsmNamespace, OsmCABundleName, time.Second*5)
 		Expect(err).NotTo(HaveOccurred())
 	}
@@ -187,8 +186,9 @@ func enablingMRCAfterInstallScenario(installOptions ...InstallOsmOpt) {
 	By("enabling EnableMeshRootCertificate feature flag by setting the flag in the MeshConfig")
 	meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
 	meshConfig.Spec.FeatureFlags.EnableMeshRootCertificate = true
-	_, err = Td.UpdateOSMConfig(meshConfig)
+	updatedMeshConfig, err := Td.UpdateOSMConfig(meshConfig)
 	Expect(err).NotTo(HaveOccurred())
+	Expect(updatedMeshConfig.Spec.FeatureFlags.EnableMeshRootCertificate).To(BeTrue())
 
 	By("restarting the bootstrap, controller, and injector")
 	err = Td.RestartOSMControlPlaneComponent(constants.OSMBootstrapName, installOpts)

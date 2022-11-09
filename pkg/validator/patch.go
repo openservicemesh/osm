@@ -29,6 +29,7 @@ func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert *certi
 	webhookPath := validationAPIPath
 	webhookPort := int32(constants.ValidatorWebhookPort)
 	failurePolicy := admissionregv1.Fail
+	ignoreConnectionFailurePolicy := admissionregv1.Ignore
 	matchPolicy := admissionregv1.Exact
 
 	rules := []admissionregv1.RuleWithOperations{
@@ -130,7 +131,7 @@ func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert *certi
 						Port:      &webhookPort,
 					},
 					CABundle: cert.GetTrustedCAs()},
-				FailurePolicy: &failurePolicy,
+				FailurePolicy: &ignoreConnectionFailurePolicy,
 				MatchPolicy:   &matchPolicy,
 				NamespaceSelector: &metav1.LabelSelector{
 					MatchExpressions: []metav1.LabelSelectorRequirement{

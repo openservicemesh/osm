@@ -188,9 +188,7 @@ func main() {
 	)
 
 	version.SetMetric()
-	/*
-	 * Initialize osm-bootstrap's HTTP server
-	 */
+
 	if enableReconciler {
 		log.Info().Msgf("OSM reconciler enabled for custom resource definitions")
 		err = reconciler.NewReconcilerClient(kubeClient, apiServerClient, meshName, osmVersion, stop, reconciler.CrdInformerKey)
