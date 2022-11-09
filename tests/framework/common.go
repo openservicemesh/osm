@@ -680,7 +680,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	return nil
 }
 
-// RestartOSMControlPlaneComponent restarts the specified OSM control plane component in the installed controller's namespace
+// RestartOSMControlPlaneComponent deletes the specified OSM control plane components in the installed controller's namespace
 func (td *OsmTestData) RestartOSMControlPlaneComponent(componentName string, instOpts InstallOSMOpts) error {
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{constants.AppLabel: componentName}}
 	listOptions := metav1.ListOptions{
@@ -711,6 +711,14 @@ func (td *OsmTestData) RestartOSMControlPlaneComponent(componentName string, ins
 	}
 
 	return nil
+}
+
+// RolloutRestartOSMControlPlaneComponent restarts the specified OSM control plane components in the installed controller's namespace
+func (td *OsmTestData) RolloutRestartOSMControlPlaneComponent(componentName string) error {
+	stdout, stderr, err := Td.RunLocal("kubectl", "rollout", "restart", "deployment", componentName, "-n", Td.OsmNamespace)
+	Td.T.Logf("stderr:\n%s\n", stderr)
+	Td.T.Logf("stdout:\n%s\n", stdout)
+	return err
 }
 
 // GetMeshConfig is a wrapper to get a MeshConfig by name in a particular namespace

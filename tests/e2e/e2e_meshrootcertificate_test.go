@@ -146,9 +146,7 @@ func basicCertRotationScenario(installOptions ...InstallOsmOpt) {
 
 	By("restarting osm controller")
 	// If anything got stuck in above rotation this will ensure things are indeed working
-	stdout, stderr, err := Td.RunLocal("kubectl", "rollout", "restart", "deployment", "osm-controller", "-n", Td.OsmNamespace)
-	Td.T.Logf("stderr:\n%s\n", stderr)
-	Td.T.Logf("stdout:\n%s\n", stdout)
+	Td.RolloutRestartOSMControlPlaneComponent(constants.OSMControllerName)
 	Expect(err).NotTo(HaveOccurred())
 	time.Sleep(5 * time.Second)
 	Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 1, nil)).To(Succeed())
@@ -191,13 +189,14 @@ func enablingMRCAfterInstallScenario(installOptions ...InstallOsmOpt) {
 	Expect(updatedMeshConfig.Spec.FeatureFlags.EnableMeshRootCertificate).To(BeTrue())
 
 	By("restarting the bootstrap, controller, and injector")
-	err = Td.RestartOSMControlPlaneComponent(constants.OSMBootstrapName, installOpts)
+	err = Td.RolloutRestartOSMControlPlaneComponent(constants.OSMBootstrapName)
 	Expect(err).NotTo(HaveOccurred())
-	err = Td.RestartOSMControlPlaneComponent(constants.OSMControllerName, installOpts)
+	// Wait for osm-bootstrap to be ready before restarting the osm-controller and osm-injector
+	Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 3, nil)).To(Succeed())
+	err = Td.RolloutRestartOSMControlPlaneComponent(constants.OSMControllerName)
 	Expect(err).NotTo(HaveOccurred())
-	err = Td.RestartOSMControlPlaneComponent(constants.OSMInjectorName, installOpts)
+	err = Td.RolloutRestartOSMControlPlaneComponent(constants.OSMInjectorName)
 	Expect(err).NotTo(HaveOccurred())
-	time.Sleep(time.Second * 5)
 	Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 3, nil)).To(Succeed())
 
 	By("checking that an active MRC was created")
