@@ -32,7 +32,7 @@ jobs:
       - name: Run e2es
         run: |
           make build-osm
-          go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ginkgo.skip="\bHTTP ingress\b" -ginkgo.skip="\bUpgrade\b" -test.timeout 240m -deployOnOpenShift=true
+          go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ginkgo.skip="\bHTTP ingress\b" -ginkgo.skip="\bUpgrade\b" -test.timeout 240m -test.failfast -ginkgo.failFast -deployOnOpenShift=true
       - name: Run Simulation w/ Tresor, SMI policies, egress disabled and reconciler disabled
         env:
           CERT_MANAGER: "tresor"
