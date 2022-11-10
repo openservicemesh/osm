@@ -28,9 +28,9 @@ var _ = OSMDescribe("MeshRootCertificate",
 	},
 	func() {
 		Context("with Tresor", func() {
-			It("rotates certificates", func() {
+			/*It("rotates certificates", func() {
 				basicCertRotationScenario()
-			})
+			})*/
 
 			It("handles enabling MRC after install", func() {
 				enablingMRCAfterInstallScenario()
@@ -146,7 +146,7 @@ func basicCertRotationScenario(installOptions ...InstallOsmOpt) {
 
 	By("restarting osm controller")
 	// If anything got stuck in above rotation this will ensure things are indeed working
-	Td.RolloutRestartOSMControlPlaneComponent(constants.OSMControllerName)
+	err = Td.RolloutRestartOSMControlPlaneComponent(constants.OSMControllerName)
 	Expect(err).NotTo(HaveOccurred())
 	time.Sleep(5 * time.Second)
 	Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 1, nil)).To(Succeed())
@@ -188,22 +188,23 @@ func enablingMRCAfterInstallScenario(installOptions ...InstallOsmOpt) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(updatedMeshConfig.Spec.FeatureFlags.EnableMeshRootCertificate).To(BeTrue())
 
-	By("restarting the bootstrap, controller, and injector")
+	By("restarting the osm-bootstrap")
 	err = Td.RolloutRestartOSMControlPlaneComponent(constants.OSMBootstrapName)
 	Expect(err).NotTo(HaveOccurred())
-	// Wait for osm-bootstrap to be ready before restarting the osm-controller and osm-injector
-	Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 3, nil)).To(Succeed())
+
+	By("checking that an active MRC was created")
+	Eventually(func() error {
+		_, err := Td.ConfigClient.ConfigV1alpha2().MeshRootCertificates(Td.OsmNamespace).Get(
+			context.Background(), constants.DefaultMeshRootCertificateName, metav1.GetOptions{})
+		return err
+	}, 10*time.Second).Should(BeNil())
+
+	By("restarting the osm-injector and osm-controller")
 	err = Td.RolloutRestartOSMControlPlaneComponent(constants.OSMControllerName)
 	Expect(err).NotTo(HaveOccurred())
 	err = Td.RolloutRestartOSMControlPlaneComponent(constants.OSMInjectorName)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 3, nil)).To(Succeed())
-
-	By("checking that an active MRC was created")
-	mrc, err := Td.ConfigClient.ConfigV1alpha2().MeshRootCertificates(Td.OsmNamespace).Get(
-		context.Background(), constants.DefaultMeshRootCertificateName, metav1.GetOptions{})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(mrc.Spec.Intent).To(Equal(v1alpha2.ActiveIntent))
+	time.Sleep(5 * time.Second)
 
 	By("checking HTTP traffic for client -> server pod")
 	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
