@@ -403,9 +403,9 @@ func (b *bootstrap) ensureMeshRootCertificate() error {
 	}
 
 	for _, mrc := range meshRootCertificateList.Items {
-		log.Debug().Msgf("%s intent %s", mrc.Name, mrc.Spec.Intent)
 		// if an MRC with Active intent exists in the mesh, do not create the default MRC
 		if mrc.Spec.Intent == configv1alpha2.ActiveIntent {
+			log.Debug().Msgf("Found MeshRootCertificate %s with %s intent. No default MeshRootCertificate will be created.", mrc.Name, mrc.Spec.Intent)
 			return nil
 		}
 	}
