@@ -63,12 +63,12 @@ spec:
             "--certificate-manager", "{{.Values.osm.certificateProvider.kind}}",
             "--trust-domain", "{{.Values.osm.trustDomain}}",
             {{ if eq .Values.osm.certificateProvider.kind "vault" }}
-            "--vault-host", "{{ required "osm.vault.host is required when osm.certificateProvider.kind==vault" .Values.osm.vault.host }}",
+            "--vault-host", "{{.Values.osm.vault.host}}",
             "--vault-port", "{{.Values.osm.vault.port}}",
             "--vault-protocol", "{{.Values.osm.vault.protocol}}",
-            "--vault-token", "{{ required "osm.vault.token is required when osm.certificateProvider.kind==vault and osm.vault.secret.name and osm.vault.secret.key are empty" .Values.osm.vault.token }}",
-            "--vault-token-secret-name",  "{{ required "osm.vault.secret.name is required when osm.certificateProvider.kind==vault and osm.vault.token is empty" .Values.osm.vault.secret.name }}",
-            "--vault-token-secret-key",  "{{ required "osm.vault.secret.key is required when osm.certificateProvider.kind==vault and osm.vault.token is empty" .Values.osm.vault.secret.key }}",
+            "--vault-token", "{{.Values.osm.vault.token}}",
+            "--vault-token-secret-name",  "{{ .Values.osm.vault.secret.name }}",
+            "--vault-token-secret-key",  "{{ .Values.osm.vault.secret.key }}",
             {{- end }}
             "--cert-manager-issuer-name", "{{.Values.osm.certmanager.issuerName}}",
             "--cert-manager-issuer-kind", "{{.Values.osm.certmanager.issuerKind}}",
