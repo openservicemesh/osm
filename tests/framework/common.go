@@ -376,7 +376,7 @@ func WithCertManagerEnabled() InstallOsmOpt {
 	}
 }
 
-// WithVault turns will install vault before installing OSM
+// WithVault will install vault before installing OSM
 func WithVault() InstallOsmOpt {
 	return func(opts *InstallOSMOpts) {
 		opts.CertManager = Vault
@@ -384,6 +384,16 @@ func WithVault() InstallOsmOpt {
 			// increase timeout when using an external certificate provider due to
 			// potential slowness issuing certs
 			"osm.injector.webhookTimeoutSeconds=30",
+		}
+	}
+}
+
+// WithVaultTokenSecretRef will install vault before installing OSM
+func WithVaultTokenSecretRef() InstallOsmOpt {
+	return func(opts *InstallOSMOpts) {
+		opts.SetOverrides = []string{
+			"osm.vault.secret.name=osm-vault-token",
+			"osm.vault.secret.key=token-key",
 		}
 	}
 }

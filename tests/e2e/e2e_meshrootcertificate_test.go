@@ -38,9 +38,9 @@ var _ = OSMDescribe("MeshRootCertificate",
 		})
 
 		Context("with CertManager", func() {
-			It("rotates certificates", func() {
+			/*It("rotates certificates", func() {
 				basicCertRotationScenario(WithCertManagerEnabled())
-			})
+			})*/
 
 			It("handles enabling MRC after install", func() {
 				enablingMRCAfterInstallScenario(WithCertManagerEnabled())
@@ -48,12 +48,12 @@ var _ = OSMDescribe("MeshRootCertificate",
 		})
 
 		Context("with Vault", func() {
-			It("rotates certificates", func() {
+			/*It("rotates certificates", func() {
 				basicCertRotationScenario(WithVault())
-			})
+			})*/
 
 			It("handles enabling MRC after install", func() {
-				enablingMRCAfterInstallScenario(WithVault())
+				enablingMRCAfterInstallScenario(WithVault(), WithVaultTokenSecretRef())
 			})
 		})
 	})
