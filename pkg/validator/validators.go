@@ -307,13 +307,13 @@ func (kc *validator) validateMRCOnCreate(mrc *configv1alpha2.MeshRootCertificate
 
 	switch mrc.Spec.Intent {
 	case configv1alpha2.ActiveIntent, configv1alpha2.PassiveIntent:
-		certsInUse, err := kc.getCertsInUseMRCs()
+		certsInUse, err := kc.getUseableMRCs()
 		if err != nil {
 			return err
 		}
 		// if there is already active or passive mrc then we can't create a new one
-		if mrcWithIntentExist(certsInUse, mrc) {
-			return fmt.Errorf("cannot create MRC %s with %s intent . An MRC with intent already exists in the control plane namespace. ", getNamespacedMRC(mrc), mrc.Spec.Intent)
+		if mrcWithMatchingIntentExists(certsInUse, mrc) {
+			return fmt.Errorf("cannot create MRC %s with %s intent. An MRC with this intent already exists in the control plane namespace. ", getNamespacedMRC(mrc), mrc.Spec.Intent)
 		}
 		if len(certsInUse) >= 2 {
 			return fmt.Errorf("cannot create MRC %s with %s intent while rotation is in progress", getNamespacedMRC(mrc), mrc.Spec.Intent)
@@ -328,7 +328,7 @@ func (kc *validator) validateMRCOnCreate(mrc *configv1alpha2.MeshRootCertificate
 }
 
 func (kc *validator) validateMRCOnUpdate(oldMRC *configv1alpha2.MeshRootCertificate, newMRC *configv1alpha2.MeshRootCertificate) error {
-	// check fields that are i,mutable haven't changed
+	// check fields that are immutable haven't changed
 	if !reflect.DeepEqual(oldMRC.Spec.Provider, newMRC.Spec.Provider) {
 		return fmt.Errorf("cannot update certificate provider settings for MRC %s. Create a new MRC and initiate root certificate rotation to update the provider", getNamespacedMRC(newMRC))
 	}
@@ -343,16 +343,16 @@ func (kc *validator) validateMRCOnUpdate(oldMRC *configv1alpha2.MeshRootCertific
 
 	// check for intent changes that are always invalid
 	if oldMRC.Spec.Intent == configv1alpha2.ActiveIntent && newMRC.Spec.Intent == configv1alpha2.InactiveIntent {
-		return fmt.Errorf("cannot move an Active to Passive for MRC %s", getNamespacedMRC(oldMRC))
+		return fmt.Errorf("cannot move an Active to Inactive for MRC %s", getNamespacedMRC(oldMRC))
 	}
 
 	if oldMRC.Spec.Intent == configv1alpha2.InactiveIntent && newMRC.Spec.Intent == configv1alpha2.ActiveIntent {
-		return fmt.Errorf("cannot move an Active to Passive for MRC %s", getNamespacedMRC(oldMRC))
+		return fmt.Errorf("cannot move an Inactive to Active for MRC %s", getNamespacedMRC(oldMRC))
 	}
 
 	// does this change create a valid configuration?
 	// at this point we don't care about order just if combination is valid
-	err := kc.testDesiredCertConfiguration(newMRC)
+	err := kc.simulateDesiredCertConfiguration(newMRC)
 	if err != nil {
 		return err
 	}
@@ -391,9 +391,9 @@ func validateMRCProvider(mrc *configv1alpha2.MeshRootCertificate) error {
 	return nil
 }
 
-// mrcWithIntentExist returns true if there are active MRCs in addition to the specified MRC
-// Returns false if there are no active MRCs or if the specified mrc will be the only active MRC
-func mrcWithIntentExist(mrcs []*configv1alpha2.MeshRootCertificate, mrc *configv1alpha2.MeshRootCertificate) bool {
+// mrcWithMatchingIntentExists returns true if there are MRCs in addition to the specified MRC
+// Returns false if there are no MRCs or if the specified mrc will be the only active MRC
+func mrcWithMatchingIntentExists(mrcs []*configv1alpha2.MeshRootCertificate, mrc *configv1alpha2.MeshRootCertificate) bool {
 	for _, m := range mrcs {
 		if m.Spec.Intent == mrc.Spec.Intent && m.Name != mrc.Name {
 			return true
@@ -403,23 +403,23 @@ func mrcWithIntentExist(mrcs []*configv1alpha2.MeshRootCertificate, mrc *configv
 	return false
 }
 
-func (kc *validator) getCertsInUseMRCs() ([]*configv1alpha2.MeshRootCertificate, error) {
+func (kc *validator) getUseableMRCs() ([]*configv1alpha2.MeshRootCertificate, error) {
 	mrcs, err := kc.computeClient.ListMeshRootCertificates()
 	if err != nil {
 		return nil, err
 	}
 
-	certsInUse := []*configv1alpha2.MeshRootCertificate{}
+	mrcsInUse := []*configv1alpha2.MeshRootCertificate{}
 	for _, mrc := range mrcs {
 		if mrc.Spec.Intent == v1alpha2.ActiveIntent || mrc.Spec.Intent == v1alpha2.PassiveIntent {
-			certsInUse = append(certsInUse, mrc)
+			mrcsInUse = append(mrcsInUse, mrc)
 		}
 	}
 
-	return certsInUse, nil
+	return mrcsInUse, nil
 }
 
-func (kc *validator) testDesiredCertConfiguration(newMrcState *configv1alpha2.MeshRootCertificate) error {
+func (kc *validator) simulateDesiredCertConfiguration(newMRC *configv1alpha2.MeshRootCertificate) error {
 	mrcs, err := kc.computeClient.ListMeshRootCertificates()
 	if err != nil {
 		return err
@@ -428,15 +428,15 @@ func (kc *validator) testDesiredCertConfiguration(newMrcState *configv1alpha2.Me
 	// get current list of certs and update intent for desired change
 	desiredCertificateConfiguration := []*configv1alpha2.MeshRootCertificate{}
 	for _, mrc := range mrcs {
-		if mrc.Name == newMrcState.Name {
-			mrc.Spec.Intent = newMrcState.Spec.Intent
+		if mrc.Name == newMRC.Name {
+			mrc.Spec.Intent = newMRC.Spec.Intent
 		}
 		if mrc.Spec.Intent == v1alpha2.ActiveIntent || mrc.Spec.Intent == v1alpha2.PassiveIntent {
 			desiredCertificateConfiguration = append(desiredCertificateConfiguration, mrc)
 		}
 	}
 
-	// test if new desired is valid combination
+	// test if new desired configuration is valid combination
 	return certificate.ValidateMRCCombination(desiredCertificateConfiguration)
 }
 

@@ -2,7 +2,6 @@ package certificate
 
 import (
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/errcode"
 )
 
 func (m *Manager) handleMRCEvent(event MRCEvent) error {
@@ -64,21 +63,17 @@ func getSigningAndValidatingMRCs(mrcList []*v1alpha2.MeshRootCertificate) (*v1al
 	return mrcList[0], mrcList[1], nil
 }
 
-// ValidateMRCCombination takes a list of MRCs and ensures that the MRC combination is valid
+// ValidateMRCCombination expects a list of Active and Passive MRCs and ensures that the MRC combination is valid
 func ValidateMRCCombination(mrcList []*v1alpha2.MeshRootCertificate) error {
 	if len(mrcList) == 0 {
-		log.Error().Err(ErrNoMRCsFound).Msg("when handling MRC event, found no MRCs in OSM control plane namespace")
 		return ErrNoMRCsFound
 	}
 
 	if len(mrcList) > 2 {
-		log.Error().Err(ErrNumMRCExceedsMaxSupported).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrNumMRCExceedsMaxSupported)).
-			Msgf("expected 2 or less MRCs in the OSM control plane namespace, found %d", len(mrcList))
 		return ErrNumMRCExceedsMaxSupported
 	}
 
 	if len(mrcList) == 1 && mrcList[0].Spec.Intent != v1alpha2.ActiveIntent {
-		log.Error().Err(ErrExpectedActiveMRC).Msgf("expected single MRC with %s intent, found %s", v1alpha2.ActiveIntent, mrcList[0].Spec.Intent)
 		return ErrExpectedActiveMRC
 	}
 
