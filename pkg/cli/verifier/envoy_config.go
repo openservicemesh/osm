@@ -19,6 +19,7 @@ import (
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -479,11 +480,15 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForK8sSvc(svc corev1.Service) ([
 		// us to retrieve the TargetPort for the MeshService.
 		meshSvc.TargetPort = kube.GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
 
-		if !kube.IsHeadlessService(svc) {
-			meshServices = append(meshServices, meshSvc)
+		// Even if the service is headless, add it so it can be targeted
+		meshServices = append(meshServices, meshSvc)
+
+		if !k8s.IsHeadlessService(svc) {
 			continue
 		}
 
+		// Add services corresponding to endpoint hostnames to handle the
+		// statefulset use-case
 		for _, subset := range endpoints.Subsets {
 			for _, address := range subset.Addresses {
 				if address.Hostname == "" {

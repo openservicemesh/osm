@@ -697,11 +697,16 @@ func (c *client) serviceToMeshServices(svc corev1.Service) []service.MeshService
 		} else {
 			log.Warn().Msgf("k8s service %s/%s does not have endpoints but is being represented as a MeshService", svc.Namespace, svc.Name)
 		}
-		if !IsHeadlessService(svc) || endpoints == nil {
-			meshServices = append(meshServices, meshSvc)
+
+		// Even if the service is headless, add it so it can be targeted
+		meshServices = append(meshServices, meshSvc)
+
+		if !k8s.IsHeadlessService(svc) || endpoints == nil {
 			continue
 		}
 
+		// Add services corresponding to endpoint hostnames to handle the
+		// statefulset use-case
 		for _, subset := range endpoints.Subsets {
 			for _, address := range subset.Addresses {
 				if address.Hostname == "" {

@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/tests"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	. "github.com/openservicemesh/osm/tests/framework"
@@ -26,7 +27,7 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
 	func() {
 		Context("Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP", func() {
 			withSourceKubernetesService := true
-			testTraffic(withSourceKubernetesService, PodCommandDefault)
+			testTraffic(withSourceKubernetesService, PodCommandDefault, false)
 		})
 
 		Context("Test traffic flowing from client to server without a Kubernetes Service for the Source: HTTP", func() {
@@ -34,18 +35,26 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
 			// for the Envoy proxy to be configured for outbound traffic to some remote server.
 			// This test ensures we test this scenario: client Pod is not associated w/ a service.
 			withSourceKubernetesService := false
-			testTraffic(withSourceKubernetesService, PodCommandDefault)
+			testTraffic(withSourceKubernetesService, PodCommandDefault, false)
 		})
 
 		Context("Test traffic flowing from client to a server with a podIP bind", func() {
 			// Prior iterations of OSM didn't allow mesh services to bind to the podIP
 			// This test ensures that that behavior is configurable via MeshConfig
 			withSourceKubernetesService := true
-			testTraffic(withSourceKubernetesService, []string{"gunicorn", "-b", "$(POD_IP):80", "httpbin:app", "-k", "gevent"}, WithLocalProxyMode(v1alpha2.LocalProxyModePodIP))
+			testTraffic(withSourceKubernetesService, []string{"gunicorn", "-b", "$(POD_IP):80", "httpbin:app", "-k", "gevent"}, false, WithLocalProxyMode(v1alpha2.LocalProxyModePodIP))
+		})
+
+		Context("Test traffic flowing from client to a headless service without a Kubernetes Service for the Source: HTTP", func() {
+			// Prior iterations of OSM required that a source pod belong to a Kubernetes service
+			// for the Envoy proxy to be configured for outbound traffic to some remote server.
+			// This test ensures we test this scenario: client Pod is not associated w/ a service.
+			withSourceKubernetesService := true
+			testTraffic(withSourceKubernetesService, PodCommandDefault, true)
 		})
 	})
 
-func testTraffic(withSourceKubernetesService bool, destPodCommand []string, installOpts ...InstallOsmOpt) {
+func testTraffic(withSourceKubernetesService bool, destPodCommand []string, destServiceHeadless bool, installOpts ...InstallOsmOpt) {
 	const sourceName = "client"
 	const destName = "server"
 	var ns = []string{sourceName, destName}
@@ -68,7 +77,7 @@ func testTraffic(withSourceKubernetesService bool, destPodCommand []string, inst
 		Expect(err).NotTo(HaveOccurred())
 		_, err = Td.CreatePod(destName, podDef)
 		Expect(err).NotTo(HaveOccurred())
-		dstSvc, err := Td.CreateService(destName, svcDef)
+		dstSvc, err := Td.CreateService(destName, *tests.HeadlessSvc(&svcDef))
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
