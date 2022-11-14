@@ -63,7 +63,7 @@ spec:
             "--certificate-manager", "{{.Values.osm.certificateProvider.kind}}",
             "--trust-domain", "{{.Values.osm.trustDomain}}",
             {{ if eq .Values.osm.certificateProvider.kind "vault" }}
-            "--vault-host", "{{.Values.osm.vault.host}}",
+            "--vault-host", "{{ required "osm.vault.host is required when osm.certificateProvider.kind==vault" .Values.osm.vault.host }}",
             "--vault-port", "{{.Values.osm.vault.port}}",
             "--vault-protocol", "{{.Values.osm.vault.protocol}}",
             "--vault-token", "{{.Values.osm.vault.token}}",

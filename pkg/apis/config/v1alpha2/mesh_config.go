@@ -236,5 +236,6 @@ type FeatureFlags struct {
 	EnableRetryPolicy bool `json:"enableRetryPolicy"`
 
 	// EnableMeshRootCertificate defines if MRCs are used for certificate management.
+	// If enabled after install, the control plane must be restarted to pick up on the update.
 	EnableMeshRootCertificate bool `json:"enableMeshRootCertificate"`
 }
