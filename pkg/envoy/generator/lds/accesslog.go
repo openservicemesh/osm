@@ -3,12 +3,14 @@ package lds
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_grpc_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/grpc/v3"
 	xds_otel_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/open_telemetry/v3"
 	xds_accesslog_stream "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/stream/v3"
+	xds_formatter "github.com/envoyproxy/go-control-plane/envoy/extensions/formatter/req_without_query/v3"
 	otlpCommon "go.opentelemetry.io/proto/otlp/common/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -16,6 +18,10 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/protobuf"
+)
+
+const (
+	reqWithoutQuery = "%REQ_WITHOUT_QUERY"
 )
 
 var (
@@ -44,6 +50,13 @@ var (
 	}
 
 	defaultAccessLogJSONStr = protobuf.MustToJSON(defaultAccessLogJSONFields)
+
+	accessLogFormatters = []*xds_core.TypedExtensionConfig{
+		{
+			Name:        "envoy.formatter.req_without_query",
+			TypedConfig: protobuf.MustMarshalAny(&xds_formatter.ReqWithoutQuery{}),
+		},
+	}
 )
 
 type accessLogBuilder struct {
@@ -137,7 +150,7 @@ func (ab *accessLogBuilder) Build() ([]*xds_accesslog.AccessLog, error) {
 }
 
 func buildStdoutJSONAccessLog(format *structpb.Struct) *xds_accesslog_stream.StdoutAccessLog {
-	return &xds_accesslog_stream.StdoutAccessLog{
+	config := &xds_accesslog_stream.StdoutAccessLog{
 		AccessLogFormat: &xds_accesslog_stream.StdoutAccessLog_LogFormat{
 			LogFormat: &xds_core.SubstitutionFormatString{
 				Format: &xds_core.SubstitutionFormatString_JsonFormat{
@@ -146,10 +159,24 @@ func buildStdoutJSONAccessLog(format *structpb.Struct) *xds_accesslog_stream.Std
 			},
 		},
 	}
+
+	stripReqQuery := false
+	for _, value := range format.Fields {
+		if strings.Contains(value.GetStringValue(), reqWithoutQuery) {
+			stripReqQuery = true
+			break
+		}
+	}
+
+	if stripReqQuery {
+		config.GetLogFormat().Formatters = accessLogFormatters
+	}
+
+	return config
 }
 
 func buildStdoutTextAccessLog(format string) *xds_accesslog_stream.StdoutAccessLog {
-	return &xds_accesslog_stream.StdoutAccessLog{
+	config := &xds_accesslog_stream.StdoutAccessLog{
 		AccessLogFormat: &xds_accesslog_stream.StdoutAccessLog_LogFormat{
 			LogFormat: &xds_core.SubstitutionFormatString{
 				Format: &xds_core.SubstitutionFormatString_TextFormatSource{
@@ -162,6 +189,13 @@ func buildStdoutTextAccessLog(format string) *xds_accesslog_stream.StdoutAccessL
 			},
 		},
 	}
+
+	stripReqQuery := strings.Contains(format, reqWithoutQuery)
+	if stripReqQuery {
+		config.GetLogFormat().Formatters = accessLogFormatters
+	}
+
+	return config
 }
 
 func buildOpenTelemetryAccessLogConfig(cluster string, body string, attributes map[string]string) *xds_otel_accesslog.OpenTelemetryAccessLogConfig {
