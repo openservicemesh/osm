@@ -8,8 +8,8 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/catalog"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 )
 
@@ -21,7 +21,7 @@ func TestGetHandlers(t *testing.T) {
 	cm := tresorFake.NewFake(time.Hour)
 	mockXdsDebugger := NewMockXDSDebugger(mockCtrl)
 	client := testclient.NewSimpleClientset()
-	mockComputeInterface := compute.NewMockInterface(mockCtrl)
+	mockComputeInterface := catalog.NewMockInterface(mockCtrl)
 	proxyRegistry := registry.NewProxyRegistry()
 
 	ds := NewDebugConfig(cm,

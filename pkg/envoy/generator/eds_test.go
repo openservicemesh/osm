@@ -12,7 +12,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/compute"
+	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
 
@@ -54,7 +54,7 @@ func TestEndpointConfiguration(t *testing.T) {
 	kubeClient := testclient.NewSimpleClientset()
 
 	mockCtrl := gomock.NewController(t)
-	provider := compute.NewMockInterface(mockCtrl)
+	provider := catalog.NewMockInterface(mockCtrl)
 	provider.EXPECT().ListEndpointsForService(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(nil).AnyTimes()

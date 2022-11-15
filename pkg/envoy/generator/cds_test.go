@@ -27,8 +27,8 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/catalog"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
-	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/generator/cds"
@@ -45,7 +45,7 @@ func TestGenerateCDS(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 	kubeClient := testclient.NewSimpleClientset()
-	mockComputeInterface := compute.NewMockInterface(mockCtrl)
+	mockComputeInterface := catalog.NewMockInterface(mockCtrl)
 	meshCatalog := catalogFake.NewFakeMeshCatalog(mockComputeInterface)
 
 	proxyUUID := uuid.New()
@@ -398,7 +398,7 @@ func TestNewResponseListServicesError(t *testing.T) {
 	proxy := models.NewProxy(models.KindSidecar, uuid.New(), identity.New(tests.BookbuyerServiceAccountName, tests.Namespace), nil, 1)
 
 	ctrl := gomock.NewController(t)
-	mockComputeInterface := compute.NewMockInterface(ctrl)
+	mockComputeInterface := catalog.NewMockInterface(ctrl)
 	meshCatalog := catalogFake.NewFakeMeshCatalog(mockComputeInterface)
 
 	meshConfig := configv1alpha2.MeshConfig{
@@ -438,7 +438,7 @@ func TestNewResponseGetEgressClusterConfigsError(t *testing.T) {
 	proxy := models.NewProxy(models.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
 
 	ctrl := gomock.NewController(t)
-	mockComputeInterface := compute.NewMockInterface(ctrl)
+	mockComputeInterface := catalog.NewMockInterface(ctrl)
 	meshCatalog := catalogFake.NewFakeMeshCatalog(mockComputeInterface)
 
 	mockComputeInterface.EXPECT().GetMeshConfig().AnyTimes()
@@ -461,7 +461,7 @@ func TestNewResponseGetEgressTrafficPolicyNotEmpty(t *testing.T) {
 	proxy := models.NewProxy(models.KindSidecar, proxyUUID, identity.New("svcacc", "ns"), nil, 1)
 
 	ctrl := gomock.NewController(t)
-	mockComputeInterface := compute.NewMockInterface(ctrl)
+	mockComputeInterface := catalog.NewMockInterface(ctrl)
 	meshCatalog := catalogFake.NewFakeMeshCatalog(mockComputeInterface)
 
 	egressPolicies := []*policyv1alpha1.Egress{

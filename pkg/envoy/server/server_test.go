@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/catalog"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/generator"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
@@ -31,7 +31,7 @@ func TestADSResponse(t *testing.T) {
 	proxy := models.NewProxy(models.KindSidecar, proxyUUID, proxySvcID, nil, 1)
 	a.NotNil(proxy)
 
-	provider := compute.NewMockInterface(mockCtrl)
+	provider := catalog.NewMockInterface(mockCtrl)
 	provider.EXPECT().IsMetricsEnabled(gomock.Any()).Return(true, nil).AnyTimes()
 	provider.EXPECT().ListEgressPoliciesForServiceAccount(gomock.Any()).Return(nil).AnyTimes()
 	provider.EXPECT().GetIngressBackendPolicyForService(gomock.Any()).Return(nil).AnyTimes()

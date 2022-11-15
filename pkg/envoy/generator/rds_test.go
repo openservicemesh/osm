@@ -21,9 +21,9 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/catalog"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -127,7 +127,7 @@ func TestGenerateRDS(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			mockComputeInterface := compute.NewMockInterface(mockCtrl)
+			mockComputeInterface := catalog.NewMockInterface(mockCtrl)
 			meshCatalog := catalogFake.NewFakeMeshCatalog(mockComputeInterface)
 
 			kubeClient := testclient.NewSimpleClientset()
@@ -234,7 +234,7 @@ func TestGenerateRDSWithTrafficSplit(t *testing.T) {
 	kubeClient := testclient.NewSimpleClientset()
 	mockCtrl := gomock.NewController(t)
 	services := []service.MeshService{tests.BookstoreApexService, tests.BookstoreV1Service, tests.BookstoreV2Service}
-	mockComputeInterface := compute.NewMockInterface(mockCtrl)
+	mockComputeInterface := catalog.NewMockInterface(mockCtrl)
 	mockComputeInterface.EXPECT().GetMeshConfig().AnyTimes()
 	mockComputeInterface.EXPECT().GetServicesForServiceIdentity(gomock.Any()).Return(services).AnyTimes()
 	mockComputeInterface.EXPECT().GetResolvableEndpointsForService(gomock.Any()).Return([]endpoint.Endpoint{tests.Endpoint}).AnyTimes()
@@ -589,7 +589,7 @@ func TestRDSResponse(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			mockComputeInterface := compute.NewMockInterface(mockCtrl)
+			mockComputeInterface := catalog.NewMockInterface(mockCtrl)
 			meshCatalog := catalogFake.NewFakeMeshCatalog(mockComputeInterface)
 
 			kubeClient := testclient.NewSimpleClientset()

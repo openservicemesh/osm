@@ -12,9 +12,9 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/catalog"
 	catalogFake "github.com/openservicemesh/osm/pkg/catalog/fake"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/models"
@@ -77,7 +77,7 @@ func TestGenerateSDS(t *testing.T) {
 			// The Common Name of the xDS Certificate (issued to the Envoy on the Pod by the Injector) will
 			// have be prefixed with the ID of the pod. It is the first chunk of a dot-separated string.
 			proxy := models.NewProxy(models.KindSidecar, uuid.New(), proxySvcID, nil, 1)
-			mockComputeInterface := compute.NewMockInterface(mockCtrl)
+			mockComputeInterface := catalog.NewMockInterface(mockCtrl)
 			meshCatalog := catalogFake.NewFakeMeshCatalog(mockComputeInterface)
 
 			var services []service.MeshService

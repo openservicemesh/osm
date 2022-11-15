@@ -20,9 +20,9 @@ import (
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
 	"github.com/openservicemesh/osm/pkg/models"
@@ -376,7 +376,7 @@ func TestGetBootstrapSecrets(t *testing.T) {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			mockInterface := compute.NewMockInterface(gomock.NewController(t))
+			mockInterface := catalog.NewMockInterface(gomock.NewController(t))
 			mockInterface.EXPECT().ListSecrets().Return(tc.secrets)
 
 			certManager := tresorFake.NewFake(time.Hour)
@@ -534,7 +534,7 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 				objs[i] = tc.corev1Secrets[i]
 			}
 			fakeK8sClient := fake.NewSimpleClientset(objs...)
-			mockInterface := compute.NewMockInterface(gomock.NewController(t))
+			mockInterface := catalog.NewMockInterface(gomock.NewController(t))
 			mockInterface.EXPECT().ListSecrets().Return(tc.secrets)
 			for i := 0; i < len(tc.secrets); i++ {
 				mockInterface.EXPECT().GetSecret(tc.secrets[i].Name, testNs).Return(tc.secrets[i])
