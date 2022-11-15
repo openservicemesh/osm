@@ -18,6 +18,7 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -25,7 +26,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/rds/route"
 	envoySecrets "github.com/openservicemesh/osm/pkg/envoy/secrets"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -480,11 +480,15 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForSvcPod(svc corev1.Service, po
 		// us to retrieve the TargetPort for the MeshService.
 		meshSvc.TargetPort = k8s.GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
 
+		// Even if the service is headless, add it so it can be targeted
 		if !k8s.IsHeadlessService(svc) {
 			meshServices = append(meshServices, meshSvc)
 			continue
 		}
 
+		// If there's not at least 1 subdomain-ed MeshService added,
+		// add the entire headless service
+		var added bool
 		for _, subset := range endpoints.Subsets {
 			for _, address := range subset.Addresses {
 				if address.Hostname == "" {
@@ -498,7 +502,12 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForSvcPod(svc corev1.Service, po
 					Protocol:   meshSvc.Protocol,
 				}
 				meshServices = append(meshServices, mSvc)
+				added = true
 			}
+		}
+
+		if !added {
+			meshServices = append(meshServices, meshSvc)
 		}
 	}
 
