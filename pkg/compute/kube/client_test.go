@@ -2373,6 +2373,61 @@ func TestServiceToMeshServices(t *testing.T) {
 			},
 		},
 		{
+			name: "k8s headless service with single port and endpoint (no hostname), no appProtocol set",
+			// Single port on the service maps to a single MeshService.
+			// Since no appProtocol is specified, MeshService.Protocol should default
+			// to http because Port.Protocol=TCP
+			svc: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{
+							Name:     "p1",
+							Port:     80,
+							Protocol: corev1.ProtocolTCP,
+						},
+					},
+					ClusterIP: corev1.ClusterIPNone,
+				},
+			},
+			svcEndpoints: []runtime.Object{
+				&corev1.Endpoints{
+					ObjectMeta: metav1.ObjectMeta{
+						// Should match svc.Name and svc.Namespace
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Addresses: []corev1.EndpointAddress{
+								{
+									IP: "10.1.0.1",
+								},
+							},
+							Ports: []corev1.EndpointPort{
+								{
+									// Must match the port of 'svc.Spec.Ports[0]'
+									Port: 8080, // TargetPort
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{
+					Namespace:  "ns1",
+					Name:       "s1",
+					Port:       80,
+					TargetPort: 8080,
+					Protocol:   "http",
+				},
+			},
+		},
+		{
 			name: "multiple ports on k8s service with appProtocol specified",
 			svc: corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
@@ -2508,6 +2563,78 @@ func TestServiceToMeshServices(t *testing.T) {
 					Namespace:  "ns1",
 					Name:       "s1",
 					Subdomain:  "pod-0",
+					Port:       90,
+					TargetPort: 9090,
+					Protocol:   "tcp",
+				},
+			},
+		},
+		{
+			name: "multiple ports on k8s headless service with appProtocol specified and no hostname in the endpoints",
+			svc: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+				Spec: corev1.ServiceSpec{
+					ClusterIP: corev1.ClusterIPNone,
+					Ports: []corev1.ServicePort{
+						{
+							Name:        "p1",
+							Port:        80,
+							AppProtocol: pointer.StringPtr("http"),
+						},
+						{
+							Name:        "p2",
+							Port:        90,
+							AppProtocol: pointer.StringPtr("tcp"),
+						},
+					},
+				},
+			},
+			svcEndpoints: []runtime.Object{
+				&corev1.Endpoints{
+					ObjectMeta: metav1.ObjectMeta{
+						// Should match svc.Name and svc.Namespace
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Addresses: []corev1.EndpointAddress{
+								{
+									IP: "10.1.0.1",
+								},
+							},
+							Ports: []corev1.EndpointPort{
+								{
+									// Must match the port of 'svc.Spec.Ports[0]'
+									Name:        "p1",
+									Port:        8080, // TargetPort
+									AppProtocol: pointer.StringPtr("http"),
+								},
+								{
+									// Must match the port of 'svc.Spec.Ports[1]'
+									Name:        "p2",
+									Port:        9090, // TargetPort
+									AppProtocol: pointer.StringPtr("tcp"),
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{
+					Namespace:  "ns1",
+					Name:       "s1",
+					Port:       80,
+					TargetPort: 8080,
+					Protocol:   "http",
+				},
+				{
+					Namespace:  "ns1",
+					Name:       "s1",
 					Port:       90,
 					TargetPort: 9090,
 					Protocol:   "tcp",
@@ -2682,7 +2809,7 @@ func TestGetMeshService(t *testing.T) {
 			expectErr:          true,
 		},
 		{
-			name: "TargetPort not found as Endpoint does not exist",
+			name: "TargetPort not found as matching Endpoint does not exist",
 			svc: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "s1",
@@ -2693,6 +2820,7 @@ func TestGetMeshService(t *testing.T) {
 						Name: "p1",
 						Port: 80,
 					}},
+					ClusterIP: corev1.ClusterIPNone,
 				},
 			},
 			endpoints: &corev1.Endpoints{
@@ -2707,14 +2835,18 @@ func TestGetMeshService(t *testing.T) {
 								Name: "invalid", // does not match svc port
 								Port: 8080,
 							},
+							{
+								Name: "invalid2",
+								Port: 8081, // also does not match svc port; having 2 ports triggers the name filter logic
+							},
 						},
 					},
 				},
 			},
 			namespacedSvc:      types.NamespacedName{Namespace: "ns1", Name: "s1"}, // matches svc
 			port:               80,                                                 // matches svc
-			expectedTargetPort: 0,                                                  // matches endpoint's 'p1' port
-			expectErr:          true,
+			expectedTargetPort: 0,                                                  // does not match either of the endpoint's ports
+			expectErr:          false,                                              // port matches, so no error should be expected
 		},
 	}
 

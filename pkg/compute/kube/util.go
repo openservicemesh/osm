@@ -35,9 +35,3 @@ func GetTargetPortFromEndpoints(endpointName string, endpoints corev1.Endpoints)
 	}
 	return
 }
-
-// IsHeadlessService determines whether or not a corev1.Service is a headless service
-// TODO(4863): unexport this method, it should not be used outside of this package.
-func IsHeadlessService(svc corev1.Service) bool {
-	return len(svc.Spec.ClusterIP) == 0 || svc.Spec.ClusterIP == corev1.ClusterIPNone
-}
