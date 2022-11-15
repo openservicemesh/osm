@@ -108,6 +108,7 @@ type Controller interface {
 // A good rule of thumb is that any CRUD operations (get,delete,create,update,etc) on CRD's we define belong here, since
 // we control the definition it is reasonable to assume a non-k8s implementation would be obligated to implement as
 // well.
+// TODO: expand out the k8s.PassthroughInterface, and delete those interfaces (move them into where they are used)
 type PassthroughInterface interface {
 	// IsMonitoredNamespace returns whether a namespace with the given name is being monitored
 	// by the mesh
