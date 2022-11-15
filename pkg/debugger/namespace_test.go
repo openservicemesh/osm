@@ -7,7 +7,6 @@ import (
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -15,17 +14,17 @@ import (
 func TestMonitoredNamespaceHandler(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
-	mockComputeInterface := catalog.NewMockInterface(mockCtrl)
+	mockInfraClient := NewMockDebuggerInfraClient(mockCtrl)
 
 	uniqueNs := tests.GetUnique([]string{
 		tests.BookbuyerService.Namespace,   // default
 		tests.BookstoreV1Service.Namespace, // default
 	})
 
-	mockComputeInterface.EXPECT().ListNamespaces().Return(uniqueNs, nil)
+	mockInfraClient.EXPECT().ListNamespaces().Return(uniqueNs, nil)
 
 	ds := DebugConfig{
-		computeClient: mockComputeInterface,
+		computeClient: mockInfraClient,
 	}
 	monitoredNamespacesHandler := ds.getMonitoredNamespacesHandler()
 

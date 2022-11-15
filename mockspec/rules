@@ -7,6 +7,7 @@ k8s; pkg/k8s/mock_controller_generated.go; github.com/openservicemesh/osm/pkg/k8
 
 # pkg/debugger
 debugger; pkg/debugger/mock_debugger_generated.go; github.com/openservicemesh/osm/pkg/debugger; XDSDebugger
+debugger; pkg/debugger/mock_debugger_infra_client_generated.go; github.com/openservicemesh/osm/pkg/debugger; DebuggerInfraClient
 
 # pkg/catalog
 catalog; pkg/catalog/mock_compute_interface_generated.go; github.com/openservicemesh/osm/pkg/catalog; Interface
