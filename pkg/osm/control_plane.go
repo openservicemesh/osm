@@ -3,7 +3,6 @@ package osm
 import (
 	"context"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -33,7 +32,7 @@ type ControlPlane[T any] struct {
 	configServer    ProxyUpdater[T]
 	configGenerator ProxyConfigGenerator[T]
 
-	catalog       *catalog.MeshCatalog
+	client        ControlPlaneInfraClient
 	proxyRegistry *registry.ProxyRegistry
 	certManager   *certificate.Manager
 	workqueues    *workerpool.WorkerPool
@@ -43,7 +42,7 @@ type ControlPlane[T any] struct {
 // NewControlPlane creates a new instance of ControlPlane with the given config type T.
 func NewControlPlane[T any](server ProxyUpdater[T],
 	generator ProxyConfigGenerator[T],
-	catalog *catalog.MeshCatalog,
+	infraClient ControlPlaneInfraClient,
 	proxyRegistry *registry.ProxyRegistry,
 	certManager *certificate.Manager,
 	msgBroker *messaging.Broker,
@@ -51,7 +50,7 @@ func NewControlPlane[T any](server ProxyUpdater[T],
 	return &ControlPlane[T]{
 		configServer:    server,
 		configGenerator: generator,
-		catalog:         catalog,
+		client:         infraClient,
 		proxyRegistry:   proxyRegistry,
 		certManager:     certManager,
 		workqueues:      workerpool.NewWorkerPool(workerPoolSize),

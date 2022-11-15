@@ -30,7 +30,7 @@ func (cp *ControlPlane[T]) ProxyConnected(ctx context.Context, connectionID int6
 	}
 
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Envoy connections is less than maxDataPlaneConnections
-	if cp.catalog.GetMeshConfig().Spec.Sidecar.MaxDataPlaneConnections > 0 && cp.proxyRegistry.GetConnectedProxyCount() >= cp.catalog.GetMeshConfig().Spec.Sidecar.MaxDataPlaneConnections {
+	if cp.client.GetMeshConfig().Spec.Sidecar.MaxDataPlaneConnections > 0 && cp.proxyRegistry.GetConnectedProxyCount() >= cp.client.GetMeshConfig().Spec.Sidecar.MaxDataPlaneConnections {
 		metricsstore.DefaultMetricsStore.ProxyMaxConnectionsRejected.Inc()
 		return errTooManyConnections
 	}
@@ -45,7 +45,7 @@ func (cp *ControlPlane[T]) ProxyConnected(ctx context.Context, connectionID int6
 
 	proxy := models.NewProxy(kind, uuid, si, utils.GetIPFromContext(ctx), connectionID)
 
-	if err := cp.catalog.VerifyProxy(proxy); err != nil {
+	if err := cp.client.VerifyProxy(proxy); err != nil {
 		return err
 	}
 

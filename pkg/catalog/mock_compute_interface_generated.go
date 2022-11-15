@@ -612,17 +612,3 @@ func (mr *MockInterfaceMockRecorder) UpdateUpstreamTrafficSettingStatus(arg0 int
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUpstreamTrafficSettingStatus", reflect.TypeOf((*MockInterface)(nil).UpdateUpstreamTrafficSettingStatus), arg0)
 }
-
-// VerifyProxy mocks base method.
-func (m *MockInterface) VerifyProxy(arg0 *models.Proxy) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VerifyProxy", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// VerifyProxy indicates an expected call of VerifyProxy.
-func (mr *MockInterfaceMockRecorder) VerifyProxy(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyProxy", reflect.TypeOf((*MockInterface)(nil).VerifyProxy), arg0)
-}

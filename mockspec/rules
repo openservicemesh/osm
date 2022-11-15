@@ -14,3 +14,6 @@ catalog; pkg/catalog/mock_compute_interface_generated.go; github.com/openservice
 
 # pkg/injector
 injector; pkg/injector/mock_injector_infra_client_interface_generated.go; github.com/openservicemesh/osm/pkg/injector; InjectorInfraClient
+
+# pkg/osm
+osm; pkg/osm/mock_control_plane_infra_client_interface_generated.go; github.com/openservicemesh/osm/pkg/osm; ControlPlaneInfraClient

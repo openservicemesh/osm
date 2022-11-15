@@ -15,10 +15,8 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
-	"github.com/openservicemesh/osm/pkg/compute"
 	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -88,19 +86,12 @@ func TestControlLoop(t *testing.T) {
 	certManager := tresorFake.NewFake(1 * time.Hour)
 	stop := make(chan struct{})
 
-	provider := compute.NewMockInterface(mockCtrl)
+	mockInfraClient := NewMockControlPlaneInfraClient(mockCtrl)
 
-	provider.EXPECT().GetMeshConfig().AnyTimes()
-	provider.EXPECT().VerifyProxy(gomock.Any()).AnyTimes()
+	mockInfraClient.EXPECT().GetMeshConfig().AnyTimes()
+	mockInfraClient.EXPECT().VerifyProxy(gomock.Any()).AnyTimes()
 
-	meshCatalog := catalog.NewMeshCatalog(
-		provider,
-		tresorFake.NewFake(time.Hour),
-		stop,
-		messaging.NewBroker(stop),
-	)
-
-	cp := NewControlPlane[fakeConfig](server, g, meshCatalog, registry.NewProxyRegistry(), certManager, messaging.NewBroker(stop))
+	cp := NewControlPlane[fakeConfig](server, g, mockInfraClient, registry.NewProxyRegistry(), certManager, messaging.NewBroker(stop))
 
 	// With no proxies registered, should be empty
 	time.Sleep(time.Second)

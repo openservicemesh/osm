@@ -79,9 +79,6 @@ type Interface interface {
 
 	GetProxyStatsHeaders(p *models.Proxy) (map[string]string, error)
 
-	// VerifyProxy attempts to lookup a pod that matches the given proxy instance by service identity, namespace, and UUID
-	VerifyProxy(proxy *models.Proxy) error
-
 	// GetTelemetryConfig returns the Telemetry config for the given proxy instance.
 	// It returns the most specific match if multiple matching policies exist, in the following
 	// order of preference: 1. selector match, 2. namespace match, 3. global match
