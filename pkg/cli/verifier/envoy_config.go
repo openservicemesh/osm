@@ -481,14 +481,15 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForK8sSvc(svc corev1.Service) ([
 		meshSvc.TargetPort = kube.GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
 
 		// Even if the service is headless, add it so it can be targeted
-		meshServices = append(meshServices, meshSvc)
 
 		if !k8s.IsHeadlessService(svc) {
+			meshServices = append(meshServices, meshSvc)
 			continue
 		}
 
-		// Add services corresponding to endpoint hostnames to handle the
-		// statefulset use-case
+		// If there's not at least 1 subdomain-ed MeshService added,
+		// add the entire headless service
+		var added bool
 		for _, subset := range endpoints.Subsets {
 			for _, address := range subset.Addresses {
 				if address.Hostname == "" {
@@ -503,7 +504,12 @@ func (v *EnvoyConfigVerifier) getDstMeshServicesForK8sSvc(svc corev1.Service) ([
 					Protocol:   meshSvc.Protocol,
 				}
 				meshServices = append(meshServices, mSvc)
+				added = true
 			}
+		}
+
+		if !added {
+			meshServices = append(meshServices, meshSvc)
 		}
 	}
 
