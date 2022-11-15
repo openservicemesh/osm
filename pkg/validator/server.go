@@ -13,7 +13,6 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -32,7 +31,7 @@ type validatingWebhookServer struct {
 }
 
 // NewValidatingWebhook returns a validatingWebhookServer with the defaultValidators that were previously registered.
-func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler, validateTrafficTarget bool, certManager *certificate.Manager, kubeClient kubernetes.Interface, computeClient catalog.Interface) error {
+func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, osmVersion, meshName string, enableReconciler, validateTrafficTarget bool, certManager *certificate.Manager, kubeClient kubernetes.Interface, computeClient ValidatorInfraClient) error {
 	kv := &validator{
 		computeClient: computeClient,
 	}

@@ -77,9 +77,6 @@ type Interface interface {
 	// GetUpstreamTrafficSettingByService returns the UpstreamTrafficSetting resource that matches the given service
 	GetUpstreamTrafficSettingByService(meshService *service.MeshService) *v1alpha1.UpstreamTrafficSetting
 
-	// GetUpstreamTrafficSettingByHost returns the UpstreamTrafficSetting resource that matches the host
-	GetUpstreamTrafficSettingByHost(host string) *v1alpha1.UpstreamTrafficSetting
-
 	GetProxyStatsHeaders(p *models.Proxy) (map[string]string, error)
 
 	// VerifyProxy attempts to lookup a pod that matches the given proxy instance by service identity, namespace, and UUID

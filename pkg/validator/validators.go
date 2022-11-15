@@ -18,7 +18,6 @@ import (
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -69,7 +68,7 @@ type validateFunc func(req *admissionv1.AdmissionRequest) (*admissionv1.Admissio
 
 // validator is a validator that has access to a compute resources
 type validator struct {
-	computeClient catalog.Interface
+	computeClient ValidatorInfraClient
 }
 
 func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
