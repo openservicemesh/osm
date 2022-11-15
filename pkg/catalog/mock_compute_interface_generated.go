@@ -5,7 +5,6 @@
 package catalog
 
 import (
-	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -200,20 +199,6 @@ func (m *MockInterface) GetResolvableEndpointsForService(arg0 service.MeshServic
 func (mr *MockInterfaceMockRecorder) GetResolvableEndpointsForService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResolvableEndpointsForService", reflect.TypeOf((*MockInterface)(nil).GetResolvableEndpointsForService), arg0)
-}
-
-// GetSecret mocks base method.
-func (m *MockInterface) GetSecret(arg0, arg1 string) *models.Secret {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecret", arg0, arg1)
-	ret0, _ := ret[0].(*models.Secret)
-	return ret0
-}
-
-// GetSecret indicates an expected call of GetSecret.
-func (mr *MockInterfaceMockRecorder) GetSecret(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecret", reflect.TypeOf((*MockInterface)(nil).GetSecret), arg0, arg1)
 }
 
 // GetServicesForServiceIdentity mocks base method.
@@ -485,20 +470,6 @@ func (mr *MockInterfaceMockRecorder) ListRetryPoliciesForServiceAccount(arg0 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRetryPoliciesForServiceAccount", reflect.TypeOf((*MockInterface)(nil).ListRetryPoliciesForServiceAccount), arg0)
 }
 
-// ListSecrets mocks base method.
-func (m *MockInterface) ListSecrets() []*models.Secret {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListSecrets")
-	ret0, _ := ret[0].([]*models.Secret)
-	return ret0
-}
-
-// ListSecrets indicates an expected call of ListSecrets.
-func (mr *MockInterfaceMockRecorder) ListSecrets() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSecrets", reflect.TypeOf((*MockInterface)(nil).ListSecrets))
-}
-
 // ListServiceExports mocks base method.
 func (m *MockInterface) ListServiceExports() []*v1alpha10.ServiceExport {
 	m.ctrl.T.Helper()
@@ -670,20 +641,6 @@ func (m *MockInterface) UpdateMeshRootCertificateStatus(arg0 *v1alpha2.MeshRootC
 func (mr *MockInterfaceMockRecorder) UpdateMeshRootCertificateStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeshRootCertificateStatus", reflect.TypeOf((*MockInterface)(nil).UpdateMeshRootCertificateStatus), arg0)
-}
-
-// UpdateSecret mocks base method.
-func (m *MockInterface) UpdateSecret(arg0 context.Context, arg1 *models.Secret) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateSecret", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateSecret indicates an expected call of UpdateSecret.
-func (mr *MockInterfaceMockRecorder) UpdateSecret(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSecret", reflect.TypeOf((*MockInterface)(nil).UpdateSecret), arg0, arg1)
 }
 
 // UpdateUpstreamTrafficSettingStatus mocks base method.

@@ -10,3 +10,6 @@ debugger; pkg/debugger/mock_debugger_generated.go; github.com/openservicemesh/os
 
 # pkg/catalog
 catalog; pkg/catalog/mock_compute_interface_generated.go; github.com/openservicemesh/osm/pkg/catalog; Interface
+
+# pkg/injector
+injector; pkg/injector/mock_injector_infra_client_interface_generated.go; github.com/openservicemesh/osm/pkg/injector; InjectorInfraClient

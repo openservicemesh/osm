@@ -12,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
@@ -114,7 +113,7 @@ func (wh *mutatingWebhook) marshalAndSaveBootstrap(name, namespace string, confi
 }
 
 // NewBootstrapSecretRotator returns a new bootstrap secret rotator.
-func NewBootstrapSecretRotator(compIf catalog.Interface, certManager *certificate.Manager, checkInterval time.Duration) *BootstrapSecretRotator {
+func NewBootstrapSecretRotator(compIf InjectorInfraClient, certManager *certificate.Manager, checkInterval time.Duration) *BootstrapSecretRotator {
 	return &BootstrapSecretRotator{
 		computeInterface: compIf,
 		certManager:      certManager,

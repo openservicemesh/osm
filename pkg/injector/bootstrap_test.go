@@ -20,7 +20,6 @@ import (
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -376,11 +375,11 @@ func TestGetBootstrapSecrets(t *testing.T) {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			mockInterface := catalog.NewMockInterface(gomock.NewController(t))
-			mockInterface.EXPECT().ListSecrets().Return(tc.secrets)
+			mockInfraInterface := NewMockInjectorInfraClient(gomock.NewController(t))
+			mockInfraInterface.EXPECT().ListSecrets().Return(tc.secrets)
 
 			certManager := tresorFake.NewFake(time.Hour)
-			b := NewBootstrapSecretRotator(mockInterface, certManager, time.Duration(1))
+			b := NewBootstrapSecretRotator(mockInfraInterface, certManager, time.Duration(1))
 
 			actual := b.getBootstrapSecrets()
 			assert.ElementsMatch(tc.expSecrets, actual)
@@ -534,18 +533,19 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 				objs[i] = tc.corev1Secrets[i]
 			}
 			fakeK8sClient := fake.NewSimpleClientset(objs...)
-			mockInterface := catalog.NewMockInterface(gomock.NewController(t))
-			mockInterface.EXPECT().ListSecrets().Return(tc.secrets)
+
+			mockInfraInterface := NewMockInjectorInfraClient(gomock.NewController(t))
+			mockInfraInterface.EXPECT().ListSecrets().Return(tc.secrets)
 			for i := 0; i < len(tc.secrets); i++ {
-				mockInterface.EXPECT().GetSecret(tc.secrets[i].Name, testNs).Return(tc.secrets[i])
+				mockInfraInterface.EXPECT().GetSecret(tc.secrets[i].Name, testNs).Return(tc.secrets[i])
 			}
 
 			if tc.shouldRotate {
 				for i := 0; i < len(tc.secrets); i++ {
-					mockInterface.EXPECT().UpdateSecret(context.Background(), tc.secrets[i])
+					mockInfraInterface.EXPECT().UpdateSecret(context.Background(), tc.secrets[i])
 				}
 			}
-			bootstrapSecretRotator := NewBootstrapSecretRotator(mockInterface, certManager, time.Duration(1))
+			bootstrapSecretRotator := NewBootstrapSecretRotator(mockInfraInterface, certManager, time.Duration(1))
 			bootstrapSecretRotator.rotateBootstrapSecrets(context.Background())
 
 			secretList, err := fakeK8sClient.CoreV1().Secrets(testNs).List(context.Background(), metav1.ListOptions{})

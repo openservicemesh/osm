@@ -3,13 +3,15 @@
 package injector
 
 import (
+	"context"
 	"time"
+
+	"github.com/openservicemesh/osm/pkg/models"
 
 	mapset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -40,7 +42,17 @@ type Config struct {
 // BootstrapSecretRotator is the type used to represent
 // the information needed for bootstrap secret rotation
 type BootstrapSecretRotator struct {
-	computeInterface catalog.Interface
+	computeInterface InjectorInfraClient
 	certManager      *certificate.Manager
 	checkInterval    time.Duration
+}
+type InjectorInfraClient interface {
+	// GetSecret returns the secret for a given namespace and secret name
+	GetSecret(string, string) *models.Secret
+
+	// ListSecrets returns a list of secrets
+	ListSecrets() []*models.Secret
+
+	// UpdateSecret updates the given secret
+	UpdateSecret(context.Context, *models.Secret) error
 }
