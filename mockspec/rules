@@ -17,3 +17,6 @@ injector; pkg/injector/mock_injector_infra_client_interface_generated.go; github
 
 # pkg/osm
 osm; pkg/osm/mock_control_plane_infra_client_interface_generated.go; github.com/openservicemesh/osm/pkg/osm; ControlPlaneInfraClient
+
+# pkg/certificate/providers
+providers; pkg/certificate/providers/mock_providers_infra_client_interface_generated.go; github.com/openservicemesh/osm/pkg/certificate/providers; ProvidersInfraClient

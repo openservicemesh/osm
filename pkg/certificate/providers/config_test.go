@@ -16,7 +16,6 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/compute/kube"
 	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
@@ -30,8 +29,8 @@ import (
 
 func TestGetCertificateManager(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
-	computeMock := catalog.NewMockInterface(mockCtrl)
-	computeMock.EXPECT().GetMeshConfig().AnyTimes()
+	MockInfraClient := NewMockProvidersInfraClient(mockCtrl)
+	MockInfraClient.EXPECT().GetMeshConfig().AnyTimes()
 
 	type testCase struct {
 		name        string
@@ -134,7 +133,7 @@ func TestGetCertificateManager(t *testing.T) {
 				getCA = oldCA
 			}()
 
-			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, computeMock, 1*time.Hour, "cluster.local")
+			manager, err := NewCertificateManager(context.Background(), tc.kubeClient, tc.restConfig, tc.providerNamespace, tc.options, MockInfraClient, 1*time.Hour, "cluster.local")
 			if tc.expectError {
 				assert.Empty(manager)
 				assert.Error(err)
