@@ -375,11 +375,11 @@ func TestGetBootstrapSecrets(t *testing.T) {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			mockInfraInterface := NewMockInjectorInfraClient(gomock.NewController(t))
-			mockInfraInterface.EXPECT().ListSecrets().Return(tc.secrets)
+			mockInfraClient := NewMockInjectorInfraClient(gomock.NewController(t))
+			mockInfraClient.EXPECT().ListSecrets().Return(tc.secrets)
 
 			certManager := tresorFake.NewFake(time.Hour)
-			b := NewBootstrapSecretRotator(mockInfraInterface, certManager, time.Duration(1))
+			b := NewBootstrapSecretRotator(mockInfraClient, certManager, time.Duration(1))
 
 			actual := b.getBootstrapSecrets()
 			assert.ElementsMatch(tc.expSecrets, actual)
@@ -534,18 +534,18 @@ func TestRotateBootstrapSecrets(t *testing.T) {
 			}
 			fakeK8sClient := fake.NewSimpleClientset(objs...)
 
-			mockInfraInterface := NewMockInjectorInfraClient(gomock.NewController(t))
-			mockInfraInterface.EXPECT().ListSecrets().Return(tc.secrets)
+			mockInfraClient := NewMockInjectorInfraClient(gomock.NewController(t))
+			mockInfraClient.EXPECT().ListSecrets().Return(tc.secrets)
 			for i := 0; i < len(tc.secrets); i++ {
-				mockInfraInterface.EXPECT().GetSecret(tc.secrets[i].Name, testNs).Return(tc.secrets[i])
+				mockInfraClient.EXPECT().GetSecret(tc.secrets[i].Name, testNs).Return(tc.secrets[i])
 			}
 
 			if tc.shouldRotate {
 				for i := 0; i < len(tc.secrets); i++ {
-					mockInfraInterface.EXPECT().UpdateSecret(context.Background(), tc.secrets[i])
+					mockInfraClient.EXPECT().UpdateSecret(context.Background(), tc.secrets[i])
 				}
 			}
-			bootstrapSecretRotator := NewBootstrapSecretRotator(mockInfraInterface, certManager, time.Duration(1))
+			bootstrapSecretRotator := NewBootstrapSecretRotator(mockInfraClient, certManager, time.Duration(1))
 			bootstrapSecretRotator.rotateBootstrapSecrets(context.Background())
 
 			secretList, err := fakeK8sClient.CoreV1().Secrets(testNs).List(context.Background(), metav1.ListOptions{})
