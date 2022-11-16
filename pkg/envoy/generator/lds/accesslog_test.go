@@ -26,8 +26,20 @@ func TestAccessLogBuild(t *testing.T) {
 			expectErr:             false,
 		},
 		{
-			name:                  "custom  stream access log JSON format",
+			name:                  "custom stream access log text format with query formatter",
+			ab:                    NewAccessLogBuilder().Name("foo").Format("[%START_TIME%] \"%REQ(:METHOD)% %REQ_WITHOUT_QUERY(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\" %RESPONSE_CODE% %RESPONSE_FLAGS%\n"),
+			numExpectedAccessLogs: 1, // STDOUT stream access log
+			expectErr:             false,
+		},
+		{
+			name:                  "custom stream access log JSON format",
 			ab:                    NewAccessLogBuilder().Name("foo").Format(`{"authority":"%REQ(:AUTHORITY)%","bytes_received":"%BYTES_RECEIVED%","bytes_sent":"%BYTES_SENT%"}`),
+			numExpectedAccessLogs: 1, // STDOUT stream access log
+			expectErr:             false,
+		},
+		{
+			name:                  "custom stream access log JSON format with query formatter",
+			ab:                    NewAccessLogBuilder().Name("foo").Format(`{"authority":"%REQ_WITHOUT_QUERY(:AUTHORITY)%","bytes_received":"%BYTES_RECEIVED%","bytes_sent":"%BYTES_SENT%"}`),
 			numExpectedAccessLogs: 1, // STDOUT stream access log
 			expectErr:             false,
 		},
