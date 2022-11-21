@@ -393,7 +393,7 @@ func WithVaultTokenSecretRef() InstallOsmOpt {
 	return func(opts *InstallOSMOpts) {
 		opts.SetOverrides = []string{
 			"osm.vault.secret.name=osm-vault-token",
-			"osm.vault.secret.key=token-key",
+			"osm.vault.secret.key=vault_token",
 		}
 	}
 }
@@ -430,7 +430,7 @@ func (td *OsmTestData) GetOSMInstallOpts(options ...InstallOsmOpt) InstallOSMOpt
 		VaultRole:            "openservicemesh",
 		VaultToken:           "token",
 		VaultTokenSecretName: "osm-vault-token",
-		VaultTokenSecretKey:  "token-key",
+		VaultTokenSecretKey:  "vault_token",
 
 		CertmanagerIssuerGroup: "cert-manager.io",
 		CertmanagerIssuerKind:  "Issuer",
@@ -893,13 +893,13 @@ tail /dev/random;
 
 	vaultSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "osm-vault-token",
+			Name: instOpts.VaultTokenSecretName,
 			Labels: map[string]string{
 				constants.AppLabel: appName,
 			},
 		},
 		StringData: map[string]string{
-			"vault_token": instOpts.VaultToken,
+			instOpts.VaultTokenSecretKey: instOpts.VaultToken,
 		},
 	}
 	_, err = td.Client.CoreV1().Secrets(instOpts.ControlPlaneNS).Create(context.TODO(), vaultSecret, metav1.CreateOptions{})
