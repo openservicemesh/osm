@@ -402,16 +402,18 @@ func (b *bootstrap) ensureMeshRootCertificate() error {
 		return err
 	}
 
-	if len(meshRootCertificateList.Items) != 0 {
-		return nil
+	for _, mrc := range meshRootCertificateList.Items {
+		// if an MRC with Active intent exists in the mesh, do not create the default MRC
+		if mrc.Spec.Intent == configv1alpha2.ActiveIntent {
+			log.Debug().Msgf("Found MeshRootCertificate %s with %s intent. No default MeshRootCertificate will be created.", mrc.Name, mrc.Spec.Intent)
+			return nil
+		}
 	}
 
-	// create a MeshRootCertificate since none were found
 	return b.createMeshRootCertificate()
 }
 
 func (b *bootstrap) createMeshRootCertificate() error {
-	// TODO(5046): create the mrc per https://gist.github.com/keithmattix/9ac73abbcb5721b0ce58102ac3ebff29
 	// find preset config map to build the MeshRootCertificate from
 	presetMeshRootCertificate, err := b.kubeClient.CoreV1().ConfigMaps(b.namespace).Get(context.TODO(), presetMeshRootCertificateName, metav1.GetOptions{})
 	if err != nil {
@@ -425,7 +427,18 @@ func (b *bootstrap) createMeshRootCertificate() error {
 	}
 	_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshRootCertificate, metav1.CreateOptions{})
 	if apierrors.IsAlreadyExists(err) {
-		log.Info().Msgf("MeshRootCertificate already exists in %s. Skip creating.", b.namespace)
+		// check the intent of the existing MeshRootCertificate
+		existingDefaultMeshRootCertificate, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), constants.DefaultMeshRootCertificateName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if existingDefaultMeshRootCertificate.Spec.Intent != configv1alpha2.ActiveIntent {
+			log.Warn().Msgf("Existing default MeshRootCertificate %s in %s does not have an active intent. No active MeshRootCertificate will be created.",
+				constants.DefaultMeshRootCertificateName, b.namespace)
+			return nil
+		}
+
+		log.Info().Msgf("MeshRootCertificate %s already exists in %s. Skip creating.", constants.DefaultMeshRootCertificateName, b.namespace)
 		return nil
 	}
 	if err != nil {
