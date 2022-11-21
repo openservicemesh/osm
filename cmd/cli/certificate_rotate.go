@@ -121,11 +121,11 @@ func (r *rotateCmd) run() error {
 	}
 	fmt.Fprintf(r.out, "Found MeshRootCertificate [%s] for mesh [%s] in namespace [%s]\n\n", oldMrc.Name, r.meshName, settings.Namespace())
 
-	newMrc, err := r.createOrFindNewMRC(oldMrc)
+	newMrc, err := r.getNewMRCforRotation(oldMrc)
 	if err != nil {
 		return fmt.Errorf("unable to create or find new MeshRootCertificate: %s", err)
 	}
-	fmt.Fprintf(r.out, "Created new MeshRootCertificate [%s] in Inactive role\n", newMrc.Name)
+	fmt.Fprintf(r.out, "Using MeshRootCertificate [%s] which is in Inactive role\n", newMrc.Name)
 
 	fmt.Fprintf(r.out, "Moving MeshRootCertificate [%s] to Passive role\n", newMrc.Name)
 	if !r.promptForContinue("Are you sure you want to initiate rotation?") {
@@ -135,7 +135,7 @@ func (r *rotateCmd) run() error {
 	if err != nil {
 		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", newMrc.Name, v1alpha2.PassiveIntent, err)
 	}
-	fmt.Fprintf(r.out, "waiting for propagation...\n\n")
+	fmt.Fprintf(r.out, "waiting for %s propagation...\n\n", r.waitForRotation)
 	time.Sleep(r.waitForRotation)
 
 	fmt.Fprintf(r.out, "Moving MeshRootCertificate [%s] to Active role\n", newMrc.Name)
@@ -146,8 +146,7 @@ func (r *rotateCmd) run() error {
 	if err != nil {
 		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", newMrc.Name, v1alpha2.ActiveIntent, err)
 	}
-	fmt.Fprintf(r.out, "waiting for propagation...\n\n")
-
+	fmt.Fprintf(r.out, "waiting for %s propagation...\n\n", r.waitForRotation)
 	time.Sleep(r.waitForRotation)
 
 	fmt.Fprintf(r.out, "Moving MeshRootCertificate [%s] to Passive role\n", oldMrc.Name)
@@ -158,7 +157,7 @@ func (r *rotateCmd) run() error {
 	if err != nil {
 		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", oldMrc.Name, v1alpha2.PassiveIntent, err)
 	}
-	fmt.Fprintf(r.out, "waiting for propagation...\n\n")
+	fmt.Fprintf(r.out, "waiting for %s propagation...\n\n", r.waitForRotation)
 	time.Sleep(r.waitForRotation)
 
 	fmt.Fprintf(r.out, "Moving MeshRootCertificate [%s] to Inactive role\n", oldMrc.Name)
@@ -169,7 +168,7 @@ func (r *rotateCmd) run() error {
 	if err != nil {
 		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", oldMrc.Name, v1alpha2.InactiveIntent, err)
 	}
-	fmt.Fprintf(r.out, "waiting for propagation...\n\n")
+	fmt.Fprintf(r.out, "waiting for %s propagation...\n\n", r.waitForRotation)
 	time.Sleep(r.waitForRotation)
 
 	if r.deleteOld {
@@ -180,8 +179,9 @@ func (r *rotateCmd) run() error {
 		if err != nil {
 			fmt.Printf("warning: unable to delete MeshRootCertificate [%s]", oldMrc.Name)
 		}
+
 		if oldMrc.Spec.Provider.Tresor != nil {
-			err = r.clientSet.CoreV1().Secrets(oldMrc.Spec.Provider.Tresor.CA.SecretRef.Namespace).Delete(context.Background(), oldMrc.Spec.Provider.Tresor.CA.SecretRef.Name, metav1.DeleteOptions{})
+			r.deleteTresorSecret(oldMrc.Spec.Provider.Tresor.CA, newMrc.Spec.Provider.Tresor.CA)
 			if err != nil {
 				fmt.Printf("warning: unable to delete secret [%s]", oldMrc.Spec.Provider.Tresor.CA.SecretRef.Name)
 			}
@@ -191,6 +191,16 @@ func (r *rotateCmd) run() error {
 	fmt.Fprintf(r.out, "\nOSM successfully rotated root certificate for mesh [%s] in namespace [%s]\n", r.meshName, settings.Namespace())
 	fmt.Fprintf(r.out, "\nThe new MeshRootCertificate [%s] is now active\n", newMrc.Name)
 	return nil
+}
+
+func (r *rotateCmd) deleteTresorSecret(oldTresorCA, newTresorCA v1alpha2.TresorCASpec) error {
+	if oldTresorCA.SecretRef.Name == newTresorCA.SecretRef.Name &&
+		oldTresorCA.SecretRef.Namespace == newTresorCA.SecretRef.Namespace {
+		fmt.Printf("warning: unable to delete secret [%s].  tresor's new secret is the same as old secret reference", oldTresorCA.SecretRef.Name)
+		return nil
+	}
+
+	return r.clientSet.CoreV1().Secrets(oldTresorCA.SecretRef.Namespace).Delete(context.Background(), oldTresorCA.SecretRef.Name, metav1.DeleteOptions{})
 }
 
 func (r *rotateCmd) findCurrentInUse() (*v1alpha2.MeshRootCertificate, error) {
@@ -235,60 +245,75 @@ func (r *rotateCmd) updateCertificate(name string, intent v1alpha2.MeshRootCerti
 	return nil
 }
 
-func (r *rotateCmd) createOrFindNewMRC(mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+func (r *rotateCmd) getNewMRCforRotation(mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+	// if the user has specified an MRC to use
 	if r.mrcName != "" {
-		fmt.Fprintf(r.out, "using existing MeshRootCertificate %s\n", r.mrcName)
-
-		existing, err := r.configClient.ConfigV1alpha2().MeshRootCertificates(settings.Namespace()).Get(context.Background(), r.mrcName, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("unable to verify that MeshRootCertificate [%s]. Error: %v", existing.Name, err)
-		}
-
-		if existing.Spec.Intent != v1alpha2.InactiveIntent {
-			return nil, fmt.Errorf("MRC provided must be in Inactive role")
-		}
-
-		return existing, nil
+		return r.usePreCreatedMRC()
 	}
 
+	// if the user has specified a file to use
 	if r.mrcFilePath != "" {
-		fmt.Fprintf(r.out, "using file %s\n", r.mrcFilePath)
-		decode := scheme.Codecs.UniversalDeserializer().Decode
-		file, err := os.ReadFile(r.mrcFilePath)
-		if err != nil {
-			return nil, err
-		}
-		obj, _, err := decode([]byte(file), nil, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		newMRC, ok := obj.(*v1alpha2.MeshRootCertificate)
-		if !ok {
-			return nil, fmt.Errorf("file provided is not recognized as MeshRootCertificate")
-		}
-		if newMRC.Spec.Intent != v1alpha2.InactiveIntent {
-			return nil, fmt.Errorf("file provided must be a MeshRootCertificate in the Inactive role")
-		}
-
-		existing, err := r.configClient.ConfigV1alpha2().MeshRootCertificates(settings.Namespace()).Get(context.Background(), newMRC.Name, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("unable to verify that MeshRootCertificate [%s] doesn't already exist. Error: %v", newMRC.Name, err)
-		}
-		if existing != nil {
-			return nil, fmt.Errorf("cannot use MeshRootCertificate [%s] as it already exists in cluster", newMRC.Name)
-		}
-
-		return r.configClient.ConfigV1alpha2().MeshRootCertificates(settings.Namespace()).Create(context.Background(), newMRC, metav1.CreateOptions{})
+		return r.createFromFile()
 	}
 
-	return r.createFromExisting(mrc)
+	// try to create one
+	return r.createNewMRC(mrc)
 }
 
-func (r *rotateCmd) createFromExisting(mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+func (r *rotateCmd) createFromFile() (*v1alpha2.MeshRootCertificate, error) {
+	fmt.Fprintf(r.out, "using file %s\n", r.mrcFilePath)
+	decode := scheme.Codecs.UniversalDeserializer().Decode
+	file, err := os.ReadFile(r.mrcFilePath)
+	if err != nil {
+		return nil, err
+	}
+	obj, _, err := decode([]byte(file), nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	newMRC, ok := obj.(*v1alpha2.MeshRootCertificate)
+	if !ok {
+		return nil, fmt.Errorf("file provided is not recognized as MeshRootCertificate")
+	}
+	if newMRC.Spec.Intent != v1alpha2.InactiveIntent {
+		return nil, fmt.Errorf("file provided must be a MeshRootCertificate in the Inactive role")
+	}
+
+	existing, err := r.configClient.ConfigV1alpha2().MeshRootCertificates(settings.Namespace()).Get(context.Background(), newMRC.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("unable to verify that MeshRootCertificate [%s] doesn't already exist. Error: %v", newMRC.Name, err)
+	}
+	if existing != nil {
+		return nil, fmt.Errorf("cannot use MeshRootCertificate [%s] as it already exists in cluster", newMRC.Name)
+	}
+
+	return r.configClient.ConfigV1alpha2().MeshRootCertificates(settings.Namespace()).Create(context.Background(), newMRC, metav1.CreateOptions{})
+}
+
+func (r *rotateCmd) usePreCreatedMRC() (*v1alpha2.MeshRootCertificate, error) {
+	fmt.Fprintf(r.out, "using existing MeshRootCertificate %s\n", r.mrcName)
+
+	existing, err := r.configClient.ConfigV1alpha2().MeshRootCertificates(settings.Namespace()).Get(context.Background(), r.mrcName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("unable to verify that MeshRootCertificate [%s]. Error: %v", existing.Name, err)
+	}
+
+	if existing.Spec.Intent != v1alpha2.InactiveIntent {
+		return nil, fmt.Errorf("MRC provided must be in Inactive role")
+	}
+
+	return existing, nil
+}
+
+func (r *rotateCmd) createNewMRC(mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
 	switch {
 	case mrc.Spec.Provider.Tresor != nil:
-		return r.createTresorFromExisting(mrc)
+		trustDomain := mrc.Spec.TrustDomain
+		if r.newTrustDomain != "" {
+			trustDomain = r.newTrustDomain
+		}
+		return r.createTresorMRC(trustDomain)
 	case mrc.Spec.Provider.Vault != nil:
 		// since we can't create the secrets in vault we require them to create a file
 		return nil, fmt.Errorf("please use -file or -meshrootcertificate option to provide a MeshRootCertificate Vault provider")
@@ -311,12 +336,8 @@ func generateName() (string, string) {
 	return fmt.Sprintf("%s-%x", constants.DefaultMeshRootCertificateName, string(s)), string(s)
 }
 
-func (r *rotateCmd) createTresorFromExisting(mrc *v1alpha2.MeshRootCertificate) (*v1alpha2.MeshRootCertificate, error) {
+func (r *rotateCmd) createTresorMRC(trustDomain string) (*v1alpha2.MeshRootCertificate, error) {
 	newName, nameSuffix := generateName()
-	trustDomain := mrc.Spec.TrustDomain
-	if r.newTrustDomain != "" {
-		trustDomain = r.newTrustDomain
-	}
 	return r.configClient.ConfigV1alpha2().MeshRootCertificates(settings.Namespace()).Create(
 		context.Background(), &v1alpha2.MeshRootCertificate{
 			ObjectMeta: metav1.ObjectMeta{
