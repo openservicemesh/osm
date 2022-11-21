@@ -181,7 +181,7 @@ func (r *rotateCmd) run() error {
 		}
 
 		if oldMrc.Spec.Provider.Tresor != nil {
-			r.deleteTresorSecret(oldMrc.Spec.Provider.Tresor.CA, newMrc.Spec.Provider.Tresor.CA)
+			err := r.deleteTresorSecret(oldMrc.Spec.Provider.Tresor.CA, newMrc.Spec.Provider.Tresor.CA)
 			if err != nil {
 				fmt.Printf("warning: unable to delete secret [%s]", oldMrc.Spec.Provider.Tresor.CA.SecretRef.Name)
 			}
