@@ -162,7 +162,7 @@ func main() {
 		return
 	}
 
-	if bootstrap.shouldCreateMeshRootCertificate() {
+	if bootstrap.shouldEnsureMeshRootCertificate() {
 		err = bootstrap.ensureMeshRootCertificate()
 		if err != nil {
 			log.Fatal().Err(err).Msgf("Error setting up default MeshRootCertificate %s from ConfigMap %s", constants.DefaultMeshRootCertificateName, presetMeshRootCertificateName)
@@ -324,9 +324,9 @@ func (b *bootstrap) ensureMeshConfig() error {
 	return nil
 }
 
-// shouldCreateMeshRootCertificate gets the MeshConfig and returns the values of the enableMeshRootCertificate
+// shouldEnsureMeshRootCertificate gets the MeshConfig and returns the values of the enableMeshRootCertificate
 // feature flag
-func (b *bootstrap) shouldCreateMeshRootCertificate() bool {
+func (b *bootstrap) shouldEnsureMeshRootCertificate() bool {
 	config, err := b.configClient.ConfigV1alpha2().MeshConfigs(b.namespace).Get(context.TODO(), meshConfigName, metav1.GetOptions{})
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get MeshConfig when attempting to check enableMeshRootCertificate feature flag")
@@ -336,7 +336,7 @@ func (b *bootstrap) shouldCreateMeshRootCertificate() bool {
 }
 
 // initializeKubernetesEventsRecorder initializes the generic Kubernetes event recorder and associates it with
-// the osm-bootstrap pod resource. The events recorder allows the osm-bootstap to publish Kubernets events to
+// the osm-bootstrap pod resource. The events recorder allows the osm-bootstrap to publish Kubernetes events to
 // report fatal errors with initializing this application. These events will show up in the output of `kubectl get events`
 func (b *bootstrap) initializeKubernetesEventsRecorder() error {
 	bootstrapPod, err := b.getBootstrapPod()
