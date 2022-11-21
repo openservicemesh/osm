@@ -89,7 +89,7 @@ func basicCertRotationScenario(installOptions ...InstallOsmOpt) {
 	activeNotAllowed := "not-allowed"
 	_, err := createMeshRootCertificate(activeNotAllowed, v1alpha2.ActiveIntent, installOpts.CertManager)
 	Expect(err).Should(HaveOccurred())
-	Expect(err.Error()).Should(ContainSubstring("cannot create MRC %s/%s with intent active. An MRC with active intent already exists in the control plane namespace", Td.OsmNamespace, activeNotAllowed))
+	Expect(err.Error()).Should(ContainSubstring("cannot create MRC %s/%s with active intent. An MRC with this intent already exists in the control plane namespace.", Td.OsmNamespace, activeNotAllowed))
 
 	By("creating a second certificate with passive intent")
 	newCertName := "osm-mrc-2"
