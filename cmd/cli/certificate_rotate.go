@@ -109,7 +109,15 @@ func (r *rotateCmd) promptForContinue(msg string) bool {
 }
 
 func (r *rotateCmd) run() error {
-	// TODO(#5204): check if MRC feature is enabled
+	mrcEnabled, err := r.isMRCEnabled()
+	if err != nil {
+		return err
+	}
+
+	if !mrcEnabled {
+		return fmt.Errorf("the MeshConfig must have EnableMeshRootCertificate set to true")
+	}
+
 	// TODO(#4891): check cert rotations or metrics instead of using time
 	if !r.promptForContinue("Are you sure you want to initiate rotation?") {
 		return nil
@@ -360,14 +368,13 @@ func (r *rotateCmd) createTresorMRC(trustDomain string) (*v1alpha2.MeshRootCerti
 		}, metav1.CreateOptions{})
 }
 
-// uncomment once https://github.com/openservicemesh/osm/pull/5204 merges
-// func (cmd *rotateCmd) isMRCEnabled() (bool, error) {
-// 	osmNamespace := settings.Namespace()
+func (r *rotateCmd) isMRCEnabled() (bool, error) {
+	osmNamespace := settings.Namespace()
 
-// 	meshConfig, err := cmd.meshConfigClient.ConfigV1alpha2().MeshConfigs(osmNamespace).Get(context.TODO(), defaultOsmMeshConfigName, metav1.GetOptions{})
+	meshConfig, err := r.configClient.ConfigV1alpha2().MeshConfigs(osmNamespace).Get(context.TODO(), defaultOsmMeshConfigName, metav1.GetOptions{})
 
-// 	if err != nil {
-// 		return false, fmt.Errorf("Error fetching MeshConfig %s: %w", defaultOsmMeshConfigName, err)
-// 	}
-// 	return meshConfig.Spec.FeatureFlags.enableMeshRootCertificate, nil
-// }
+	if err != nil {
+		return false, fmt.Errorf("error fetching MeshConfig %s: %w", defaultOsmMeshConfigName, err)
+	}
+	return meshConfig.Spec.FeatureFlags.EnableMeshRootCertificate, nil
+}
