@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -26,9 +27,13 @@ var _ = OSMDescribe("MeshRootCertificate",
 		Bucket: 11,
 	},
 	func() {
-		Context("with Tressor", func() {
+		Context("with Tresor", func() {
 			It("rotates certificates", func() {
 				basicCertRotationScenario()
+			})
+
+			It("handles enabling MRC after install", func() {
+				enablingMRCAfterInstallScenario()
 			})
 		})
 
@@ -36,11 +41,19 @@ var _ = OSMDescribe("MeshRootCertificate",
 			It("rotates certificates", func() {
 				basicCertRotationScenario(WithCertManagerEnabled())
 			})
+
+			It("handles enabling MRC after install", func() {
+				enablingMRCAfterInstallScenario(WithCertManagerEnabled())
+			})
 		})
 
 		Context("with Vault", func() {
 			It("rotates certificates", func() {
 				basicCertRotationScenario(WithVault())
+			})
+
+			It("handles enabling MRC after install", func() {
+				enablingMRCAfterInstallScenario(WithVault(), WithVaultTokenSecretRef())
 			})
 		})
 	})
@@ -133,9 +146,7 @@ func basicCertRotationScenario(installOptions ...InstallOsmOpt) {
 
 	By("restarting osm controller")
 	// If anything got stuck in above rotation this will ensure things are indeed working
-	stdout, stderr, err := Td.RunLocal("kubectl", "rollout", "restart", "deployment", "osm-controller", "-n", Td.OsmNamespace)
-	Td.T.Logf("stderr:\n%s\n", stderr)
-	Td.T.Logf("stdout:\n%s\n", stdout)
+	err = Td.RolloutRestartOSMControlPlaneComponent(constants.OSMControllerName)
 	Expect(err).NotTo(HaveOccurred())
 	time.Sleep(5 * time.Second)
 	Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 1, nil)).To(Succeed())
@@ -147,10 +158,62 @@ func basicCertRotationScenario(installOptions ...InstallOsmOpt) {
 	// todo maybe check that cert modules are different?
 }
 
+func enablingMRCAfterInstallScenario(installOptions ...InstallOsmOpt) {
+	By("installing with MRC disabled")
+	installOpts := Td.GetOSMInstallOpts(installOptions...)
+	Expect(Td.InstallOSM(installOpts)).To(Succeed())
+
+	By("checking the certificate exists")
+	if installOpts.CertManager != Vault {
+		// no secrets are created in Vault case
+		err := Td.WaitForCABundleSecret(Td.OsmNamespace, OsmCABundleName, time.Second*5)
+		Expect(err).NotTo(HaveOccurred())
+	}
+
+	By("checking that an MRC was not created")
+	time.Sleep(time.Second * 10)
+	_, err := Td.ConfigClient.ConfigV1alpha2().MeshRootCertificates(Td.OsmNamespace).Get(
+		context.Background(), constants.DefaultMeshRootCertificateName, metav1.GetOptions{})
+	Expect(err).Should(HaveOccurred())
+	Expect(apierrors.IsNotFound(err)).To(BeTrue())
+
+	By("checking HTTP traffic for client -> server pod")
+	clientPod, serverPod, serverSvc := deployTestWorkload()
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+
+	By("enabling EnableMeshRootCertificate feature flag by setting the flag in the MeshConfig")
+	meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
+	meshConfig.Spec.FeatureFlags.EnableMeshRootCertificate = true
+	updatedMeshConfig, err := Td.UpdateOSMConfig(meshConfig)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(updatedMeshConfig.Spec.FeatureFlags.EnableMeshRootCertificate).To(BeTrue())
+
+	By("restarting the osm-bootstrap")
+	err = Td.RolloutRestartOSMControlPlaneComponent(constants.OSMBootstrapName)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("checking that an active MRC was created")
+	Eventually(func() error {
+		_, err := Td.ConfigClient.ConfigV1alpha2().MeshRootCertificates(Td.OsmNamespace).Get(
+			context.Background(), constants.DefaultMeshRootCertificateName, metav1.GetOptions{})
+		return err
+	}, 10*time.Second).Should(BeNil())
+
+	By("restarting the osm-injector and osm-controller")
+	err = Td.RolloutRestartOSMControlPlaneComponent(constants.OSMControllerName)
+	Expect(err).NotTo(HaveOccurred())
+	err = Td.RolloutRestartOSMControlPlaneComponent(constants.OSMInjectorName)
+	Expect(err).NotTo(HaveOccurred())
+	time.Sleep(5 * time.Second)
+
+	By("checking HTTP traffic for client -> server pod")
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+}
+
 func createMeshRootCertificate(name string, intent v1alpha2.MeshRootCertificateIntent, certificateManagerType string) (*v1alpha2.MeshRootCertificate, error) {
 	switch certificateManagerType {
 	case DefaultCertManager:
-		return createTressorMRC(name, intent)
+		return createTresorMRC(name, intent)
 	case CertManager:
 		return createCertManagerMRC(name, intent)
 	case Vault:
@@ -161,7 +224,7 @@ func createMeshRootCertificate(name string, intent v1alpha2.MeshRootCertificateI
 	}
 }
 
-func createTressorMRC(name string, intent v1alpha2.MeshRootCertificateIntent) (*v1alpha2.MeshRootCertificate, error) {
+func createTresorMRC(name string, intent v1alpha2.MeshRootCertificateIntent) (*v1alpha2.MeshRootCertificate, error) {
 	return Td.ConfigClient.ConfigV1alpha2().MeshRootCertificates(Td.OsmNamespace).Create(
 		context.Background(), &v1alpha2.MeshRootCertificate{
 			ObjectMeta: metav1.ObjectMeta{
@@ -331,7 +394,7 @@ func verifySuccessfulPodConnection(srcPod, dstPod *v1.Pod, serverSvc *v1.Service
 // 3. Verify bootstrap certs updated (todo)
 // 4. verify xds cert updated (todo)
 func verifyCertRotation(clientPodDef, serverPodDef *v1.Pod, signingCertName, validatingCertName string) {
-	By("checking bootstrap secrets are updated after creating MRC with passive intent")
+	By("checking bootstrap secrets are updated")
 	podSelector := constants.EnvoyUniqueIDLabelName
 	srvPod, err := Td.Client.CoreV1().Pods(serverPodDef.Namespace).Get(context.Background(), serverPodDef.Name, metav1.GetOptions{})
 	Expect(err).To(BeNil())

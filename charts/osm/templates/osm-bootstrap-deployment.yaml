@@ -50,7 +50,6 @@ spec:
             "--ca-bundle-secret-name", "{{.Values.osm.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.osm.certificateProvider.kind}}",
             "--trust-domain", "{{.Values.osm.trustDomain}}",
-            "--enable-mesh-root-certificate={{.Values.osm.featureFlags.enableMeshRootCertificate}}",
             {{ if eq .Values.osm.certificateProvider.kind "vault" }}
             "--vault-host", "{{.Values.osm.vault.host}}",
             "--vault-port", "{{.Values.osm.vault.port}}",

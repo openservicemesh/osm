@@ -373,35 +373,6 @@ var _ = Describe("Running the install command", func() {
 			err := installCmd.run(config)
 			Expect(err.Error()).To(ContainSubstring("osm.vault.host is required"))
 		})
-
-		It("should error when token and token secret key are not set", func() {
-			installCmd.setOptions = append(installCmd.setOptions,
-				"osm.vault.host=my-host",
-				"osm.vault.secret.name=secret",
-			)
-			err := installCmd.run(config)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("osm.vault.secret.key is required"))
-		})
-
-		It("should error when token and token secret name are not set", func() {
-			installCmd.setOptions = append(installCmd.setOptions,
-				"osm.vault.host=my-host",
-				"osm.vault.secret.key=key",
-			)
-			err := installCmd.run(config)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("osm.vault.secret.name is required"))
-		})
-
-		It("should error when token and token secret name and key are not set", func() {
-			installCmd.setOptions = append(installCmd.setOptions,
-				"osm.vault.host=my-host",
-			)
-			err := installCmd.run(config)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("osm.vault.token is required"))
-		})
 	})
 
 	Describe("with the cert-manager certificate manager", func() {

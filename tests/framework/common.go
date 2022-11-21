@@ -376,7 +376,7 @@ func WithCertManagerEnabled() InstallOsmOpt {
 	}
 }
 
-// WithVault turns will install vault before installing OSM
+// WithVault will install vault before installing OSM
 func WithVault() InstallOsmOpt {
 	return func(opts *InstallOSMOpts) {
 		opts.CertManager = Vault
@@ -384,6 +384,16 @@ func WithVault() InstallOsmOpt {
 			// increase timeout when using an external certificate provider due to
 			// potential slowness issuing certs
 			"osm.injector.webhookTimeoutSeconds=30",
+		}
+	}
+}
+
+// WithVaultTokenSecretRef will set the vault token secret name and key
+func WithVaultTokenSecretRef() InstallOsmOpt {
+	return func(opts *InstallOSMOpts) {
+		opts.SetOverrides = []string{
+			"osm.vault.secret.name=osm-vault-token",
+			"osm.vault.secret.key=token-key",
 		}
 	}
 }
@@ -711,6 +721,14 @@ func (td *OsmTestData) RestartOSMController(instOpts InstallOSMOpts) error {
 	}
 
 	return nil
+}
+
+// RolloutRestartOSMControlPlaneComponent restarts the specified OSM control plane components in the installed controller's namespace
+func (td *OsmTestData) RolloutRestartOSMControlPlaneComponent(componentName string) error {
+	stdout, stderr, err := Td.RunLocal("kubectl", "rollout", "restart", "deployment", componentName, "-n", Td.OsmNamespace)
+	Td.T.Logf("stderr:\n%s\n", stderr)
+	Td.T.Logf("stdout:\n%s\n", stdout)
+	return err
 }
 
 // GetMeshConfig is a wrapper to get a MeshConfig by name in a particular namespace
