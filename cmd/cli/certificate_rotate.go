@@ -143,7 +143,7 @@ func (r *rotateCmd) run() error {
 	if err != nil {
 		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", newMrc.Name, v1alpha2.PassiveIntent, err)
 	}
-	fmt.Fprintf(r.out, "waiting for %s propagation...\n\n", r.waitForRotation)
+	fmt.Fprintf(r.out, "waiting %s for propagation...\n\n", r.waitForRotation)
 	time.Sleep(r.waitForRotation)
 
 	fmt.Fprintf(r.out, "Moving MeshRootCertificate [%s] to Active role\n", newMrc.Name)
@@ -154,7 +154,7 @@ func (r *rotateCmd) run() error {
 	if err != nil {
 		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", newMrc.Name, v1alpha2.ActiveIntent, err)
 	}
-	fmt.Fprintf(r.out, "waiting for %s propagation...\n\n", r.waitForRotation)
+	fmt.Fprintf(r.out, "waiting %s for propagation...\n\n", r.waitForRotation)
 	time.Sleep(r.waitForRotation)
 
 	fmt.Fprintf(r.out, "Moving MeshRootCertificate [%s] to Passive role\n", oldMrc.Name)
@@ -165,7 +165,7 @@ func (r *rotateCmd) run() error {
 	if err != nil {
 		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", oldMrc.Name, v1alpha2.PassiveIntent, err)
 	}
-	fmt.Fprintf(r.out, "waiting for %s propagation...\n\n", r.waitForRotation)
+	fmt.Fprintf(r.out, "waiting %s for propagation...\n\n", r.waitForRotation)
 	time.Sleep(r.waitForRotation)
 
 	fmt.Fprintf(r.out, "Moving MeshRootCertificate [%s] to Inactive role\n", oldMrc.Name)
@@ -176,7 +176,7 @@ func (r *rotateCmd) run() error {
 	if err != nil {
 		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", oldMrc.Name, v1alpha2.InactiveIntent, err)
 	}
-	fmt.Fprintf(r.out, "waiting for %s propagation...\n\n", r.waitForRotation)
+	fmt.Fprintf(r.out, "waiting %s for propagation...\n\n", r.waitForRotation)
 	time.Sleep(r.waitForRotation)
 
 	if r.deleteOld {
@@ -189,7 +189,7 @@ func (r *rotateCmd) run() error {
 		}
 
 		if oldMrc.Spec.Provider.Tresor != nil {
-			err := r.deleteTresorSecret(oldMrc.Spec.Provider.Tresor.CA, newMrc.Spec.Provider.Tresor.CA)
+			err = r.deleteTresorSecret(oldMrc.Spec.Provider.Tresor, newMrc.Spec.Provider.Tresor)
 			if err != nil {
 				fmt.Printf("warning: unable to delete secret [%s]", oldMrc.Spec.Provider.Tresor.CA.SecretRef.Name)
 			}
@@ -201,14 +201,15 @@ func (r *rotateCmd) run() error {
 	return nil
 }
 
-func (r *rotateCmd) deleteTresorSecret(oldTresorCA, newTresorCA v1alpha2.TresorCASpec) error {
-	if oldTresorCA.SecretRef.Name == newTresorCA.SecretRef.Name &&
-		oldTresorCA.SecretRef.Namespace == newTresorCA.SecretRef.Namespace {
-		fmt.Printf("warning: unable to delete secret [%s].  tresor's new secret is the same as old secret reference", oldTresorCA.SecretRef.Name)
+func (r *rotateCmd) deleteTresorSecret(oldTresor, newTresor *v1alpha2.TresorProviderSpec) error {
+	if oldTresor != nil && newTresor != nil &&
+		oldTresor.CA.SecretRef.Name == newTresor.CA.SecretRef.Name &&
+		oldTresor.CA.SecretRef.Namespace == newTresor.CA.SecretRef.Namespace {
+		fmt.Printf("warning: unable to delete secret [%s].  tresor's new secret is the same as old secret reference", oldTresor.CA.SecretRef.Name)
 		return nil
 	}
 
-	return r.clientSet.CoreV1().Secrets(oldTresorCA.SecretRef.Namespace).Delete(context.Background(), oldTresorCA.SecretRef.Name, metav1.DeleteOptions{})
+	return r.clientSet.CoreV1().Secrets(oldTresor.CA.SecretRef.Namespace).Delete(context.Background(), oldTresor.CA.SecretRef.Name, metav1.DeleteOptions{})
 }
 
 func (r *rotateCmd) findCurrentInUse() (*v1alpha2.MeshRootCertificate, error) {
