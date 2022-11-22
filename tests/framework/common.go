@@ -393,7 +393,7 @@ func WithVaultTokenSecretRef() InstallOsmOpt {
 	return func(opts *InstallOSMOpts) {
 		opts.SetOverrides = []string{
 			"osm.vault.secret.name=osm-vault-token",
-			"osm.vault.secret.key=token-key",
+			"osm.vault.secret.key=vault_token",
 		}
 	}
 }
@@ -430,7 +430,7 @@ func (td *OsmTestData) GetOSMInstallOpts(options ...InstallOsmOpt) InstallOSMOpt
 		VaultRole:            "openservicemesh",
 		VaultToken:           "token",
 		VaultTokenSecretName: "osm-vault-token",
-		VaultTokenSecretKey:  "token-key",
+		VaultTokenSecretKey:  "vault_token",
 
 		CertmanagerIssuerGroup: "cert-manager.io",
 		CertmanagerIssuerKind:  "Issuer",
@@ -607,7 +607,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 
 	switch instOpts.CertManager {
 	case Vault:
-		if err := td.installVault(instOpts); err != nil {
+		if err := td.InstallVault(instOpts); err != nil {
 			return err
 		}
 		instOpts.SetOverrides = append(instOpts.SetOverrides,
@@ -622,7 +622,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 			return fmt.Errorf("failed waiting for vault pod to become ready")
 		}
 	case CertManager:
-		if err := td.installCertManager(instOpts); err != nil {
+		if err := td.InstallCertManager(); err != nil {
 			return err
 		}
 		instOpts.SetOverrides = append(instOpts.SetOverrides,
@@ -756,7 +756,8 @@ func (td *OsmTestData) LoadOSMImagesIntoKind() error {
 	return td.LoadImagesToKind(imageNames)
 }
 
-func (td *OsmTestData) installVault(instOpts InstallOSMOpts) error {
+// InstallVault installs HashiCorp Vault on the cluster and creates an initial certificate
+func (td *OsmTestData) InstallVault(instOpts InstallOSMOpts) error {
 	td.T.Log("Installing Vault")
 
 	appName := "vault"
@@ -890,6 +891,22 @@ tail /dev/random;
 		return fmt.Errorf("failed to create vault deployment")
 	}
 
+	vaultSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: instOpts.VaultTokenSecretName,
+			Labels: map[string]string{
+				constants.AppLabel: appName,
+			},
+		},
+		StringData: map[string]string{
+			instOpts.VaultTokenSecretKey: instOpts.VaultToken,
+		},
+	}
+	_, err = td.Client.CoreV1().Secrets(instOpts.ControlPlaneNS).Create(context.TODO(), vaultSecret, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create vault secret")
+	}
+
 	vaultSvc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: appName,
@@ -919,7 +936,8 @@ tail /dev/random;
 	return nil
 }
 
-func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
+// InstallCertManager installs cert-manager.io on the cluster and creates an initial certificate
+func (td *OsmTestData) InstallCertManager() error {
 	By("Installing cert-manager")
 	helm := &action.Configuration{}
 	if err := helm.Init(td.Env.RESTClientGetter(), td.OsmNamespace, "secret", td.T.Logf); err != nil {

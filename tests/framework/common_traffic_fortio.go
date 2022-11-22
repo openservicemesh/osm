@@ -104,6 +104,8 @@ func (td *OsmTestData) FortioHTTPLoadTest(ht FortioHTTPLoadTestDef) FortioLoadRe
 		command = append(command, ht.Destination)
 	}
 
+	Td.T.Logf("command: %s", command)
+	Td.T.Logf("source pod: %s", ht.SourcePod)
 	stdout, stderr, err := td.RunRemote(ht.SourceNs, ht.SourcePod, ht.SourceContainer, command)
 	if err != nil {
 		// Error codes from the execution come through err

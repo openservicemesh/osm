@@ -186,20 +186,20 @@ func (c *MRCProviderGenerator) getHashiVaultOSMCertificateManager(mrc *v1alpha2.
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
 	vaultAddr := fmt.Sprintf("%s://%s:%d", provider.Protocol, provider.Host, provider.Port)
 
-	// If the DefaultVaultToken is empty, query Vault token secret
-	var err error
-	vaultToken := c.DefaultVaultToken
-	if vaultToken == "" {
+	// If provider has secret ref filled, query Vault token secret
+	token := c.DefaultVaultToken
+	if provider.Token.SecretKeyRef.Name != "" && provider.Token.SecretKeyRef.Namespace != "" && provider.Token.SecretKeyRef.Key != "" {
 		log.Debug().Msgf("Attempting to get Vault token from secret %s", provider.Token.SecretKeyRef.Name)
-		vaultToken, err = getHashiVaultOSMToken(&provider.Token.SecretKeyRef, c.kubeClient)
+		vaultToken, err := getHashiVaultOSMToken(&provider.Token.SecretKeyRef, c.kubeClient)
 		if err != nil {
 			return nil, err
 		}
+		token = vaultToken
 	}
 
 	vaultClient, err := vault.New(
 		vaultAddr,
-		vaultToken,
+		token,
 		provider.Role,
 	)
 	if err != nil {

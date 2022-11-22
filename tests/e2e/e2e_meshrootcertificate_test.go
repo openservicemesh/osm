@@ -35,6 +35,10 @@ var _ = OSMDescribe("MeshRootCertificate",
 			It("handles enabling MRC after install", func() {
 				enablingMRCAfterInstallScenario()
 			})
+
+			It("rotates trust domains", func() {
+				trustDomainRotation()
+			})
 		})
 
 		Context("with CertManager", func() {
@@ -56,7 +60,126 @@ var _ = OSMDescribe("MeshRootCertificate",
 				enablingMRCAfterInstallScenario(WithVault(), WithVaultTokenSecretRef())
 			})
 		})
+
+		Context("can switch providers", func() {
+			It("during rotation", func() {
+				providerChangeRotation()
+			})
+		})
 	})
+
+// providerChangeRotation rotates the certificate using the osm cli rotation command
+// and switches providers tresor -> cert-manager -> vault -> tresor
+func providerChangeRotation(installOptions ...InstallOsmOpt) {
+	By("installing with MRC enabled")
+	installOptions = append(installOptions, WithMeshRootCertificateEnabled())
+	installOpts := Td.GetOSMInstallOpts(installOptions...)
+	Expect(Td.InstallOSM(installOpts)).To(Succeed())
+
+	// install these so we can use them later
+	err := Td.InstallCertManager()
+	Expect(err).NotTo(HaveOccurred())
+	err = Td.InstallVault(installOpts)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("checking HTTP traffic for client -> server pod after initial MRC creation")
+	clientPod, serverPod, serverSvc := deployTestWorkload()
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+
+	By("creating new MRC with CertManager configuration")
+	certManagerMRC := "cert-manager"
+	_, err = createMeshRootCertificate(certManagerMRC, v1alpha2.InactiveIntent, CertManager)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("rotating the certificate to CertManager")
+	args := []string{"alpha", "certificate", "rotate", "-y", "-d", "-w", "35s", "-c", certManagerMRC}
+	stdout, _, err := Td.RunOsmCli(args...)
+	Td.T.Logf("stdout:\n%s", stdout)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("checking HTTP traffic for client -> server pod after CertManager cert is rotated in")
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+
+	By("creating new MRC with Vault configuration")
+	vaultMRC := "vault"
+	_, err = createMeshRootCertificate(vaultMRC, v1alpha2.InactiveIntent, Vault)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("rotating the certificate to Vault")
+	args = []string{"alpha", "certificate", "rotate", "-y", "-d", "-w", "35s", "-c", vaultMRC}
+	stdout, _, err = Td.RunOsmCli(args...)
+	Td.T.Logf("stdout:\n%s", stdout)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("checking HTTP traffic for client -> server pod after Vault cert is rotated in")
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+
+	By("creating new MRC with Tresor configuration")
+	tresorMRC := "tresor"
+	_, err = createMeshRootCertificate(tresorMRC, v1alpha2.InactiveIntent, TresorCertManager)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("rotating the certificate to Tresor")
+	args = []string{"alpha", "certificate", "rotate", "-y", "-d", "-w", "35s", "-c", tresorMRC}
+	stdout, _, err = Td.RunOsmCli(args...)
+	Td.T.Logf("stdout:\n%s", stdout)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("checking HTTP traffic for client -> server pod after CertManager cert is rotated in")
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+}
+
+// trustDomainRotation rotates the certificate using the osm cli rotation command
+func trustDomainRotation(installOptions ...InstallOsmOpt) {
+	By("installing with MRC enabled")
+	installOptions = append(installOptions, WithMeshRootCertificateEnabled())
+	installOpts := Td.GetOSMInstallOpts(installOptions...)
+	Expect(Td.InstallOSM(installOpts)).To(Succeed())
+
+	By("checking HTTP traffic for client -> server pod after initial MRC creation")
+	clientPod, serverPod, serverSvc := deployTestWorkload()
+	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
+
+	// There are 4 steps to the rotation and we set the rotation propagation wait time to 20s
+	durationOfLoadTest := "2m30s"
+	resultChn := make(chan FortioLoadResult)
+	go func() {
+		result := Td.FortioHTTPLoadTest(FortioHTTPLoadTestDef{
+			HTTPRequestDef: HTTPRequestDef{
+				SourceNs:        clientPod.Namespace,
+				SourcePod:       clientPod.Name,
+				SourceContainer: clientPod.Name,
+
+				Destination: fmt.Sprintf("%s.%s:%d", serverSvc.Name, serverPod.Namespace, fortioHTTPPort),
+			}, FortioLoadTestSpec: FortioLoadTestSpec{Duration: durationOfLoadTest}})
+		resultChn <- result
+	}()
+
+	By("rotating the certificate with a new trustdomain")
+	args := []string{"alpha", "certificate", "rotate", "-y", "-d", "-t", "cluster.new", "-w", "35s"}
+	stdout, _, err := Td.RunOsmCli(args...)
+	Td.T.Logf("stdout:\n%s", stdout)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("By checking results of load test run during rotation")
+	result := <-resultChn
+	Expect(result.Err).NotTo(HaveOccurred())
+	if result.ReturnCodes["200"].Percentage < .99 {
+		Fail(fmt.Sprintf("To many requested failed. Success rate: %f", result.ReturnCodes["200"].Percentage*100))
+	}
+	Td.T.Logf("> REST req succeeded. Status codes: %v", result.AllReturnCodes())
+
+	By("By verifying the default secret is not present")
+	_, err = Td.Client.CoreV1().Secrets(Td.OsmNamespace).Get(context.Background(), OsmCABundleName, metav1.GetOptions{})
+	Expect(err).Should(HaveOccurred())
+
+	By("By verifying the new trust domain")
+	args = []string{"proxy", "get", "certs", clientPod.Name, fmt.Sprintf("-n=%s", clientPod.Namespace)}
+	stdout, _, err = Td.RunOsmCli(args...)
+	Td.T.Logf("stdout:\n%s", stdout)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(stdout.String()).Should(ContainSubstring(fmt.Sprintf("%s.%s.cluster.new", clientPod.Spec.ServiceAccountName, clientPod.Namespace)))
+}
 
 // basicCerRotationScenario rotates a new cert in through the follow pattern:
 // | Step  | MRC1 old   | MRC2 new     | signer    | validator |
@@ -355,8 +478,8 @@ func createVaultMRC(name string, intent v1alpha2.MeshRootCertificateIntent) (*v1
 							SecretKeyRef: v1alpha2.SecretKeyReferenceSpec{
 								Name:      "osm-vault-token",
 								Namespace: Td.OsmNamespace,
-								Key:       "notused",
-							}, // The test framework wires up the using default token right now so this isn't actually used
+								Key:       "vault_token",
+							},
 						},
 					},
 				},
