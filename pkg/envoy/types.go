@@ -134,11 +134,3 @@ const (
 	// active health check traffic.
 	EnvoyActiveHealthCheckHeaderKey = "x-osm-envoy-healthcheck"
 )
-
-// ProxyKind is the type used to define the proxy's kind
-type ProxyKind string
-
-const (
-	// KindSidecar implies the proxy is a sidecar
-	KindSidecar ProxyKind = "sidecar"
-)

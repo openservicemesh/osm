@@ -27,7 +27,7 @@ type listenerBuilder struct {
 	proxyIdentity              identity.ServiceIdentity
 	address                    *xds_core.Address
 	trafficDirection           xds_core.TrafficDirection
-	trustDomain                certificate.TrustDomain
+	issuers                    certificate.IssuerInfo
 	permissiveMesh             bool
 	permissiveEgress           bool
 	outboundMeshTrafficMatches []*trafficpolicy.TrafficMatch
@@ -66,7 +66,7 @@ type tcpProxyBuilder struct {
 type filterBuilder struct {
 	statsPrefix        string
 	withRBAC           bool
-	trustDomain        certificate.TrustDomain
+	issuers            certificate.IssuerInfo
 	trafficTargets     []trafficpolicy.TrafficTargetWithRoutes
 	tcpLocalRateLimit  *policyv1alpha1.TCPLocalRateLimitSpec
 	tcpGlobalRateLimit *policyv1alpha1.TCPGlobalRateLimitSpec

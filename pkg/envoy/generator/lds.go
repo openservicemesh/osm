@@ -88,7 +88,7 @@ func (g *EnvoyConfigGenerator) generateLDS(ctx context.Context, proxy *models.Pr
 	inboundLis := lds.ListenerBuilder().
 		Name(lds.InboundListenerName).
 		ProxyIdentity(proxy.Identity).
-		TrustDomain(g.certManager.GetTrustDomains()).
+		Issuers(g.certManager.GetIssuersInfo()).
 		Address(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort).
 		TrafficDirection(xds_core.TrafficDirection_INBOUND).
 		DefaultInboundListenerFilters().

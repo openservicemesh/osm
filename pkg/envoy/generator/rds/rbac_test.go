@@ -30,8 +30,8 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 				},
 				AllowedPrincipals: mapset.NewSet(
-					identity.K8sServiceAccount{Name: "foo", Namespace: "ns-1"}.AsPrincipal("cluster.local"),
-					identity.K8sServiceAccount{Name: "bar", Namespace: "ns-2"}.AsPrincipal("cluster.local"),
+					identity.K8sServiceAccount{Name: "foo", Namespace: "ns-1"}.AsPrincipal("cluster.local", false),
+					identity.K8sServiceAccount{Name: "bar", Namespace: "ns-2"}.AsPrincipal("cluster.local", false),
 				),
 			},
 			expectedRBACPolicy: &xds_rbac.Policy{

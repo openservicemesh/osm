@@ -3,12 +3,17 @@ package osm
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -23,8 +28,8 @@ import (
 // ProxyConnected is called on stream open
 func (cp *ControlPlane[T]) ProxyConnected(ctx context.Context, connectionID int64) error {
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
-	// and the Subject CN is in the allowedCommonNames set.
-	certCommonName, certSerialNumber, err := utils.ValidateClient(ctx)
+	// and extracts the Subject CN (or SPIFFE ID if enabled)
+	kind, uuid, si, certSerialNumber, err := ValidateClient(ctx, cp.certManager.GetIssuersInfo())
 	if err != nil {
 		return fmt.Errorf("Could not start cannot connect proxy for stream id %d: %w", connectionID, err)
 	}
@@ -37,11 +42,6 @@ func (cp *ControlPlane[T]) ProxyConnected(ctx context.Context, connectionID int6
 
 	log.Trace().Msgf("Envoy with certificate SerialNumber=%s connected", certSerialNumber)
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
-
-	kind, uuid, si, err := getCertificateCommonNameMeta(certCommonName)
-	if err != nil {
-		return fmt.Errorf("error parsing certificate common name %s: %w", certCommonName, err)
-	}
 
 	proxy := models.NewProxy(kind, uuid, si, utils.GetIPFromContext(ctx), connectionID)
 
@@ -114,9 +114,69 @@ func (cp *ControlPlane[T]) ProxyDisconnected(connectionID int64) {
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 }
 
-func getCertificateCommonNameMeta(cn certificate.CommonName) (models.ProxyKind, uuid.UUID, identity.ServiceIdentity, error) {
+// ValidateClient ensures that the connected client is authorized to connect to the gRPC server.
+func ValidateClient(ctx context.Context, issuers certificate.IssuerInfo) (models.ProxyKind, uuid.UUID, identity.ServiceIdentity, certificate.SerialNumber, error) {
+	mtlsPeer, ok := peer.FromContext(ctx)
+	if !ok {
+		log.Error().Msg("[grpc][mTLS] No peer found")
+		return "", uuid.UUID{}, "", "", status.Error(codes.Unauthenticated, "no peer found")
+	}
+
+	tlsAuth, ok := mtlsPeer.AuthInfo.(credentials.TLSInfo)
+	if !ok {
+		log.Error().Msg("[grpc][mTLS] Unexpected peer transport credentials")
+		return "", uuid.UUID{}, "", "", status.Error(codes.Unauthenticated, "unexpected peer transport credentials")
+	}
+
+	if len(tlsAuth.State.VerifiedChains) == 0 || len(tlsAuth.State.VerifiedChains[0]) == 0 {
+		log.Error().Msgf("[grpc][mTLS] Could not verify peer certificate")
+		return "", uuid.UUID{}, "", "", status.Error(codes.Unauthenticated, "could not verify peer certificate")
+	}
+
+	// Check whether the subject common name is one that is allowed to connect.
+	cn := tlsAuth.State.VerifiedChains[0][0].Subject.CommonName
+
+	kind, certuuid, si, err := getCertificateCommonNameMeta(cn)
+	if err != nil {
+		return "", uuid.UUID{}, "", "", fmt.Errorf("error parsing certificate common name %s: %w", cn, err)
+	}
+
+	// If the current issuer is singing then we should use the SPIFFE ID instead of common name
+	// We can only extract and use SPIFFE ID as Primary Identification of the proxy if both issuers are using it
+	// otherwise we run the risk of some certs not having the URI specified and connection errors.
+	if issuers.Signing.SpiffeEnabled && issuers.Validating.SpiffeEnabled {
+		si, err = extractSpiffeID(tlsAuth.State.VerifiedChains[0][0].URIs)
+		if err != nil {
+			return "", uuid.UUID{}, "", "", err
+		}
+	}
+
+	certificateSerialNumber := tlsAuth.State.VerifiedChains[0][0].SerialNumber.String()
+	return kind, certuuid, si, certificate.SerialNumber(certificateSerialNumber), nil
+}
+
+// extractSpiffeID parses urls and extracts the XDS proxy identity from the SPIFFE ID in the form of spiffe://trustdomain/<proxy-UUID>/<kind>/<ServiceAccount>/<Namespace>
+func extractSpiffeID(uris []*url.URL) (identity.ServiceIdentity, error) {
+	if len(uris) != 1 {
+		return "", fmt.Errorf("error parsing SPIFFE ID, expecting exactly one SPIFFE ID got %d", len(uris))
+	}
+	spiffeURL := uris[0]
+
+	// The PATH sometimes has a slash prefixed which gives wrong number when parsing
+	path := strings.TrimPrefix(spiffeURL.Path, "/")
+	idParts := strings.Split(path, "/")
+	if len(idParts) != 4 {
+		return "", fmt.Errorf("error parsing SPIFFE ID, expecting 4 parts to SPIFFE ID got %d", len(uris))
+	}
+
+	si := identity.ServiceIdentity(fmt.Sprintf("%s.%s", idParts[2], idParts[3]))
+	log.Info().Str("spiffeid", spiffeURL.String()).Msg("extracted proxy identity from SPIFFE ID")
+	return si, nil
+}
+
+func getCertificateCommonNameMeta(cn string) (models.ProxyKind, uuid.UUID, identity.ServiceIdentity, error) {
 	// XDS cert CN is of the form <proxy-UUID>.<kind>.<proxy-identity>.<trust-domain>
-	chunks := strings.SplitN(cn.String(), constants.DomainDelimiter, 5)
+	chunks := strings.SplitN(cn, constants.DomainDelimiter, 5)
 	if len(chunks) < 4 {
 		return "", uuid.UUID{}, "", errInvalidCertificateCN
 	}

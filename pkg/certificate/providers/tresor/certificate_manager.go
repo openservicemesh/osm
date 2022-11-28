@@ -62,6 +62,7 @@ func (cm *CertManager) IssueCertificate(opts certificate.IssueOptions) (*certifi
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
 
+		// even with SPIFFE, need to keep dns name which is required since ingresses currently only support this form for validation
 		DNSNames: []string{string(opts.CommonName())},
 
 		Subject: pkix.Name{

@@ -17,15 +17,24 @@ import (
 
 func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 	testCases := []struct {
-		name                  string
-		trafficTarget         trafficpolicy.TrafficTargetWithRoutes
-		configuredTrustDomain certificate.TrustDomain
-		expectedPolicy        *xds_rbac.Policy
+		name              string
+		trafficTarget     trafficpolicy.TrafficTargetWithRoutes
+		configuredIssuers certificate.IssuerInfo
+		expectedPolicy    *xds_rbac.Policy
 	}{
 		{
 			// Test 1
-			name:                  "traffic target without TCP routes",
-			configuredTrustDomain: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
+			name: "traffic target without TCP routes",
+			configuredIssuers: certificate.IssuerInfo{
+				Signing: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+			},
 			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
 				Name:        "ns-1/test-1",
 				Destination: identity.ServiceIdentity("sa-1.ns-1"),
@@ -51,8 +60,17 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 
 		{
 			// Test 2
-			name:                  "traffic target with TCP routes",
-			configuredTrustDomain: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
+			name: "traffic target with TCP routes",
+			configuredIssuers: certificate.IssuerInfo{
+				Signing: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+			},
 			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
 				Name:        "ns-1/test-1",
 				Destination: identity.ServiceIdentity("sa-1.ns-1"),
@@ -84,8 +102,17 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 		},
 
 		{
-			name:                  "traffic target without TCP routes and multiple trust domains",
-			configuredTrustDomain: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.new"},
+			name: "traffic target without TCP routes and multiple trust domains",
+			configuredIssuers: certificate.IssuerInfo{
+				Signing: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.new",
+					SpiffeEnabled: false,
+				},
+			},
 			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
 				Name:        "ns-1/test-1",
 				Destination: identity.ServiceIdentity("sa-1.ns-1"),
@@ -117,7 +144,11 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 			assert := tassert.New(t)
 
 			// Test the RBAC policies
-			policy := buildRBACPolicyFromTrafficTarget(tc.trafficTarget, tc.configuredTrustDomain)
+			fb := filterBuilder{
+				issuers: tc.configuredIssuers,
+			}
+
+			policy := fb.buildRBACPolicyFromTrafficTarget(tc.trafficTarget)
 
 			assert.Equal(tc.expectedPolicy, policy)
 		})
@@ -126,16 +157,25 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 
 func TestBuildInboundRBACPolicies(t *testing.T) {
 	testCases := []struct {
-		name                  string
-		trafficTargets        []trafficpolicy.TrafficTargetWithRoutes
-		configuredTrustDomain certificate.TrustDomain
-		expectedPolicyKeys    map[string][]string
-		expectErr             bool
+		name               string
+		trafficTargets     []trafficpolicy.TrafficTargetWithRoutes
+		configuredIssuers  certificate.IssuerInfo
+		expectedPolicyKeys map[string][]string
+		expectErr          bool
 	}{
 		{
 			// Test 1
-			name:                  "traffic target without TCP routes",
-			configuredTrustDomain: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
+			name: "traffic target without TCP routes",
+			configuredIssuers: certificate.IssuerInfo{
+				Signing: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+			},
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
@@ -157,8 +197,17 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 
 		{
 			// Test 2
-			name:                  "traffic target with TCP routes",
-			configuredTrustDomain: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
+			name: "traffic target with TCP routes",
+			configuredIssuers: certificate.IssuerInfo{
+				Signing: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+			},
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
@@ -187,10 +236,18 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 			},
 			expectErr: false, // no error
 		},
-
 		{
-			name:                  "traffic target without TCP routes and different trust domains",
-			configuredTrustDomain: certificate.TrustDomain{Signing: "cluster.local", Validating: "cluster.new"},
+			name: "traffic target without TCP routes and different trust domains",
+			configuredIssuers: certificate.IssuerInfo{
+				Signing: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.new",
+					SpiffeEnabled: false,
+				},
+			},
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
@@ -209,6 +266,36 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 
 			expectErr: false, // no error
 		},
+		{
+			name: "traffic target without TCP routes and spiffe is enabled for one",
+			configuredIssuers: certificate.IssuerInfo{
+				Signing: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: certificate.PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: true,
+				},
+			},
+			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
+				{
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-2.ns-2"),
+						identity.ServiceIdentity("sa-3.ns-3"),
+					},
+					TCPRouteMatches: nil,
+				},
+			},
+
+			expectedPolicyKeys: map[string][]string{
+				"ns-1/test-1": {"sa-2.ns-2.cluster.local", "sa-3.ns-3.cluster.local", "spiffe://cluster.local/sa-2/ns-2", "spiffe://cluster.local/sa-3/ns-3"},
+			},
+
+			expectErr: false, // no error
+		},
 	}
 
 	for i, tc := range testCases {
@@ -216,7 +303,11 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 			assert := tassert.New(t)
 
 			// Test the RBAC policies
-			policy, err := buildInboundRBACPolicies(tc.trafficTargets, tc.configuredTrustDomain)
+			fb := filterBuilder{
+				trafficTargets: tc.trafficTargets,
+				issuers:        tc.configuredIssuers,
+			}
+			policy, err := fb.buildInboundRBACPolicies()
 
 			assert.Equal(tc.expectErr, err != nil)
 			assert.Equal(xds_rbac.RBAC_ALLOW, policy.Rules.Action)

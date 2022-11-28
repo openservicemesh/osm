@@ -37,10 +37,19 @@ func (si ServiceIdentity) IsWildcard() bool {
 }
 
 // AsPrincipal converts the ServiceIdentity to a Principal with the given trust domain.
-func (si ServiceIdentity) AsPrincipal(trustDomain string) string {
+// If identity is Spiffe ID is enabled then it will return the value in Spiffe format
+func (si ServiceIdentity) AsPrincipal(trustDomain string, spiffeEnabled bool) string {
 	if si.IsWildcard() {
+		if spiffeEnabled {
+			return fmt.Sprintf("spiffe://%s", trustDomain)
+		}
 		return si.String()
 	}
+
+	if spiffeEnabled {
+		return fmt.Sprintf("spiffe://%s/%s", trustDomain, strings.Replace(si.String(), ".", "/", -1))
+	}
+
 	return fmt.Sprintf("%s.%s", si.String(), trustDomain)
 }
 
@@ -74,6 +83,6 @@ func (sa K8sServiceAccount) ToServiceIdentity() ServiceIdentity {
 }
 
 // AsPrincipal converts the K8sServiceAccount to a Principal with the given trust domain.
-func (sa K8sServiceAccount) AsPrincipal(trustDomain string) string {
-	return sa.ToServiceIdentity().AsPrincipal(trustDomain)
+func (sa K8sServiceAccount) AsPrincipal(trustDomain string, spiffeEnabled bool) string {
+	return sa.ToServiceIdentity().AsPrincipal(trustDomain, spiffeEnabled)
 }

@@ -366,26 +366,92 @@ func TestSubscribeRotations(t *testing.T) {
 	wg.Wait()
 }
 
-func TestManager_GetTrustDomain(t *testing.T) {
+func TestManager_GetIssuerInfo(t *testing.T) {
 	tests := []struct {
 		name                 string
 		signingIssuer        *issuer
 		validatingIssuer     *issuer
-		expectedTrustDomains TrustDomain
+		expectedIssuerInfo   IssuerInfo
 		expectedAreDifferent bool
 	}{
 		{
-			name:                 "should return both trustdomains",
-			signingIssuer:        &issuer{TrustDomain: "cluster.local"},
-			validatingIssuer:     &issuer{TrustDomain: "old.local"},
-			expectedTrustDomains: TrustDomain{Signing: "cluster.local", Validating: "old.local"},
+			name:             "should return both trustdomains",
+			signingIssuer:    &issuer{TrustDomain: "cluster.local", SpiffeEnabled: false},
+			validatingIssuer: &issuer{TrustDomain: "old.local", SpiffeEnabled: false},
+			expectedIssuerInfo: IssuerInfo{
+				Signing: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: PrincipalInfo{
+					TrustDomain:   "old.local",
+					SpiffeEnabled: false,
+				},
+			},
 			expectedAreDifferent: true,
 		},
 		{
-			name:                 "should return both trustdomains when the same",
-			signingIssuer:        &issuer{TrustDomain: "cluster.local"},
-			validatingIssuer:     &issuer{TrustDomain: "cluster.local"},
-			expectedTrustDomains: TrustDomain{Signing: "cluster.local", Validating: "cluster.local"},
+			name:             "should return both trustdomains",
+			signingIssuer:    &issuer{TrustDomain: "cluster.local", SpiffeEnabled: true},
+			validatingIssuer: &issuer{TrustDomain: "old.local", SpiffeEnabled: false},
+			expectedIssuerInfo: IssuerInfo{
+				Signing: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: true,
+				},
+				Validating: PrincipalInfo{
+					TrustDomain:   "old.local",
+					SpiffeEnabled: false,
+				},
+			},
+			expectedAreDifferent: true,
+		},
+		{
+			name:             "should return both trustdomains when the same",
+			signingIssuer:    &issuer{TrustDomain: "cluster.local", SpiffeEnabled: false},
+			validatingIssuer: &issuer{TrustDomain: "cluster.local", SpiffeEnabled: false},
+			expectedIssuerInfo: IssuerInfo{
+				Signing: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+			},
+			expectedAreDifferent: false,
+		},
+		{
+			name:             "should return both trustdomains when the same but spiffe is enabled for one",
+			signingIssuer:    &issuer{TrustDomain: "cluster.local", SpiffeEnabled: false},
+			validatingIssuer: &issuer{TrustDomain: "cluster.local", SpiffeEnabled: true},
+			expectedIssuerInfo: IssuerInfo{
+				Signing: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: false,
+				},
+				Validating: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: true,
+				},
+			},
+			expectedAreDifferent: true,
+		},
+		{
+			name:             "should return both trustdomains and spiffe are same",
+			signingIssuer:    &issuer{TrustDomain: "cluster.local", SpiffeEnabled: true},
+			validatingIssuer: &issuer{TrustDomain: "cluster.local", SpiffeEnabled: true},
+			expectedIssuerInfo: IssuerInfo{
+				Signing: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: true,
+				},
+				Validating: PrincipalInfo{
+					TrustDomain:   "cluster.local",
+					SpiffeEnabled: true,
+				},
+			},
 			expectedAreDifferent: false,
 		},
 	}
@@ -396,9 +462,9 @@ func TestManager_GetTrustDomain(t *testing.T) {
 				signingIssuer:    tt.signingIssuer,
 				validatingIssuer: tt.validatingIssuer,
 			}
-			got := m.GetTrustDomains()
-			assert.Equal(tt.expectedTrustDomains.Signing, got.Signing)
-			assert.Equal(tt.expectedTrustDomains.Validating, got.Validating)
+			got := m.GetIssuersInfo()
+			assert.Equal(tt.expectedIssuerInfo.Signing, got.Signing)
+			assert.Equal(tt.expectedIssuerInfo.Validating, got.Validating)
 			assert.Equal(tt.expectedAreDifferent, got.AreDifferent())
 		})
 	}

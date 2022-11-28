@@ -56,3 +56,50 @@ func TestToServiceIdentity(t *testing.T) {
 		assert.Equal(si, tc.expectedServiceIdentity)
 	}
 }
+
+func TestServiceIdentity_AsPrincipal(t *testing.T) {
+	tests := []struct {
+		name              string
+		si                ServiceIdentity
+		trustDomain       string
+		spiffeEnabled     bool
+		expectedPrincipal string
+	}{
+		{
+			name:              "TrustDomain is appended to principal in CN format",
+			si:                ServiceIdentity("foo.bar"),
+			trustDomain:       "cluster.local",
+			spiffeEnabled:     false,
+			expectedPrincipal: "foo.bar.cluster.local",
+		},
+		{
+			name:              "TrustDomain is in spiffe format",
+			si:                ServiceIdentity("foo.bar"),
+			trustDomain:       "cluster.local",
+			spiffeEnabled:     true,
+			expectedPrincipal: "spiffe://cluster.local/foo/bar",
+		},
+		{
+			name:              "TrustDomain is wild card in CN format",
+			si:                WildcardServiceIdentity,
+			trustDomain:       "cluster.local",
+			spiffeEnabled:     false,
+			expectedPrincipal: "*",
+		},
+		{
+			name:              "TrustDomain is wild card in spiffe format",
+			si:                WildcardServiceIdentity,
+			trustDomain:       "cluster.local",
+			spiffeEnabled:     true,
+			expectedPrincipal: "spiffe://cluster.local",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+
+			got := tc.si.AsPrincipal(tc.trustDomain, tc.spiffeEnabled)
+			assert.Equal(tc.expectedPrincipal, got)
+		})
+	}
+}

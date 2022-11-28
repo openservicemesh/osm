@@ -164,8 +164,8 @@ func (lb *listenerBuilder) TrafficTargets(t []trafficpolicy.TrafficTargetWithRou
 	return lb
 }
 
-func (lb *listenerBuilder) TrustDomain(trustDomain certificate.TrustDomain) *listenerBuilder {
-	lb.trustDomain = trustDomain
+func (lb *listenerBuilder) Issuers(issuers certificate.IssuerInfo) *listenerBuilder {
+	lb.issuers = issuers
 	return lb
 }
 
@@ -327,10 +327,10 @@ func (fb *filterBuilder) StatsPrefix(statsPrefix string) *filterBuilder {
 }
 
 // WithRBAC sets the RBAC properties used to build the filter
-func (fb *filterBuilder) WithRBAC(t []trafficpolicy.TrafficTargetWithRoutes, trustDomain certificate.TrustDomain) *filterBuilder {
+func (fb *filterBuilder) WithRBAC(t []trafficpolicy.TrafficTargetWithRoutes, issuers certificate.IssuerInfo) *filterBuilder {
 	fb.withRBAC = true
 	fb.trafficTargets = t
-	fb.trustDomain = trustDomain
+	fb.issuers = issuers
 	return fb
 }
 
@@ -364,7 +364,7 @@ func (fb *filterBuilder) Build() ([]*xds_listener.Filter, error) {
 
 	// RBAC filter should be the very first filter in the filter chain
 	if fb.withRBAC {
-		rbacFilter, err := buildRBACFilter(fb.trafficTargets, fb.trustDomain)
+		rbacFilter, err := fb.buildRBACFilter()
 		if err != nil {
 			return nil, err
 		}

@@ -107,7 +107,7 @@ func TestGenerateRDS(t *testing.T) {
 					Sources: []policyv1alpha1.IngressSourceSpec{
 						{
 							Kind: policyv1alpha1.KindAuthenticatedPrincipal,
-							Name: tests.BookstoreServiceAccount.AsPrincipal("cluster.local"),
+							Name: tests.BookstoreServiceAccount.AsPrincipal("cluster.local", false),
 						},
 					},
 					Backends: []policyv1alpha1.BackendSpec{
@@ -507,7 +507,7 @@ func TestRDSResponse(t *testing.T) {
 							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.AsPrincipal("cluster.local")),
+							}.AsPrincipal("cluster.local", false)),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -520,7 +520,7 @@ func TestRDSResponse(t *testing.T) {
 							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.AsPrincipal("cluster.local")),
+							}.AsPrincipal("cluster.local", false)),
 						},
 					},
 				},
@@ -550,7 +550,7 @@ func TestRDSResponse(t *testing.T) {
 							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.AsPrincipal("cluster.local")),
+							}.AsPrincipal("cluster.local", false)),
 						},
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
@@ -563,7 +563,7 @@ func TestRDSResponse(t *testing.T) {
 							AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 								Name:      tests.BookbuyerServiceAccountName,
 								Namespace: tests.Namespace,
-							}.AsPrincipal("cluster.local")),
+							}.AsPrincipal("cluster.local", false)),
 						},
 					},
 				},

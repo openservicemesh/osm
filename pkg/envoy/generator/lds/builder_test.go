@@ -248,8 +248,16 @@ func TestFilterBuilder(t *testing.T) {
 						},
 						TCPRouteMatches: nil,
 					},
-				}, certificate.TrustDomain{Signing: "cluster.local"}).
-					httpConnManager()
+				}, certificate.IssuerInfo{
+					Signing: certificate.PrincipalInfo{
+						TrustDomain:   "cluster.local",
+						SpiffeEnabled: false,
+					},
+					Validating: certificate.PrincipalInfo{
+						TrustDomain:   "cluster.local",
+						SpiffeEnabled: false,
+					},
+				}).httpConnManager()
 			},
 			expectedNetworkFilters: []string{envoy.L4RBACFilterName},
 			expectedHTTPFilters:    []string{envoy.HTTPRBACFilterName, envoy.HTTPLocalRateLimitFilterName, envoy.HTTPRouterFilterName},
