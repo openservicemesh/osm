@@ -51,7 +51,10 @@ func (c *Certificate) GetSerialNumber() SerialNumber {
 
 // GetExpiration returns the expiration time of the certificate
 func (c *Certificate) GetExpiration() time.Time {
-	return c.Expiration
+	// Round is called to truncate monotonic clock to the nearest second. This is done to avoid environments where the
+	// CPU clock may stop, resulting in a time measurement that differs significantly from the x509 timestamp.
+	// See https://github.com/openservicemesh/osm/issues/5000#issuecomment-1218539412 for more details.
+	return c.Expiration.Round(0)
 }
 
 // GetCertificateChain returns the certificate chain of the certificate

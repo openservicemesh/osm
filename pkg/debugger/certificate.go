@@ -29,7 +29,7 @@ func (ds DebugConfig) getCertHandler() http.Handler {
 
 			_, _ = fmt.Fprintf(w, "---[ %d ]---\n", idx)
 			_, _ = fmt.Fprintf(w, "\t Common Name: %q\n", cert.GetCommonName())
-			_, _ = fmt.Fprintf(w, "\t Valid Until: %+v (%+v remaining)\n", cert.GetExpiration(), time.Until(cert.GetExpiration().Round(0)))
+			_, _ = fmt.Fprintf(w, "\t Valid Until: %+v (%+v remaining)\n", cert.GetExpiration(), time.Until(cert.GetExpiration()))
 			_, _ = fmt.Fprintf(w, "\t Issuing CA (SHA256): %x\n", sha256.Sum256(ca))
 			_, _ = fmt.Fprintf(w, "\t Trusted CAs (SHA256): %x\n", sha256.Sum256(trustedCAs))
 			_, _ = fmt.Fprintf(w, "\t Cert Chain (SHA256): %x\n", sha256.Sum256(chain))
