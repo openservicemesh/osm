@@ -122,7 +122,7 @@ type IssuerInfo struct {
 	Validating PrincipalInfo
 }
 
-// PrincipalInfo holds TrustDomain and SPIFFE ID used to create the Principal Identities when passing off the the proxy
+// PrincipalInfo holds TrustDomain and if SPIFFE is enabled which is used to create the Principal Identities for the proxy
 type PrincipalInfo struct {
 	TrustDomain   string
 	SpiffeEnabled bool
@@ -133,10 +133,10 @@ func (td IssuerInfo) AreDifferent() bool {
 	return td.Signing != td.Validating
 }
 
-// GetIssuers returns the trust domains from the configured issuers.
+// GetIssuersInfo returns the trust domains and if SPIFFE is enabled from the configured issuers.
 // Note that the CRD uses a default, so this value will always be set.
 // It is up to the caller to determine if the signing and validating trust domains are different
-func (m *Manager) GetIssuers() IssuerInfo {
+func (m *Manager) GetIssuersInfo() IssuerInfo {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return IssuerInfo{Signing: PrincipalInfo{

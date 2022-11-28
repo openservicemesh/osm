@@ -28,9 +28,8 @@ import (
 // ProxyConnected is called on stream open
 func (cp *ControlPlane[T]) ProxyConnected(ctx context.Context, connectionID int64) error {
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
-	// and the Subject CN is in the allowedCommonNames set.
-	// If the current issuer is singing then we should use the SPIFFE ID instead of common name
-	kind, uuid, si, certSerialNumber, err := ValidateClient(ctx, cp.certManager.GetIssuers())
+	// and extracts the Subject CN (or SPIFFE ID if enabled)
+	kind, uuid, si, certSerialNumber, err := ValidateClient(ctx, cp.certManager.GetIssuersInfo())
 	if err != nil {
 		return fmt.Errorf("Could not start cannot connect proxy for stream id %d: %w", connectionID, err)
 	}
@@ -142,8 +141,9 @@ func ValidateClient(ctx context.Context, issuers certificate.IssuerInfo) (models
 		return "", uuid.UUID{}, "", "", fmt.Errorf("error parsing certificate common name %s: %w", cn, err)
 	}
 
-	// Can only extract and use SPIFFE ID as Primary Identification of the proxy if both issuers are using it
-	// otherwise we run the risk of some certs not having the URI specified.
+	// If the current issuer is singing then we should use the SPIFFE ID instead of common name
+	// We can only extract and use SPIFFE ID as Primary Identification of the proxy if both issuers are using it
+	// otherwise we run the risk of some certs not having the URI specified and connection errors.
 	if issuers.Signing.SpiffeEnabled && issuers.Validating.SpiffeEnabled {
 		si, err = extractSpiffeID(tlsAuth.State.VerifiedChains[0][0].URIs)
 		if err != nil {

@@ -195,7 +195,7 @@ func (mc *MeshCatalog) getRoutingRulesFromTrafficTarget(trafficTarget access.Tra
 	}
 
 	// Compute the allowed downstream service identities for the given TrafficTarget object
-	issuers := mc.certManager.GetIssuers()
+	issuers := mc.certManager.GetIssuersInfo()
 	allowedDownstreamPrincipals := mapset.NewSet()
 	for _, source := range trafficTarget.Spec.Sources {
 		allowedDownstreamPrincipals.Add(trafficTargetIdentityToSvcAccount(source).AsPrincipal(issuers.Signing.TrustDomain, issuers.Signing.SpiffeEnabled))

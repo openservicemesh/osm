@@ -2457,7 +2457,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				// generate an MRCEvent for the new MRC to update the issuers and trigger a rotation
 				mrcClient.NewCertEvent(mrc2.Name)
 				assert.Eventually(func() bool {
-					return fakeCertManager.GetIssuers().AreDifferent()
+					return fakeCertManager.GetIssuersInfo().AreDifferent()
 				}, 2*time.Second, 100*time.Millisecond)
 			}
 

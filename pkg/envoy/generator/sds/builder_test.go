@@ -29,7 +29,7 @@ func TestSecretsBuilder(t *testing.T) {
 	// This is used to dynamically set expectations for each test in the list of table driven tests
 	type testCase struct {
 		name                        string
-		configuredTrustDomains      certificate.IssuerInfo
+		configuredIssuers           certificate.IssuerInfo
 		serviceIdentity             identity.ServiceIdentity
 		serviceIdentitiesForService map[service.MeshService][]identity.ServiceIdentity
 		expectedSANs                map[string][]string // only set for service-cert
@@ -38,7 +38,7 @@ func TestSecretsBuilder(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "test multiple outbound secrets: root-cert-for-mtls-outbound requested",
-			configuredTrustDomains: certificate.IssuerInfo{
+			configuredIssuers: certificate.IssuerInfo{
 				Signing: certificate.PrincipalInfo{
 					TrustDomain:   "cluster.local",
 					SpiffeEnabled: false,
@@ -71,7 +71,7 @@ func TestSecretsBuilder(t *testing.T) {
 		},
 		{
 			name: "test no outbound secrets",
-			configuredTrustDomains: certificate.IssuerInfo{
+			configuredIssuers: certificate.IssuerInfo{
 				Signing: certificate.PrincipalInfo{
 					TrustDomain:   "cluster.local",
 					SpiffeEnabled: false,
@@ -86,7 +86,7 @@ func TestSecretsBuilder(t *testing.T) {
 		{
 			name:            "test multiple outbound secrets with multiple trust domains",
 			serviceIdentity: identity.New("sa-1", "ns-1"),
-			configuredTrustDomains: certificate.IssuerInfo{
+			configuredIssuers: certificate.IssuerInfo{
 				Signing: certificate.PrincipalInfo{
 					TrustDomain:   "cluster.local",
 					SpiffeEnabled: false,
@@ -119,7 +119,7 @@ func TestSecretsBuilder(t *testing.T) {
 		{
 			name:            "test multiple outbound secrets with spiffe enabled",
 			serviceIdentity: identity.New("sa-1", "ns-1"),
-			configuredTrustDomains: certificate.IssuerInfo{
+			configuredIssuers: certificate.IssuerInfo{
 				Signing: certificate.PrincipalInfo{
 					TrustDomain:   "cluster.local",
 					SpiffeEnabled: false,
@@ -155,7 +155,7 @@ func TestSecretsBuilder(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			builder := NewBuilder()
 			proxy := models.NewProxy(models.KindSidecar, uuid.New(), identity.New("sa-1", "ns-1"), nil, 1)
-			builder.SetProxy(proxy).SetProxyCert(cert).SetIssuers(tc.configuredTrustDomains)
+			builder.SetProxy(proxy).SetProxyCert(cert).SetIssuers(tc.configuredIssuers)
 
 			builder.SetServiceIdentitiesForService(tc.serviceIdentitiesForService)
 

@@ -17,7 +17,7 @@ func (g *EnvoyConfigGenerator) generateSDS(ctx context.Context, proxy *models.Pr
 	log.Info().Str("proxy", proxy.String()).Msg("Composing SDS Discovery Response")
 
 	// sdsBuilder: builds the Secret Discovery Response
-	builder := sds.NewBuilder().SetProxy(proxy).SetIssuers(g.certManager.GetIssuers())
+	builder := sds.NewBuilder().SetProxy(proxy).SetIssuers(g.certManager.GetIssuersInfo())
 
 	// 1. Issue a service certificate for this proxy
 	cert, err := g.certManager.IssueCertificate(certificate.ForServiceIdentity(proxy.Identity))
