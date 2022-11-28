@@ -108,7 +108,7 @@ func providerChangeRotation(installOptions ...InstallOsmOpt) {
 
 	By("creating new MRC with CertManager configuration")
 	certManagerMRC := "cert-manager"
-	_, err = createMeshRootCertificate(certManagerMRC, v1alpha2.InactiveIntent, CertManager)
+	_, err = createMeshRootCertificate(certManagerMRC, v1alpha2.InactiveRole, CertManager)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("rotating the certificate to CertManager")
@@ -122,7 +122,7 @@ func providerChangeRotation(installOptions ...InstallOsmOpt) {
 
 	By("creating new MRC with Vault configuration")
 	vaultMRC := "vault"
-	_, err = createMeshRootCertificate(vaultMRC, v1alpha2.InactiveIntent, Vault)
+	_, err = createMeshRootCertificate(vaultMRC, v1alpha2.InactiveRole, Vault)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("rotating the certificate to Vault")
@@ -136,7 +136,7 @@ func providerChangeRotation(installOptions ...InstallOsmOpt) {
 
 	By("creating new MRC with Tresor configuration")
 	tresorMRC := "tresor"
-	_, err = createMeshRootCertificate(tresorMRC, v1alpha2.InactiveIntent, TresorCertManager)
+	_, err = createMeshRootCertificate(tresorMRC, v1alpha2.InactiveRole, TresorCertManager)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("rotating the certificate to Tresor")
@@ -227,16 +227,16 @@ func basicCertRotationScenario(installOptions ...InstallOsmOpt) {
 	clientPod, serverPod, serverSvc := deployTestWorkload()
 	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
 
-	By("checking that another cert with active intent cannot be created")
+	By("checking that another cert with active role cannot be created")
 	time.Sleep(time.Second * 10)
 	activeNotAllowed := "not-allowed"
-	_, err := createMeshRootCertificate(activeNotAllowed, v1alpha2.ActiveIntent, installOpts.CertManager)
+	_, err := createMeshRootCertificate(activeNotAllowed, v1alpha2.ActiveRole, installOpts.CertManager)
 	Expect(err).Should(HaveOccurred())
-	Expect(err.Error()).Should(ContainSubstring("cannot create MRC %s/%s with active intent. An MRC with this intent already exists in the control plane namespace.", Td.OsmNamespace, activeNotAllowed))
+	Expect(err.Error()).Should(ContainSubstring("cannot create MRC %s/%s with active role. An MRC with this role already exists in the control plane namespace.", Td.OsmNamespace, activeNotAllowed))
 
-	By("creating a second certificate with passive intent")
+	By("creating a second certificate with passive role")
 	newCertName := "osm-mrc-2"
-	_, err = createMeshRootCertificate(newCertName, v1alpha2.PassiveIntent, installOpts.CertManager)
+	_, err = createMeshRootCertificate(newCertName, v1alpha2.PassiveRole, installOpts.CertManager)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("ensuring the new CA secret exists")
@@ -251,23 +251,23 @@ func basicCertRotationScenario(installOptions ...InstallOsmOpt) {
 	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
 
 	By("moving new cert from Passive to Active")
-	updateCertificate(newCertName, v1alpha2.ActiveIntent)
+	updateCertificate(newCertName, v1alpha2.ActiveRole)
 
 	By("checking HTTP traffic for client -> server pod after new cert is rotated in for validation")
-	// At this stage when they are both same intent it isn't deterministic which is validating and signing
+	// At this stage when they are both same role it isn't deterministic which is validating and signing
 	// skip the verification for now. We check it again later.
 	// verifyCertRotation(clientPod, serverPod, newCertName, constants.DefaultMeshRootCertificateName)
 	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
 
 	By("moving original cert from Active to Passive")
-	updateCertificate(constants.DefaultMeshRootCertificateName, v1alpha2.PassiveIntent)
+	updateCertificate(constants.DefaultMeshRootCertificateName, v1alpha2.PassiveRole)
 
 	By("checking HTTP traffic for client -> server pod after new cert is rotated in for signing")
 	verifyCertRotation(clientPod, serverPod, newCertName, constants.DefaultMeshRootCertificateName)
 	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
 
 	By("moving original cert from passive to inactive")
-	updateCertificate(constants.DefaultMeshRootCertificateName, v1alpha2.InactiveIntent)
+	updateCertificate(constants.DefaultMeshRootCertificateName, v1alpha2.InactiveRole)
 
 	By("checking HTTP traffic for client -> server pod after removing original cert")
 	verifyCertRotation(clientPod, serverPod, newCertName, newCertName)
@@ -353,21 +353,21 @@ func enablingMRCAfterInstallScenario(installOptions ...InstallOsmOpt) {
 	verifySuccessfulPodConnection(clientPod, serverPod, serverSvc)
 }
 
-func createMeshRootCertificate(name string, intent v1alpha2.MeshRootCertificateIntent, certificateManagerType string) (*v1alpha2.MeshRootCertificate, error) {
+func createMeshRootCertificate(name string, role v1alpha2.MeshRootCertificateRole, certificateManagerType string) (*v1alpha2.MeshRootCertificate, error) {
 	switch certificateManagerType {
 	case DefaultCertManager:
-		return createTresorMRC(name, intent)
+		return createTresorMRC(name, role)
 	case CertManager:
-		return createCertManagerMRC(name, intent)
+		return createCertManagerMRC(name, role)
 	case Vault:
-		return createVaultMRC(name, intent)
+		return createVaultMRC(name, role)
 	default:
 		Fail("should not be able to create MRC of unknown type")
 		return nil, fmt.Errorf("should not be able to create MRC of unknown type")
 	}
 }
 
-func createTresorMRC(name string, intent v1alpha2.MeshRootCertificateIntent) (*v1alpha2.MeshRootCertificate, error) {
+func createTresorMRC(name string, role v1alpha2.MeshRootCertificateRole) (*v1alpha2.MeshRootCertificate, error) {
 	return Td.ConfigClient.ConfigV1alpha2().MeshRootCertificates(Td.OsmNamespace).Create(
 		context.Background(), &v1alpha2.MeshRootCertificate{
 			ObjectMeta: metav1.ObjectMeta{
@@ -376,7 +376,7 @@ func createTresorMRC(name string, intent v1alpha2.MeshRootCertificateIntent) (*v
 			},
 			Spec: v1alpha2.MeshRootCertificateSpec{
 				TrustDomain: "cluster.local",
-				Intent:      intent,
+				Role:        role,
 				Provider: v1alpha2.ProviderSpec{
 					Tresor: &v1alpha2.TresorProviderSpec{
 						CA: v1alpha2.TresorCASpec{
@@ -390,17 +390,17 @@ func createTresorMRC(name string, intent v1alpha2.MeshRootCertificateIntent) (*v
 		}, metav1.CreateOptions{})
 }
 
-func updateCertificate(name string, intent v1alpha2.MeshRootCertificateIntent) {
+func updateCertificate(name string, role v1alpha2.MeshRootCertificateRole) {
 	mrc, err := Td.ConfigClient.ConfigV1alpha2().MeshRootCertificates(Td.OsmNamespace).Get(context.Background(), name, metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred())
 
-	mrc.Spec.Intent = intent
+	mrc.Spec.Role = role
 
 	_, err = Td.ConfigClient.ConfigV1alpha2().MeshRootCertificates(Td.OsmNamespace).Update(context.Background(), mrc, metav1.UpdateOptions{})
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func createCertManagerMRC(name string, intent v1alpha2.MeshRootCertificateIntent) (*v1alpha2.MeshRootCertificate, error) {
+func createCertManagerMRC(name string, role v1alpha2.MeshRootCertificateRole) (*v1alpha2.MeshRootCertificate, error) {
 	cert := &cmapi.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -448,7 +448,7 @@ func createCertManagerMRC(name string, intent v1alpha2.MeshRootCertificateIntent
 			},
 			Spec: v1alpha2.MeshRootCertificateSpec{
 				TrustDomain: "cluster.local",
-				Intent:      intent,
+				Role:        role,
 				Provider: v1alpha2.ProviderSpec{
 					CertManager: &v1alpha2.CertManagerProviderSpec{
 						IssuerName:  name,
@@ -460,7 +460,7 @@ func createCertManagerMRC(name string, intent v1alpha2.MeshRootCertificateIntent
 		}, metav1.CreateOptions{})
 }
 
-func createVaultMRC(name string, intent v1alpha2.MeshRootCertificateIntent) (*v1alpha2.MeshRootCertificate, error) {
+func createVaultMRC(name string, role v1alpha2.MeshRootCertificateRole) (*v1alpha2.MeshRootCertificate, error) {
 	vaultPod, err := Td.GetPodsForLabel(Td.OsmNamespace, metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			constants.AppLabel: "vault",
@@ -487,7 +487,7 @@ func createVaultMRC(name string, intent v1alpha2.MeshRootCertificateIntent) (*v1
 			},
 			Spec: v1alpha2.MeshRootCertificateSpec{
 				TrustDomain: "cluster.local",
-				Intent:      intent,
+				Role:        role,
 				Provider: v1alpha2.ProviderSpec{
 					Vault: &v1alpha2.VaultProviderSpec{
 						Host:     "vault." + Td.OsmNamespace + ".svc.cluster.local",

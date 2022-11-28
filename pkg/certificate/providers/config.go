@@ -64,7 +64,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 			Spec: v1alpha2.MeshRootCertificateSpec{
 				Provider:    option.AsProviderSpec(),
 				TrustDomain: trustDomain,
-				Intent:      v1alpha2.ActiveIntent,
+				Role:        v1alpha2.ActiveRole,
 			},
 		},
 	}

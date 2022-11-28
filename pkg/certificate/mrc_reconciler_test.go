@@ -24,7 +24,7 @@ var (
 			Namespace: testNamespace,
 		},
 		Spec: v1alpha2.MeshRootCertificateSpec{
-			Intent:      v1alpha2.ActiveIntent,
+			Role:        v1alpha2.ActiveRole,
 			TrustDomain: trustDomain,
 		},
 	}
@@ -35,7 +35,7 @@ var (
 			Namespace: testNamespace,
 		},
 		Spec: v1alpha2.MeshRootCertificateSpec{
-			Intent:      v1alpha2.PassiveIntent,
+			Role:        v1alpha2.PassiveRole,
 			TrustDomain: trustDomain,
 		},
 	}
@@ -46,7 +46,7 @@ var (
 			Namespace: testNamespace,
 		},
 		Spec: v1alpha2.MeshRootCertificateSpec{
-			Intent:      v1alpha2.InactiveIntent,
+			Role:        v1alpha2.InactiveRole,
 			TrustDomain: trustDomain,
 		},
 	}
@@ -57,7 +57,7 @@ var (
 			Namespace: testNamespace,
 		},
 		Spec: v1alpha2.MeshRootCertificateSpec{
-			Intent:      v1alpha2.ActiveIntent,
+			Role:        v1alpha2.ActiveRole,
 			TrustDomain: trustDomain,
 		},
 	}
@@ -68,7 +68,7 @@ var (
 			Namespace: testNamespace,
 		},
 		Spec: v1alpha2.MeshRootCertificateSpec{
-			Intent:      v1alpha2.PassiveIntent,
+			Role:        v1alpha2.PassiveRole,
 			TrustDomain: trustDomain,
 		},
 	}
@@ -79,7 +79,7 @@ var (
 			Namespace: testNamespace,
 		},
 		Spec: v1alpha2.MeshRootCertificateSpec{
-			Intent:      v1alpha2.PassiveIntent,
+			Role:        v1alpha2.PassiveRole,
 			TrustDomain: trustDomain,
 		},
 	}
@@ -398,13 +398,13 @@ func TestShouldUpdateIssuers(t *testing.T) {
 		currentValidatingIssuerID string
 	}{
 		{
-			name:           "2 MRCs in with active intents and issuers are not already set",
+			name:           "2 MRCs in with active roles and issuers are not already set",
 			expectedUpdate: true,
 			signingMRC:     activeMRC2,
 			validatingMRC:  activeMRC1,
 		},
 		{
-			name:                      "2 MRCs with active intents and issuers are already set",
+			name:                      "2 MRCs with active roles and issuers are already set",
 			expectedUpdate:            false,
 			signingMRC:                activeMRC2,
 			validatingMRC:             activeMRC1,
@@ -412,7 +412,7 @@ func TestShouldUpdateIssuers(t *testing.T) {
 			currentValidatingIssuerID: mrc2Name,
 		},
 		{
-			name:                      "2 MRCs with active intents and issuers are already set to expected values",
+			name:                      "2 MRCs with active roles and issuers are already set to expected values",
 			expectedUpdate:            false,
 			signingMRC:                activeMRC2,
 			validatingMRC:             activeMRC1,

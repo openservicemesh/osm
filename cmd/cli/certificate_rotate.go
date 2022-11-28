@@ -139,9 +139,9 @@ func (r *rotateCmd) run() error {
 	if !r.promptForContinue("Are you sure you want to initiate rotation?") {
 		return nil
 	}
-	err = r.updateCertificate(newMrc.Name, v1alpha2.PassiveIntent)
+	err = r.updateCertificate(newMrc.Name, v1alpha2.PassiveRole)
 	if err != nil {
-		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", newMrc.Name, v1alpha2.PassiveIntent, err)
+		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", newMrc.Name, v1alpha2.PassiveRole, err)
 	}
 	fmt.Fprintf(r.out, "waiting %s for propagation...\n\n", r.waitForRotation)
 	time.Sleep(r.waitForRotation)
@@ -150,9 +150,9 @@ func (r *rotateCmd) run() error {
 	if !r.promptForContinue("Are you sure you want to initiate rotation?") {
 		return nil
 	}
-	err = r.updateCertificate(newMrc.Name, v1alpha2.ActiveIntent)
+	err = r.updateCertificate(newMrc.Name, v1alpha2.ActiveRole)
 	if err != nil {
-		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", newMrc.Name, v1alpha2.ActiveIntent, err)
+		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", newMrc.Name, v1alpha2.ActiveRole, err)
 	}
 	fmt.Fprintf(r.out, "waiting %s for propagation...\n\n", r.waitForRotation)
 	time.Sleep(r.waitForRotation)
@@ -161,9 +161,9 @@ func (r *rotateCmd) run() error {
 	if !r.promptForContinue("Are you sure you want to initiate rotation?") {
 		return nil
 	}
-	err = r.updateCertificate(oldMrc.Name, v1alpha2.PassiveIntent)
+	err = r.updateCertificate(oldMrc.Name, v1alpha2.PassiveRole)
 	if err != nil {
-		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", oldMrc.Name, v1alpha2.PassiveIntent, err)
+		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", oldMrc.Name, v1alpha2.PassiveRole, err)
 	}
 	fmt.Fprintf(r.out, "waiting %s for propagation...\n\n", r.waitForRotation)
 	time.Sleep(r.waitForRotation)
@@ -172,9 +172,9 @@ func (r *rotateCmd) run() error {
 	if !r.promptForContinue("Are you sure you to move the old MeshRootCertificate to Inactive?") {
 		return nil
 	}
-	err = r.updateCertificate(oldMrc.Name, v1alpha2.InactiveIntent)
+	err = r.updateCertificate(oldMrc.Name, v1alpha2.InactiveRole)
 	if err != nil {
-		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", oldMrc.Name, v1alpha2.InactiveIntent, err)
+		return fmt.Errorf("unable to update MeshRootCertificate [%s] with role [%s]: %s", oldMrc.Name, v1alpha2.InactiveRole, err)
 	}
 	fmt.Fprintf(r.out, "waiting %s for propagation...\n\n", r.waitForRotation)
 	time.Sleep(r.waitForRotation)
@@ -220,7 +220,7 @@ func (r *rotateCmd) findCurrentInUse() (*v1alpha2.MeshRootCertificate, error) {
 
 	var activeMrc *v1alpha2.MeshRootCertificate
 	for _, mrc := range mrcs.Items {
-		if mrc.Spec.Intent == v1alpha2.ActiveIntent {
+		if mrc.Spec.Role == v1alpha2.ActiveRole {
 			if activeMrc != nil {
 				return nil, fmt.Errorf("can only rotate when there is only one active MRC. Found two: %s and %s", mrc.Name, activeMrc.Name)
 			}
@@ -228,8 +228,8 @@ func (r *rotateCmd) findCurrentInUse() (*v1alpha2.MeshRootCertificate, error) {
 			activeMrc = &m
 		}
 
-		if mrc.Spec.Intent == v1alpha2.PassiveIntent {
-			return nil, fmt.Errorf("it appears a rotation is in progress. \n\nFound MRC %s in state %s", mrc.Name, mrc.Spec.Intent)
+		if mrc.Spec.Role == v1alpha2.PassiveRole {
+			return nil, fmt.Errorf("it appears a rotation is in progress. \n\nFound MRC %s in state %s", mrc.Name, mrc.Spec.Role)
 		}
 	}
 
@@ -240,13 +240,13 @@ func (r *rotateCmd) findCurrentInUse() (*v1alpha2.MeshRootCertificate, error) {
 	return activeMrc, nil
 }
 
-func (r *rotateCmd) updateCertificate(name string, intent v1alpha2.MeshRootCertificateIntent) error {
+func (r *rotateCmd) updateCertificate(name string, role v1alpha2.MeshRootCertificateRole) error {
 	mrc, err := r.configClient.ConfigV1alpha2().MeshRootCertificates(settings.Namespace()).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
-	mrc.Spec.Intent = intent
+	mrc.Spec.Role = role
 	_, err = r.configClient.ConfigV1alpha2().MeshRootCertificates(settings.Namespace()).Update(context.Background(), mrc, metav1.UpdateOptions{})
 	if err != nil {
 		return err
@@ -285,7 +285,7 @@ func (r *rotateCmd) createFromFile() (*v1alpha2.MeshRootCertificate, error) {
 	if !ok {
 		return nil, fmt.Errorf("file provided is not recognized as MeshRootCertificate")
 	}
-	if newMRC.Spec.Intent != v1alpha2.InactiveIntent {
+	if newMRC.Spec.Role != v1alpha2.InactiveRole {
 		return nil, fmt.Errorf("file provided must be a MeshRootCertificate in the Inactive role")
 	}
 
@@ -308,7 +308,7 @@ func (r *rotateCmd) usePreCreatedMRC() (*v1alpha2.MeshRootCertificate, error) {
 		return nil, fmt.Errorf("unable to verify that MeshRootCertificate [%s]. Error: %v", existing.Name, err)
 	}
 
-	if existing.Spec.Intent != v1alpha2.InactiveIntent {
+	if existing.Spec.Role != v1alpha2.InactiveRole {
 		return nil, fmt.Errorf("MRC provided must be in Inactive role")
 	}
 
@@ -355,7 +355,7 @@ func (r *rotateCmd) createTresorMRC(trustDomain string) (*v1alpha2.MeshRootCerti
 			},
 			Spec: v1alpha2.MeshRootCertificateSpec{
 				TrustDomain: trustDomain,
-				Intent:      v1alpha2.InactiveIntent,
+				Role:        v1alpha2.InactiveRole,
 				Provider: v1alpha2.ProviderSpec{
 					Tresor: &v1alpha2.TresorProviderSpec{
 						CA: v1alpha2.TresorCASpec{

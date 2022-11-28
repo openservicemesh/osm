@@ -2646,7 +2646,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain:   "cluster.local",
-					Intent:        v1alpha2.ActiveIntent,
+					Role:          v1alpha2.ActiveRole,
 					SpiffeEnabled: tc.spiffeEnabled,
 				},
 			}
@@ -2686,7 +2686,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 					},
 					Spec: v1alpha2.MeshRootCertificateSpec{
 						TrustDomain: tc.newTrustDomain,
-						Intent:      v1alpha2.ActiveIntent,
+						Role:        v1alpha2.ActiveRole,
 					},
 				}
 				_, err := configClient.ConfigV1alpha2().MeshRootCertificates("osm-system").Create(context.Background(), mrc2, metav1.CreateOptions{})

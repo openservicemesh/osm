@@ -72,7 +72,7 @@ func TestCertRotation(t *testing.T) {
 				},
 				Spec: configv1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "fake.example.com",
-					Intent:      configv1alpha2.ActiveIntent,
+					Role:        configv1alpha2.ActiveRole,
 				},
 			}
 
@@ -83,7 +83,7 @@ func TestCertRotation(t *testing.T) {
 				},
 				Spec: configv1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "fake.example.com",
-					Intent:      configv1alpha2.ActiveIntent,
+					Role:        configv1alpha2.ActiveRole,
 				},
 			}
 
@@ -119,7 +119,7 @@ func TestCertRotation(t *testing.T) {
 			<-wait
 
 			if tc.rotations >= 1 {
-				// create mrc2 with passive intent
+				// create mrc2 with passive role
 				_, err := configClient.ConfigV1alpha2().MeshRootCertificates("osm-system").Create(context.Background(), mrc2, metav1.CreateOptions{})
 				assert.NoError(err)
 				// trigger an MRCEvent to update the issuers and trigger a rotation
@@ -129,14 +129,14 @@ func TestCertRotation(t *testing.T) {
 				}
 			}
 			if tc.rotations == 2 {
-				// set intent of mrc2 to active. This update will not trigger a rotation
+				// set role of mrc2 to active. This update will not trigger a rotation
 				// do not wait on rotation
-				mrc2.Spec.Intent = configv1alpha2.ActiveIntent
+				mrc2.Spec.Role = configv1alpha2.ActiveRole
 				_, err := configClient.ConfigV1alpha2().MeshRootCertificates("osm-system").Update(context.Background(), mrc2, metav1.UpdateOptions{})
 				assert.NoError(err)
 
-				// set intent of mrc1 to passive
-				mrc1.Spec.Intent = configv1alpha2.PassiveIntent
+				// set role of mrc1 to passive
+				mrc1.Spec.Role = configv1alpha2.PassiveRole
 				_, err = configClient.ConfigV1alpha2().MeshRootCertificates("osm-system").Update(context.Background(), mrc1, metav1.UpdateOptions{})
 				// trigger an MRCEvent to update the issuers and trigger a rotation
 				mrcClient.NewCertEvent(mrc1.Name)
