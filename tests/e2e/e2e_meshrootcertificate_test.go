@@ -39,7 +39,14 @@ var _ = OSMDescribe("MeshRootCertificate",
 				trustDomainRotation()
 			})
 		})
+	})
 
+var _ = OSMDescribe("MeshRootCertificate",
+	OSMDescribeInfo{
+		Tier:   2,
+		Bucket: 13,
+	},
+	func() {
 		Context("with CertManager", func() {
 			It("rotates certificates", func() {
 				basicCertRotationScenario(WithCertManagerEnabled())
@@ -49,7 +56,14 @@ var _ = OSMDescribe("MeshRootCertificate",
 				enablingMRCAfterInstallScenario(WithCertManagerEnabled())
 			})
 		})
+	})
 
+var _ = OSMDescribe("MeshRootCertificate",
+	OSMDescribeInfo{
+		Tier:   2,
+		Bucket: 14,
+	},
+	func() {
 		Context("with Vault", func() {
 			It("rotates certificates", func() {
 				basicCertRotationScenario(WithVault())
@@ -59,7 +73,14 @@ var _ = OSMDescribe("MeshRootCertificate",
 				enablingMRCAfterInstallScenario(WithVault(), WithVaultTokenSecretRef())
 			})
 		})
+	})
 
+var _ = OSMDescribe("MeshRootCertificate",
+	OSMDescribeInfo{
+		Tier:   2,
+		Bucket: 15,
+	},
+	func() {
 		Context("can switch providers", func() {
 			It("during rotation", func() {
 				providerChangeRotation()
