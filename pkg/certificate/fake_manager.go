@@ -9,12 +9,12 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
-	osmConfigClient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	osmconfigclient "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 )
 
 // fakeMRCClient implements the MRCClient interface
 type fakeMRCClient struct {
-	configClient             osmConfigClient.Interface
+	configClient             osmconfigclient.Interface
 	countGetCertIssuerForMRC int
 }
 

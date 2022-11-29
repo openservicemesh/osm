@@ -140,7 +140,7 @@ var testPresetMeshRootCertificate = &corev1.ConfigMap{
 	},
 	Data: map[string]string{
 		presetMeshRootCertificateJSONKey: `{
-"intent": "Active",
+"intent": "active",
 "provider": {
 	"tresor": {
 	 "ca": {
@@ -183,6 +183,7 @@ func TestBuildMeshRootCertificate(t *testing.T) {
 	assert.Contains(meshRootCertificate.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
 	assert.NoError(err)
 	assert.Equal(meshRootCertificate.Name, constants.DefaultMeshRootCertificateName)
+	assert.Equal(meshRootCertificate.Spec.Intent, configv1alpha2.ActiveIntent)
 	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Name, "osm-ca-bundle")
 	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Namespace, testNamespace)
 	assert.Nil(meshRootCertificate.Spec.Provider.Vault)
