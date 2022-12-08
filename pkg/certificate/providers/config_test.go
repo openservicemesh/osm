@@ -175,7 +175,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
 					TrustDomain: "cluster.local",
-					Intent:      v1alpha2.ActiveIntent,
+					Role:        v1alpha2.ActiveRole,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -201,7 +201,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.ActiveIntent,
+					Role: v1alpha2.ActiveRole,
 					Provider: v1alpha2.ProviderSpec{
 						Tresor: &v1alpha2.TresorProviderSpec{
 							CA: v1alpha2.TresorCASpec{
@@ -227,7 +227,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.ActiveIntent,
+					Role: v1alpha2.ActiveRole,
 					Provider: v1alpha2.ProviderSpec{
 						CertManager: &v1alpha2.CertManagerProviderSpec{
 							IssuerName:  "test-name",
@@ -249,7 +249,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.ActiveIntent,
+					Role: v1alpha2.ActiveRole,
 					Provider: v1alpha2.ProviderSpec{
 						Vault: &v1alpha2.VaultProviderSpec{
 							Host:     "",
@@ -277,7 +277,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.ActiveIntent,
+					Role: v1alpha2.ActiveRole,
 					Provider: v1alpha2.ProviderSpec{
 						Vault: &v1alpha2.VaultProviderSpec{
 							Host:     "vault.default.svs.cluster.local",
@@ -315,7 +315,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.ActiveIntent,
+					Role: v1alpha2.ActiveRole,
 					Provider: v1alpha2.ProviderSpec{
 						Vault: &v1alpha2.VaultProviderSpec{
 							Host:     "vault.default.svc.cluster.local",
@@ -351,7 +351,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.ActiveIntent,
+					Role: v1alpha2.ActiveRole,
 					Provider: v1alpha2.ProviderSpec{
 						Vault: &v1alpha2.VaultProviderSpec{
 							Host:     "vault.default.svs.cluster.local",
@@ -376,7 +376,7 @@ func TestGetCertificateManagerFromMRC(t *testing.T) {
 					Namespace: "osm-system",
 				},
 				Spec: v1alpha2.MeshRootCertificateSpec{
-					Intent: v1alpha2.ActiveIntent,
+					Role: v1alpha2.ActiveRole,
 					Provider: v1alpha2.ProviderSpec{
 						CertManager: &v1alpha2.CertManagerProviderSpec{
 							IssuerName:  "",

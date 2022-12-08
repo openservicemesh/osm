@@ -31,7 +31,7 @@ func Test_rotateCmd_findCurrentActive(t *testing.T) {
 						Name: "badstate",
 					},
 					Spec: v1alpha2.MeshRootCertificateSpec{
-						Intent: v1alpha2.PassiveIntent,
+						Role: v1alpha2.PassiveRole,
 					},
 				},
 			},
@@ -45,7 +45,7 @@ func Test_rotateCmd_findCurrentActive(t *testing.T) {
 						Name: "passive",
 					},
 					Spec: v1alpha2.MeshRootCertificateSpec{
-						Intent: v1alpha2.PassiveIntent,
+						Role: v1alpha2.PassiveRole,
 					},
 				},
 				{
@@ -53,7 +53,7 @@ func Test_rotateCmd_findCurrentActive(t *testing.T) {
 						Name: "active",
 					},
 					Spec: v1alpha2.MeshRootCertificateSpec{
-						Intent: v1alpha2.ActiveIntent,
+						Role: v1alpha2.ActiveRole,
 					},
 				},
 			},
@@ -67,7 +67,7 @@ func Test_rotateCmd_findCurrentActive(t *testing.T) {
 						Name: "active",
 					},
 					Spec: v1alpha2.MeshRootCertificateSpec{
-						Intent: v1alpha2.ActiveIntent,
+						Role: v1alpha2.ActiveRole,
 					},
 				},
 				{
@@ -75,7 +75,7 @@ func Test_rotateCmd_findCurrentActive(t *testing.T) {
 						Name: "active2",
 					},
 					Spec: v1alpha2.MeshRootCertificateSpec{
-						Intent: v1alpha2.ActiveIntent,
+						Role: v1alpha2.ActiveRole,
 					},
 				},
 			},
@@ -89,7 +89,7 @@ func Test_rotateCmd_findCurrentActive(t *testing.T) {
 						Name: "active",
 					},
 					Spec: v1alpha2.MeshRootCertificateSpec{
-						Intent: v1alpha2.ActiveIntent,
+						Role: v1alpha2.ActiveRole,
 					},
 				},
 			},
@@ -103,7 +103,7 @@ func Test_rotateCmd_findCurrentActive(t *testing.T) {
 						Name: "active",
 					},
 					Spec: v1alpha2.MeshRootCertificateSpec{
-						Intent: v1alpha2.ActiveIntent,
+						Role: v1alpha2.ActiveRole,
 					},
 				},
 				{
@@ -111,7 +111,7 @@ func Test_rotateCmd_findCurrentActive(t *testing.T) {
 						Name: "inactive1",
 					},
 					Spec: v1alpha2.MeshRootCertificateSpec{
-						Intent: v1alpha2.InactiveIntent,
+						Role: v1alpha2.InactiveRole,
 					},
 				},
 				{
@@ -119,7 +119,7 @@ func Test_rotateCmd_findCurrentActive(t *testing.T) {
 						Name: "inactive2",
 					},
 					Spec: v1alpha2.MeshRootCertificateSpec{
-						Intent: v1alpha2.InactiveIntent,
+						Role: v1alpha2.InactiveRole,
 					},
 				},
 			},
@@ -144,7 +144,7 @@ func Test_rotateCmd_findCurrentActive(t *testing.T) {
 				assert.NotNil(err)
 			} else {
 				assert.Equal("active", mrc.Name)
-				assert.Equal(v1alpha2.ActiveIntent, mrc.Spec.Intent)
+				assert.Equal(v1alpha2.ActiveRole, mrc.Spec.Role)
 			}
 		})
 	}

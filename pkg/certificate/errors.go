@@ -12,20 +12,20 @@ var errNoPrivateKeyInPEM = errors.New("no private Key in PEM")
 // ErrNoCertificateInPEM is the error for no certificate in PEM
 var ErrNoCertificateInPEM = errors.New("no certificate in PEM")
 
-// ErrInvalidMRCIntentCombination is the error that should be returned if the combination of MRC intents is invalid.
-var ErrInvalidMRCIntentCombination = errors.New("invalid mrc intent combination")
+// ErrInvalidMRCRoleCombination is the error that should be returned if the combination of MRC roles is invalid.
+var ErrInvalidMRCRoleCombination = errors.New("invalid mrc role combination")
 
 // ErrNumMRCExceedsMaxSupported is the error that should be returned if there are more than 2 MRCs with active
-// and/or passive intent in the mesh.
+// and/or passive role in the mesh.
 var ErrNumMRCExceedsMaxSupported = errors.New("found more than the max number of MRCs supported in the control plane namespace")
 
 // ErrExpectedActiveMRC is the error that should be returned when no active MRCs are present in the mesh.
 var ErrExpectedActiveMRC = errors.New("found no active MRCs")
 
-// ErrUnexpectedMRCIntent is the error that should be returned if the intent value is not passive or active.
-// The MRC reconciler should only consider MRCs with passive or active intents for the validating and signing
+// ErrUnexpectedMRCRole is the error that should be returned if the role value is not passive or active.
+// The MRC reconciler should only consider MRCs with passive or active roles for the validating and signing
 // issuers.
-var ErrUnexpectedMRCIntent = errors.New("found unexpected MRC intent. Expected passive or active")
+var ErrUnexpectedMRCRole = errors.New("found unexpected MRC role. Expected passive or active")
 
 // ErrUnexpectedNilMRC is the the error that should be returned if the MRC is nil.
 var ErrUnexpectedNilMRC = errors.New("received nil MRC")

@@ -31,7 +31,7 @@ var defaultMRC *v1alpha2.MeshRootCertificate = &v1alpha2.MeshRootCertificate{
 	},
 	Spec: v1alpha2.MeshRootCertificateSpec{
 		TrustDomain: "cluster.local",
-		Intent:      v1alpha2.ActiveIntent,
+		Role:        v1alpha2.ActiveRole,
 	},
 }
 

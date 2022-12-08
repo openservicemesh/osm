@@ -305,25 +305,25 @@ func (kc *validator) validateMRCOnCreate(mrc *configv1alpha2.MeshRootCertificate
 		return err
 	}
 
-	switch mrc.Spec.Intent {
-	case configv1alpha2.ActiveIntent, configv1alpha2.PassiveIntent:
+	switch mrc.Spec.Role {
+	case configv1alpha2.ActiveRole, configv1alpha2.PassiveRole:
 		certsInUse, err := kc.getUseableMRCs()
 		if err != nil {
 			return err
 		}
 		// if there is already active or passive mrc then we can't create a new one
-		if mrcWithMatchingIntentExists(certsInUse, mrc) {
-			return fmt.Errorf("cannot create MRC %s with %s intent. An MRC with this intent already exists in the control plane namespace. ", getNamespacedMRC(mrc), mrc.Spec.Intent)
+		if mrcWithMatchingRoleExists(certsInUse, mrc) {
+			return fmt.Errorf("cannot create MRC %s with %s role. An MRC with this role already exists in the control plane namespace. ", getNamespacedMRC(mrc), mrc.Spec.Role)
 		}
 		if len(certsInUse) >= 2 {
-			return fmt.Errorf("cannot create MRC %s with %s intent while rotation is in progress", getNamespacedMRC(mrc), mrc.Spec.Intent)
+			return fmt.Errorf("cannot create MRC %s with %s role while rotation is in progress", getNamespacedMRC(mrc), mrc.Spec.Role)
 		}
 		return nil
-	case configv1alpha2.InactiveIntent:
+	case configv1alpha2.InactiveRole:
 		// allow inactive MRCs to be created
 		return nil
 	default:
-		return fmt.Errorf("cannot create MRC %s with %s intent. Invalid value", getNamespacedMRC(mrc), mrc.Spec.Intent)
+		return fmt.Errorf("cannot create MRC %s with %s role. Invalid value", getNamespacedMRC(mrc), mrc.Spec.Role)
 	}
 }
 
@@ -341,12 +341,12 @@ func (kc *validator) validateMRCOnUpdate(oldMRC *configv1alpha2.MeshRootCertific
 		return fmt.Errorf("cannot update SpiffeEnabled for MRC %s. Create a new MRC and initiate root certificate rotation to enable SPIFFE certificates", getNamespacedMRC(oldMRC))
 	}
 
-	// check for intent changes that are always invalid
-	if oldMRC.Spec.Intent == configv1alpha2.ActiveIntent && newMRC.Spec.Intent == configv1alpha2.InactiveIntent {
+	// check for role changes that are always invalid
+	if oldMRC.Spec.Role == configv1alpha2.ActiveRole && newMRC.Spec.Role == configv1alpha2.InactiveRole {
 		return fmt.Errorf("cannot move an Active to Inactive for MRC %s", getNamespacedMRC(oldMRC))
 	}
 
-	if oldMRC.Spec.Intent == configv1alpha2.InactiveIntent && newMRC.Spec.Intent == configv1alpha2.ActiveIntent {
+	if oldMRC.Spec.Role == configv1alpha2.InactiveRole && newMRC.Spec.Role == configv1alpha2.ActiveRole {
 		return fmt.Errorf("cannot move an Inactive to Active for MRC %s", getNamespacedMRC(oldMRC))
 	}
 
@@ -391,11 +391,11 @@ func validateMRCProvider(mrc *configv1alpha2.MeshRootCertificate) error {
 	return nil
 }
 
-// mrcWithMatchingIntentExists returns true if there are MRCs in addition to the specified MRC
+// mrcWithMatchingRoleExists returns true if there are MRCs in addition to the specified MRC
 // Returns false if there are no MRCs or if the specified mrc will be the only active MRC
-func mrcWithMatchingIntentExists(mrcs []*configv1alpha2.MeshRootCertificate, mrc *configv1alpha2.MeshRootCertificate) bool {
+func mrcWithMatchingRoleExists(mrcs []*configv1alpha2.MeshRootCertificate, mrc *configv1alpha2.MeshRootCertificate) bool {
 	for _, m := range mrcs {
-		if m.Spec.Intent == mrc.Spec.Intent && m.Name != mrc.Name {
+		if m.Spec.Role == mrc.Spec.Role && m.Name != mrc.Name {
 			return true
 		}
 	}
@@ -411,7 +411,7 @@ func (kc *validator) getUseableMRCs() ([]*configv1alpha2.MeshRootCertificate, er
 
 	mrcsInUse := []*configv1alpha2.MeshRootCertificate{}
 	for _, mrc := range mrcs {
-		if mrc.Spec.Intent == v1alpha2.ActiveIntent || mrc.Spec.Intent == v1alpha2.PassiveIntent {
+		if mrc.Spec.Role == v1alpha2.ActiveRole || mrc.Spec.Role == v1alpha2.PassiveRole {
 			mrcsInUse = append(mrcsInUse, mrc)
 		}
 	}
@@ -425,13 +425,13 @@ func (kc *validator) simulateDesiredCertConfiguration(newMRC *configv1alpha2.Mes
 		return err
 	}
 
-	// get current list of certs and update intent for desired change
+	// get current list of certs and update role for desired change
 	desiredCertificateConfiguration := []*configv1alpha2.MeshRootCertificate{}
 	for _, mrc := range mrcs {
 		if mrc.Name == newMRC.Name {
-			mrc.Spec.Intent = newMRC.Spec.Intent
+			mrc.Spec.Role = newMRC.Spec.Role
 		}
-		if mrc.Spec.Intent == v1alpha2.ActiveIntent || mrc.Spec.Intent == v1alpha2.PassiveIntent {
+		if mrc.Spec.Role == v1alpha2.ActiveRole || mrc.Spec.Role == v1alpha2.PassiveRole {
 			desiredCertificateConfiguration = append(desiredCertificateConfiguration, mrc)
 		}
 	}

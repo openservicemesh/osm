@@ -151,9 +151,9 @@ const (
 	// ErrUpdatingBootstrapSecret indicates a bootstrap secret could not be updated
 	ErrUpdatingBootstrapSecret
 
-	// ErrInvalidMRCIntentCombination indicates the combination of MRC intent values during root certificate rotation
+	// ErrInvalidMRCRoleCombination indicates the combination of MRC role values during root certificate rotation
 	// is invalid
-	ErrInvalidMRCIntentCombination
+	ErrInvalidMRCRoleCombination
 
 	// ErrNumMRCExceedsMaxSupported indicated there are more MRCs in the control plane namespace than the max
 	// supported value
@@ -584,8 +584,8 @@ The specified certificate could not be rotated.
 The specified bootstrap secret could not be updated.
 `,
 
-	ErrInvalidMRCIntentCombination: `
-The combination of MRC Intent values is invalid.
+	ErrInvalidMRCRoleCombination: `
+The combination of MRC Role values is invalid.
 `,
 
 	//

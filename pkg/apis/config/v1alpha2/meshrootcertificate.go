@@ -34,8 +34,8 @@ type MeshRootCertificateSpec struct {
 	// TrustDomain is the trust domain to use as a suffix in Common Names for new certificates.
 	TrustDomain string `json:"trustDomain"`
 
-	// Intent of the MeshRootCertificate resource
-	Intent MeshRootCertificateIntent `json:"intent"`
+	// Role of the MeshRootCertificate resource
+	Role MeshRootCertificateRole `json:"role"`
 
 	// SpiffeEnabled will add a SPIFFE ID to the certificates, creating a SPIFFE compatible x509 SVID document
 	// SPIFFE ID will be used for validation and routing after this MeshRootCertificate is made 'active' (i.e. it is issuing and validating certificates)
@@ -118,21 +118,21 @@ type TresorCASpec struct {
 	SecretRef corev1.SecretReference `json:"secretRef"`
 }
 
-// MeshRootCertificateIntent specifies the intent of the MeshRootCertificate
+// MeshRootCertificateRole specifies the role of the MeshRootCertificate
 // can be (Active, Passive).
-type MeshRootCertificateIntent string
+type MeshRootCertificateRole string
 
 const (
-	// ActiveIntent means the settings and certificate provider in this MRC are used for signing and
+	// ActiveRole means the settings and certificate provider in this MRC are used for signing and
 	// validating certificates.
-	ActiveIntent MeshRootCertificateIntent = "active"
+	ActiveRole MeshRootCertificateRole = "active"
 
-	// PassiveIntent means the settings and certificate provider in this MRC are used for validating
+	// PassiveRole means the settings and certificate provider in this MRC are used for validating
 	// certificates.
-	PassiveIntent MeshRootCertificateIntent = "passive"
+	PassiveRole MeshRootCertificateRole = "passive"
 
-	// InactiveIntent means the settings and certificate provider in this MRC no longer in use.
-	InactiveIntent MeshRootCertificateIntent = "inactive"
+	// InactiveRole means the settings and certificate provider in this MRC no longer in use.
+	InactiveRole MeshRootCertificateRole = "inactive"
 )
 
 // MeshRootCertificateComponentStatus specifies the status of the certificate component,

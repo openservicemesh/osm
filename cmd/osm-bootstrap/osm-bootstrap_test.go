@@ -95,7 +95,7 @@ var testActiveNonDefaultMeshRootCertificate = &configv1alpha2.MeshRootCertificat
 		Name:      "nondefaultmrc",
 	},
 	Spec: configv1alpha2.MeshRootCertificateSpec{
-		Intent: configv1alpha2.ActiveIntent,
+		Role: configv1alpha2.ActiveRole,
 	},
 }
 
@@ -105,7 +105,7 @@ var testPassiveNonDefaultMeshRootCertificate = &configv1alpha2.MeshRootCertifica
 		Name:      "nondefaultmrc",
 	},
 	Spec: configv1alpha2.MeshRootCertificateSpec{
-		Intent: configv1alpha2.PassiveIntent,
+		Role: configv1alpha2.PassiveRole,
 	},
 }
 
@@ -115,7 +115,7 @@ var testActiveDefaultMeshRootCertificate = &configv1alpha2.MeshRootCertificate{
 		Name:      constants.DefaultMeshRootCertificateName,
 	},
 	Spec: configv1alpha2.MeshRootCertificateSpec{
-		Intent: configv1alpha2.ActiveIntent,
+		Role: configv1alpha2.ActiveRole,
 	},
 }
 
@@ -125,7 +125,7 @@ var testPassiveDefaultMeshRootCertificate = &configv1alpha2.MeshRootCertificate{
 		Name:      constants.DefaultMeshRootCertificateName,
 	},
 	Spec: configv1alpha2.MeshRootCertificateSpec{
-		Intent: configv1alpha2.PassiveIntent,
+		Role: configv1alpha2.PassiveRole,
 	},
 }
 
@@ -140,7 +140,7 @@ var testPresetMeshRootCertificate = &corev1.ConfigMap{
 	},
 	Data: map[string]string{
 		presetMeshRootCertificateJSONKey: `{
-"intent": "active",
+"role": "active",
 "provider": {
 	"tresor": {
 	 "ca": {
@@ -183,7 +183,7 @@ func TestBuildMeshRootCertificate(t *testing.T) {
 	assert.Contains(meshRootCertificate.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
 	assert.NoError(err)
 	assert.Equal(meshRootCertificate.Name, constants.DefaultMeshRootCertificateName)
-	assert.Equal(meshRootCertificate.Spec.Intent, configv1alpha2.ActiveIntent)
+	assert.Equal(meshRootCertificate.Spec.Role, configv1alpha2.ActiveRole)
 	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Name, "osm-ca-bundle")
 	assert.Equal(meshRootCertificate.Spec.Provider.Tresor.CA.SecretRef.Namespace, testNamespace)
 	assert.Nil(meshRootCertificate.Spec.Provider.Vault)

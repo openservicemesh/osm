@@ -410,9 +410,9 @@ func (b *bootstrap) ensureMeshRootCertificate() error {
 	}
 
 	for _, mrc := range meshRootCertificateList.Items {
-		// if an MRC with Active intent exists in the mesh, do not create the default MRC
-		if mrc.Spec.Intent == configv1alpha2.ActiveIntent {
-			log.Debug().Msgf("Found MeshRootCertificate %s with %s intent. No default MeshRootCertificate will be created.", mrc.Name, mrc.Spec.Intent)
+		// if an MRC with Active role exists in the mesh, do not create the default MRC
+		if mrc.Spec.Role == configv1alpha2.ActiveRole {
+			log.Debug().Msgf("Found MeshRootCertificate %s with %s role. No default MeshRootCertificate will be created.", mrc.Name, mrc.Spec.Role)
 			return nil
 		}
 	}
@@ -434,13 +434,13 @@ func (b *bootstrap) createMeshRootCertificate() error {
 	}
 	_, err = b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Create(context.TODO(), defaultMeshRootCertificate, metav1.CreateOptions{})
 	if apierrors.IsAlreadyExists(err) {
-		// check the intent of the existing MeshRootCertificate
+		// check the role of the existing MeshRootCertificate
 		existingDefaultMeshRootCertificate, err := b.configClient.ConfigV1alpha2().MeshRootCertificates(b.namespace).Get(context.TODO(), constants.DefaultMeshRootCertificateName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		if existingDefaultMeshRootCertificate.Spec.Intent != configv1alpha2.ActiveIntent {
-			log.Warn().Msgf("Existing default MeshRootCertificate %s in %s does not have an active intent. No active MeshRootCertificate will be created.",
+		if existingDefaultMeshRootCertificate.Spec.Role != configv1alpha2.ActiveRole {
+			log.Warn().Msgf("Existing default MeshRootCertificate %s in %s does not have an active role. No active MeshRootCertificate will be created.",
 				constants.DefaultMeshRootCertificateName, b.namespace)
 			return nil
 		}
