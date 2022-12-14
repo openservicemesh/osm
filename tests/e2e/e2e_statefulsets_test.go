@@ -22,7 +22,7 @@ import (
 var _ = OSMDescribe("Test traffic among Statefulset members",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 9,
+		Bucket: 12,
 		OS:     OSCrossPlatform,
 	},
 	func() {

@@ -3,7 +3,7 @@
 ## System Requirements
 - MacOS, Linux or WSL2 on Windows
 - GCC
-- Go version [1.17.0 or higher](https://github.com/openservicemesh/osm/issues/2363)
+- Go version [1.19.0 or higher](https://github.com/openservicemesh/osm/issues/2363)
 - Kubectl version 1.15 or higher
 - Docker CLI
    - on a Debian based GNU/Linux system: `sudo apt-get install docker`

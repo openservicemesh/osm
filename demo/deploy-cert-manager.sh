@@ -44,7 +44,7 @@ return $?
 }
 
 # shellcheck disable=SC2086
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v$CERT_MANAGER_VERSION/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v$CERT_MANAGER_VERSION/cert-manager.yaml
 
 kubectl rollout status deploy -n cert-manager cert-manager
 kubectl rollout status deploy -n cert-manager cert-manager-cainjector

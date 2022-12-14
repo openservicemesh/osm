@@ -6,14 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+	"github.com/onsi/ginkgo"
 	tassert "github.com/stretchr/testify/assert"
 
-	. "github.com/onsi/ginkgo"
-
-	"github.com/golang/mock/gomock"
-	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	cmfakeclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/fake"
+	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	cmfakeclient "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -22,7 +21,7 @@ import (
 )
 
 var (
-	mockCtrl         = gomock.NewController(GinkgoT())
+	mockCtrl         = gomock.NewController(ginkgo.GinkgoT())
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 	crNotReady       = &cmapi.CertificateRequest{
 		ObjectMeta: metav1.ObjectMeta{

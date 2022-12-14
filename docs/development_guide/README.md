@@ -63,7 +63,7 @@ OSM leverages [Envoy proxy](https://github.com/envoyproxy/envoy) as a data plane
 
 ## Get Go-ing
 
-This Open Service Mesh project uses [Go v1.17.0+](https://golang.org/). If you are not familiar with Go, spend some time with the excellent [Tour of Go](https://tour.golang.org/).
+This Open Service Mesh project uses [Go v1.19.0+](https://golang.org/). If you are not familiar with Go, spend some time with the excellent [Tour of Go](https://tour.golang.org/).
 
 ## Get the dependencies
 

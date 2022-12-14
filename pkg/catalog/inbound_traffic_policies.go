@@ -197,6 +197,7 @@ func (mc *MeshCatalog) getRoutingRulesFromTrafficTarget(trafficTarget access.Tra
 }
 
 // routesFromRules takes a set of traffic target rules and the namespace of the traffic target and returns a list of
+//
 //	http route matches (trafficpolicy.HTTPRouteMatch)
 func (mc *MeshCatalog) routesFromRules(rules []access.TrafficTargetRule, trafficTargetNamespace string) ([]trafficpolicy.HTTPRouteMatch, error) {
 	var routes []trafficpolicy.HTTPRouteMatch

@@ -21,8 +21,8 @@ GIT_SHA=$$(git rev-parse HEAD)
 BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
 BUILD_VERSION_VAR := github.com/openservicemesh/osm/pkg/version.Version
 BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
-DOCKER_GO_VERSION = 1.17
-DOCKER_BUILDX_PLATFORM ?= linux/amd64
+DOCKER_GO_VERSION = 1.19
+DOCKER_BUILDX_PLATFORM ?= linux/$(shell go env GOARCH)
 # Value for the --output flag on docker buildx build.
 # https://docs.docker.com/engine/reference/commandline/buildx_build/#output
 DOCKER_BUILDX_OUTPUT ?= type=registry

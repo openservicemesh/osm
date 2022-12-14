@@ -881,6 +881,61 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 			},
 		},
 		{
+			name: "k8s headless service with single port and endpoint (no hostname), no appProtocol set",
+			// Single port on the service maps to a single MeshService.
+			// Since no appProtocol is specified, MeshService.Protocol should default
+			// to http because Port.Protocol=TCP
+			svc: corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "s1",
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{
+							Name:     "p1",
+							Port:     80,
+							Protocol: corev1.ProtocolTCP,
+						},
+					},
+					ClusterIP: corev1.ClusterIPNone,
+				},
+			},
+			svcEndpoints: []runtime.Object{
+				&corev1.Endpoints{
+					ObjectMeta: metav1.ObjectMeta{
+						// Should match svc.Name and svc.Namespace
+						Namespace: "ns1",
+						Name:      "s1",
+					},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Addresses: []corev1.EndpointAddress{
+								{
+									IP: "10.1.0.1",
+								},
+							},
+							Ports: []corev1.EndpointPort{
+								{
+									// Must match the port of 'svc.Spec.Ports[0]'
+									Port: 8080, // TargetPort
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []service.MeshService{
+				{
+					Namespace:  "ns1",
+					Name:       "s1",
+					Port:       80,
+					TargetPort: 8080,
+					Protocol:   "http",
+				},
+			},
+		},
+		{
 			name: "multiple ports on k8s service with appProtocol specified",
 			svc: corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{

@@ -1,3 +1,4 @@
+//go:build withEnvPathSet
 // +build withEnvPathSet
 
 package bugreport

@@ -2,9 +2,9 @@
 package certmanager
 
 import (
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
-	cmlisters "github.com/jetstack/cert-manager/pkg/client/listers/certmanager/v1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	cmclient "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
+	cmlisters "github.com/cert-manager/cert-manager/pkg/client/listers/certmanager/v1"
 
 	"github.com/openservicemesh/osm/pkg/logger"
 )
