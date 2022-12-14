@@ -74,6 +74,15 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 				return err
 			}
 
+			if !settings.IsManaged() && !versionCmd.versionOnly {
+				latestReleaseVersion, err := getLatestReleaseVersion()
+				if err != nil {
+					multiError = multierror.Append(multiError, fmt.Errorf("Failed to get latest release information: %w", err))
+				} else if err := outputLatestReleaseVersion(versionCmd.out, latestReleaseVersion, cliVersionInfo.Version); err != nil {
+					multiError = multierror.Append(multiError, fmt.Errorf("Failed to output latest release information: %w", err))
+				}
+			}
+
 			meshInfoList, err := getMeshInfoList(versionCmd.config, versionCmd.clientset)
 			if err != nil {
 				return fmt.Errorf("unable to list meshes within the cluster: %w", err)
@@ -91,15 +100,6 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 			w := newTabWriter(versionCmd.out)
 			fmt.Fprint(w, versionCmd.outputPrettyVersionInfo(verInfo.remoteVersionInfoList))
 			_ = w.Flush()
-
-			if !settings.IsManaged() && !versionCmd.versionOnly {
-				latestReleaseVersion, err := getLatestReleaseVersion()
-				if err != nil {
-					multiError = multierror.Append(multiError, fmt.Errorf("Failed to get latest release information: %w", err))
-				} else if err := outputLatestReleaseVersion(versionCmd.out, latestReleaseVersion, cliVersionInfo.Version); err != nil {
-					multiError = multierror.Append(multiError, fmt.Errorf("Failed to output latest release information: %w", err))
-				}
-			}
 
 			return multiError.ErrorOrNil()
 		},
