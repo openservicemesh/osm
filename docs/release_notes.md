@@ -1,4 +1,10 @@
 # Release Notes
+## Release v1.2.3
+
+### Notable changes
+- Allow non-statefulset headless services to be accessed
+- Bump cert-manager version to v1.10
+
 ## Release v1.2.2
 
 ### Notable changes
