@@ -149,5 +149,5 @@ This software is covered under the Apache 2.0 license. You can read the license 
 
 [1]: https://en.wikipedia.org/wiki/Service_mesh
 [2]: https://github.com/servicemeshinterface/smi-spec/blob/master/SPEC_LATEST_STABLE.md
-[3]: https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha2/traffic-split.md
-[4]: https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-access/v1alpha3/traffic-access.md
+[3]: https://docs.openservicemesh.io/docs/guides/traffic_management/traffic_split
+[4]: https://docs.openservicemesh.io/docs/getting_started/traffic_policies
