@@ -77,9 +77,9 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 			if !settings.IsManaged() && !versionCmd.versionOnly {
 				latestReleaseVersion, err := getLatestReleaseVersion()
 				if err != nil {
-					multiError = multierror.Append(multiError, fmt.Errorf("Failed to get latest release information: %w", err))
+					multiError = multierror.Append(multiError, fmt.Errorf("failed to get latest release information: %w", err))
 				} else if err := outputLatestReleaseVersion(versionCmd.out, latestReleaseVersion, cliVersionInfo.Version); err != nil {
-					multiError = multierror.Append(multiError, fmt.Errorf("Failed to output latest release information: %w", err))
+					multiError = multierror.Append(multiError, fmt.Errorf("failed to output latest release information: %w", err))
 				}
 			}
 
@@ -92,7 +92,7 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 				versionCmd.namespace = m.namespace
 				meshVer, err := versionCmd.getMeshVersion()
 				if err != nil {
-					multiError = multierror.Append(multiError, fmt.Errorf("Failed to get mesh version for mesh %s in namespace %s: %w", m.name, m.namespace, err))
+					multiError = multierror.Append(multiError, fmt.Errorf("failed to get mesh version for mesh %s in namespace %s: %w", m.name, m.namespace, err))
 				}
 				verInfo.remoteVersionInfoList = append(verInfo.remoteVersionInfoList, meshVer)
 			}
@@ -115,12 +115,12 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 func (v *versionCmd) setKubeClientset() error {
 	config, err := settings.RESTClientGetter().ToRESTConfig()
 	if err != nil {
-		return fmt.Errorf("Error fetching kubeconfig")
+		return fmt.Errorf("error fetching kubeconfig")
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig")
+		return fmt.Errorf("could not access Kubernetes cluster, check kubeconfig")
 	}
 	v.clientset = clientset
 	return nil
@@ -154,16 +154,16 @@ func (v *versionCmd) getMeshVersion() (*remoteVersionInfo, error) {
 func (r *remoteVersion) proxyGetMeshVersion(pod string, namespace string, clientset kubernetes.Interface) (*version.Info, error) {
 	resp, err := clientset.CoreV1().Pods(namespace).ProxyGet("", pod, strconv.Itoa(constants.OSMHTTPServerPort), constants.VersionPath, nil).DoRaw(context.TODO())
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving mesh version from pod [%s] in namespace [%s]: %w", pod, namespace, err)
+		return nil, fmt.Errorf("error retrieving mesh version from pod [%s] in namespace [%s]: %w", pod, namespace, err)
 	}
 	if len(resp) == 0 {
-		return nil, fmt.Errorf("Empty response received from pod [%s] in namespace [%s]: %w", pod, namespace, err)
+		return nil, fmt.Errorf("empty response received from pod [%s] in namespace [%s]: %w", pod, namespace, err)
 	}
 
 	versionInfo := &version.Info{}
 	err = json.Unmarshal(resp, versionInfo)
 	if err != nil {
-		return nil, fmt.Errorf("Error unmarshalling retrieved mesh version from pod [%s] in namespace [%s]: %w", pod, namespace, err)
+		return nil, fmt.Errorf("error unmarshalling retrieved mesh version from pod [%s] in namespace [%s]: %w", pod, namespace, err)
 	}
 
 	return versionInfo, nil
