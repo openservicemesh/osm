@@ -1,7 +1,7 @@
 ---
-title: "Release Guide"
-description: "OSM Release Guide"
-type: docs
+Title: "Release Guide"
+Description: "OSM Release Guide"
+Type: Docs
 ---
 
 # Release Guide
