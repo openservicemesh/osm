@@ -1,7 +1,7 @@
 ---
-title: "Automerge Pull Requests"
-description: "How to use labels and commands to automerge/autorebase your pull request."
-type: docs
+Title: "Automerge Pull Requests"
+Description: "How to use labels and commands to automerge/autorebase your pull request."
+Type: Docs
 ---
 
 OSM uses [Mergify](https://docs.mergify.io/) to automatically merge (automerge), automatically squash and merge (autosquash), and automatically rebase (autorebase) pull requests.
