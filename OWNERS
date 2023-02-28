@@ -1,6 +1,5 @@
 # Code maintainers (borrowed from https://github.com/openservicemesh/osm/blob/main/CODEOWNERS)
 
-- @nojnhuh
 - @jaellio
 - @trstringer
 - @keithmattix
@@ -16,3 +15,4 @@
 - @snehachhabria
 - @draychev
 - @shashankram
+- @nojnhuh
