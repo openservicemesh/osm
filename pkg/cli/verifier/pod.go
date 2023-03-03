@@ -198,7 +198,7 @@ func (p *podProber) Probe(pod types.NamespacedName) error {
 			transport := &http.Transport{
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: true,
-					MinVersion:         tls.VersionTLS13,
+					MinVersion:         tls.VersionTLS12,
 				},
 			}
 			client.Transport = transport
