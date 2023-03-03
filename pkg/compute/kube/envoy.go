@@ -51,6 +51,7 @@ func (c *client) getEnvoyConfig(pod *v1.Pod, envoyURL string, kubeConfig *rest.C
 		}
 
 		//nolint: errcheck
+		//#nosec G307
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
