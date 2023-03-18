@@ -1752,7 +1752,7 @@ func (td *OsmTestData) AddOpenShiftSCC(scc, serviceAccount, namespace string) er
 
 	_, err = td.createRoleBinding(namespace, &roleBindingDefinition)
 	if err != nil {
-		return fmt.Errorf("Failed to create RoleBinding %s: %w", roleBindingName, err)
+		return fmt.Errorf("failed to create RoleBinding %s: %w", roleBindingName, err)
 	}
 
 	return nil
