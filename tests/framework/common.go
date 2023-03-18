@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"math/big"
 	"os"
@@ -477,7 +476,7 @@ func (td *OsmTestData) LoadImagesToKind(imageNames []string) error {
 		return fmt.Errorf("failed to get image data")
 	}
 
-	imageReader, err := ioutil.ReadAll(imageData)
+	imageReader, err := io.ReadAll(imageData)
 	if err != nil {
 		return fmt.Errorf("failed to read images")
 	}
@@ -1634,7 +1633,7 @@ func (td *OsmTestData) GrabLogs() error {
 		td.T.Logf("stdout:\n%s", stdout)
 		td.T.Logf("stderr:\n%s", stderr)
 	} else {
-		if err := ioutil.WriteFile(fmt.Sprintf("%s/%s", absTestDirPath, "events"), stdout.Bytes(), 0600); err != nil {
+		if err := os.WriteFile(fmt.Sprintf("%s/%s", absTestDirPath, "events"), stdout.Bytes(), 0600); err != nil {
 			td.T.Logf("Failed to write file for events: %s", err)
 		}
 	}
