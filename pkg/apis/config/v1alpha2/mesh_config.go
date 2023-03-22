@@ -79,7 +79,7 @@ type SidecarSpec struct {
 	// TLSMinProtocolVersion defines the minimum TLS protocol version that the sidecar supports. Valid TLS protocol versions are TLS_AUTO, TLSv1_0, TLSv1_1, TLSv1_2 and TLSv1_3.
 	TLSMinProtocolVersion string `json:"tlsMinProtocolVersion,omitempty"`
 
-	// TLSMaxProtocolVersion defines the maximum TLS protocol version that the sidecar supports. Valid TLS protocol versions are TLS_AUTO, TLSv1_0, TLSv1_1, TLSv1_2 and TLSv1_3.
+	// TLSMaxProtocolVersion defines the maximum TLS protocol version that the sidecar supports. Valid TLS protocol versions are TLS_AUTO, TLSv1_0 (deprecated), TLSv1_1 (deprecated), TLSv1_2 and TLSv1_3.
 	TLSMaxProtocolVersion string `json:"tlsMaxProtocolVersion,omitempty"`
 
 	// CipherSuites defines a list of ciphers that listener supports when negotiating TLS 1.0-1.2. This setting has no effect when negotiating TLS 1.3. For valid cipher names, see the latest OpenSSL ciphers manual page. E.g. https://www.openssl.org/docs/man1.1.1/apps/ciphers.html.
