@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
@@ -243,7 +242,7 @@ func applyOrUpdateCRDs(crdClient *apiclient.ApiextensionsV1Client) {
 			log.Fatal().Err(err).Msgf("Error decoding CRD file %s", file)
 		}
 
-		crd.Labels[constants.ReconcileLabel] = strconv.FormatBool(enableReconciler)
+		crd.Labels[constants.ReconcileLabel] = osmVersion
 
 		crdExisting, err := crdClient.CustomResourceDefinitions().Get(context.Background(), crd.Name, metav1.GetOptions{})
 		if err != nil && !apierrors.IsNotFound(err) {
@@ -262,7 +261,7 @@ func applyOrUpdateCRDs(crdClient *apiclient.ApiextensionsV1Client) {
 		} else {
 			log.Info().Msgf("Patching conversion webhook configuration for crd: %s, setting to \"None\"", crd.Name)
 
-			crdExisting.Labels[constants.ReconcileLabel] = strconv.FormatBool(enableReconciler)
+			crdExisting.Labels[constants.ReconcileLabel] = osmVersion
 			crdExisting.Spec = crd.Spec
 			crdExisting.Spec.Conversion = &apiv1.CustomResourceConversion{
 				Strategy: apiv1.NoneConverter,
