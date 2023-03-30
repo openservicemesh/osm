@@ -49,11 +49,11 @@ require (
 	gorm.io/driver/mysql v1.1.1
 	gorm.io/gorm v1.21.12
 	helm.sh/helm/v3 v3.11.1
-	k8s.io/api v0.26.0
+	k8s.io/api v0.26.3
 	k8s.io/apiextensions-apiserver v0.26.0
-	k8s.io/apimachinery v0.26.0
+	k8s.io/apimachinery v0.26.3
 	k8s.io/cli-runtime v0.26.0
-	k8s.io/client-go v0.26.0
+	k8s.io/client-go v0.26.3
 	k8s.io/code-generator v0.26.0
 	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d
 	sigs.k8s.io/controller-runtime v0.13.0
