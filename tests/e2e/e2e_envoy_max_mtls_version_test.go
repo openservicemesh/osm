@@ -14,8 +14,8 @@ import (
 
 // Prior iterations of OSM supported a wide range of min and max MTLS versions for the envoy sidecar (TLS_AUTO, TLSv1_0, TLSv1_1, TLSv1_2 and TLSv1_3)
 // even though the OSM Control Plane's minimum version has been upgraded to TLSv1_2
-// This test verifies that the envoy sidecar maxTLSVersion is compatible with the current osm control plane's minTLSVersion
-var _ = OSMDescribe("Test envoy maxTLSVersion is compatible with osm control plane's minTLSVersion",
+// This test verifies that the envoy sidecar maxTLSVersion is compatible with the current OSM control plane's minTLSVersion
+var _ = OSMDescribe("Test envoy maxTLSVersion is compatible with OSM control plane's minTLSVersion",
 	OSMDescribeInfo{
 		Tier:   1,
 		Bucket: 12,
@@ -110,7 +110,7 @@ func testEnvoyMaxMtlsVersionIsNotCompatibileWithOSMControlPlane(envoyMaxTLSVersi
 			Td.T.Logf("> (%s) HTTP Req failed correctly: %v", srcToDestStr, result.Err)
 			return true
 		}, 5, 150*time.Second)
-		Expect(cond).To(BeTrue(), "envoy maxTLSVersion %s is not compatible with osm control plane", envoyMaxTLSVersion)
+		Expect(cond).To(BeTrue(), "envoy maxTLSVersion %s is not compatible with OSM control plane", envoyMaxTLSVersion)
 	})
 }
 
