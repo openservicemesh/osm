@@ -99,7 +99,7 @@ spec:
                         - TLSv1_3
                       default: TLSv1_2
                     tlsMaxProtocolVersion:
-                      description: The maximum TLS protocol version that the sidecar supports. Valid TLS protocol versions are TLS_AUTO, TLSv1_0, TLSv1_1, TLSv1_2 and TLSv1_3.
+                      description: The maximum TLS protocol version that the sidecar supports. Valid TLS protocol versions are TLS_AUTO, TLSv1_0 (deprecated), TLSv1_1 (deprecated), TLSv1_2 and TLSv1_3.
                       type: string
                       enum:
                         - TLS_AUTO
