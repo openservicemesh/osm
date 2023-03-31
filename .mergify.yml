@@ -116,18 +116,3 @@ pull_request_rules:
       merge:
         # Currently we merge PRs by creating a merge commit
         method: merge
-
-  - name: Automatic rebase
-    conditions:
-      # True if the PR has any of the following labels
-      - or:
-        - label=automerge
-        - label=autorebase
-        - label=automerge-squash
-      # True when the PR is not conflicting with the base branch
-      - -conflict
-      # True if the PR is not in draft state
-      - -draft
-    actions:
-      rebase:
-        # Mergify will use any OSM user that's logged into the Mergify dashboard for the rebasing
