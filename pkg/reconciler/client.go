@@ -60,7 +60,8 @@ func NewReconcilerClient(kubeClient kubernetes.Interface, apiServerClient client
 
 // Initializes CustomResourceDefinition monitoring
 func (c *client) initCustomResourceDefinitionMonitor() {
-	osmCrdsLabel := map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue, constants.ReconcileLabel: strconv.FormatBool(true)}
+	// Use the OSM version as the selector for reconciliation
+	osmCrdsLabel := map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue, constants.ReconcileLabel: c.osmVersion}
 
 	labelSelector := fields.SelectorFromSet(osmCrdsLabel).String()
 	options := internalinterfaces.TweakListOptionsFunc(func(opt *metav1.ListOptions) {
