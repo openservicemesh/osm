@@ -33,7 +33,7 @@ require (
 	github.com/norwoodj/helm-docs v1.4.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.23.0
+	github.com/onsi/gomega v1.24.1
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/common v0.37.0
@@ -50,13 +50,13 @@ require (
 	gorm.io/gorm v1.21.12
 	helm.sh/helm/v3 v3.11.1
 	k8s.io/api v0.26.3
-	k8s.io/apiextensions-apiserver v0.26.0
+	k8s.io/apiextensions-apiserver v0.26.1
 	k8s.io/apimachinery v0.26.3
 	k8s.io/cli-runtime v0.26.0
 	k8s.io/client-go v0.26.3
-	k8s.io/code-generator v0.26.0
-	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d
-	sigs.k8s.io/controller-runtime v0.13.0
+	k8s.io/code-generator v0.26.1
+	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
+	sigs.k8s.io/controller-runtime v0.14.6
 	sigs.k8s.io/kind v0.14.0
 )
 
@@ -395,7 +395,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1 // indirect
 	golang.org/x/term v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
-	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
+	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	google.golang.org/api v0.97.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -405,8 +405,8 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.26.0 // indirect
-	k8s.io/component-base v0.26.0 // indirect
+	k8s.io/apiserver v0.26.1 // indirect
+	k8s.io/component-base v0.26.1 // indirect
 	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/helm v2.14.3+incompatible // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
