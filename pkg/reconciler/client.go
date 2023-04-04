@@ -29,14 +29,17 @@ func NewReconcilerClient(kubeClient kubernetes.Interface, apiServerClient client
 	}
 
 	// Initialize informers
-	informerInitHandlerMap := map[InformerKey]func(){
+	informerInitHandlerMap := map[InformerKey]func() error{
 		CrdInformerKey:               c.initCustomResourceDefinitionMonitor,
 		MutatingWebhookInformerKey:   c.initMutatingWebhookConfigurationMonitor,
 		ValidatingWebhookInformerKey: c.initValidatingWebhookConfigurationMonitor,
 	}
 
 	for _, informer := range selectInformers {
-		informerInitHandlerMap[informer]()
+		if err := informerInitHandlerMap[informer](); err != nil {
+			log.Error().Err(err).Msgf("Failed to initialize informer for %s", informer)
+			return err
+		}
 	}
 
 	if err := c.run(stop); err != nil {
@@ -49,7 +52,8 @@ func NewReconcilerClient(kubeClient kubernetes.Interface, apiServerClient client
 }
 
 // Initializes CustomResourceDefinition monitoring
-func (c *client) initCustomResourceDefinitionMonitor() {
+// Returns an error if the informer could not be initialized
+func (c *client) initCustomResourceDefinitionMonitor() error {
 	// Use the OSM version as the selector for reconciliation
 	osmCrdsLabel := map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue, constants.ReconcileLabel: c.osmVersion}
 
@@ -64,11 +68,16 @@ func (c *client) initCustomResourceDefinitionMonitor() {
 	c.informers[CrdInformerKey] = informerFactory
 
 	// Add event handler to informer
-	c.informers[CrdInformerKey].AddEventHandler(c.crdEventHandler())
+	if _, err := c.informers[CrdInformerKey].AddEventHandler(c.crdEventHandler()); err != nil {
+		log.Error().Err(err).Msgf("Failed to add event handler to informer %s", CrdInformerKey)
+		return err
+	}
+	return nil
 }
 
 // Initializes mutating webhook monitoring
-func (c *client) initMutatingWebhookConfigurationMonitor() {
+// Returns an error if the informer could not be initialized
+func (c *client) initMutatingWebhookConfigurationMonitor() error {
 	osmMwhcLabel := map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue, constants.OSMAppInstanceLabelKey: c.meshName, constants.ReconcileLabel: strconv.FormatBool(true)}
 	labelSelector := fields.SelectorFromSet(osmMwhcLabel).String()
 	option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
@@ -81,11 +90,16 @@ func (c *client) initMutatingWebhookConfigurationMonitor() {
 	c.informers[MutatingWebhookInformerKey] = informerFactory.Admissionregistration().V1().MutatingWebhookConfigurations().Informer()
 
 	// Add event handler to informer
-	c.informers[MutatingWebhookInformerKey].AddEventHandler(c.mutatingWebhookEventHandler())
+	if _, err := c.informers[MutatingWebhookInformerKey].AddEventHandler(c.mutatingWebhookEventHandler()); err != nil {
+		log.Error().Err(err).Msgf("Failed to add event handler to informer %s", MutatingWebhookInformerKey)
+		return err
+	}
+	return nil
 }
 
 // Initializes validating webhook monitoring
-func (c *client) initValidatingWebhookConfigurationMonitor() {
+// Returns an error if the informer could not be initialized
+func (c *client) initValidatingWebhookConfigurationMonitor() error {
 	osmVwhcLabel := map[string]string{constants.OSMAppNameLabelKey: constants.OSMAppNameLabelValue, constants.OSMAppInstanceLabelKey: c.meshName, constants.ReconcileLabel: strconv.FormatBool(true)}
 	labelSelector := fields.SelectorFromSet(osmVwhcLabel).String()
 	option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
@@ -98,7 +112,11 @@ func (c *client) initValidatingWebhookConfigurationMonitor() {
 	c.informers[ValidatingWebhookInformerKey] = informerFactory.Admissionregistration().V1().ValidatingWebhookConfigurations().Informer()
 
 	// Add event handler to informer
-	c.informers[ValidatingWebhookInformerKey].AddEventHandler(c.validatingWebhookEventHandler())
+	if _, err := c.informers[ValidatingWebhookInformerKey].AddEventHandler(c.validatingWebhookEventHandler()); err != nil {
+		log.Error().Err(err).Msgf("Failed to add event handler to informer %s", ValidatingWebhookInformerKey)
+		return err
+	}
+	return nil
 }
 
 func (c *client) run(stop <-chan struct{}) error {

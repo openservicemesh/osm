@@ -487,7 +487,12 @@ func (c *Client) ListServiceExports() []*mcs.ServiceExport {
 	return serviceExports
 }
 
-// AddMeshRootCertificateEventHandler adds an event handler specific to mesh root certificiates.
-func (c *Client) AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler) {
-	c.informers[informerKeyMeshRootCertificate].AddEventHandler(handler)
+// AddMeshRootCertificateEventHandler adds an event handler specific to mesh root certificates.
+// Returns an error if it fails to add the event handler.
+func (c *Client) AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler) error {
+	if _, err := c.informers[informerKeyMeshRootCertificate].AddEventHandler(handler); err != nil {
+		log.Error().Err(err).Msgf("Error adding event handler for %s", informerKeyMeshRootCertificate)
+		return err
+	}
+	return nil
 }
