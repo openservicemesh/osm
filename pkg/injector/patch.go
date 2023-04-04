@@ -185,6 +185,12 @@ func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, names
 		return nil
 	}
 
+	if strings.EqualFold(wh.kubeController.GetMeshConfig().Spec.Traffic.InterceptionMode, constants.TrafficInterceptionModeEBPF) ||
+		strings.EqualFold(wh.kubeController.GetMeshConfig().Spec.Traffic.InterceptionMode, constants.TrafficInterceptionModeNone) {
+		// Only init container for iptables
+		return nil
+	}
+
 	// Build outbound port exclusion list
 	podOutboundPortExclusionList, err := getPortExclusionListForPod(pod, namespace, outboundPortExclusionListAnnotation)
 	if err != nil {

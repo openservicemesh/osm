@@ -102,3 +102,12 @@ securityContext:
 {{- printf "%s/%s@%s" .Values.osm.image.registry .Values.osm.image.name.osmHealthcheck .Values.osm.image.digest.osmHealthcheck -}}
 {{- end -}}
 {{- end -}}
+
+{{/* osm-interceptor image */}}
+{{- define "osmInterceptor.image" -}}
+{{- if .Values.osm.image.tag -}}
+{{- printf "%s/%s:%s" .Values.osm.image.registry .Values.osm.image.name.osmInterceptor .Values.osm.image.tag -}}
+{{- else -}}
+{{- printf "%s/%s@%s" .Values.osm.image.registry .Values.osm.image.name.osmInterceptor .Values.osm.image.digest.osmController -}}
+{{- end -}}
+{{- end -}}

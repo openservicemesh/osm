@@ -29,6 +29,8 @@ osm:
       osmPreinstall: osm-preinstall
       # -- osm-healthcheck's image name
       osmHealthcheck: osm-healthcheck
+      # -- osm-interceptor's image name
+      osmInterceptor: osm-interceptor
     # -- Image digest (defaults to latest compatible tag)
     digest:
       # -- osm-controller's image digest
@@ -45,7 +47,8 @@ osm:
       osmPreinstall: ""
       # -- osm-healthcheck's image digest
       osmHealthcheck: ""
-
+      # -- osm-interceptor's image digest
+      osmInterceptor: ""
 
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
@@ -121,6 +124,51 @@ osm:
     # -- Node tolerations applied to control plane pods.
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
     tolerations: []
+
+  #
+  # -- OSM interceptor parameters
+  osmInterceptor:
+    kernelTracing: true
+    cniMode: true
+    kindMode: false
+    resource:
+      limits:
+        cpu: "1.5"
+        memory: "1G"
+      requests:
+        cpu: "0.5"
+        memory: "256M"
+    ## Affinity settings for pod assignment
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.io/os
+                  operator: In
+                  values:
+                    - linux
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
+                    - arm64
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - osm-controller
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+
+    # -- Node tolerations applied to control plane pods.
+    # The specified tolerations allow pods to schedule onto nodes with matching taints.
+    tolerations: [ ]
 
   #
   # -- Prometheus parameters
@@ -255,6 +303,9 @@ osm:
 
   # -- Enable the debug HTTP server on OSM controller
   enableDebugServer: false
+
+  # -- Traffic interception mode in the mesh
+  trafficInterceptionMode: iptables
 
   # -- Enable permissive traffic policy mode
   enablePermissiveTrafficPolicy: true

@@ -94,6 +94,9 @@ type SidecarSpec struct {
 
 // TrafficSpec is the type used to represent OSM's traffic management configuration.
 type TrafficSpec struct {
+	// InterceptionMode defines a string indicating which traffic interception mode is used.
+	InterceptionMode string `json:"interceptionMode"`
+
 	// EnableEgress defines a boolean indicating if mesh-wide Egress is enabled.
 	EnableEgress bool `json:"enableEgress"`
 

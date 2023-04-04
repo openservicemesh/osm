@@ -14,6 +14,7 @@ data:
         "localProxyMode": {{.Values.osm.localProxyMode | mustToJson}}
       },
       "traffic": {
+        "interceptionMode": {{.Values.osm.trafficInterceptionMode | mustToJson}},
         "enableEgress": {{.Values.osm.enableEgress | mustToJson}},
         "enablePermissiveTrafficPolicyMode": {{.Values.osm.enablePermissiveTrafficPolicy | mustToJson}},
         "outboundPortExclusionList": {{.Values.osm.outboundPortExclusionList | mustToJson}},

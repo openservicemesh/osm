@@ -1,0 +1,134 @@
+{{- if eq .Values.osm.trafficInterceptionMode "ebpf" }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: osm-interceptor
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-interceptor
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: osm-interceptor
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-interceptor
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - list
+  - get
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: osm-interceptor
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-interceptor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: osm-interceptor
+subjects:
+- kind: ServiceAccount
+  name: osm-interceptor
+  namespace: osm-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: osm-interceptor
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    {{- include "osm.labels" . | nindent 4 }}
+    app: osm-interceptor
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: osm-interceptor
+  template:
+    metadata:
+      labels:
+        app: osm-interceptor
+    spec:
+      {{- if .Values.osm.osmInterceptor.affinity }}
+      affinity:
+      {{- toYaml .Values.osm.osmInterceptor.affinity | nindent 8 }}
+      {{- end }}
+      hostNetwork: true
+      containers:
+      - name: osm-interceptor
+        image: "{{ include "osmInterceptor.image" . }}"
+        imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
+        command: ['/app/osm-interceptor']
+        args: [
+          "--verbosity", "{{.Values.osm.controllerLogLevel}}",
+          "--osm-namespace", "{{ include "osm.namespace" . }}",
+          "--osm-version", "{{ .Chart.AppVersion }}",
+          "--mesh-name", "{{.Values.osm.meshName}}",
+          "--cni-mode={{ .Values.osm.osmInterceptor.cniMode }}",
+          "--kind={{ .Values.osm.osmInterceptor.kindMode }}",
+          "--kernel-tracing={{ .Values.osm.osmInterceptor.kernelTracing }}",
+        ]
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - make
+              - -k
+              - clean
+        resources:
+          limits:
+            cpu: "{{.Values.osm.osmInterceptor.resource.limits.cpu}}"
+            memory: "{{.Values.osm.osmInterceptor.resource.limits.memory}}"
+          requests:
+            cpu: "{{.Values.osm.osmInterceptor.resource.requests.cpu}}"
+            memory: "{{.Values.osm.osmInterceptor.resource.requests.memory}}"
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - mountPath: /sys/fs/cgroup
+            name: sys-fs-cgroup
+          - mountPath: /host/opt/cni/bin
+            name: cni-bin-dir
+          - mountPath: /host/etc/cni/net.d
+            name: cni-config-dir
+          - mountPath: /host/proc
+            name: host-proc
+          - mountPath: /host/var/run
+            name: host-var-run
+            mountPropagation: Bidirectional
+      dnsPolicy: ClusterFirst
+      priorityClassName: system-node-critical
+      restartPolicy: Always
+      serviceAccount: osm-interceptor
+      serviceAccountName: osm-interceptor
+      tolerations:
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - operator: Exists
+      volumes:
+      - hostPath:
+          path: /sys/fs/cgroup
+        name: sys-fs-cgroup
+      - hostPath:
+          path: /proc
+        name: host-proc
+      - hostPath:
+          path: /opt/cni/bin
+        name: cni-bin-dir
+      - hostPath:
+          path: /etc/cni/net.d
+        name: cni-config-dir
+      - hostPath:
+          path: /var/run
+        name: host-var-run
+{{- end }}

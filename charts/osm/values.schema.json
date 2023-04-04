@@ -171,6 +171,7 @@
         "curlImage",
         "caBundleSecretName",
         "enableDebugServer",
+        "trafficInterceptionMode",
         "enablePermissiveTrafficPolicy",
         "enableEgress",
         "enableReconciler",
@@ -187,6 +188,7 @@
         "tracing",
         "webhookConfigNamePrefix",
         "osmController",
+        "osmInterceptor",
         "enablePrivilegedInitContainer",
         "injector",
         "osmBootstrap",
@@ -242,6 +244,61 @@
           },
           "additionalProperties": false
         },
+        "osmInterceptor": {
+          "$id": "#/properties/osm/properties/osmInterceptor",
+          "type": "object",
+          "title": "The osmInterceptor schema",
+          "description": "The details of the osmInterceptor.",
+          "required": [
+            "resource"
+          ],
+          "properties": {
+            "resource": {
+              "$ref": "#/definitions/containerResources"
+            },
+            "podLabels": {
+              "$id": "#/properties/osm/properties/osmInterceptor/properties/podLabels",
+              "type": "object",
+              "title": "The podLabels schema",
+              "description": "Labels for the osmInterceptor pod.",
+              "default": {}
+            },
+            "affinity": {
+              "type": "object"
+            },
+            "tolerations": {
+              "type": "array"
+            },
+            "kernelTracing": {
+              "$id": "#/properties/osm/properties/osmInterceptor/properties/kernelTracing",
+              "type": "boolean",
+              "title": "kernel tracing enable",
+              "description": "Indicates whether kernel tracing should be enabled or not.",
+              "examples": [
+                false
+              ]
+            },
+            "cniMode": {
+              "$id": "#/properties/osm/properties/osmInterceptor/properties/cniMode",
+              "type": "boolean",
+              "title": "cni plugin enable",
+              "description": "Indicates whether cni plugin should be enabled or not.",
+              "examples": [
+                false
+              ]
+            },
+            "kindMode": {
+              "$id": "#/properties/osm/properties/osmInterceptor/properties/kindMode",
+              "type": "boolean",
+              "title": "running kind cluster",
+              "description": "Indicates whether running kind cluster.",
+              "examples": [
+                false
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
         "image": {
           "$id": "#/properties/osm/properties/image",
           "type": "object",
@@ -283,7 +340,8 @@
                 "osmBootstrap",
                 "osmCRDs",
                 "osmPreinstall",
-                "osmHealthcheck"
+                "osmHealthcheck",
+                "osmInterceptor"
               ],
               "properties": {
                 "osmController": {
@@ -327,6 +385,12 @@
                   "type": "string",
                   "title": "osm-healthcheck's image name",
                   "description": "osm-healthcheck container's image name."
+                },
+                "osmInterceptor": {
+                  "$id": "#/properties/osm/properties/image/properties/name/properties/osmInterceptor",
+                  "type": "string",
+                  "title": "osm-interceptor's image name",
+                  "description": "osm-interceptor container's image name."
                 }
               }
             },
@@ -361,7 +425,8 @@
                 "osmCRDs",
                 "osmBootstrap",
                 "osmPreinstall",
-                "osmHealthcheck"
+                "osmHealthcheck",
+                "osmInterceptor"
               ],
               "properties": {
                 "osmController": {
@@ -405,6 +470,12 @@
                   "type": "string",
                   "title": "osm-healthcheck's image digest",
                   "description": "osm-healthcheck container's image digest."
+                },
+                "osmInterceptor": {
+                  "$id": "#/properties/osm/properties/image/properties/digest/properties/osmInterceptor",
+                  "type": "string",
+                  "title": "osm-interceptor's image digest",
+                  "description": "osm-interceptor container's image digest."
                 }
               }
             }
@@ -506,6 +577,20 @@
           "description": "Indicates whether the Debug Server should be enabled or not.",
           "examples": [
             false
+          ]
+        },
+        "trafficInterceptionMode": {
+          "$id": "#/properties/osm/properties/trafficInterceptionMode",
+          "type": "string",
+          "title": "The trafficInterceptionMode schema",
+          "description": "Traffic interception mode in the mesh.",
+          "enum": [
+            "iptables",
+            "ebpf",
+            "none"
+          ],
+          "examples": [
+            "iptables"
           ]
         },
         "enablePermissiveTrafficPolicy": {

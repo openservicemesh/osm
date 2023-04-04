@@ -107,6 +107,14 @@ check-codegen:
 	@./codegen/gen-crd-client.sh
 	@git diff --exit-code || { echo "----- Please commit the changes made by './codegen/gen-crd-client.sh' -----"; exit 1; }
 
+.PHONY: lint-c
+lint-c:
+	clang-format --Werror -n bpf/*.c bpf/headers/*.h
+
+.PHONY: format-c
+format-c:
+	find . -regex '.*\.\(c\|h\)' -exec clang-format -style=file -i {} \;
+
 .PHONY: go-checks
 go-checks: go-lint go-fmt go-mod-tidy check-mocks check-codegen
 
@@ -190,6 +198,11 @@ docker-build-osm-controller:
 docker-build-osm-injector:
 	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-injector:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-injector --build-arg GO_BASE_IMAGE=$(DOCKER_GO_BASE_IMAGE) --build-arg FINAL_BASE_IMAGE=$(DOCKER_FINAL_BASE_IMAGE) --build-arg LDFLAGS=$(LDFLAGS) --build-arg CGO_ENABLED=$(CGO_ENABLED) --build-arg GO_BUILD_FLAGS="$(DOCKER_GO_BUILD_FLAGS)" .
 
+.PHONY: docker-build-osm-interceptor
+docker-build-osm-interceptor:
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-interceptor:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-interceptor --build-arg GO_BASE_IMAGE=$(DOCKER_GO_BASE_IMAGE) --build-arg LDFLAGS=$(LDFLAGS) --build-arg CGO_ENABLED=$(CGO_ENABLED) --build-arg GO_BUILD_FLAGS="$(DOCKER_GO_BUILD_FLAGS)" .
+
+
 .PHONY: docker-build-osm-crds
 docker-build-osm-crds:
 	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-crds:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-crds ./cmd/osm-bootstrap/crds
@@ -206,7 +219,7 @@ docker-build-osm-preinstall:
 docker-build-osm-healthcheck:
 	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-healthcheck:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-healthcheck --build-arg GO_BASE_IMAGE=$(DOCKER_GO_BASE_IMAGE) --build-arg FINAL_BASE_IMAGE=$(DOCKER_FINAL_BASE_IMAGE) --build-arg LDFLAGS=$(LDFLAGS) --build-arg CGO_ENABLED=$(CGO_ENABLED) --build-arg GO_BUILD_FLAGS="$(DOCKER_GO_BUILD_FLAGS)" .
 
-OSM_TARGETS = init osm-controller osm-injector osm-crds osm-bootstrap osm-preinstall osm-healthcheck
+OSM_TARGETS = init osm-controller osm-injector osm-interceptor osm-crds osm-bootstrap osm-preinstall osm-healthcheck
 DOCKER_OSM_TARGETS = $(addprefix docker-build-, $(OSM_TARGETS))
 
 

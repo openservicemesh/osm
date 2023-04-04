@@ -196,6 +196,51 @@ jobs:
           make go-mod-tidy
       - name: Test
         run: make go-test
+  unittest-ebpf:
+    name: Go test (eBPF)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: install bpftool
+        run: |
+          sudo bash ./scripts/build-bpftool.sh
+      - name: Deploy OSM and Demo
+        env:
+          CERT_MANAGER: "tresor"
+          BOOKSTORE_SVC: "bookstore"
+          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "0"
+          ENABLE_EGRESS: "false"
+          ENABLE_RECONCILER: "false"
+          PERMISSIVE_MODE: "false"
+          DEPLOY_TRAFFIC_SPLIT: "true"
+          CTR_TAG: ${{ github.sha }}
+          USE_PRIVATE_REGISTRY: "false"
+          TRAFFIC_INTERCEPTION_MODE: "ebpf"
+          INTERCEPTOR_KIND_MODE: "true"
+        run: |
+          touch .env
+          ./scripts/kind-with-registry.sh
+          ./demo/run-osm-demo.sh
+          sleep 5s
+          kubectl wait --for=condition=ready pod -n bookwarehouse -l app=mysql --timeout=300s
+          kubectl wait --for=condition=ready pod -n bookwarehouse -l app=bookwarehouse --timeout=300s
+          kubectl wait --for=condition=ready pod -n bookstore -l app=bookstore --timeout=300s
+          kubectl wait --for=condition=ready pod -n bookbuyer -l app=bookbuyer --timeout=300s
+          kubectl wait --for=condition=ready pod -n bookthief -l app=bookthief --timeout=300s
+      - name: Check if eBPF works
+        run: |
+          set -x
+          sudo cat /sys/kernel/debug/tracing/trace > /tmp/trace-log 
+          # check if eBPF works
+          #[ "$(sudo cat /tmp/trace-log | grep 'from user container')" = "" ] && (echo eBPF progs not work; sudo cat /tmp/trace-log; exit 11)
+          [ "$(sudo cat /tmp/trace-log | grep 'bytes with eBPF successfully')" = "" ] && (echo eBPF redirect progs not work; sudo cat /tmp/trace-log; exit 12)
+          sudo rm -f /tmp/trace-log
 
   imagescan:
     name: Scan images for security vulnerabilities

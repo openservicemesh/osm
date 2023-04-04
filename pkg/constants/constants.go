@@ -300,6 +300,17 @@ const (
 	ServiceAliveResponse = "Service is alive"
 )
 
+const (
+	//TrafficInterceptionModeIptables defines the iptables traffic interception mode
+	TrafficInterceptionModeIptables = "iptables"
+
+	//TrafficInterceptionModeEBPF defines the ebpf traffic interception mode
+	TrafficInterceptionModeEBPF = "ebpf"
+
+	//TrafficInterceptionModeNone defines the none traffic interception mode
+	TrafficInterceptionModeNone = "none"
+)
+
 var (
 	// SupportedProtocolsInMesh is a list of the protocols OSM supports for in-mesh traffic
 	SupportedProtocolsInMesh = []string{ProtocolTCPServerFirst, ProtocolHTTP, ProtocolTCP, ProtocolGRPC}

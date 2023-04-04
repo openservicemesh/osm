@@ -21,7 +21,9 @@ BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
 BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
 BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
 BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
+INTERCEPTOR_KIND_MODE="${INTERCEPTOR_KIND_MODE:-false}"
 PERMISSIVE_MODE="${PERMISSIVE_MODE:-false}" # The demo depends on permissive mode being disabled
+TRAFFIC_INTERCEPTION_MODE="${TRAFFIC_INTERCEPTION_MODE:-iptables}"
 CERT_MANAGER="${CERT_MANAGER:-tresor}"
 CTR_REGISTRY="${CTR_REGISTRY:-localhost:5000}"
 CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
@@ -124,6 +126,8 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=osm.controllerLogLevel="trace" \
       --set=osm.localProxyMode="$LOCAL_PROXY_MODE" \
+      --set=osm.trafficInterceptionMode="$TRAFFIC_INTERCEPTION_MODE" \
+      --set=osm.osmInterceptor.kindMode="$INTERCEPTOR_KIND_MODE" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 else
@@ -150,6 +154,8 @@ else
       --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
       --set=osm.controllerLogLevel="trace" \
       --set=osm.localProxyMode="$LOCAL_PROXY_MODE" \
+      --set=osm.trafficInterceptionMode="$TRAFFIC_INTERCEPTION_MODE" \
+      --set=osm.osmInterceptor.kindMode="$INTERCEPTOR_KIND_MODE" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 fi
