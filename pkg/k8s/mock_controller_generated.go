@@ -45,9 +45,11 @@ func (m *MockController) EXPECT() *MockControllerMockRecorder {
 }
 
 // AddMeshRootCertificateEventHandler mocks base method.
-func (m *MockController) AddMeshRootCertificateEventHandler(arg0 cache.ResourceEventHandler) {
+func (m *MockController) AddMeshRootCertificateEventHandler(arg0 cache.ResourceEventHandler) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddMeshRootCertificateEventHandler", arg0)
+	ret := m.ctrl.Call(m, "AddMeshRootCertificateEventHandler", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // AddMeshRootCertificateEventHandler indicates an expected call of AddMeshRootCertificateEventHandler.

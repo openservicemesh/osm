@@ -24,7 +24,7 @@ type MRCComposer struct {
 // to be ordered for any particular resources, but NOT across different resources.
 func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
 	eventChan := make(chan certificate.MRCEvent)
-	m.AddMeshRootCertificateEventHandler(cache.ResourceEventHandlerFuncs{
+	err := m.AddMeshRootCertificateEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			mrc := obj.(*v1alpha2.MeshRootCertificate)
 			log.Debug().Msgf("received MRC add event for MRC %s/%s", mrc.GetNamespace(), mrc.GetName())
@@ -47,7 +47,7 @@ func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, e
 		DeleteFunc: func(obj interface{}) {},
 	})
 
-	return eventChan, nil
+	return eventChan, err
 }
 
 // UpdateMeshRootCertificate updates the given mesh root certificate.

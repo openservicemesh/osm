@@ -115,7 +115,7 @@ type PassthroughInterface interface {
 
 	GetMeshConfig() configv1alpha2.MeshConfig
 	GetMeshRootCertificate(mrcName string) *configv1alpha2.MeshRootCertificate
-	AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler)
+	AddMeshRootCertificateEventHandler(handler cache.ResourceEventHandler) error
 
 	ListMeshRootCertificates() ([]*configv1alpha2.MeshRootCertificate, error)
 	UpdateMeshRootCertificate(obj *configv1alpha2.MeshRootCertificate) (*configv1alpha2.MeshRootCertificate, error)
