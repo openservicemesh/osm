@@ -55,7 +55,7 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
-          only-new-issues: true
+          args: --new-from-rev=HEAD~
           skip-pkg-cache: true
 
   codegen:
