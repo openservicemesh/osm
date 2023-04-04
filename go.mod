@@ -7,7 +7,7 @@ require (
 	github.com/Azure/go-autorest/autorest/to v0.4.0
 	github.com/axw/gocov v1.1.0
 	github.com/cert-manager/cert-manager v1.10.0
-	github.com/containerd/containerd v1.6.6 // indirect
+	github.com/containerd/containerd v1.6.18 // indirect
 	github.com/cskr/pubsub v1.0.2
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v20.10.18+incompatible
@@ -62,7 +62,6 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
-	github.com/containerd/cgroups v1.0.4 // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/hashicorp/vault v1.12.0
 	github.com/hashicorp/vault/sdk v0.6.1-0.20221010215534-6545e24b6023
@@ -285,7 +284,7 @@ require (
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mbilski/exhaustivestruct v1.1.0 // indirect
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/mitchellh/cli v1.1.2 // indirect
