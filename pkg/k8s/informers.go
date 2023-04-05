@@ -195,7 +195,10 @@ func (c *Client) run(stop <-chan struct{}) error {
 			continue
 		}
 
-		informer.AddEventHandler(handler)
+		if _, err := informer.AddEventHandler(handler); err != nil {
+			log.Error().Err(err).Msgf("Error adding event handler for %s informer", name)
+			return err
+		}
 
 		go informer.Run(stop)
 		names = append(names, string(name))
