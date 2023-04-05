@@ -22,7 +22,7 @@ func (d *fakeDialer) Dial(protocols ...string) (httpstream.Connection, string, e
 
 type noopConnection struct{}
 
-func (*noopConnection) CreateStream(headers http.Header) (httpstream.Stream, error) { //nolint: revive // unused-parameter
+func (*noopConnection) CreateStream(headers http.Header) (httpstream.Stream, error) {
 	return nil, nil
 }
 func (*noopConnection) RemoveStreams(streams ...httpstream.Stream) {} //nolint: revive // unused-parameter
