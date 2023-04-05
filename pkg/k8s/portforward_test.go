@@ -16,7 +16,7 @@ type fakeDialer struct {
 	dialErr error
 }
 
-func (d *fakeDialer) Dial(protocols ...string) (httpstream.Connection, string, error) { //notlint: revive // unused-parameter
+func (d *fakeDialer) Dial(protocols ...string) (httpstream.Connection, string, error) { //nolint: revive // unused-parameter
 	return d.conn, "", d.dialErr
 }
 
