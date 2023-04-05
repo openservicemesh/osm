@@ -16,16 +16,16 @@ type fakeDialer struct {
 	dialErr error
 }
 
-func (d *fakeDialer) Dial(protocols ...string) (httpstream.Connection, string, error) {
+func (d *fakeDialer) Dial(protocols ...string) (httpstream.Connection, string, error) { //notlint: revive // unused-parameter
 	return d.conn, "", d.dialErr
 }
 
 type noopConnection struct{}
 
-func (*noopConnection) CreateStream(headers http.Header) (httpstream.Stream, error) {
+func (*noopConnection) CreateStream(headers http.Header) (httpstream.Stream, error) { //nolint: revive // unused-parameter
 	return nil, nil
 }
-func (*noopConnection) RemoveStreams(streams ...httpstream.Stream) {}
+func (*noopConnection) RemoveStreams(streams ...httpstream.Stream) {} //nolint: revive // unused-parameter
 func (*noopConnection) CloseChan() <-chan bool                     { return nil }
 func (*noopConnection) Close() error                               { return nil }
 func (*noopConnection) SetIdleTimeout(time.Duration)               {}

@@ -33,7 +33,7 @@ const (
 // The kind of exclusion (inbound vs outbound) is determined by the specified annotation.
 //
 // The function returns an error when it is unable to determine whether ports need to be excluded from outbound sidecar interception.
-func getPortExclusionListForPod(pod *corev1.Pod, namespace string, annotation string) ([]int, error) {
+func getPortExclusionListForPod(pod *corev1.Pod, namespace string, annotation string) ([]int, error) { //nolint: revive // unused-parameter
 	var ports []int
 
 	portsToExcludeStr, ok := pod.Annotations[annotation]
@@ -87,7 +87,7 @@ func mergePortExclusionLists(podSpecificPortExclusionList, globalPortExclusionLi
 // The kind of exclusion (inclusion vs exclusion) is determined by the specified annotation.
 //
 // The function returns an error when it is unable to determine whether IP ranges need to be excluded from outbound sidecar interception.
-func getOutboundIPRangeListForPod(pod *corev1.Pod, namespace string, annotation string) ([]string, error) {
+func getOutboundIPRangeListForPod(pod *corev1.Pod, namespace string, annotation string) ([]string, error) { //nolint: revive // unused-parameter
 	ipRangeExclusionsStr, ok := pod.Annotations[annotation]
 	if !ok {
 		// No port exclusion annotation specified

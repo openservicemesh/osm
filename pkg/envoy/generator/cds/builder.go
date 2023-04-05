@@ -521,7 +521,7 @@ func GetDefaultCircuitBreakerThreshold() *xds_cluster.CircuitBreakers_Thresholds
 // upstream traffic setting provided.
 // It applies the default circuit breaker thresholds to the upstream cluster.
 func applyUpstreamConnectionSettings(upstreamConnectionSettings *policyv1alpha1.ConnectionSettingsSpec, upstreamCluster *xds_cluster.Cluster,
-	httpProtocolOptions *extensions_upstream_http.HttpProtocolOptions) {
+	httpProtocolOptions *extensions_upstream_http.HttpProtocolOptions) { //nolint:revive // unused-parameter
 	// Apply Circuit Breaker threshold
 	threshold := GetDefaultCircuitBreakerThreshold()
 	upstreamCluster.CircuitBreakers = &xds_cluster.CircuitBreakers{

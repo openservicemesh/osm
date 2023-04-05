@@ -60,10 +60,7 @@ func NewMutatingWebhook(ctx context.Context, kubeClient kubernetes.Interface, ce
 		webhookCreatePod: http.HandlerFunc(wh.podCreationHandler),
 	},
 		func(cert *certificate.Certificate) error {
-			if err := createOrUpdateMutatingWebhook(kubeClient, cert, webhookTimeout, webhookConfigName, meshName, osmNamespace, osmVersion, enableReconciler); err != nil {
-				return err
-			}
-			return nil
+			return createOrUpdateMutatingWebhook(kubeClient, cert, webhookTimeout, webhookConfigName, meshName, osmNamespace, osmVersion, enableReconciler)
 		})
 
 	return srv.Run(ctx)

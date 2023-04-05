@@ -45,7 +45,7 @@ func (c *fakeMRCClient) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertific
 }
 
 // Watch returns a channel that has one MRCEventAdded. It is intended to implement the certificate.MRCClient interface.
-func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) {
+func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan MRCEvent, error) { //nolint: revive // unused-parameter
 	// send event for first CA created
 	ch := make(chan MRCEvent)
 	go func() {

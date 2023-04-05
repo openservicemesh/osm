@@ -22,13 +22,13 @@ func (s *Server) OnStreamClosed(streamID int64) {
 
 // OnStreamRequest is called when a request happens on an open connection
 func (s *Server) OnStreamRequest(streamID int64, req *discovery.DiscoveryRequest) error {
-	log.Debug().Msgf("OnStreamRequest node: %s, type: %s, v: %s, nonce: %s, resNames: %s", req.Node.Id, req.TypeUrl, req.VersionInfo, req.ResponseNonce, req.ResourceNames)
+	log.Debug().Msgf("OnStreamRequest node: %s, type: %s, v: %s, nonce: %s, resNames: %s, streamID: %d", req.Node.Id, req.TypeUrl, req.VersionInfo, req.ResponseNonce, req.ResourceNames, streamID)
 	return nil
 }
 
 // OnStreamResponse is called when a response is being sent to a request
 func (s *Server) OnStreamResponse(_ context.Context, streamID int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
-	log.Debug().Msgf("OnStreamDeltaResponse node: %s type: %s, v: %s, nonce: %s, NumResources: %d", req.Node.Id, resp.TypeUrl, resp.VersionInfo, resp.Nonce, len(resp.Resources))
+	log.Debug().Msgf("OnStreamDeltaResponse node: %s type: %s, v: %s, nonce: %s, NumResources: %d, streamID: %d", req.Node.Id, resp.TypeUrl, resp.VersionInfo, resp.Nonce, len(resp.Resources), streamID)
 }
 
 // --- Fetch request types. Callback interfaces still requires these to be defined

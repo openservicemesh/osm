@@ -38,7 +38,7 @@ func (g *fakeGenerator) getCallCount(uuid string) int {
 	return g.callCount[uuid]
 }
 
-func (g *fakeGenerator) GenerateConfig(ctx context.Context, proxy *models.Proxy) (fakeConfig, error) {
+func (g *fakeGenerator) GenerateConfig(ctx context.Context, proxy *models.Proxy) (fakeConfig, error) { //nolint: revive // unused-parameter
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.callCount[proxy.UUID.String()]++
@@ -64,7 +64,7 @@ func (s *fakeServer) getCallCount(uuid string) int {
 	return s.callCount[uuid]
 }
 
-func (s *fakeServer) UpdateProxy(ctx context.Context, proxy *models.Proxy, config fakeConfig) error {
+func (s *fakeServer) UpdateProxy(ctx context.Context, proxy *models.Proxy, config fakeConfig) error { //nolint: revive // unused-parameter
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.callCount[proxy.UUID.String()]++

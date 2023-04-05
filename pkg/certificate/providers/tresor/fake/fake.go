@@ -111,7 +111,7 @@ func (c *fakeMRCClient) ListMeshRootCertificates() ([]*v1alpha2.MeshRootCertific
 	return mrcListPointers, nil
 }
 
-func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
+func (c *fakeMRCClient) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) { //nolint: revive // unused-parameter
 	// send event for first CA created
 	go func() {
 		c.NewCertEvent(initialRootName)

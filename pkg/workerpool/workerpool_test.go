@@ -20,7 +20,7 @@ func TestNewWorkerPool(t *testing.T) {
 }
 
 // Uses AddJob, which relies on job hash for queue assignment
-func TestAddJob(t *testing.T) {
+func TestAddJob(t *testing.T) { //nolint:revive // unused-parameter
 	njobs := 10 // also worker routines
 	wp := NewWorkerPool(njobs)
 

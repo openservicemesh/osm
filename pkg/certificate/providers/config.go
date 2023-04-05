@@ -84,7 +84,7 @@ func NewCertificateManager(ctx context.Context, kubeClient kubernetes.Interface,
 
 // NewCertificateManagerFromMRC returns a new certificate manager.
 func NewCertificateManagerFromMRC(ctx context.Context, kubeClient kubernetes.Interface, kubeConfig *rest.Config,
-	providerNamespace string, option Options, computeClient compute.Interface, checkInterval time.Duration) (*certificate.Manager, error) {
+	providerNamespace string, option Options, computeClient compute.Interface, checkInterval time.Duration) (*certificate.Manager, error) { //nolint: revive // unused-parameter
 	if err := option.Validate(); err != nil {
 		return nil, err
 	}

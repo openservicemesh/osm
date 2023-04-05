@@ -54,12 +54,12 @@ func main() {
 			requestMsg := fmt.Sprintf("%s #connection=%d, #msg-counter=%d, msg=client hello\n", requestPrefix, connectionCounter, msgCounter)
 
 			// write on the connection
-			if bytesWritten, writeErr := conn.Write([]byte(requestMsg)); err != nil {
+			bytesWritten, writeErr := conn.Write([]byte(requestMsg))
+			if writeErr != nil {
 				log.Error().Err(writeErr).Msg("Write error")
 				continue
-			} else {
-				log.Info().Msgf("Wrote %d bytes, msg written: [%s]\n", bytesWritten, requestMsg)
 			}
+			log.Info().Msgf("Wrote %d bytes, msg written: [%s]\n", bytesWritten, requestMsg)
 
 			// read response from server
 			responseMsg, err := response.ReadString(byte('\n'))

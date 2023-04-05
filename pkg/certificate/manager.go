@@ -345,7 +345,7 @@ func (m *Manager) SubscribeRotations(key string) (chan interface{}, func()) {
 		go m.pubsub.Unsub(ch)
 		// must empty the channel to prevent deadlock
 		// https://github.com/openservicemesh/osm/issues/4847
-		for range ch {
+		for range ch { //nolint: revive // empty-block
 		}
 	}
 }

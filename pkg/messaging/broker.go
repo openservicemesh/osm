@@ -103,7 +103,7 @@ func (b *Broker) runWorkqueueProcessor() {
 	// if 'processNextItems()' returns false.
 	go wait.Until(
 		func() {
-			for b.processNextItem() {
+			for b.processNextItem() { //nolint: revive // empty-block
 			}
 		},
 		time.Second,
@@ -267,7 +267,7 @@ func (b *Broker) Unsub(pubSub *pubsub.PubSub, ch chan interface{}) {
 	// existing messages on the subscribed channel must be drained as noted
 	// in https://github.com/cskr/pubsub/blob/v1.0.2/pubsub.go#L95.
 	go pubSub.Unsub(ch)
-	for range ch {
+	for range ch { //nolint: revive // empty-block
 		// Drain channel until 'Unsub' results in a close on the subscribed channel
 	}
 }

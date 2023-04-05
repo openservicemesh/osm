@@ -22,7 +22,7 @@ type MRCComposer struct {
 // from the informerCollection's MRC store. Channels returned from multiple invocations of
 // Watch() are unique and have no coordination with each other. Events are guaranteed
 // to be ordered for any particular resources, but NOT across different resources.
-func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) {
+func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, error) { //nolint: revive // unused-parameter
 	eventChan := make(chan certificate.MRCEvent)
 	err := m.AddMeshRootCertificateEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -51,7 +51,7 @@ func (m *MRCComposer) Watch(ctx context.Context) (<-chan certificate.MRCEvent, e
 }
 
 // UpdateMeshRootCertificate updates the given mesh root certificate.
-func (m *MRCComposer) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) error {
+func (m *MRCComposer) UpdateMeshRootCertificate(mrc *v1alpha2.MeshRootCertificate) error { //nolint: revive // unused-parameter
 	// TODO(5046): implement this.
 	return nil
 }

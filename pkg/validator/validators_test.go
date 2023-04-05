@@ -2064,12 +2064,12 @@ func TestValidateMRCOnUpdate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			a := tassert.New(t)
-			old := createTestMrc(tt.mrcName, tt.oldRole)
-			new := createTestMrc(tt.mrcName, tt.newRole)
+			oldMrc := createTestMrc(tt.mrcName, tt.oldRole)
+			newMrc := createTestMrc(tt.mrcName, tt.newRole)
 			// add the old to the list
-			tt.otherMrcs = append(tt.otherMrcs, old)
+			tt.otherMrcs = append(tt.otherMrcs, oldMrc)
 			v := createValidator(tt.otherMrcs)
-			err := v.validateMRCOnUpdate(old, new)
+			err := v.validateMRCOnUpdate(oldMrc, newMrc)
 			if tt.wantErr {
 				a.Error(err)
 			} else {
