@@ -184,7 +184,9 @@ func (ic *InformerCollection) AddEventHandler(informerKey InformerKey, handler c
 		return
 	}
 
-	i.AddEventHandler(handler)
+	if _, err := i.AddEventHandler(handler); err != nil {
+		log.Error().Err(err).Msgf("Error adding event handler for informer %s", informerKey)
+	}
 }
 
 // GetByKey retrieves an item (based on the given index) from the store of the informer indexed by the given InformerKey
