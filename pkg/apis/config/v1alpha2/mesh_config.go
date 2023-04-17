@@ -171,6 +171,9 @@ type ExternalAuthzSpec struct {
 	// FailureModeAllow defines a boolean indicating if traffic should be allowed on a failure to get a
 	// response against the external authorization endpoint.
 	FailureModeAllow bool `json:"failureModeAllow"`
+
+	// InitialMetadata allows adding additional metadata to include in streams initiated to the GrpcService.
+	InitialMetadata map[string]string `json:"initial_metadata,omitempty"`
 }
 
 // CertificateSpec is the type to reperesent OSM's certificate management configuration.

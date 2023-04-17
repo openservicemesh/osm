@@ -150,6 +150,7 @@ func ExternalAuthConfigFromMeshConfig(mc v1alpha2.MeshConfig) auth.ExtAuthConfig
 	extAuthConfig.Port = uint16(inboundExtAuthzMeshConfig.Port)
 	extAuthConfig.StatPrefix = inboundExtAuthzMeshConfig.StatPrefix
 	extAuthConfig.FailureModeAllow = inboundExtAuthzMeshConfig.FailureModeAllow
+	extAuthConfig.InitialMetadata = inboundExtAuthzMeshConfig.InitialMetadata
 
 	duration, err := time.ParseDuration(inboundExtAuthzMeshConfig.Timeout)
 	if err != nil {

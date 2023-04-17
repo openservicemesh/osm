@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"fmt"
+	"reflect"
 	"sync/atomic"
 	"time"
 
@@ -303,7 +304,7 @@ func shouldPublish(msg events.PubSubMessage) (bool, string) {
 			prevSpec.Observability.Tracing != newSpec.Observability.Tracing ||
 			prevSpec.Traffic.InboundExternalAuthorization.Enable != newSpec.Traffic.InboundExternalAuthorization.Enable ||
 			// Only trigger an update on InboundExternalAuthorization field changes if the new spec has the 'Enable' flag set to true.
-			(newSpec.Traffic.InboundExternalAuthorization.Enable && (prevSpec.Traffic.InboundExternalAuthorization != newSpec.Traffic.InboundExternalAuthorization)) ||
+			(newSpec.Traffic.InboundExternalAuthorization.Enable && (!reflect.DeepEqual(prevSpec.Traffic.InboundExternalAuthorization, newSpec.Traffic.InboundExternalAuthorization))) ||
 			prevSpec.FeatureFlags != newSpec.FeatureFlags {
 			return true, ""
 		}

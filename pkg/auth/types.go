@@ -24,4 +24,7 @@ type ExtAuthConfig struct {
 
 	// FailureModeAllow allows specifying if traffic should succeed or fail if the external authorization endpoint fails to respond.
 	FailureModeAllow bool
+
+	// InitialMetadata allows adding additional metadata to include in streams initiated to the GrpcService.
+	InitialMetadata map[string]string `json:"initial_metadata,omitempty"`
 }

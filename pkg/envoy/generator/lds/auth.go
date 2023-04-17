@@ -16,6 +16,15 @@ import (
 
 // getExtAuthzHTTPFilter returns an envoy HttpFilter given an ExternAuthConfig configuration
 func getExtAuthzHTTPFilter(extAuthConfig *auth.ExtAuthConfig) *xds_hcm.HttpFilter {
+	var initialMetadata []*envoy_config_core_v3.HeaderValue
+
+	for key, value := range extAuthConfig.InitialMetadata {
+		initialMetadata = append(initialMetadata, &envoy_config_core_v3.HeaderValue{
+			Key:   key,
+			Value: value,
+		})
+	}
+
 	extAuth := &xds_ext_authz.ExtAuthz{
 		Services: &xds_ext_authz.ExtAuthz_GrpcService{
 			GrpcService: &envoy_config_core_v3.GrpcService{
@@ -27,7 +36,8 @@ func getExtAuthzHTTPFilter(extAuthConfig *auth.ExtAuthConfig) *xds_hcm.HttpFilte
 						StatPrefix: extAuthConfig.StatPrefix,
 					},
 				},
-				Timeout: durationpb.New(extAuthConfig.AuthzTimeout),
+				Timeout:         durationpb.New(extAuthConfig.AuthzTimeout),
+				InitialMetadata: initialMetadata,
 			},
 		},
 		TransportApiVersion: envoy_config_core_v3.ApiVersion_V3,
