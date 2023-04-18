@@ -1,4 +1,12 @@
 # Release Notes
+
+## Release v1.2.4
+
+### Notable changes
+- Deprecate support for TLS v1.0 and TLS v1.1 for the Envoy proxy TLSMaxProtocolVersion option
+- Reduce minimum TLS version from v1.3 to v1.2 for the osm controller, verifier, and health servers
+- Support robust CRD conversion patching on upgrade to ensure reconciliation is controlled by the newer OSM version
+
 ## Release v1.2.3
 
 ### Notable changes
