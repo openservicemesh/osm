@@ -23,6 +23,25 @@ func (td *OsmTestData) HelmInstallOSM(release, namespace string) error {
 	return nil
 }
 
+// HelmInstallOSM installs an osm control plane using the osm chart which lives in charts/osm with contour
+func (td *OsmTestData) HelmInstallOSMContour(release, namespace string) error {
+	if td.InstType == KindCluster {
+		if err := td.LoadOSMImagesIntoKind(); err != nil {
+			return err
+		}
+	}
+
+	values := fmt.Sprintf("osm.image.registry=%s,osm.image.tag=%s,osm.meshName=%s,contour.enabled=%s", td.CtrRegistryServer, td.OsmImageTag, release, "true")
+	args := []string{"install", release, "../../charts/osm", "--set", values, "--namespace", namespace, "--create-namespace", "--debug", "--wait"}
+	stdout, stderr, err := td.RunLocal("helm", args...)
+	if err != nil {
+		td.T.Logf("stdout:\n%s", stdout)
+		return fmt.Errorf("failed to run helm install with osm chart: %s", stderr)
+	}
+
+	return nil
+}
+
 // DeleteHelmRelease uninstalls a particular helm release
 func (td *OsmTestData) DeleteHelmRelease(name, namespace string) error {
 	args := []string{"uninstall", name, "--namespace", namespace}
