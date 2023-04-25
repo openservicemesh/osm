@@ -28,7 +28,7 @@ var _ = OSMDescribe("Test osm control plane and contour installation with Helm",
 				meshConfig, err := Td.GetMeshConfig(namespace)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				// validate osm MeshConfig
+				// validate osm MeshConfig and contour
 				spec := meshConfig.Spec
 				Expect(spec.Traffic.EnablePermissiveTrafficPolicyMode).To(BeTrue())
 				Expect(spec.Traffic.EnableEgress).To(BeTrue())
