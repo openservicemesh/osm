@@ -10,7 +10,7 @@ import (
 var _ = OSMDescribe("Test osm control plane and contour installation with Helm",
 	OSMDescribeInfo{
 		Tier:   2,
-		Bucket: 4,
+		Bucket: 5,
 	},
 	func() {
 		Context("Helm install using default values and contour", func() {
@@ -28,7 +28,7 @@ var _ = OSMDescribe("Test osm control plane and contour installation with Helm",
 				meshConfig, err := Td.GetMeshConfig(namespace)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				// validate osm MeshConfig and contour
+				// validate OSM MeshConfig and contour
 				spec := meshConfig.Spec
 				Expect(spec.Traffic.EnablePermissiveTrafficPolicyMode).To(BeTrue())
 				Expect(spec.Traffic.EnableEgress).To(BeTrue())
