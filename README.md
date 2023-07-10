@@ -1,4 +1,4 @@
-> # ⚠️ The OSM project has been [proposed for archive status](https://github.com/cncf/toc/pull/1044). ⚠️
+> # ⚠️ [The OSM project has been officially archived by the CNCF](https://github.com/cncf/toc/pull/1044). There will be no more new development on any repo under the OpenServiceMesh organization.⚠️
 
 <br>
 
@@ -65,7 +65,7 @@ Documentation pertaining to development, release workflows, and other repository
 ### Project status
 
 > **Attention:**
-> The OSM project has been proposed to be archived. Please reference PR [Proposal: OSM for Project Archive](https://github.com/cncf/toc/pull/1044) to the CNCF TOC for comments and latest status.
+> ⚠️ The OSM project has been officially [archived](https://www.cncf.io/archived-projects/). Please reference PR [Proposal: OSM for Project Archive](https://github.com/cncf/toc/pull/1044) ⚠️
 
 ### Support
 
@@ -135,10 +135,7 @@ Connect with the Open Service Mesh community:
 
 - GitHub [issues](https://github.com/openservicemesh/osm/issues) and [pull requests](https://github.com/openservicemesh/osm/pulls) in this repo
 - OSM Slack: <a href="https://slack.cncf.io/">Join</a> the CNCF Slack for related discussions in <a href="https://cloud-native.slack.com/archives/C018794NV1C">#openservicemesh</a>
-- OSM Community meetings take place on the second Tuesday of each month, 10:30am-11am Pacific in the [CNCF OSM Zoom room](https://zoom.us/my/cncfosm?pwd=aXdkaGU3OWRjUllyaHZEZkh0ZjFwUT09)
-  - [Calendar invite](https://calendar.google.com/calendar?cid=Y181dXJwY3F0NWd2OW5ldXE2c2IxM2hvcnN2Z0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t)
-  - [Meeting notes](https://docs.google.com/document/d/1da-XIqthmyG7zQyFAV1Kt-Qvq4NoNNBX7hZ_sM_kM98/edit?usp=sharing)
-  - [CNCF YouTube Playlist for OSM community meetings](https://www.youtube.com/playlist?list=PLMy1gNP8pzh53-ScOG8i1BQW5cvAGkF0X)
+- OSM Community meetings - **There are no more community meetings for this project**
 - [Mailing list](https://groups.google.com/g/openservicemesh)
 - [OSM Twitter](https://twitter.com/openservicemesh)
 
